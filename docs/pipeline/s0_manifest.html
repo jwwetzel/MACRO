@@ -1,0 +1,484 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S0 — Manifest &amp; Curation</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+
+<header>
+  <h1>S0 — Manifest &amp; Curation</h1>
+  <p>329,042 catalog rows &rarr; 196,627 canonical frames
+  &middot; 1,972 targets &middot; 83 camera eras
+  &middot; 628 nights &middot;
+  built 2026-08-17T17:29Z from
+  <code>rlmt-catalog.sqlite</code>
+  (S0 v1.0 (2026-08-17),
+  commit <code>93a0205</code>)
+  &middot; <a href="../index.html">back to the evidence hub</a></p>
+</header>
+
+<nav>
+  <a href="#dedup">1 Duplication</a> &middot;
+  <a href="#aliases">2 Aliases</a> &middot;
+  <a href="#eras">3 Eras</a> &middot;
+  <a href="#nights">4 Nights</a> &middot;
+  <a href="#pointing">5 Pointing</a> &middot;
+  <a href="#qc">6 QC</a> &middot;
+  <a href="#recon">7 Reconciliation</a>
+</nav>
+
+
+<section id="dedup">
+<div class="bhead"><h2>1 · Duplication</h2>
+<span class="tag">dedup global on (basename, JD)</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">The catalog holds 329,042 rows.  How many distinct
+exposures is that, and which copy of each is the one the pipeline reads?</p>
+
+<h3>Evidence</h3>
+<div class="grid"><figure><a href="figures/s0/s0_dup_group_sizes.png"><img src="figures/s0/s0_dup_group_sizes.png" alt=""></a><figcaption>Duplicate-group size distribution: 196,627 groups from 329,042 rows; 132,415 rows are extra copies of an exposure that already exists.</figcaption></figure></div>
+<table class="data">
+<tr><th>tree</th><th>catalog rows</th><th>canonical frames</th><th>duplicate copies</th><th>% duplicate</th></tr>
+<tr><td>rawimage</td><td>167,532</td><td>159,353</td><td>8,179</td><td>4.9%</td></tr>
+<tr><td>reduced</td><td>106,942</td><td>27,223</td><td>79,719</td><td>74.5%</td></tr>
+<tr><td>macalester</td><td>30,403</td><td>1,764</td><td>28,639</td><td>94.2%</td></tr>
+<tr><td>iKon</td><td>5,875</td><td>5,853</td><td>22</td><td>0.4%</td></tr>
+<tr><td>other</td><td>5,323</td><td>306</td><td>5,017</td><td>94.3%</td></tr>
+<tr><td>external</td><td>4,572</td><td>148</td><td>4,424</td><td>96.8%</td></tr>
+<tr><td>coe</td><td>2,316</td><td>242</td><td>2,074</td><td>89.6%</td></tr>
+<tr><td>knox</td><td>1,839</td><td>0</td><td>1,839</td><td>100.0%</td></tr>
+<tr><td>iowa</td><td>1,587</td><td>49</td><td>1,538</td><td>96.9%</td></tr>
+<tr><td>augustana</td><td>512</td><td>1</td><td>511</td><td>99.8%</td></tr>
+<tr><td>mjc</td><td>488</td><td>473</td><td>15</td><td>3.1%</td></tr>
+<tr><td>grism</td><td>477</td><td>418</td><td>59</td><td>12.4%</td></tr>
+<tr><td>calib</td><td>477</td><td>466</td><td>11</td><td>2.3%</td></tr>
+<tr><td>AASPrep</td><td>374</td><td>116</td><td>258</td><td>69.0%</td></tr>
+<tr><td>cmos_tests</td><td>118</td><td>118</td><td>0</td><td>0.0%</td></tr>
+<tr><td>ASTR1070</td><td>62</td><td>62</td><td>0</td><td>0.0%</td></tr>
+<tr><td>tmp_filter_quarantine</td><td>42</td><td>21</td><td>21</td><td>50.0%</td></tr>
+<tr><td>failed</td><td>34</td><td>0</td><td>34</td><td>100.0%</td></tr>
+<tr><td>hagrism</td><td>30</td><td>1</td><td>29</td><td>96.7%</td></tr>
+<tr><td>latency</td><td>26</td><td>0</td><td>26</td><td>100.0%</td></tr>
+<tr><td>classes</td><td>6</td><td>6</td><td>0</td><td>0.0%</td></tr>
+<tr><td>daily</td><td>4</td><td>4</td><td>0</td><td>0.0%</td></tr>
+<tr><td>forcolin</td><td>3</td><td>3</td><td>0</td><td>0.0%</td></tr>
+</table>
+<p class="sub">Tree-policy caveat: <b>25</b> of the
+619 observing nights with canonical Light frames hold them
+in non-<code>rawimage</code> trees <i>only</i> (school mirrors, the iKon
+tree) — a project counting nothing but its primary tree misses those
+nights entirely (ST&nbsp;LMi&rsquo;s iKon surplus in section&nbsp;7 is the
+worked example).</p>
+<p class="sub">The SN 2023ixf lesson, confirmed archive-wide: duplication is
+not only cross-tree.  <b>8,063</b> rawimage rows are copies
+of frames whose canonical row is <i>also</i> in rawimage — wholesale
+re-copied night directories:</p>
+<table class="data">
+<tr><th>rawimage directory holding copies of other nights</th><th>duplicate frames</th></tr>
+<tr><td><code>rawimage/2023-07-08</code></td><td>3,122</td></tr>
+<tr><td><code>rawimage/2023-07-09</code></td><td>2,402</td></tr>
+<tr><td><code>rawimage/2023-07-07</code></td><td>1,369</td></tr>
+<tr><td><code>rawimage/2023-03-01</code></td><td>436</td></tr>
+<tr><td><code>rawimage/2023-06-13</code></td><td>418</td></tr>
+<tr><td><code>rawimage/2023-10-05</code></td><td>189</td></tr>
+<tr><td><code>rawimage/2023-02-10</code></td><td>84</td></tr>
+<tr><td><code>rawimage/2023-02-09</code></td><td>18</td></tr>
+</table>
+<p class="sub">Limitation, quantified: (basename, JD) cannot see a RENAMED
+copy.  <b>29,737</b> (target, JD) pairs occur on more than one
+canonical frame — overwhelmingly <code>reduced/</code> files renamed during
+processing (e.g. every one of EU UMa&rsquo;s 257
+reduced-only &ldquo;unique&rdquo; frames shares its JD with a rawimage
+frame).  By tree:</p>
+<table class="data">
+<tr><th>tree</th><th>canonical frames whose (target, JD) also exists in rawimage</th></tr>
+<tr><td>reduced</td><td>27,075</td></tr>
+<tr><td>macalester</td><td>516</td></tr>
+<tr><td>mjc</td><td>395</td></tr>
+<tr><td>ASTR1070</td><td>10</td></tr>
+<tr><td>external</td><td>9</td></tr>
+<tr><td>classes</td><td>6</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>Duplicate identity is (basename, JD), globally —
+across and within trees.</b>  One canonical row per group, chosen by tree
+policy: <code>rawimage</code> first, <code>reduced</code> last, ties broken
+by earliest path; documented per-target exception: NGC&nbsp;5548 prefers
+<code>macalester</code> (the superset tree).  Renamed <code>reduced/</code>
+copies survive dedup by construction, so <b>downstream accounting uses
+canonical frames from each target&rsquo;s primary tree</b> (as section 7
+does), and the (target,&nbsp;JD)-collision population above is handed to S1
+as a suspect list.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Every count below this line uses the 196,627
+canonical frames.  A project quoting raw rows overstates its dataset by up
+to ~2.9&times; (SN 2023ixf: 3,018 rawimage
+rows &rarr; 1,052 frames).</p>
+</div></section>
+<section id="aliases">
+<div class="bhead"><h2>2 · Alias consolidation</h2>
+<span class="tag">rules + cone-gated synonyms, never fuzzy matching</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">The catalog carries 3,014 distinct raw target names.
+How many real targets is that, and by exactly what rule does each variant
+map to its canonical name?</p>
+
+<h3>Evidence</h3>
+<div class="grid"><figure><a href="figures/s0/s0_alias_top25.png"><img src="figures/s0/s0_alias_top25.png" alt=""></a><figcaption>3,014 raw names resolve to 1,972 canonical targets; 2,647 names needed at least one normalization rule. Yellow = the largest single raw variant; blue = the merged total.</figcaption></figure>
+</div>
+<table class="data">
+<tr><th>canonical target</th><th>raw variants merged</th><th>catalog rows</th><th>resolution methods (union)</th></tr>
+<tr><td>Vega</td><td>43</td><td>982</td><td><code>casefold,separators,synonym,exposure_tokens</code></td></tr>
+<tr><td>Alphecca</td><td>36</td><td>184</td><td><code>casefold,exposure_tokens</code></td></tr>
+<tr><td>Saturn</td><td>26</td><td>156</td><td><code>casefold,identity,exposure_tokens</code></td></tr>
+<tr><td>bet CMi</td><td>15</td><td>509</td><td><code>casefold,separators,exposure_tokens</code></td></tr>
+<tr><td>Psi Per</td><td>14</td><td>326</td><td><code>casefold,separators,exposure_tokens</code></td></tr>
+<tr><td>zet Tau</td><td>12</td><td>151</td><td><code>casefold,separators,exposure_tokens</code></td></tr>
+<tr><td>phi Leo</td><td>12</td><td>569</td><td><code>exposure_tokens,casefold,separators</code></td></tr>
+<tr><td>Neptune</td><td>12</td><td>192</td><td><code>casefold,exposure_tokens</code></td></tr>
+<tr><td>5 Cnc</td><td>12</td><td>468</td><td><code>casefold,separators,exposure_tokens,identity</code></td></tr>
+<tr><td>19 Mon</td><td>12</td><td>84</td><td><code>casefold,separators,exposure_tokens</code></td></tr>
+<tr><td>PLEIONE</td><td>11</td><td>51</td><td><code>casefold,exposure_tokens</code></td></tr>
+<tr><td>10 Cas</td><td>11</td><td>40</td><td><code>exposure_tokens,casefold,separators</code></td></tr>
+</table>
+<p class="sub">Coordinate-cone audit (0.2&deg; on median
+plate-solved positions): 1,351 raw names had solved coordinates
+to check; <b>4</b> sit farther than 0.2&deg;
+from their group&rsquo;s pooled position — all explainable: mosaic/wide-field
+pointings of extended fields (M31, rho&nbsp;Oph) and a moving target
+(Saturn), where a fixed cone is meaningless by construction:</p>
+<table class="data">
+<tr><th>raw name</th><th>canonical target</th><th>rows</th><th>method</th></tr>
+<tr><td>M31</td><td>M31</td><td>1,425</td><td><code>casefold</code></td></tr>
+<tr><td>  rho Oph A</td><td>rho Oph A</td><td>58</td><td><code>whitespace,casefold,separators</code></td></tr>
+<tr><td>rho Oph A</td><td>rho Oph A</td><td>12</td><td><code>casefold,separators</code></td></tr>
+<tr><td>saturn</td><td>Saturn</td><td>6</td><td><code>identity</code></td></tr>
+</table>
+<table class="data">
+<tr><th>must-NOT-merge check</th><th>result</th></tr>
+<tr><td>Dw1403+49 vs Dw1409+51 (adjacent survey fields)</td><td>separate keys &#10003;</td></tr>
+<tr><td>T CrB vs tet CrB (target vs its calibrator, 8&deg; apart)</td><td>separate keys &#10003;</td></tr>
+</table>
+<p class="sub">10,706 rows carry a blank target name (mostly
+raw-tree grism lights with valid coordinates); they form no alias group and
+are flagged <code>blank_target</code> for S1&rsquo;s cone match.</p>
+
+<h3>Decision</h3>
+<div class="decision"><b>A merge happens through a named pure rule
+(case/whitespace/separators, junk prefixes, exposure-token strip, series
+suffix, genitive spelling) or through the explicit two-entry synonym table
+(Alpha&nbsp;Lyr&rarr;Vega, NGC&nbsp;5457&rarr;M101), gated by the
+0.2&deg; coordinate cone.  Fuzzy string similarity is
+banned.</b>  Every alias row records which rules fired and its cone-audit
+result.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Downstream stages see one name per target.  The
+reconciliation of section 7 works ONLY because the CV/BeStar filename
+variants (<code>mjcMay01 yzcnc</code>, <code>PHECDA lrg 0-25s</code>,
+<code>Vega 0p001s lrg 5</code>) land on their canonical targets.</p>
+</div></section>
+<section id="eras">
+<div class="bhead"><h2>3 · Era structure</h2>
+<span class="tag">keyed on (READOUTM, geometry, binning, EGAIN) — never
+filter or date</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">How many distinct camera configurations produced this
+archive, and when was each one live?</p>
+
+<h3>Evidence</h3>
+<div class="grid"><figure><a href="figures/s0/s0_era_timeline.png"><img src="figures/s0/s0_era_timeline.png" alt=""></a><figcaption>The 18 eras holding at least 100 canonical frames, on the calendar. Marker area scales with frames per night. Eras are numbered by first light.</figcaption></figure></div>
+<p class="sub">All 83 discovered configurations
+(10 distinct READOUTM strings; full table also exported as
+<code>products/manifest/eras.csv</code>):</p>
+<table class="data">
+<tr><th>era</th><th>READOUTM</th><th>NAXIS1</th><th>NAXIS2</th><th>bin</th><th>EGAIN</th><th>canonical frames</th><th>first night</th><th>last night</th></tr>
+<tr><td>1</td><td>High Gain StackPro</td><td>4,096</td><td>4,096</td><td>1</td><td>1.054</td><td>12,948</td><td>2023-02-06</td><td>2023-07-06</td></tr>
+<tr><td>2</td><td>High Gain</td><td>4,096</td><td>4,096</td><td>1</td><td>1.054</td><td>3,621</td><td>2023-02-06</td><td>2023-07-06</td></tr>
+<tr><td>3</td><td>High Gain StackPro</td><td>2,048</td><td>2,048</td><td>2</td><td>1.054</td><td>30</td><td>2023-04-06</td><td>2023-04-06</td></tr>
+<tr><td>4</td><td>Low Gain</td><td>4,096</td><td>4,096</td><td>1</td><td>22.638</td><td>17</td><td>2023-04-17</td><td>2023-07-05</td></tr>
+<tr><td>5</td><td>HDR</td><td>4,096</td><td>8,192</td><td>1</td><td>&mdash;</td><td>16</td><td>2023-04-17</td><td>2023-11-22</td></tr>
+<tr><td>6</td><td>High Gain StackPro</td><td>4,096</td><td>4,096</td><td>1</td><td>1.057</td><td>7,451</td><td>2023-10-03</td><td>2024-03-19</td></tr>
+<tr><td>7</td><td>High Gain</td><td>4,096</td><td>4,096</td><td>1</td><td>1.057</td><td>22,438</td><td>2023-10-03</td><td>2024-03-26</td></tr>
+<tr><td>8</td><td>Low Gain</td><td>4,096</td><td>4,096</td><td>1</td><td>22.744</td><td>805</td><td>2023-10-12</td><td>2023-12-04</td></tr>
+<tr><td>9</td><td>High Gain</td><td>1,112</td><td>1,112</td><td>1</td><td>1.057</td><td>53</td><td>2023-12-20</td><td>2024-01-16</td></tr>
+<tr><td>10</td><td>High Gain</td><td>1,666</td><td>1,666</td><td>1</td><td>1.057</td><td>296</td><td>2023-12-20</td><td>2024-02-19</td></tr>
+<tr><td>11</td><td>High Gain</td><td>1,666</td><td>1,604</td><td>1</td><td>1.057</td><td>2</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>12</td><td>High Gain</td><td>1,666</td><td>1,605</td><td>1</td><td>1.057</td><td>2</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>13</td><td>High Gain</td><td>1,666</td><td>1,606</td><td>1</td><td>1.057</td><td>2</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>14</td><td>High Gain</td><td>1,666</td><td>1,607</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>15</td><td>High Gain</td><td>1,666</td><td>1,609</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>16</td><td>High Gain</td><td>1,666</td><td>1,611</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>17</td><td>High Gain</td><td>1,666</td><td>1,612</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>18</td><td>High Gain</td><td>1,666</td><td>1,613</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>19</td><td>High Gain</td><td>1,666</td><td>1,614</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>20</td><td>High Gain</td><td>1,666</td><td>1,619</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>21</td><td>High Gain</td><td>1,666</td><td>1,620</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>22</td><td>High Gain</td><td>1,666</td><td>1,622</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>23</td><td>High Gain</td><td>1,666</td><td>1,624</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>24</td><td>High Gain</td><td>1,666</td><td>1,626</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>25</td><td>High Gain</td><td>1,666</td><td>1,628</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>26</td><td>High Gain</td><td>1,666</td><td>1,630</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>27</td><td>High Gain</td><td>1,666</td><td>1,632</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>28</td><td>High Gain</td><td>1,666</td><td>1,634</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>29</td><td>High Gain</td><td>1,666</td><td>1,636</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>30</td><td>High Gain</td><td>1,666</td><td>1,638</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>31</td><td>High Gain</td><td>1,666</td><td>1,639</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>32</td><td>High Gain</td><td>1,666</td><td>1,640</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>33</td><td>High Gain</td><td>1,666</td><td>1,641</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>34</td><td>High Gain</td><td>1,666</td><td>1,644</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>35</td><td>High Gain</td><td>1,666</td><td>1,647</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>36</td><td>High Gain</td><td>1,666</td><td>1,648</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>37</td><td>High Gain</td><td>1,666</td><td>1,650</td><td>1</td><td>1.057</td><td>1</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>38</td><td>High Gain</td><td>1,666</td><td>1,652</td><td>1</td><td>1.057</td><td>2</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>39</td><td>High Gain</td><td>1,666</td><td>1,653</td><td>1</td><td>1.057</td><td>2</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>40</td><td>High Gain</td><td>1,666</td><td>1,654</td><td>1</td><td>1.057</td><td>2</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>41</td><td>High Gain</td><td>1,666</td><td>1,656</td><td>1</td><td>1.057</td><td>2</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>42</td><td>High Gain</td><td>1,666</td><td>1,657</td><td>1</td><td>1.057</td><td>4</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>43</td><td>High Gain</td><td>1,666</td><td>1,658</td><td>1</td><td>1.057</td><td>4</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>44</td><td>High Gain</td><td>1,666</td><td>1,659</td><td>1</td><td>1.057</td><td>2</td><td>2024-01-09</td><td>2024-01-09</td></tr>
+<tr><td>45</td><td>3MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>&mdash;</td><td>1</td><td>2024-04-04</td><td>2024-04-04</td></tr>
+<tr><td>46</td><td>1MHz High Sensitivity 16-bit</td><td>1,024</td><td>1,024</td><td>2</td><td>&mdash;</td><td>2</td><td>2024-04-04</td><td>2024-04-04</td></tr>
+<tr><td>47</td><td>1MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>&mdash;</td><td>4,030</td><td>2024-04-04</td><td>2024-11-18</td></tr>
+<tr><td>48</td><td>5MHz High Sensitivity 16-bit</td><td>512</td><td>512</td><td>4</td><td>&mdash;</td><td>3</td><td>2024-04-04</td><td>2024-04-04</td></tr>
+<tr><td>49</td><td>5MHz High Sensitivity 16-bit</td><td>1,024</td><td>1,024</td><td>2</td><td>&mdash;</td><td>93</td><td>2024-04-04</td><td>2024-04-04</td></tr>
+<tr><td>50</td><td>3MHz High Sensitivity 16-bit</td><td>1,024</td><td>1,024</td><td>2</td><td>&mdash;</td><td>46</td><td>2024-04-04</td><td>2024-04-04</td></tr>
+<tr><td>51</td><td>5MHz High Sensitivity 16-bit</td><td>257</td><td>257</td><td>2</td><td>&mdash;</td><td>11</td><td>2024-04-04</td><td>2024-04-04</td></tr>
+<tr><td>52</td><td>5MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>&mdash;</td><td>275</td><td>2024-04-09</td><td>2024-04-16</td></tr>
+<tr><td>53</td><td>1MHz High Sensitivity 16-bit</td><td>105</td><td>97</td><td>1</td><td>&mdash;</td><td>720</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>54</td><td>5MHz High Sensitivity 16-bit</td><td>105</td><td>97</td><td>1</td><td>&mdash;</td><td>80</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>55</td><td>3MHz High Sensitivity 16-bit</td><td>105</td><td>97</td><td>1</td><td>&mdash;</td><td>8</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>56</td><td>1MHz High Sensitivity 16-bit</td><td>282</td><td>322</td><td>1</td><td>&mdash;</td><td>98</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>57</td><td>1MHz High Sensitivity 16-bit</td><td>204</td><td>176</td><td>1</td><td>&mdash;</td><td>34</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>58</td><td>1MHz High Sensitivity 16-bit</td><td>57</td><td>48</td><td>1</td><td>&mdash;</td><td>48</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>59</td><td>1MHz High Sensitivity 16-bit</td><td>56</td><td>52</td><td>1</td><td>&mdash;</td><td>36</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>60</td><td>1MHz High Sensitivity 16-bit</td><td>76</td><td>70</td><td>1</td><td>&mdash;</td><td>22</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>61</td><td>1MHz High Sensitivity 16-bit</td><td>70</td><td>69</td><td>1</td><td>&mdash;</td><td>14</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>62</td><td>1MHz High Sensitivity 16-bit</td><td>76</td><td>63</td><td>1</td><td>&mdash;</td><td>10</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>63</td><td>1MHz High Sensitivity 16-bit</td><td>67</td><td>58</td><td>1</td><td>&mdash;</td><td>10</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>64</td><td>3MHz High Sensitivity 16-bit</td><td>67</td><td>58</td><td>1</td><td>&mdash;</td><td>35</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>65</td><td>1MHz High Sensitivity 16-bit</td><td>16</td><td>23</td><td>1</td><td>&mdash;</td><td>2</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>66</td><td>1MHz High Sensitivity 16-bit</td><td>70</td><td>88</td><td>1</td><td>&mdash;</td><td>4</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>67</td><td>5MHz High Sensitivity 16-bit</td><td>164</td><td>156</td><td>1</td><td>&mdash;</td><td>26</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>68</td><td>1MHz High Sensitivity 16-bit</td><td>216</td><td>204</td><td>1</td><td>&mdash;</td><td>7</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>69</td><td>5MHz High Sensitivity 16-bit</td><td>119</td><td>103</td><td>1</td><td>&mdash;</td><td>8</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>70</td><td>5MHz High Sensitivity 16-bit</td><td>45</td><td>34</td><td>1</td><td>&mdash;</td><td>5</td><td>2024-04-09</td><td>2024-04-09</td></tr>
+<tr><td>71</td><td>1MHz High Sensitivity 16-bit</td><td>1,515</td><td>256</td><td>1</td><td>&mdash;</td><td>1</td><td>2024-04-12</td><td>2024-04-12</td></tr>
+<tr><td>72</td><td>1MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>0.0</td><td>17,485</td><td>2024-04-15</td><td>2024-12-10</td></tr>
+<tr><td>73</td><td>1MHz High Sensitivity 16-bit</td><td>173</td><td>38</td><td>1</td><td>&mdash;</td><td>2</td><td>2024-04-16</td><td>2024-04-16</td></tr>
+<tr><td>74</td><td>5MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>0.0</td><td>245</td><td>2024-04-30</td><td>2024-12-02</td></tr>
+<tr><td>75</td><td>Mode0</td><td>9,576</td><td>6,388</td><td>1</td><td>0.247</td><td>61</td><td>2024-12-13</td><td>2025-11-01</td></tr>
+<tr><td>76</td><td>Mode0</td><td>4,788</td><td>3,194</td><td>2</td><td>0.247</td><td>69,009</td><td>2024-12-14</td><td>2026-03-16</td></tr>
+<tr><td>77</td><td>Mode0</td><td>4,788</td><td>3,194</td><td>2</td><td>0.78</td><td>56</td><td>2025-03-20</td><td>2025-11-30</td></tr>
+<tr><td>78</td><td>Fast</td><td>4,800</td><td>3,211</td><td>2</td><td>1.0</td><td>8,788</td><td>2026-03-21</td><td>2026-06-28</td></tr>
+<tr><td>79</td><td>Fast</td><td>4,787</td><td>3,193</td><td>2</td><td>1.0</td><td>25,579</td><td>2026-03-21</td><td>2026-06-28</td></tr>
+<tr><td>80</td><td>Fast</td><td>8</td><td>3,211</td><td>2</td><td>1.0</td><td>18,149</td><td>2026-04-23</td><td>2026-06-28</td></tr>
+<tr><td>81</td><td><i>(blank)</i></td><td>4,800</td><td>3,211</td><td>2</td><td>56.0</td><td>383</td><td>2026-06-28</td><td>2026-06-29</td></tr>
+<tr><td>82</td><td><i>(blank)</i></td><td>4,787</td><td>3,193</td><td>2</td><td>56.0</td><td>1,682</td><td>2026-06-28</td><td>2026-07-02</td></tr>
+<tr><td>83</td><td><i>(blank)</i></td><td>8</td><td>3,211</td><td>2</td><td>56.0</td><td>1,831</td><td>2026-06-29</td><td>2026-07-02</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>Era assignment keys on (READOUTM, NAXIS1&times;
+NAXIS2, XBINNING, EGAIN rounded to 3 decimals) — never on
+filter name or date</b> (BeStar lesson: hrg/lrg-labeled frames taken with
+the era-A camera; HaGrism running past its nominal end date).  The
+repackaged-FITS population the BeStar panel flagged surfaces here on its
+own: 19,980 canonical frames carry the NAXIS1=8 extension-HDU
+geometry and form their own eras rather than polluting their neighbors.</div>
+
+<h3>Consequence</h3>
+<p class="sub">S2 builds calibrations per era_id; S1 stratifies its solve
+experiment per era_id; no stage ever infers a camera from a filter string
+again.</p>
+</div></section>
+<section id="nights">
+<div class="bhead"><h2>4 · Night labeling</h2>
+<span class="tag">local-noon-to-noon: date(JD &minus; 0.7917)</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">What is &ldquo;a night&rdquo;, such that no contiguous
+observing sequence is ever split across two labels?</p>
+
+<h3>Evidence</h3>
+<div class="grid">
+<figure><a href="figures/s0/s0_frames_per_night.png"><img src="figures/s0/s0_frames_per_night.png" alt=""></a><figcaption>628 distinct nights; median 197 canonical frames per night; the densest night (2026-05-31) holds 3,003.</figcaption></figure>
+<figure><a href="figures/s0/s0_night_boundary.png"><img src="figures/s0/s0_night_boundary.png" alt=""></a><figcaption>Left: all 3,003 frames of the densest night sit far inside the boundaries. Right: archive-wide, 1,357 canonical frames fall within one hour of a boundary, and only 1 of them is a Light frame — the rest are daytime bias/dark/flat frames. The boundary crosses no observing sequence.</figcaption></figure>
+</div>
+
+<h3>Decision</h3>
+<div class="decision"><b>night = calendar date of (JD &minus;
+0.7917)</b> — the date rolls over at 19:00&nbsp;UT =
+12:00 local (Winer, UTC&minus;7), and the label equals the local evening
+date.  Header JD itself is stored untouched: it is the UTC exposure
+<i>start</i>, and mid-exposure BJD_TDB is S3&rsquo;s job, not S0&rsquo;s.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Per-night statistics (calibration masters, nightly zero
+points, night-block bootstraps) inherit a boundary that no exposure ever
+straddles.  Beware: a strategy document counting UTC <i>dates</i> can quote
+up to one extra night per observing run (see the SN row in section 7).</p>
+</div></section>
+<section id="pointing">
+<div class="bhead"><h2>5 · Pointing validation</h2>
+<span class="tag">frame coords vs alias-resolved target reference</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Is each frame actually pointed at the target its name
+claims?  (The T CrB panel proved header pointings lie.)</p>
+
+<h3>Evidence</h3>
+<div class="grid"><figure><a href="figures/s0/s0_pointing_offsets.png"><img src="figures/s0/s0_pointing_offsets.png" alt=""></a><figcaption>Offsets for 148,820 canonical frames across 778 targets with a reference position (median of plate-solved canonical frames, minimum 3). 9,915 frames sit beyond 1 deg; 137 exact-zero offsets are clipped into the lowest bin (a log axis cannot hold zero).</figcaption></figure>
+</div>
+<table class="data">
+<tr><th>target</th><th>frames &gt;1&deg;</th><th>frames with offsets</th><th>worst offset (deg)</th></tr>
+<tr><td>Focus</td><td>5,153</td><td>5,343</td><td>120.0</td></tr>
+<tr><td>1976 YX</td><td>831</td><td>1,311</td><td>1.8</td></tr>
+<tr><td>TestField</td><td>744</td><td>1,525</td><td>22.7</td></tr>
+<tr><td>M31</td><td>291</td><td>657</td><td>2.6</td></tr>
+<tr><td>TestField_25</td><td>283</td><td>283</td><td>8.5</td></tr>
+<tr><td>A891 TC</td><td>267</td><td>915</td><td>2.3</td></tr>
+<tr><td>Hat-P-20</td><td>265</td><td>713</td><td>104.6</td></tr>
+<tr><td>7077</td><td>207</td><td>347</td><td>4.3</td></tr>
+<tr><td>TestField_40</td><td>171</td><td>339</td><td>14.3</td></tr>
+<tr><td>A893 BB</td><td>169</td><td>465</td><td>4.1</td></tr>
+<tr><td>TestField_35</td><td>159</td><td>317</td><td>15.3</td></tr>
+<tr><td>TestField_30</td><td>153</td><td>299</td><td>16.2</td></tr>
+</table>
+<p class="sub">Reading the offender list: 6,802 of the
+9,915 outliers belong to Focus/TestField pseudo-targets, and most of
+the rest are moving solar-system objects (asteroids, planets) for which a
+fixed reference position is wrong by construction.  The list still catches
+real science pathology: AN&nbsp;UMa carries 151 outliers among
+its 1,279 frames with offsets, the worst at 154.8&deg;
+— a fact the CV project&rsquo;s conditional Q5 analysis needs to know.</p>
+<p class="sub">Ground-truth reproduction: the T CrB strategy reported 21 of
+247 grism pointings &gt;1&deg; off — the manifest finds
+<b>21</b> of <b>247</b>.  And NGC&nbsp;5548, with
+zero plate-solved frames, gets no reference position under the spec rule —
+yet its header coordinates alone expose the tracking-failure night the
+Dwarf panel documented:</p>
+<table class="data">
+<tr><th>night</th><th>frames</th><th>mean header RA (deg)</th><th>mean header Dec (deg)</th></tr>
+<tr class="warn"><td>2023-03-25</td><td>10</td><td>216.5</td><td>33.34</td></tr>
+<tr><td>2023-04-25</td><td>10</td><td>214.52</td><td>25.12</td></tr>
+<tr><td>2023-03-24</td><td>7</td><td>214.52</td><td>25.12</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>Reference position = RA-wrap-aware median of a
+target&rsquo;s plate-solved canonical frames (&ge;3
+solves required); every frame with coordinates gets
+<code>pointing_offset_deg</code>; offsets &gt;1&deg;
+are flagged <code>pointing_gt1deg</code> — flagged, never deleted.</b>
+Solved-WCS validation for the currently unsolvable campaigns (NGC&nbsp;5548
+has 0 solves) arrives with S1.</div>
+
+<h3>Consequence</h3>
+<p class="sub">The grism identity gate (T CrB Phase A.0) and every
+photometry stage inherit a per-frame pointing sanity column; mispointed
+frames can no longer hide inside a night&rsquo;s frame count.</p>
+</div></section>
+<section id="qc">
+<div class="bhead"><h2>6 · QC flags</h2>
+<span class="tag">marks, never deletions</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Which frames carry defects that downstream stages must know
+about before trusting a header?</p>
+
+<h3>Evidence</h3>
+<div class="grid"><figure><a href="figures/s0/s0_qc_flags.png"><img src="figures/s0/s0_qc_flags.png" alt=""></a><figcaption>34,423 of all catalog rows carry at least one flag. exptime_nonpos: 3,358 rows, of which 197 claim to be Light frames (mostly biases; the light-frame subset is the real pathology).</figcaption></figure></div>
+<p class="sub">The 5 files the cataloger could not read at
+all:</p>
+<table class="data">
+<tr><th>unreadable file</th><th>cataloger error</th></tr>
+<tr><td><code>augustana/avb/2023/063/avb06300.fts</code></td><td>OSError: Empty or corrupt FITS file</td></tr>
+<tr><td><code>coe/cas/2023/085/cas08505.fts</code></td><td>OSError: Empty or corrupt FITS file</td></tr>
+<tr><td><code>coe/cdh/2023/340/cdh34053.fts.fz</code></td><td>ValueError: The value of invalid/unparsable cards cannot set.  Either delete this card from the header or replace it.</td></tr>
+<tr><td><code>iKon/2024-04-23/focus_images/focus_1500_5s_LowRes_3.fts</code></td><td>OSError: Empty or corrupt FITS file</td></tr>
+<tr><td><code>macalester/mjc/2023/055/mjc3055024.fts.fz</code></td><td>OSError: Empty or corrupt FITS file</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>QC flags mark; they never delete.</b>  Header
+airmass outside [1, 10] (318 rows)
+is flagged and left alone — recomputation from coordinates and time is
+S3&rsquo;s job (ROADMAP convention 7), and camtemp is untrusted wholesale.
+ZMAG is carried as QC-only metadata and was used in <i>no</i> S0
+decision (ROADMAP convention 8).</div>
+
+<h3>Consequence</h3>
+<p class="sub">Every downstream selection can (and must) state its cuts as
+flag predicates — reproducible, greppable, and identical across all five
+papers.</p>
+</div></section>
+<section id="recon">
+<div class="bhead"><h2>7 · Strategy-count reconciliation</h2>
+<span class="tag">the key output — five papers, one frame accounting</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Do the inventory numbers published in the five strategy
+documents (all rev. 2026-08-16) survive contact with a single, global,
+rule-based manifest?</p>
+
+<h3>Evidence</h3>
+<p class="sub">18 claims checked; <b>15</b>
+reproduce exactly under like-for-like accounting (canonical frames from the
+target&rsquo;s primary tree — the rule every strategy itself used);
+<b>3</b> rows disagree, each with its cause identified.  The
+&ldquo;global&rdquo; column counts canonical frames across ALL trees — its
+excess over the primary-tree column is renamed-copy contamination
+(section&nbsp;1) plus genuinely unique out-of-tree material (ST&nbsp;LMi's
+iKon nights).</p>
+<table class="data">
+<tr><th>project</th><th>target</th><th>metric</th><th>strategy claim (frames / nights)</th><th>manifest, primary tree (frames / nights)</th><th>&Delta;frames</th><th>&Delta;nights</th><th>manifest global canonical</th><th>claim source & note</th></tr>
+<tr><td>TCrB_Monitoring</td><td>T CrB</td><td><code>rows_all_trees</code></td><td>862 / 86</td><td>862 / 86</td><td>0</td><td>0</td><td>862</td><td>sec.3: '862 T CrB light-frame rows' across trees; 86 distinct nights</td></tr>
+<tr class="warn"><td>TCrB_Monitoring</td><td>T CrB</td><td><code>unique_light</code></td><td>471 / 86</td><td>402 / 86</td><td>-69</td><td>0</td><td>402</td><td>sec.3: '471 unique light frames = 414 T CrB + 57 t crb' — counted rawimage ROWS; global (basename, jd) dedup collapses 69 within-rawimage duplicate copies the panel's row count kept</td></tr>
+<tr><td>TCrB_Monitoring</td><td>T CrB</td><td><code>grism_light</code></td><td>247 / 60</td><td>247 / 60</td><td>0</td><td>0</td><td>247</td><td>sec.1: '247 grism spectra on 60 nights' (lrg 147 + hrg 100)</td></tr>
+<tr><td>TCrB_Monitoring</td><td>tet CrB</td><td><code>grism_light</code></td><td>403 / 40</td><td>403 / 40</td><td>0</td><td>0</td><td>458</td><td>sec.3: theta CrB calibrator grism series '403 unique rawimage frames, 40 nights' (hrg + lrg)</td></tr>
+<tr><td>CV_TimeSeries</td><td>ST LMi</td><td><code>unique_light</code></td><td>3,157 / 39</td><td>3,157 / 39</td><td>0</td><td>0</td><td>3,266</td><td>sec.3.1 table: ST LMi 3,157 raw light frames / 39 nights (the iKon tree holds a further 109 unique frames outside rawimage)</td></tr>
+<tr><td>CV_TimeSeries</td><td>YZ Cnc</td><td><code>unique_light</code></td><td>1,920 / 26</td><td>1,920 / 26</td><td>0</td><td>0</td><td>1,935</td><td>sec.3.1 table: YZ Cnc 1,920 frames / 26 nights</td></tr>
+<tr><td>CV_TimeSeries</td><td>VV Pup</td><td><code>unique_light</code></td><td>1,353 / 29</td><td>1,353 / 29</td><td>0</td><td>0</td><td>1,353</td><td>sec.3.1 table: VV Pup 1,353 frames / 29 nights</td></tr>
+<tr><td>CV_TimeSeries</td><td>EU UMa</td><td><code>unique_light</code></td><td>993 / 32</td><td>993 / 32</td><td>0</td><td>0</td><td>1,250</td><td>sec.3.1 table: EU UMa 993 frames / 32 nights (reduced/ holds 257 RENAMED copies whose JDs all collide with rawimage frames)</td></tr>
+<tr><td>CV_TimeSeries</td><td>AN UMa</td><td><code>unique_light</code></td><td>1,279 / 14</td><td>1,279 / 14</td><td>0</td><td>0</td><td>1,279</td><td>sec.2 Q5: AN UMa 1,279 raw light frames, 14 nights</td></tr>
+<tr class="warn"><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td><code>unique_light</code></td><td>1,052 / 35</td><td>1,052 / 33</td><td>0</td><td>-2</td><td>1,054</td><td>sec.3.1: 1,052 unique light frames (3,018 rawimage rows); the '35 nights' includes the two saturated first epochs labeled NGC5457 (May 20) and M101 (May 21), which carry other target names</td></tr>
+<tr><td>BeStar_Grism</td><td>Spica</td><td><code>grism4_light</code></td><td>728 / 29</td><td>728 / 29</td><td>0</td><td>0</td><td>768</td><td>sec.3.2 table: Spica 728 raw frames / 29 nights</td></tr>
+<tr><td>BeStar_Grism</td><td>PHECDA</td><td><code>grism4_light</code></td><td>333 / 40</td><td>333 / 40</td><td>0</td><td>0</td><td>333</td><td>sec.3.2 table: Phecda 333 / 40</td></tr>
+<tr><td>BeStar_Grism</td><td>phi Leo</td><td><code>grism4_light</code></td><td>261 / 39</td><td>261 / 39</td><td>0</td><td>0</td><td>261</td><td>sec.3.2 table: phi Leo 261 / 39</td></tr>
+<tr><td>BeStar_Grism</td><td>Lam Eri</td><td><code>grism4_light</code></td><td>252 / 47</td><td>252 / 47</td><td>0</td><td>0</td><td>260</td><td>sec.3.2 table: lambda Eri 252 / 47</td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td><code>grism4_light</code></td><td>447 / 19</td><td>447 / 19</td><td>0</td><td>0</td><td>814</td><td>sec.3.2 table: Vega era C 367/18 + era A ladder 80/1 (Alpha Lyr alias, cone-gated synonym merge)</td></tr>
+<tr class="warn"><td>DwarfGalaxy_AGN_Survey</td><td>NGC 5548</td><td><code>unique_light</code></td><td>133 / 15</td><td>143 / 16</td><td>10</td><td>1</td><td>153</td><td>sec.3: 133 unique on-target frames / 15 nights AFTER excluding the 10-frame mispointed night 2023-03-25; the manifest keeps all 143 unique frames / 16 nights (mispointing is a pointing flag, not a dedup fact; primary tree macalester per the documented exception)</td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>NGC5238</td><td><code>unique_light</code></td><td>528 / 21</td><td>528 / 21</td><td>0</td><td>0</td><td>544</td><td>sec.3: NGC 5238 ~528 unique frames, 21 nights</td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>Dw survey (19 fields)</td><td><code>unique_light</code></td><td>499 / &mdash;</td><td>499 / 16</td><td>0</td><td>&mdash;</td><td>499</td><td>sec.3: Dw survey unique totals L 323 + Halpha 89 + R 87 = 499 (19 Dw* fields combined)</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>The manifest is the single source of frame counts
+from S0 onward.</b>  The disagreements stand as corrections, not mysteries:
+T&nbsp;CrB&rsquo;s &ldquo;471 unique&rdquo; counted rawimage
+<i>rows</i> and misses 69 within-rawimage duplicate copies
+(manifest: 402); the SN&rsquo;s &ldquo;35
+nights&rdquo; includes two saturated first epochs whose frames are labeled
+NGC5457/M101, not 2023ixf (manifest: 33 nights under the 2023ixf
+name); NGC&nbsp;5548&rsquo;s &ldquo;133/15&rdquo;
+excludes the mispointed 2023-03-25 night, which the manifest keeps —
+143 frames / 16 nights, mispointing being a
+pointing fact, not a deduplication fact.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Each project&rsquo;s Table&nbsp;1 regenerates from
+<code>project_counts</code>; the era table, alias table, and QC flags ride
+along.  Any future strategy edit that changes a count must change this page
+first.</p>
+</div></section>
+
+<footer>Generated by <code>macro_core.report_s0</code> from
+<code>products/manifest/rlmt-manifest.sqlite</code> — every number on this
+page is the result of a SQL query; none is typed by hand.  Regenerate with
+<code>pipeline/scripts/build_s0_manifest.py</code>.</footer>
+</body></html>
