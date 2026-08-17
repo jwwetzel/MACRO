@@ -1,0 +1,36 @@
+# ---- macOS ----
+.DS_Store
+
+# ---- Manuscripts stay local (JW, 2026-08-16): they go to journals, not GitHub ----
+manuscripts/
+
+# ---- Separate interests that share this Dropbox folder but are outside this
+# ---- repo's scope (Analysis pipeline and projects for the MACRO consortium)
+MACRO_Newsletter/
+RLMT_Diagnostics/
+XRay_AR_UMa/
+XRay_Chandra_preCMS/
+
+# ---- Data & derived products: regenerable from the archive + this pipeline.
+# ---- The repo carries code, decisions, and reports — never pixels.
+products/
+external_data/
+*/data/
+*.sqlite
+*.sqlite-journal
+*.parquet
+*.fits
+*.fts
+*.fz
+
+# ---- Python ----
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ---- LaTeX build junk (manuscripts/ is already ignored; belt & braces) ----
+*.aux
+*.bbl
+*.blg
+*.synctex.gz

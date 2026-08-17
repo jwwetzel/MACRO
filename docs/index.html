@@ -1,0 +1,68 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MACRO — Analysis Evidence</title>
+<link rel="stylesheet" href="assets/macro.css">
+</head><body>
+
+<header>
+  <h1>MACRO Consortium — Analysis Chain of Evidence</h1>
+  <p>Robert L. Mutel Telescope (0.5 m, Winer Observatory) · 2023–2026 archive: 3.34 TiB,
+     ~329k FITS, 627 nights · Every analytical decision on this site is backed by a plot
+     and a script-emitted number. Code: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a></p>
+</header>
+
+<nav>
+  <a href="#pipeline">Pipeline</a> ·
+  <a href="#projects">Projects</a>
+</nav>
+
+<section id="pipeline">
+  <div class="bhead"><h2>Shared pipeline</h2>
+    <span class="tag">facility-grade infrastructure, built once, consumed by every paper</span></div>
+  <div class="stage">
+    <p class="sub">Stages in build order. Each report is a chain of evidence: the question the
+    stage answers, the plots that answer it, and the decision carried forward.</p>
+    <table class="data">
+      <tr><th>Stage</th><th>Scope</th><th>Status</th><th>Report</th></tr>
+      <tr><td>S0 Manifest &amp; curation</td><td>global dedup, alias table, era tagging, pointing validation, night labels</td>
+          <td><span class="badge active">building</span></td><td><a href="pipeline/s0_manifest.html">s0_manifest</a></td></tr>
+      <tr><td>S1 Astrometry</td><td>stratified go/no-go, batch solve, WCS propagation</td>
+          <td><span class="badge pending">pending</span></td><td>—</td></tr>
+      <tr><td>S2 Detector &amp; calibration</td><td>ceiling memo, StackPro PTC, linearity, darks/flats/fringes</td>
+          <td><span class="badge pending">pending</span></td><td>—</td></tr>
+      <tr><td>S3 Timing</td><td>mid-exposure BJD_TDB, era audit, EB clock validation</td>
+          <td><span class="badge pending">pending</span></td><td>—</td></tr>
+      <tr><td>S4 Ensemble photometry</td><td>ATLAS-REFCAT2 comps, Honeycutt ensemble, saturation vetoes</td>
+          <td><span class="badge pending">pending</span></td><td>—</td></tr>
+      <tr><td>S5 Error model &amp; validation</td><td>check-star RMS, χ² validation, Allan deviation</td>
+          <td><span class="badge pending">pending</span></td><td>—</td></tr>
+      <tr><td>S6 Time-series toolkit</td><td>periodograms, bootstrap FAPs, injection–recovery, GP fits</td>
+          <td><span class="badge pending">pending</span></td><td>—</td></tr>
+      <tr><td>G Grism track</td><td>identity gate, optimal extraction, wavelength, response, EW</td>
+          <td><span class="badge pending">pending</span></td><td>—</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="projects">
+  <div class="bhead"><h2>Projects</h2>
+    <span class="tag">five archival papers, committee-strategized, referee-hardened</span></div>
+  <div class="stage">
+    <table class="data">
+      <tr><th>Project</th><th>Headline product</th><th>Venue posture</th><th>Report</th></tr>
+      <tr><td>T CrB pre-eruption monitoring</td><td>Hα EW/profile series through the 2025 dip recovery + photometric anchors</td>
+          <td>ApJ</td><td><a href="TCrB_Monitoring/index.html">evidence</a></td></tr>
+      <tr><td>CV time series</td><td>state-tagged, cycle-resolved light curves of 3 polars + YZ Cnc superhumps</td>
+          <td>ApJ</td><td><a href="CV_TimeSeries/index.html">evidence</a></td></tr>
+      <tr><td>SN 2023ixf</td><td>gri/narrowband +5.4→+50 d; possible flash-phase grism series</td>
+          <td>AJ/PASP base, ApJ upside</td><td><a href="SN2023ixf_LightCurve/index.html">evidence</a></td></tr>
+      <tr><td>Be-star grism campaign</td><td>~3-day-cadence Hα EW monitoring of bright Be stars</td>
+          <td>ApJ if ≥4 verified-active</td><td><a href="BeStar_Grism/index.html">evidence</a></td></tr>
+      <tr><td>Dwarf galaxies + NGC 5548</td><td>Hα fluxes/limits for 13 fields + band-integrated AGN light curve</td>
+          <td>ApJ (AGN section conditional)</td><td><a href="DwarfGalaxy_AGN_Survey/index.html">evidence</a></td></tr>
+    </table>
+  </div>
+</section>
+
+<footer>MACRO Consortium · reports regenerate with the pipeline; numbers are never edited by hand.</footer>
+</body></html>
