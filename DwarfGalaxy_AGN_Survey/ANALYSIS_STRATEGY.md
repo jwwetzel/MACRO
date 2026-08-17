@@ -174,6 +174,14 @@ Skeleton: `/Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/manuscripts/Dw
 - **Housekeeping:** `README.md` in this directory still quotes 116 frames/13 nights for NGC 5548 and "candidate confirmation via deep stacking" — both superseded (133/15 pending 0.3; *vetting*, never confirmation). Sync it before any collaborator quotes it.
 - **Provenance:** every figure regenerable from `frames_unique.csv` + scripts; keep the analysis in a versioned repo beside the manuscript with a `Makefile`-style driver so the frame-disposition table, stacks, and light curves rebuild end-to-end.
 
+## Planned observations (October 2026 restart) — 2026-08-17 update
+
+Winer is offline for monsoon season until **October 2026**; the consolidated observatory request (`ops/2026-08_observatory_request.md`) is submitted now to execute at the re-opening, first in queue. What this project expects from October:
+
+- **Flat (and bias) acquisitions per the S0b gap table:** the S0b inventory (`rlmt-manifest.sqlite` `calib_gaps`) ranks this project's calibration debt in the retired-camera readouts — era 72 (iKon, 2024 per the manifest's eras table) and era 1 (High Gain StackPro, 2023) biases (17,414 and 12,914 science frames blocked), plus flats including StackPro flat R (7,217 blocked) and the slot-'6' flat (1,232 blocked — the NGC 5548 campaign's no-flat fact of §3). These rows ride the request's Item B; **acquisition is contingent on the hardware-survival answer** (the same request's hardware-check item) since these are retired-era modes — if the trains are gone, the Phase 1.1 decision trees (delta sky flats, computed jitter×gradient bound, W drop) stand exactly as written.
+- **Cannon contact is unaffected** by the closure — configs, Hα transmission curve, W flats, Dw1643+07 provenance, co-authorship all proceed now.
+- All Phases 0–5 run through the closure on archival data. **Pipeline ingest:** any October frames enter only via the post-sync S0 + S0b re-run (idempotent) and manifest diff — consistent with this memo's rule that no count is quotable except pipeline-emitted.
+
 ---
 *Chair's closing note: the Phase 0 gates are cheap (days, not weeks) and every science claim hangs on them — including, as the referee round proved, the claims this memo itself used to make. The memo now asserts no number the pipeline will not re-emit. Do Phase 0 first, contact Cannon the same week, and the rest is executable by a graduate student in sequence.*
 

@@ -196,6 +196,10 @@ Target: `/Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/manuscripts/SN20
 - **Grism handoff:** filter-"6" frames route to the RLMT spectroscopy pipeline (grism seat); this project consumes extracted spectra, does not own the extractor — but the Gate 0c triage criteria (contamination test, wavelength source, relative-flux policy) bind the extraction.
 - **Order of operations is a hard dependency chain:** **Gate 0 (0a manifest + 0b census + 0c grism triage) -> Steps 1+2 (parallel, both blocking) -> Steps 4-6 -> Steps 7-9.** Venue decision at week 3, immediately after Gate 0 lands.
 
+### Planned observations (October 2026 restart) — 2026-08-17 update
+
+**This project needs nothing from the October 2026 re-opening: the campaign is archival (2023, plus existing post-fade templates) and every step runs through the Winer monsoon closure (offline until October) unaffected.** Should any October frame ever touch this target (e.g., a deeper template), it enters only via the standing pipeline ingest loop — post-sync S0 + S0b re-run (idempotent) and manifest diff — never by hand.
+
 ---
 
 ## Internal Referee Round

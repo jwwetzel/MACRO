@@ -183,7 +183,16 @@ Current skeleton sections → planned content. Retitle to: *"Orbit-Resolved Mult
 - **Environment:** conda env `rlmt-checks` (`/opt/miniconda3/envs/rlmt-checks/bin/python`, astropy 6.1.7). Add: photutils, celerite2, emcee, astrometry.net + local indices (needed for the **~4,600 unsolved polar Sloan-era frames — 73–95% per target, the pipeline's first bottleneck**).
 - **Data:** archive at `/Volumes/OWC StudioStack HDD/DATA/ASTRO/rlmt-archive/`; catalog `/Volumes/OWC StudioStack HDD/DATA/ASTRO/rlmt-catalog.sqlite` (always quote the path — spaces). Curation SQL and derived light curves version-controlled with the manuscript.
 - **External pulls:** ZTF forced photometry, ATLAS forced photometry, ASAS-SN Sky Patrol v2, AAVSO AID (YZ Cnc first), TESScut, Gaia DR3, eROSITA-DE DR1, ATLAS-REFCAT2 local copy for comp selection.
-- **Execution order for a grad student:** Phase 0 (curation + AAVSO YZ Cnc check) → **Phase 0.5 (astrometry re-solve go/no-go — 200-frame samples, before anything else commits)** → Phase 1 (timing foundation; AG LMi in-eclipse count for the clock validator) → linearity ladders + noise model (§5 rows 1–2) → **σ_t injection test on ST LMi 2025-02-28 (sets the timing tier)** → Phase 2 photometry on ST LMi first (richest, validates pipeline) → VV Pup (hardest calibration, per-camera) → EU UMa → YZ Cnc → Phase 3 analysis → AN UMa go/no-go (per-filter criterion) → figures → draft. **In parallel: request one more g/r/i ST LMi season from the queue (up through spring) — it converts the era-seam workaround into a genuine repair if it lands before submission.**
+- **Execution order for a grad student:** Phase 0 (curation + AAVSO YZ Cnc check) → **Phase 0.5 (astrometry re-solve go/no-go — 200-frame samples, before anything else commits)** → Phase 1 (timing foundation; AG LMi in-eclipse count for the clock validator) → linearity ladders + noise model (§5 rows 1–2) → **σ_t injection test on ST LMi 2025-02-28 (sets the timing tier)** → Phase 2 photometry on ST LMi first (richest, validates pipeline) → VV Pup (hardest calibration, per-camera) → EU UMa → YZ Cnc → Phase 3 analysis → AN UMa go/no-go (per-filter criterion) → figures → draft. **In parallel: request one more g/r/i ST LMi season from the queue — it converts the era-seam workaround into a genuine repair if it lands before submission.**
+
+### Planned observations (October 2026 restart) — 2026-08-17 update
+
+Winer is offline for monsoon season until **October 2026**; the ST LMi request above is already submitted (`ops/2026-08_observatory_request.md`, Item C) to execute at the re-opening, first in queue. What this project expects from October:
+
+- **ST LMi g/r/i time-series blocks, October 2026 → spring 2027** — the extra Sloan season that repairs the 2024-05 era seam (Q1). The "wait for it?" decision stays at the February consortium call, per §2 Q1.
+- **Era-resolved calibration frames** for the polar-era readout modes (the S0b `calib_gaps` shopping list in the observatory request, Item B — Mode0 biases/flats rank at its top with CV among the blocked projects), acquired at re-opening.
+- Nothing else: all archival analysis (Phases 0–3) proceeds through the monsoon closure on existing frames.
+- **Pipeline ingest:** October nights are first-class planned inputs — after each post-October archive sync, S0 then S0b re-run (idempotent) and the manifest diff feeds the canonical counts; no new-frame number enters this paper except through that loop.
 
 ---
 
