@@ -17,8 +17,16 @@ Subpackage layout (ROADMAP.md section 1):
   figures under ``docs/pipeline/figures/s0b/``.  Same rule: every number is
   a query result.
 
-The build entry points live in ``pipeline/scripts/build_s0_manifest.py`` and
-``pipeline/scripts/build_s0b_inventory.py``.
+* ``macro_core.staging``   — S0c pure logic: the five per-project staging
+  selections (reviewable data), science/calibration row builders, the
+  no-copy law's helpers.  Unit-tested in ``pipeline/tests/test_staging.py``.
+* ``macro_core.report_s0c`` — S0c evidence report renderer: reads the stage
+  tables and emits ``docs/pipeline/s0c_staging.html`` plus the figures under
+  ``docs/pipeline/figures/s0c/``.  Same rule: every number is a query result.
+
+The build entry points live in ``pipeline/scripts/build_s0_manifest.py``,
+``pipeline/scripts/build_s0b_inventory.py``, and
+``pipeline/scripts/build_s0c_staging.py``.
 """
 
 # The version note recorded into the manifest's build_meta table.  Bump the
@@ -30,3 +38,7 @@ S0_CODE_VERSION = "S0 v1.0 (2026-08-17)"
 # v1.1: header-glitch FILTER strings (calibration-vocabulary collisions)
 # excluded from the shopping list; re-opening-configuration eras surfaced.
 S0B_CODE_VERSION = "S0b v1.1 (2026-08-17)"
+
+# Same contract for the S0c staging manifests (recorded in s0c_build_meta and
+# in every stage row's stage_build_id).
+S0C_CODE_VERSION = "S0c v1.0 (2026-08-18)"

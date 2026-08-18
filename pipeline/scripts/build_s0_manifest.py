@@ -555,6 +555,19 @@ def write_manifest(out_path: Path, frames: pd.DataFrame, aliases: pd.DataFrame,
             cur.execute("CREATE INDEX ix_frames_night ON frames(night)")
             cur.execute("CREATE INDEX ix_frames_era ON frames(era_id)")
             con.commit()
+        # Carry downstream stages' tables forward in a SEPARATE connection:
+        # SQLite forbids ATTACH inside an open transaction, and the block
+        # above ran under one (sqlite3's connection context manager).
+        with closing(sqlite3.connect(tmp)) as con:
+            carried = carry_sibling_tables(con, out_path)
+            con.execute("INSERT INTO build_meta VALUES (?, ?)",
+                        ("carried_tables", ",".join(carried)))
+            con.commit()
+        if carried:
+            print(f"[S0] carried {len(carried)} downstream table(s) forward: "
+                  f"{', '.join(carried)}")
+            print("[S0]   NOTE: carried rows are keyed to the PREVIOUS frame "
+                  "universe — re-run those stages if frames changed.")
         # mkstemp creates 0600 files; open the permissions up BEFORE the
         # swap so the live path never exists in a locked-down state.
         os.chmod(tmp, 0o644)
@@ -562,6 +575,69 @@ def write_manifest(out_path: Path, frames: pd.DataFrame, aliases: pd.DataFrame,
     finally:
         if tmp.exists():                   # only on failure paths
             tmp.unlink()
+
+
+# Tables S0 owns and rewrites from the catalog on every build.  Everything
+# else in the manifest belongs to a downstream stage (S0b, S0c, S1, S2, S3,
+# G, ...) and must survive an S0 rebuild — see carry_sibling_tables.
+S0_OWNED_TABLES = ("frames", "aliases", "eras", "project_counts",
+                   "build_meta")
+
+
+def carry_sibling_tables(con: sqlite3.Connection, live_path: Path) -> list:
+    """Copy tables S0 does not own from the live manifest into the new one.
+
+    S0 builds a fresh database in a temp file and atomically swaps it over
+    the live manifest.  That swap replaces the whole FILE, so any table a
+    later stage had added was silently destroyed: the 2026-08-18 ingest wiped
+    ``s1_strata``, ``s1_solve_experiment``, ``s1_failure_autopsy`` and
+    ``detector_params`` — the accepted evidence behind the astrometry
+    go/no-go verdict and the detector memo — and the batch driver had to pin
+    those numbers as code constants to survive.  Copying the sibling tables
+    forward (exact original schema, then rows, then their indexes) makes a
+    rebuild non-destructive.
+
+    Returns the carried table names, which the caller records in
+    ``build_meta`` and warns about: carried rows are keyed to the PREVIOUS
+    frame universe, so a rebuild that changed ``frames`` leaves them STALE
+    until their own stage re-runs.  Preserving stale evidence beats deleting
+    it — the staleness is visible and fixable, deletion was neither.
+    """
+    if not Path(live_path).exists():
+        return []                      # first build: nothing to carry
+    # A concurrent stage may hold the write lock; wait rather than fail.
+    con.execute("PRAGMA busy_timeout = 300000")
+    con.execute("ATTACH DATABASE ? AS prev", (str(live_path),))
+    try:
+        tables = con.execute(
+            "SELECT name, sql FROM prev.sqlite_master "
+            "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").fetchall()
+        carried = []
+        for name, ddl in tables:
+            if name in S0_OWNED_TABLES or not ddl:
+                continue
+            con.execute(ddl)           # replay the exact original schema
+            con.execute(f'INSERT INTO main."{name}" '
+                        f'SELECT * FROM prev."{name}"')
+            carried.append(name)
+        # Indexes belonging to carried tables (skip auto-indexes, which have
+        # no DDL, and any index whose table we did not carry).
+        for idx_sql, tbl in con.execute(
+                "SELECT sql, tbl_name FROM prev.sqlite_master "
+                "WHERE type = 'index' AND sql IS NOT NULL").fetchall():
+            if tbl in carried:
+                con.execute(idx_sql)
+        # The DDL/INSERTs above opened an implicit transaction, and SQLite
+        # refuses to DETACH while one is open ("database prev is locked").
+        # Close it explicitly: commit the carry on success, roll it back on
+        # failure — either way DETACH then runs on a quiet connection.
+        con.commit()
+    except Exception:
+        con.rollback()
+        raise
+    finally:
+        con.execute("DETACH DATABASE prev")
+    return carried
 
 
 def _git_commit() -> str:

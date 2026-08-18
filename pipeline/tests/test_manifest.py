@@ -10,7 +10,9 @@ Run with:
 """
 
 import math
+import sqlite3
 import sys
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -581,3 +583,71 @@ class TestEraIdRegistry:
             self._first_build_fixture(), {"T CrB": "tcrb"}, {"tcrb": "T CrB"})
         oldest = frames.loc[frames["jd"].idxmin(), "era_id"]
         assert oldest == 1
+
+
+class TestSiblingTablePreservation:
+    """Regression (2026-08-18): an S0 rebuild must NOT destroy tables added
+    by downstream stages.  S0 swaps a freshly built temp file over the live
+    manifest, and that whole-file swap wiped s1_strata, s1_solve_experiment,
+    s1_failure_autopsy and detector_params during the Calibrations ingest —
+    the accepted evidence behind the astrometry verdict and detector memo."""
+
+    def _tiny_s0_frames(self):
+        return pd.DataFrame([
+            frame_row(obs_rowid=1, path="rawimage/2024-01-01/a.fts",
+                      jd=2460310.6),
+        ])
+
+    def _write_first_manifest(self, out):
+        frames, eras = build.build_frames(
+            self._tiny_s0_frames(), {"T CrB": "tcrb"}, {"tcrb": "T CrB"})
+        aliases = pd.DataFrame([{"target_best": "T CrB", "target_key": "tcrb",
+                                 "canonical_target": "T CrB", "n_frames": 1,
+                                 "method": "identity",
+                                 "cone_check_passed": None}])
+        counts = pd.DataFrame([{"project": "TCrB", "target_key": "tcrb",
+                                "metric": "unique_light", "claim_frames": 1,
+                                "claim_nights": 1, "manifest_frames": 1,
+                                "manifest_nights": 1, "source": "test"}])
+        build.write_manifest(out, frames, aliases, eras, counts, Path("cat.db"))
+
+    def test_downstream_tables_survive_a_rebuild(self, tmp_path):
+        out = tmp_path / "rlmt-manifest.sqlite"
+        self._write_first_manifest(out)
+        # A downstream stage adds its own evidence table, with an index.
+        with closing(sqlite3.connect(out)) as con:
+            con.execute("CREATE TABLE detector_params "
+                        "(era_group TEXT, quantity TEXT, value REAL)")
+            con.execute("INSERT INTO detector_params VALUES "
+                        "('High Gain', 'ceiling_adu', 3496.0)")
+            con.execute("CREATE INDEX ix_dp ON detector_params(era_group)")
+            con.commit()
+        # S0 rebuilds over the top of it.
+        self._write_first_manifest(out)
+        with closing(sqlite3.connect(out)) as con:
+            rows = con.execute("SELECT era_group, quantity, value "
+                               "FROM detector_params").fetchall()
+            names = {r[0] for r in con.execute(
+                "SELECT name FROM sqlite_master WHERE type='index'")}
+            carried = con.execute(
+                "SELECT value FROM build_meta WHERE key='carried_tables'"
+            ).fetchone()[0]
+        assert rows == [("High Gain", "ceiling_adu", 3496.0)], \
+            "downstream evidence table was destroyed by the S0 rebuild"
+        assert "ix_dp" in names, "carried table lost its index"
+        assert "detector_params" in carried, \
+            "build_meta must record what was carried (staleness is auditable)"
+
+    def test_s0_owned_tables_are_rebuilt_not_carried(self, tmp_path):
+        out = tmp_path / "rlmt-manifest.sqlite"
+        self._write_first_manifest(out)
+        # Poison an S0-owned table: the rebuild must overwrite it, never
+        # carry it forward (otherwise stale frames rows would accumulate).
+        with closing(sqlite3.connect(out)) as con:
+            con.execute("INSERT INTO frames (path) VALUES ('POISON')")
+            con.commit()
+        self._write_first_manifest(out)
+        with closing(sqlite3.connect(out)) as con:
+            n_poison = con.execute(
+                "SELECT COUNT(*) FROM frames WHERE path='POISON'").fetchone()[0]
+        assert n_poison == 0
