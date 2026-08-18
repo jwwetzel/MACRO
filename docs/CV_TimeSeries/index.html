@@ -2,35 +2,268 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MACRO — Cataclysmic-Variable Time Series</title>
 <link rel="stylesheet" href="../assets/macro.css">
+<style>
+.chip{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12px;
+      white-space:nowrap;font-weight:600}
+.chip.done{background:#1d3a26;color:#9fd8ae}
+.chip.in_progress{background:#1b3247;color:#8fc4f0}
+.chip.blocked{background:#3d2224;color:#f0a3a3}
+.chip.pending{background:#242a35;color:#8a93a3}
+.chip.redo_needed{background:#3a3320;color:#e6cc7a}
+.chip.v-fresh{background:#1d3a26;color:#9fd8ae}
+.chip.v-stale{background:#3a3320;color:#e6cc7a}
+.chip.v-wait{background:#242a35;color:#8a93a3}
+.chip.v-never{background:#1b3247;color:#8fc4f0}
+.chip.v-gone{background:#3d2224;color:#f0a3a3}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;max-width:1100px;
+     border:1px solid #2a3140;background:#11151c;margin:10px 0 6px}
+.bar span{display:block;height:100%}
+.bar .done{background:#3f8f5c}
+.bar .in_progress{background:#4a86c4}
+.bar .redo_needed{background:#b09134}
+.bar .blocked{background:#a24f52}
+.bar .pending{background:#2a3140}
+.legend{color:#8a93a3;font-size:12.5px;margin:0 0 14px}
+.legend b{color:#dfe6f0}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}
+.stat{background:#161a22;border:1px solid #2a3140;border-radius:8px;
+      padding:9px 14px;min-width:150px}
+.stat .n{display:block;font-size:21px;color:#fff}
+.stat .k{display:block;font-size:12px;color:#8a93a3;margin-top:2px}
+.phase{border-left:3px solid #2a3140;padding-left:14px;margin:20px 0}
+.phase h3{margin:0 0 2px;font-size:16px;color:#dfe6f0}
+.blockcard{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
+           margin:10px 0;font-size:13.5px;color:#e3d4d5;max-width:1100px}
+.blockcard b{color:#fff}
+.nextcard{border-left:3px solid #4a86c4;background:#131a24;padding:10px 14px;
+          margin:10px 0;font-size:13.5px;color:#cfe0f5;max-width:1100px}
+.nextcard b{color:#fff}
+.unbacked{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
+          margin:10px 0;font-size:13px;color:#e3d4d5;max-width:1100px}
+.src{color:#6f7a8a;font-size:11.5px}
+table.data td.tight{white-space:nowrap}
+</style>
 </head><body>
+
 <header>
-  <h1>Cataclysmic-Variable Time Series — Chain of Evidence</h1>
-  <p>State-tagged, cycle-resolved light curves of ST LMi, VV Pup, EU UMa, AN UMa; YZ Cnc superhumps; eclipse timing.
-     Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a>
-     · <a href="../index.html">← all reports</a></p>
+  <h1>Cataclysmic-Variable Time Series — Plan &amp; Progress</h1>
+  <p>0 of 33 plan tasks complete (7 need redoing, 4 blocked)
+  &middot; ApJ (AASTeX 7 skeleton in manuscripts/CV_TimeSeries/main.tex)<br>
+  Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a> &middot; <a href="../index.html">&larr; all reports</a></p>
 </header>
-<nav><a href="#status">Readiness</a></nav>
-<section id="status">
-  <div class="bhead"><h2>Readiness</h2><span class="badge done">ready for production analysis</span></div>
-  <div class="stage">
-    <h3>Gates cleared</h3>
-    <ul class="sub">
-      <li><b>Astrometry (S1):</b> batch solve complete — ST LMi 3,204/3,266 (98%), VV Pup 1,344/1,353 (99%), AN UMa 1,265/1,279 (99%), YZ Cnc 1,809/1,935 (94%)</li>
-      <li><b>Timing (S3):</b> mid-exposure BJD_TDB for every frame; observatory clock bounded |Δt| &lt; 4,517 s (~75 min — the earlier 519 s figure omitted the ephemeris period uncertainty). StackPro frames carry a 5.67 s mid-time worst case, so sub-second timing must avoid those 20,364 frames.</li>
-      <li><b>Photometry core (S4):</b> Honeycutt ensemble proven — synthetic zero-point pattern recovered to &lt;6 mmag; check stars held out of the fit</li>
-      <li><b>Staging (S0c):</b> 8,716 science frames + era-matched calibrations staged by reference (ten dispersed 'HaG' grism frames were removed after review found them staged as photometry)</li>
-      <li><b>Detector (S2):</b> High Gain ceiling 3,496 ADU, veto 3,200, StackPro = sum of 16 sub-reads — <b>but these constants currently have no database backing</b>: the S2 evidence tables were destroyed by an earlier manifest rebuild and the stage must be re-run before any paper cites them.</li>
-    </ul>
-    <h3>Still blocking</h3>
-    <ul class="sub">
-      <li><b>Corrected 2026-08-18:</b> EU UMa's 207 frames are NOT unsolvable 8-pixel strips — that geometry was a header-parsing artifact (a tile-compressed FITS reports its binary-table row length as NAXIS1). They are full 4800×3211 fields and are queued for re-solve, along with 18,381 others wrongly excluded on the same mistake.</li>
-      <li>The 2024-05 era seam in ST LMi still forces colour work to be split by era</li>
-    </ul>
-    <div class="decision"><b>Verdict:</b> this project's gating condition — the astrometry go/no-go — is cleared and executed. It is ready for production photometry and time-series analysis now.</div>
-    <p class="sub">Analysis sections appear here as they are executed: each states the question,
-    shows the plot that answers it, and records the decision carried forward. Nothing is
-    published here without a figure and a script behind it.</p>
-  </div>
+
+<nav>
+  <a href="#claim">Claim</a> &middot;
+  <a href="#progress">Progress</a> &middot;
+  <a href="#plan">The plan</a> &middot;
+  <a href="#blocking">Blocking</a> &middot;
+  <a href="#next">Next up</a> &middot;
+  <a href="#evidence">Evidence</a>
+</nav>
+
+<section id="claim">
+<div class="bhead"><h2>What this paper will claim</h2>
+<span class="tag">ApJ (AASTeX 7 skeleton in manuscripts/CV_TimeSeries/main.tex)</span></div>
+<div class="stage">
+<div class="decision">Single-night, cycle-resolved, accretion-state-tagged multi-colour light curves of three polars (ST LMi, VV Pup, EU UMa) and the SU UMa dwarf nova YZ Cnc — the per-cycle quasi-simultaneous colour coverage that phase-averaged survey folds cannot produce for 90–125 min binaries — plus bright-phase timing read as an accretion-spot longitude tracker against 40-year literature ephemerides, and YZ Cnc's dense 2024 season analysed for superhumps if AAVSO confirms the runs were in outburst. Colour science is two independent within-era analyses, never a stitched series across the 2024-05 instrument seam. The full machine-readable light curves ship as a data product.</div>
+
+
+</div>
 </section>
-<footer>MACRO Consortium · numbers are script-emitted, never hand-edited.</footer>
+
+
+<section id="progress">
+<div class="bhead"><h2>Progress at a glance</h2>
+<span class="tag">0 of 33 plan tasks complete</span></div>
+<div class="stage">
+<div class="bar"><span class="in_progress" style="width:9.0909%"></span><span class="redo_needed" style="width:21.2121%"></span><span class="blocked" style="width:12.1212%"></span><span class="pending" style="width:57.5758%"></span></div>
+<p class="legend"><b>3</b> in progress &middot; <b>7</b> redo needed &middot; <b>4</b> blocked &middot; <b>19</b> pending</p>
+<div class="stats"><div class="stat"><span class="n">0/33</span><span class="k">plan tasks complete</span></div><div class="stat"><span class="n">8,716</span><span class="k">staged science frames</span></div><div class="stat"><span class="n">108</span><span class="k">nights</span></div><div class="stat"><span class="n">5</span><span class="k">catalog target names</span></div><div class="stat"><span class="n">95%</span><span class="k">carry a WCS (8,287/8,716)</span></div><div class="stat"><span class="n">100%</span><span class="k">carry BJD_TDB (8,716/8,716)</span></div><div class="stat"><span class="n">4,768</span><span class="k">era-matched calibration rows</span></div><div class="stat"><span class="n">8</span><span class="k">camera eras spanned</span></div></div>
+<p class="sub">Every row is counted from <code>stage_cv_timeseries</code> at render time — the project's actual working set, not a number transcribed from a strategy document. Each row is one <code>canonical_target</code> STRING, which is not the same as one object.</p><table class="data">
+<tr><th>Target</th><th>Staged science frames</th><th>Nights</th><th>With WCS</th><th>With BJD_TDB</th></tr>
+<tr><td>ST LMi</td><td>3,249</td><td>41</td><td>3,204 (99%)</td><td>3,249 (100%)</td></tr>
+<tr><td>YZ Cnc</td><td>1,918</td><td>27</td><td>1,809 (94%)</td><td>1,918 (100%)</td></tr>
+<tr><td>AN UMa</td><td>1,279</td><td>14</td><td>1,265 (99%)</td><td>1,279 (100%)</td></tr>
+<tr><td>VV Pup</td><td>1,277</td><td>28</td><td>1,268 (99%)</td><td>1,277 (100%)</td></tr>
+<tr><td>EU UMa</td><td>993</td><td>32</td><td>741 (75%)</td><td>993 (100%)</td></tr>
+</table>
+<h3>What this project&rsquo;s filters actually do</h3><p class="sub">Per-frame verdicts from S2c, restricted to this project&rsquo;s staged science frames. The measurement is source elongation, not the filter&rsquo;s name — which is the point, since every strategy here carries an exclusion rule keyed on the name. The verdict column uses <b>S2c&rsquo;s own published rule</b> — ≥80% dispersed is SPECTRA, ≥80% direct is images, anything else is MIXED, and only filters with at least 20 measured frames get a verdict at all — so the word means the same thing here as it does on <a href="../pipeline/s2c_filter_identity.html">the S2c page</a>. The strength column matters: a verdict built from low-confidence frames is a weaker claim, and most dispersed verdicts in this archive are low. Frames S2c has not reached yet simply do not appear.</p><table class="data">
+<tr><th>Filter</th><th>Measured</th><th>Dispersed</th><th>Direct</th><th>Indeterminate</th><th>Dispersed strength</th><th>Verdict</th></tr>
+<tr><td><code>I</code></td><td>68</td><td>1</td><td>65</td><td>2</td><td>1 of 1 low</td><td>images</td></tr>
+<tr><td><code>i</code></td><td>58</td><td>4</td><td>54</td><td>0</td><td>4 of 4 low</td><td>images</td></tr>
+<tr><td><code>r</code></td><td>39</td><td>0</td><td>38</td><td>1</td><td>&mdash;</td><td>images</td></tr>
+<tr><td><code>R</code></td><td>11</td><td>0</td><td>10</td><td>1</td><td>&mdash;</td><td>too few measured</td></tr>
+<tr><td><code>g</code></td><td>8</td><td>0</td><td>5</td><td>3</td><td>&mdash;</td><td>too few measured</td></tr>
+</table>
+<h3>What the strategy claims vs what the manifest holds <span class="chip v-stale">STALE</span></h3><p class="sub">Reconciliation rows written by S0 — and re-checked at render time by looking for the sentence S0 says it transcribed in the strategy document as it stands now. A non-zero diff is not necessarily an error — it is a question that has an answer in the <code>source</code> column of <code>project_counts</code>. A SUPERSEDED row is a different thing: the question itself has expired.</p><table class="data">
+<tr><th>Target</th><th>Metric</th><th>Strategy claims</th><th>Manifest holds</th><th>Reconciliation</th></tr>
+<tr><td>AN UMa</td><td><code>unique_light</code></td><td>1,279</td><td>1,279</td><td>agrees <span class="src">(quote unverifiable)</span></td></tr>
+<tr><td>EU UMa</td><td><code>unique_light</code></td><td>993</td><td>993</td><td>agrees <span class="src">(quote unverifiable)</span></td></tr>
+<tr><td>ST LMi</td><td><code>unique_light</code></td><td>3,157</td><td>3,157</td><td>agrees <span class="src">(quote unverifiable)</span></td></tr>
+<tr><td>VV Pup</td><td><code>unique_light</code></td><td>1,353</td><td>1,353</td><td>agrees <span class="src">(quote unverifiable)</span></td></tr>
+<tr><td>YZ Cnc</td><td><code>unique_light</code></td><td>1,920</td><td>1,920</td><td>agrees <span class="src">(quote unverifiable)</span></td></tr>
+</table><p class="sub">S0, which wrote these rows, is currently <b>STALE</b>. Every quoted sentence still matches the strategy text, so the transcriptions are current even though the stage is not.</p>
+</div>
+</section>
+
+<section id="plan">
+<div class="bhead"><h2>The plan</h2>
+<span class="tag">33 tasks in 7 phases</span></div>
+<div class="stage">
+<p class="sub">Every task below was read out of the project's execution
+order — derived from <a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> — and names the pipeline stage its result rests on. That
+last column is not decoration: when a stage stops being fresh, every
+<span class="chip done">done</span> task resting on it becomes
+<span class="chip redo_needed">redo needed</span>, automatically, with the
+reason attached.</p>
+
+<div class="phase">
+<h3>Phase 0 — Curation</h3>
+<p class="sub">Blocks everything else: one canonical, alias-merged, tree-pinned view per target, and the AAVSO call that decides whether Q3 exists.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>Canonical per-target frame view</b><br><code>CV-P0-curation-sql</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 0 step 1</span></td><td>One alias-merged, rawimage-pinned, photometric-filter frame list per target, staged as stage_cv_timeseries.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a></td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>AAVSO cross-match for YZ Cnc, 2024-02-21 → 2024-05-03</b><br><code>CV-P0-aavso-yzcnc</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 0 step 2</span></td><td>An outburst-state tag per dense run — the branch point that decides whether Q3 is superhumps or flickering.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Pull the survey record for all five targets</b><br><code>CV-P0-survey-context</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 0 step 3</span></td><td>Cached ZTF/ATLAS/ASAS-SN/AAVSO/TESS/Gaia/eROSITA series that the state histories are plotted over.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Phase 0.5 — Astrometry go/no-go</h3>
+<p class="sub">The pipeline's first bottleneck: ~4,600 of ~5,500 polar Sloan-era frames had no WCS, so no ensemble photometry.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>Stratified 200-frame re-solve experiment</b><br><code>CV-P05-solve-experiment</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 0.5 step 3a</span></td><td>A measured per-target success rate, and the acceptance threshold set FROM it rather than asserted.</td><td><code>S1</code> <a href="../pipeline/s1_astrometry.html">s1_astrometry.html</a> <span class="chip v-gone">DESTROYED</span></td><td><a href="../pipeline/s1_astrometry.html">s1_astrometry.html</a></td></tr>
+<tr><td><span class="chip in_progress">in progress</span></td><td><b>Production batch solve of the unsolved pool</b><br><code>CV-P05-batch-solve</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 0.5 step 3b</span></td><td>A WCS for every solvable CV frame; the per-target solved fraction that gates Phase 2.</td><td><code>S1b</code> &mdash;</td><td><a href="../pipeline/s1_astrometry.html">s1_astrometry.html</a></td></tr>
+<tr><td><span class="chip in_progress">in progress</span></td><td><b>Re-queue the frames excluded by the NAXIS artifact</b><br><code>CV-P05-geometry-requeue</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §5 row 'Astrometry'</span></td><td>The 18,381 frames whose recorded geometry was a tile-compressed BINTABLE row length — EU UMa's 207 among them — returned to the solve queue.</td><td><code>S0e</code> <a href="../pipeline/s0e_geometry_fix.html">s0e_geometry_fix.html</a></td><td><a href="../pipeline/s0e_geometry_fix.html">s0e_geometry_fix.html</a></td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Phase 1 — Timing foundation</h3>
+<p class="sub">Mid-exposure BJD_TDB from scratch; header JD is UTC exposure start and is never used.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>Mid-exposure BJD_TDB for every frame</b><br><code>CV-P1-bjd</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 1 step 4</span></td><td>frame_times: barycentric mid-exposure timestamps with a JPL ephemeris at Winer's EarthLocation.</td><td><code>S3</code> <a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a></td></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>DATE-OBS start-vs-mid convention audit, per era</b><br><code>CV-P1-era-audit</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 1 step 5</span></td><td>s3_dateobs_audit: the convention verified independently in MaxIm and pyscope frames.</td><td><code>S3</code> <a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a></td></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>Observatory clock validation on an archived EB</b><br><code>CV-P1-clock-validation</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 1 step 6</span></td><td>A published clock bound: |Δt| &lt; 4,517 s (~75 min) once the ephemeris period uncertainty is carried.</td><td><code>S3</code> <a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a></td></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>StackPro mid-time semantics</b><br><code>CV-P1-stackpro-midtime</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §6 failure mode 7</span></td><td>The worst-case StackPro mid-time error (5.67 s) and the frame list sub-second timing must avoid.</td><td><code>S3</code> <a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a></td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Phase 1.5 — Detector truth</h3>
+<p class="sub">§5 rows 1–2: until the ladders exist, N_sub and the StackPro variance model are hypotheses and no mixed-mode fit is legal.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Linearity ladder per readout mode</b><br><code>CV-P15-linearity-ladders</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §5 row 'Linearity, per readout mode'</span></td><td>Measured linearity curves and veto thresholds for High Gain, StackPro, Mode0 and the iKon.</td><td><code>S2</code> <a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Empirical noise model per readout mode</b><br><code>CV-P15-noise-model</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §5 row 'Noise model, per mode'</span></td><td>Check-star RMS vs magnitude per mode per night, with the model overplotted — the non-negotiable figure.</td><td><code>S2</code> <a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Phase 2 — Photometry</h3>
+<p class="sub">Ensemble differential photometry tied to ATLAS-REFCAT2, per target, in the order §9 sets: ST LMi first (richest), then VV Pup (hardest), EU UMa, YZ Cnc.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>Honeycutt ensemble core, proven on a prototype</b><br><code>CV-P2-ensemble-core</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 2 steps 7–9</span></td><td>A validated inhomogeneous-ensemble solver: synthetic zero-point pattern recovered to &lt;6 mmag with check stars held out.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s4_photometry.html">s4_photometry.html</a></td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Per-mode saturation vetoes</b><br><code>CV-P2-vetoes</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 2 step 10</span></td><td>A peak-ADU veto per readout mode applied to every frame, with veto counts reported per target.</td><td><code>S2</code> <a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip in_progress">in progress</span></td><td><b>Production photometry: ST LMi</b><br><code>CV-P2-stlmi</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §9 execution order</span><br><span class="src"><b>Gated:</b> waiting on <code>CV-P15-linearity-ladders</code>, <code>CV-P15-noise-model</code>, <code>CV-P2-vetoes</code></span></td><td>Calibrated per-frame light curves for the flagship target, both filter eras kept separate.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip pending">pending</span></td><td><b>Production photometry: VV Pup</b><br><code>CV-P2-vvpup</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 step 13a</span><br><span class="src"><b>Gated:</b> waiting on <code>CV-P15-linearity-ladders</code>, <code>CV-P15-noise-model</code>, <code>CV-P2-vetoes</code></span></td><td>Per-camera calibrated light curves (iKon and Mode0 never jointly solved — camera and epoch are confounded).</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip pending">pending</span></td><td><b>Production photometry: EU UMa</b><br><code>CV-P2-euuma</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §9 execution order</span><br><span class="src"><b>Gated:</b> waiting on <code>CV-P15-linearity-ladders</code>, <code>CV-P15-noise-model</code>, <code>CV-P2-vetoes</code></span></td><td>Calibrated light curves with the 4.4% phase smear of the dominant 240 s mode propagated.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip pending">pending</span></td><td><b>Production photometry: YZ Cnc</b><br><code>CV-P2-yzcnc</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §9 execution order</span><br><span class="src"><b>Gated:</b> waiting on <code>CV-P15-linearity-ladders</code>, <code>CV-P15-noise-model</code>, <code>CV-P2-vetoes</code></span></td><td>Calibrated light curves for the dense 2024 blocks, every outburst-night frame saturation-audited.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Ensemble-flux-ratio cloud veto</b><br><code>CV-P2-cloud-veto</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 2 step 11</span></td><td>A primary frame-quality veto that works without zmag — which does not exist for the polar Sloan era.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Second-order colour-extinction terms</b><br><code>CV-P2-extinction</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 2 step 12</span></td><td>k″·(g−r)·X solved inside the ensemble, per camera for VV Pup (X ≥ 1.57 always).</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Cross-era discipline and transformation metadata</b><br><code>CV-P2-cross-era</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 2 step 13</span></td><td>G/R/I → g/r/i coefficients ±σ published as data-release metadata; the CV itself never transformed.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Faint-phase forced photometry and upper limits</b><br><code>CV-P2-faint-limits</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 2 step 14</span></td><td>Uncensored state statistics: forced photometry at the solved position, limits for non-detections.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Phase 3 — Time-series analysis</h3>
+<p class="sub">Confirmation and alias hygiene, not discovery: three independent period methods must agree, and every threshold is demonstrated by injection before it is adopted.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Period verification, per filter per era</b><br><code>CV-P3-periods</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 3 step 15</span></td><td>LS + PDM + conditional entropy agreeing on one alias family, with the published spectral window per season.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>σ_t injection test on ST LMi 2025-02-28</b><br><code>CV-P3-sigma-t</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 3 step 16</span></td><td>The demonstrated per-cycle timing precision that decides whether the per-cycle O–C tier exists at all.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Bright-phase timing, per band</b><br><code>CV-P3-bright-phase</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 3 step 16</span></td><td>Per-cycle ingress/egress/centroid epochs with emcee uncertainties; band-dependent egress as a result.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>O–C construction and cycle-count analysis</b><br><code>CV-P3-oc</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 3 step 17</span></td><td>Seasonal O–C against the 40-yr baseline plus an explicit ambiguity analysis across the 289-d gap.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Accretion-state classification</b><br><code>CV-P3-states</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 3 step 18</span></td><td>A two-component mixture model on nightly means — state boundaries from the model, never by eye.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>YZ Cnc superhump analysis (or the fallback)</b><br><code>CV-P3-yzcnc-superhump</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 3 step 19</span></td><td>P_sh and a Kato-style O–C per filter if the dense runs were in outburst; orbital hump + flickering statistics if not.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Detrending discipline</b><br><code>CV-P3-detrending</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 3 step 20</span></td><td>Per-night systematics fit JOINTLY with the periodic model — low-order airmass polynomial, or a celerite2 Matérn-3/2 GP whose timescale prior is bounded below at 3× the candidate period — plus the with/without comparison figures. Never pre-whiten a night spanning under three cycles with a free smooth trend: EU UMa's nights average ~1.5 cycles and a free spline eats the orbit.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Detection limits and injection–recovery</b><br><code>CV-P3-injection</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 3 step 21</span></td><td>90%-recovery amplitude–period contours computed at the real timestamps, per target per filter.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Phase 4 — Decisions, figures, draft</h3>
+<p class="sub">The conditional target call, then the figure set, then the manuscript.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>AN UMa go/no-go, per filter</b><br><code>CV-P4-anuma</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §2 Q5</span></td><td>A decision: colour analysis only if ≥8 full-orbit three-filter nights survive curation (currently ~7).</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>The 13-figure set</b><br><code>CV-P4-figures</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §7 Figure list</span></td><td>Every figure of §7, each regenerable from the photometry product.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Manuscript draft</b><br><code>CV-P4-draft</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §8 Manuscript outline</span></td><td>manuscripts/CV_TimeSeries/main.tex filled out against the §8 outline.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+</table>
+</div>
+</div>
+</section>
+
+<section id="blocking">
+<div class="bhead"><h2>What's blocking</h2>
+<span class="tag">4 blocked tasks</span></div>
+<div class="stage">
+<p class="sub">Each entry states the reason and what would clear it. A
+blocker with no clearing condition is a decision nobody has made yet, and
+it is written as one.</p>
+<div class="blockcard"><b>Linearity ladder per readout mode</b> <span class="src">(CV-P15-linearity-ladders, stage <code>S2</code>)</span><br>S2's evidence tables (s2_ceiling_modes, s2_ptc_fits, s2_linearity_ladders, detector_params) were destroyed by the S0 table swap; the campaign must be re-run before any ceiling or veto number has a query behind it. Clears when S2 re-runs.</div><div class="blockcard"><b>Empirical noise model per readout mode</b> <span class="src">(CV-P15-noise-model, stage <code>S2</code>)</span><br>Same destroyed S2 tables; and §5 row 1 forbids mixed-mode fits until the ladder exists. Clears when S2 re-runs.</div><div class="blockcard"><b>Per-mode saturation vetoes</b> <span class="src">(CV-P2-vetoes, stage <code>S2</code>)</span><br>The thresholds this task applies (High Gain ceiling, StackPro clipping, Mode0 55k) have no backing table since the S2 wipe. Clears when S2 re-runs.</div><div class="blockcard"><b>YZ Cnc superhump analysis (or the fallback)</b> <span class="src">(CV-P3-yzcnc-superhump, stage <code>CV-S4</code>)</span><br>Which branch this is depends entirely on CV-P0-aavso-yzcnc; and the quiescent fallback is only promised after the 8 s High Gain S/N check passes. Clears when the AAVSO cross-match reports.</div>
+</div>
+</section>
+
+<section id="next">
+<div class="bhead"><h2>Next up</h2>
+<span class="tag">the actionable front of the plan</span></div>
+<div class="stage">
+<p class="sub">In plan order, excluding blocked work.</p>
+<h3>First, restore the evidence</h3><p class="sub">These tasks were done and are not backed any more — the stage their result rested on is no longer FRESH. One row per stage: re-running the stage clears every task that rests on it, so this is a list of RE-RUNS, not of re-decisions. The ordered commands are in <code>check_pipeline_status.py plan</code>.</p><div class="nextcard"><span class="chip redo_needed">redo needed</span> <b>Canonical per-target frame view</b> <span class="src">(Phase 0 — Curation &middot; CV-P0-curation-sql &middot; stage <code>S0c</code>)</span><br>One alias-merged, rawimage-pinned, photometric-filter frame list per target, staged as stage_cv_timeseries.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 0 step 1</span></div><div class="nextcard"><span class="chip redo_needed">redo needed</span> <b>Stratified 200-frame re-solve experiment</b> <span class="src">(Phase 0.5 — Astrometry go/no-go &middot; CV-P05-solve-experiment &middot; stage <code>S1</code>)</span><br>A measured per-target success rate, and the acceptance threshold set FROM it rather than asserted.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 0.5 step 3a</span></div><div class="nextcard"><span class="chip redo_needed">redo needed</span> <b>Mid-exposure BJD_TDB for every frame</b> <span class="src">(Phase 1 — Timing foundation &middot; CV-P1-bjd &middot; stage <code>S3</code>)</span><br>frame_times: barycentric mid-exposure timestamps with a JPL ephemeris at Winer's EarthLocation.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 1 step 4</span></div><div class="nextcard"><span class="chip redo_needed">redo needed</span> <b>Honeycutt ensemble core, proven on a prototype</b> <span class="src">(Phase 2 — Photometry &middot; CV-P2-ensemble-core &middot; stage <code>S4</code>)</span><br>A validated inhomogeneous-ensemble solver: synthetic zero-point pattern recovered to &lt;6 mmag with check stars held out.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 2 steps 7–9</span></div><h3>Then, the next steps forward</h3><div class="nextcard"><span class="chip in_progress">in progress</span> <b>Production batch solve of the unsolved pool</b> <span class="src">(Phase 0.5 — Astrometry go/no-go &middot; CV-P05-batch-solve &middot; stage <code>S1b</code>)</span><br>A WCS for every solvable CV frame; the per-target solved fraction that gates Phase 2.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 0.5 step 3b</span></div><div class="nextcard"><span class="chip in_progress">in progress</span> <b>Re-queue the frames excluded by the NAXIS artifact</b> <span class="src">(Phase 0.5 — Astrometry go/no-go &middot; CV-P05-geometry-requeue &middot; stage <code>S0e</code>)</span><br>The 18,381 frames whose recorded geometry was a tile-compressed BINTABLE row length — EU UMa's 207 among them — returned to the solve queue.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §5 row 'Astrometry'</span></div><div class="nextcard"><span class="chip pending">pending</span> <b>AAVSO cross-match for YZ Cnc, 2024-02-21 → 2024-05-03</b> <span class="src">(Phase 0 — Curation &middot; CV-P0-aavso-yzcnc &middot; stage <code>S0c</code>)</span><br>An outburst-state tag per dense run — the branch point that decides whether Q3 is superhumps or flickering.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 0 step 2</span></div><h3>Started or startable, but out of order</h3><p class="sub">These are deliberately NOT recommended above. Their status says they are available; the execution order this plan was derived from says something else has to land first. That distinction used to be invisible — dependencies lived only inside blocker prose that nothing read, so the page offered production photometry as the actionable front while the detector work its own strategy puts in front of it sat blocked on destroyed tables.</p><div class="blockcard"><span class="chip in_progress">in progress</span> <b>Production photometry: ST LMi</b> <span class="src">(Phase 2 — Photometry &middot; CV-P2-stlmi)</span><br>Waiting on <code>CV-P15-linearity-ladders</code> (blocked), <code>CV-P15-noise-model</code> (blocked), <code>CV-P2-vetoes</code> (blocked).<br><span class="src">§5 row 1 is explicit: until the linearity ladder exists, N_sub and the StackPro variance model are hypotheses and NO mixed-mode fit is legal. §9's execution order puts the ladders and the noise model between Phase 1 and Phase 2 photometry, and step 10's per-mode saturation vetoes gate every frame this task would use.</span></div><div class="blockcard"><span class="chip pending">pending</span> <b>Production photometry: VV Pup</b> <span class="src">(Phase 2 — Photometry &middot; CV-P2-vvpup)</span><br>Waiting on <code>CV-P15-linearity-ladders</code> (blocked), <code>CV-P15-noise-model</code> (blocked), <code>CV-P2-vetoes</code> (blocked).<br><span class="src">§5 row 1 is explicit: until the linearity ladder exists, N_sub and the StackPro variance model are hypotheses and NO mixed-mode fit is legal. §9's execution order puts the ladders and the noise model between Phase 1 and Phase 2 photometry, and step 10's per-mode saturation vetoes gate every frame this task would use.</span></div><div class="blockcard"><span class="chip pending">pending</span> <b>Production photometry: EU UMa</b> <span class="src">(Phase 2 — Photometry &middot; CV-P2-euuma)</span><br>Waiting on <code>CV-P15-linearity-ladders</code> (blocked), <code>CV-P15-noise-model</code> (blocked), <code>CV-P2-vetoes</code> (blocked).<br><span class="src">§5 row 1 is explicit: until the linearity ladder exists, N_sub and the StackPro variance model are hypotheses and NO mixed-mode fit is legal. §9's execution order puts the ladders and the noise model between Phase 1 and Phase 2 photometry, and step 10's per-mode saturation vetoes gate every frame this task would use.</span></div><div class="blockcard"><span class="chip pending">pending</span> <b>Production photometry: YZ Cnc</b> <span class="src">(Phase 2 — Photometry &middot; CV-P2-yzcnc)</span><br>Waiting on <code>CV-P15-linearity-ladders</code> (blocked), <code>CV-P15-noise-model</code> (blocked), <code>CV-P2-vetoes</code> (blocked).<br><span class="src">§5 row 1 is explicit: until the linearity ladder exists, N_sub and the StackPro variance model are hypotheses and NO mixed-mode fit is legal. §9's execution order puts the ladders and the noise model between Phase 1 and Phase 2 photometry, and step 10's per-mode saturation vetoes gate every frame this task would use.</span></div>
+<p class="sub">When one completes:
+<code>python pipeline/scripts/update_project_plan.py set &lt;task-id&gt; done
+--evidence &lt;page-or-product&gt;</code>, then re-render. The page is never
+edited by hand.</p>
+</div>
+</section>
+
+<section id="evidence">
+<div class="bhead"><h2>Evidence</h2>
+<span class="tag">7 of 8 stages are not FRESH</span></div>
+<div class="stage">
+<p class="sub">The pipeline stages this project's plan rests on, each with
+the verdict <code>macro_core.provenance</code> returns right now.
+<b>DESTROYED</b> is separated from <b>STALE</b> deliberately: stale means the
+numbers moved, destroyed means the table the number came from is not in the
+database at all. A reader is never invited to trust an orphaned report.</p>
+<table class="data">
+<tr><th>Stage</th><th>What it produces</th><th>Verdict now</th><th>Report</th><th>Why</th></tr>
+<tr><td><code>S0e</code></td><td>Geometry repair of the external catalog</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s0e_geometry_fix.html">s0e_geometry_fix.html</a></td><td>&mdash;</td></tr>
+<tr class="warn"><td><code>S0c</code></td><td>Per-project staging manifests</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE), S0b (STALE_UPSTREAM) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>S1</code></td><td>Astrometry solvability experiment</td><td><span class="chip v-gone">DESTROYED</span></td><td><a href="../pipeline/s1_astrometry.html">s1_astrometry.html</a> <span class="chip v-gone">DESTROYED</span></td><td>it ran and its declared output(s) are now absent from the database: s1_failure_autopsy, s1_populations, s1_solve_experiment, s1_strata</td></tr>
+<tr class="warn"><td><code>S1b</code></td><td>Astrometry production batch</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>output table:s1_batch changed since it was recorded (38092:14516a7e027c9ace -&gt; 38092:ce56ca5a4bd89326) — written out of band</td></tr>
+<tr class="warn"><td><code>S2</code></td><td>Detector truth (ceiling, PTC, recon, linearity)</td><td><span class="chip v-gone">DESTROYED</span></td><td><a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td><td>it ran and its declared output(s) are now absent from the database: detector_params, s2_ceiling_modes, s2_linearity_ladders, s2_ptc_fits, s2_recon_eras</td></tr>
+<tr class="warn"><td><code>S3</code></td><td>Timing (BJD_TDB, clock, cadence)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>CV-S4</code></td><td>Production CV photometry (five staged targets)</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>input table:detector_params is ABSENT — the evidence this stage was built from no longer exists</td></tr>
+<tr class="warn"><td><code>S4</code></td><td>Ensemble photometry (AN UMa / VV Pup prototype)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>input table:detector_params is ABSENT — the evidence this stage was built from no longer exists</td></tr>
+</table>
+<div class="unbacked"><b>Constants with no query behind them.</b> These tables are absent from the manifest right now: <code>detector_params, s1_failure_autopsy, s1_populations, s1_solve_experiment, s1_strata, s2_ceiling_modes, s2_linearity_ladders, s2_ptc_fits, s2_recon_eras</code>. Every detector number this project would otherwise quote — a saturation ceiling, a veto threshold, a StackPro sub-read count, a read noise — lived in them. Until the producing stage re-runs, those values are <b>unbacked prose</b>, not measurements.<br><br><b>No page in this plan quotes them</b> — and that is the limit of what this panel can promise. The stage reports linked above are a different matter: they were rendered while the tables still existed and still print those constants as measured values, because nothing has re-rendered them since the wipe. That is why every link to a report whose stage is not FRESH now carries its verdict beside it. Treat an orphaned report as a historical document, not a reference.</div>
+</div>
+</section>
+
+<footer>Generated 2026-08-18T21:49:54Z by
+<code>macro_core.report_projects</code> from the plan ledger in
+<code>macro_core.project_plan</code> (PLAN v1.0 (2026-08-18)), the
+progress recorded in <code>project_plan_status</code>, and live queries
+against <code>products/manifest/rlmt-manifest.sqlite</code>. Stage verdicts
+come from <code>macro_core.provenance</code>
+(P v1.0 (2026-08-18)). Regenerate with
+<code>python pipeline/scripts/update_project_plan.py render</code>; record a
+completed step with <code>… update_project_plan.py set &lt;task-id&gt;
+done</code>.<br><br><b>Every number in the tables above is queried at render
+time.</b> That is the claim this page can make, and the earlier and stronger
+one — "no number on this page is typed by hand" — was false: task
+descriptions quote figures from the strategy documents, and a quoted figure
+can disagree with the table beside it when the two count under different
+rules. Where a quoted number gates a decision, the accounting rule is stated
+with it. Prose is prose; the tables are the measurement.</footer>
 </body></html>

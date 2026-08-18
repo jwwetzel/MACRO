@@ -2,33 +2,249 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MACRO — Be-Star Grism Campaign</title>
 <link rel="stylesheet" href="../assets/macro.css">
+<style>
+.chip{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12px;
+      white-space:nowrap;font-weight:600}
+.chip.done{background:#1d3a26;color:#9fd8ae}
+.chip.in_progress{background:#1b3247;color:#8fc4f0}
+.chip.blocked{background:#3d2224;color:#f0a3a3}
+.chip.pending{background:#242a35;color:#8a93a3}
+.chip.redo_needed{background:#3a3320;color:#e6cc7a}
+.chip.v-fresh{background:#1d3a26;color:#9fd8ae}
+.chip.v-stale{background:#3a3320;color:#e6cc7a}
+.chip.v-wait{background:#242a35;color:#8a93a3}
+.chip.v-never{background:#1b3247;color:#8fc4f0}
+.chip.v-gone{background:#3d2224;color:#f0a3a3}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;max-width:1100px;
+     border:1px solid #2a3140;background:#11151c;margin:10px 0 6px}
+.bar span{display:block;height:100%}
+.bar .done{background:#3f8f5c}
+.bar .in_progress{background:#4a86c4}
+.bar .redo_needed{background:#b09134}
+.bar .blocked{background:#a24f52}
+.bar .pending{background:#2a3140}
+.legend{color:#8a93a3;font-size:12.5px;margin:0 0 14px}
+.legend b{color:#dfe6f0}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}
+.stat{background:#161a22;border:1px solid #2a3140;border-radius:8px;
+      padding:9px 14px;min-width:150px}
+.stat .n{display:block;font-size:21px;color:#fff}
+.stat .k{display:block;font-size:12px;color:#8a93a3;margin-top:2px}
+.phase{border-left:3px solid #2a3140;padding-left:14px;margin:20px 0}
+.phase h3{margin:0 0 2px;font-size:16px;color:#dfe6f0}
+.blockcard{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
+           margin:10px 0;font-size:13.5px;color:#e3d4d5;max-width:1100px}
+.blockcard b{color:#fff}
+.nextcard{border-left:3px solid #4a86c4;background:#131a24;padding:10px 14px;
+          margin:10px 0;font-size:13.5px;color:#cfe0f5;max-width:1100px}
+.nextcard b{color:#fff}
+.unbacked{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
+          margin:10px 0;font-size:13px;color:#e3d4d5;max-width:1100px}
+.src{color:#6f7a8a;font-size:11.5px}
+table.data td.tight{white-space:nowrap}
+</style>
 </head><body>
+
 <header>
-  <h1>Be-Star Grism Campaign — Chain of Evidence</h1>
-  <p>Hα equivalent-width monitoring of bright Be stars at ~3-day cadence, 2024–2026.
-     Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a>
-     · <a href="../index.html">← all reports</a></p>
+  <h1>Be-Star Grism Campaign — Plan &amp; Progress</h1>
+  <p>1 of 24 plan tasks complete (3 need redoing, 1 blocked)
+  &middot; ApJ if ≥4 BeSS-verified active emitters; AJ/PASP otherwise<br>
+  Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a> &middot; <a href="../index.html">&larr; all reports</a></p>
 </header>
-<nav><a href="#status">Readiness</a></nav>
-<section id="status">
-  <div class="bhead"><h2>Readiness</h2><span class="badge pending">gated on the grism track and October calibrations</span></div>
-  <div class="stage">
-    <h3>Gates cleared</h3>
-    <ul class="sub">
-      <li><b>Staging (S0c):</b> 3,883 science frames staged under the grism whitelist</li>
-      <li><b>Timing (S3):</b> BJD_TDB throughout</li>
-    </ul>
-    <h3>Still blocking</h3>
-    <ul class="sub">
-      <li><b>Grism track (G):</b> this project inherits the extraction chain being built for T CrB</li>
-      <li><b>Era-C calibrations:</b> requested for the October re-opening</li>
-      <li><b>Step −1 (BeSS emission-state check):</b> undone — it sets both the sample and the venue</li>
-    </ul>
-    <div class="decision"><b>Verdict:</b> not startable until the grism chain lands; the BeSS check is the cheapest next step and can be done during the monsoon closure.</div>
-    <p class="sub">Analysis sections appear here as they are executed: each states the question,
-    shows the plot that answers it, and records the decision carried forward. Nothing is
-    published here without a figure and a script behind it.</p>
-  </div>
+
+<nav>
+  <a href="#claim">Claim</a> &middot;
+  <a href="#progress">Progress</a> &middot;
+  <a href="#plan">The plan</a> &middot;
+  <a href="#blocking">Blocking</a> &middot;
+  <a href="#next">Next up</a> &middot;
+  <a href="#evidence">Evidence</a>
+</nav>
+
+<section id="claim">
+<div class="bhead"><h2>What this paper will claim</h2>
+<span class="tag">ApJ if ≥4 BeSS-verified active emitters; AJ/PASP otherwise</span></div>
+<div class="stage">
+<div class="decision">Multi-season, ~3-day-cadence Hα equivalent-width monitoring of bright emission-line stars with a 0.5 m slitless grism — a survey blind spot, since every target saturates ZTF/ASAS-SN/ATLAS/Gaia — validated one-to-one against BeSS and anchored to stability standards. Deliverables are nightly EW curves for ~10 stars over 2024-12 → 2026-07, outburst epochs to 1–3 d, a short-period search on the three targets with genuine multi-hour intra-night spans, and photospheric-corrected disk radii. The venue scales with the verified-active count and the abstract is not drafted until Step −1 reports.</div>
+
+
+</div>
 </section>
-<footer>MACRO Consortium · numbers are script-emitted, never hand-edited.</footer>
+
+
+<section id="progress">
+<div class="bhead"><h2>Progress at a glance</h2>
+<span class="tag">1 of 24 plan tasks complete</span></div>
+<div class="stage">
+<div class="bar"><span class="done" style="width:4.1667%"></span><span class="in_progress" style="width:4.1667%"></span><span class="redo_needed" style="width:12.5000%"></span><span class="blocked" style="width:4.1667%"></span><span class="pending" style="width:75.0000%"></span></div>
+<p class="legend"><b>1</b> done &middot; <b>1</b> in progress &middot; <b>3</b> redo needed &middot; <b>1</b> blocked &middot; <b>18</b> pending</p>
+<div class="stats"><div class="stat"><span class="n">1/24</span><span class="k">plan tasks complete</span></div><div class="stat"><span class="n">3,883</span><span class="k">staged science frames</span></div><div class="stat"><span class="n">167</span><span class="k">nights</span></div><div class="stat"><span class="n">11</span><span class="k">catalog target names</span></div><div class="stat"><span class="n">0%</span><span class="k">carry a WCS (0/3,883)</span></div><div class="stat"><span class="n">100%</span><span class="k">carry BJD_TDB (3,883/3,883)</span></div><div class="stat"><span class="n">983</span><span class="k">era-matched calibration rows</span></div><div class="stat"><span class="n">6</span><span class="k">camera eras spanned</span></div></div>
+<p class="sub">Every row is counted from <code>stage_bestar_grism</code> at render time — the project's actual working set, not a number transcribed from a strategy document. Each row is one <code>canonical_target</code> STRING, which is not the same as one object.</p><table class="data">
+<tr><th>Target</th><th>Staged science frames</th><th>Nights</th><th>With WCS</th><th>With BJD_TDB</th></tr>
+<tr><td>Spica</td><td>728</td><td>29</td><td>0 (0%)</td><td>728 (100%)</td></tr>
+<tr><td>Vega</td><td>477</td><td>22</td><td>0 (0%)</td><td>477 (100%)</td></tr>
+<tr><td>HR 3454</td><td>471</td><td>34</td><td>0 (0%)</td><td>471 (100%)</td></tr>
+<tr><td>HR 4963</td><td>368</td><td>33</td><td>0 (0%)</td><td>368 (100%)</td></tr>
+<tr><td>PHECDA</td><td>333</td><td>40</td><td>0 (0%)</td><td>333 (100%)</td></tr>
+<tr><td>53 Boo</td><td>330</td><td>23</td><td>0 (0%)</td><td>330 (100%)</td></tr>
+<tr><td>69 Ori</td><td>288</td><td>51</td><td>0 (0%)</td><td>288 (100%)</td></tr>
+<tr><td>phi Leo</td><td>261</td><td>39</td><td>0 (0%)</td><td>261 (100%)</td></tr>
+<tr><td>Lam Eri</td><td>252</td><td>47</td><td>0 (0%)</td><td>252 (100%)</td></tr>
+<tr><td>5 Cnc</td><td>194</td><td>45</td><td>0 (0%)</td><td>194 (100%)</td></tr>
+<tr><td>HD 70340</td><td>181</td><td>30</td><td>0 (0%)</td><td>181 (100%)</td></tr>
+</table>
+<h3>What this project&rsquo;s filters actually do</h3><p class="sub">Per-frame verdicts from S2c, restricted to this project&rsquo;s staged science frames. The measurement is source elongation, not the filter&rsquo;s name — which is the point, since every strategy here carries an exclusion rule keyed on the name. The verdict column uses <b>S2c&rsquo;s own published rule</b> — ≥80% dispersed is SPECTRA, ≥80% direct is images, anything else is MIXED, and only filters with at least 20 measured frames get a verdict at all — so the word means the same thing here as it does on <a href="../pipeline/s2c_filter_identity.html">the S2c page</a>. The strength column matters: a verdict built from low-confidence frames is a weaker claim, and most dispersed verdicts in this archive are low. Frames S2c has not reached yet simply do not appear.</p><table class="data">
+<tr><th>Filter</th><th>Measured</th><th>Dispersed</th><th>Direct</th><th>Indeterminate</th><th>Dispersed strength</th><th>Verdict</th></tr>
+<tr class="warn"><td><code>hrg</code></td><td>768</td><td>643</td><td>7</td><td>118</td><td>264 of 643 low</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td><code>lrg</code></td><td>700</td><td>588</td><td>19</td><td>93</td><td>489 of 588 low</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td><code>OGGrism</code></td><td>118</td><td>117</td><td>0</td><td>1</td><td>53 of 117 low</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td><code>HaGrism</code></td><td>74</td><td>74</td><td>0</td><td>0</td><td>28 of 74 low</td><td><b>SPECTRA</b></td></tr>
+</table>
+<h3>What the strategy claims vs what the manifest holds <span class="chip v-stale">STALE</span></h3><p class="sub">Reconciliation rows written by S0 — and re-checked at render time by looking for the sentence S0 says it transcribed in the strategy document as it stands now. A non-zero diff is not necessarily an error — it is a question that has an answer in the <code>source</code> column of <code>project_counts</code>. A SUPERSEDED row is a different thing: the question itself has expired.</p><table class="data">
+<tr><th>Target</th><th>Metric</th><th>Strategy claims</th><th>Manifest holds</th><th>Reconciliation</th></tr>
+<tr><td>Lam Eri</td><td><code>grism4_light</code></td><td>252</td><td>252</td><td>agrees <span class="src">(quote unverifiable)</span></td></tr>
+<tr><td>PHECDA</td><td><code>grism4_light</code></td><td>333</td><td>333</td><td>agrees <span class="src">(quote unverifiable)</span></td></tr>
+<tr><td>Spica</td><td><code>grism4_light</code></td><td>728</td><td>728</td><td>agrees <span class="src">(quote unverifiable)</span></td></tr>
+<tr><td>Vega</td><td><code>grism4_light</code></td><td>447</td><td>447</td><td>agrees <span class="src">(quote unverifiable)</span></td></tr>
+<tr><td>phi Leo</td><td><code>grism4_light</code></td><td>261</td><td>261</td><td>agrees <span class="src">(quote unverifiable)</span></td></tr>
+</table><p class="sub">S0, which wrote these rows, is currently <b>STALE</b>. Every quoted sentence still matches the strategy text, so the transcriptions are current even though the stage is not.</p>
+</div>
+</section>
+
+<section id="plan">
+<div class="bhead"><h2>The plan</h2>
+<span class="tag">24 tasks in 5 phases</span></div>
+<div class="stage">
+<p class="sub">Every task below was read out of the project's execution
+order — derived from <a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> — and names the pipeline stage its result rests on. That
+last column is not decoration: when a stage stops being fresh, every
+<span class="chip done">done</span> task resting on it becomes
+<span class="chip redo_needed">redo needed</span>, automatically, with the
+reason attached.</p>
+
+<div class="phase">
+<h3>Step −1 — Feasibility gates</h3>
+<p class="sub">Run before any per-target pipeline effort: they set the sample, the venue, and whether the reader can be trusted.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>BeSS emission-state check, all ten targets</b><br><code>BE-S-1a-bess</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step −1(a)</span></td><td>A verified-active count that fixes the venue and the science ranking before the abstract exists.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>λ Eri injection–recovery on the real timestamps</b><br><code>BE-S-1b-lameri-injection</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step −1(b)</span></td><td>The completeness map that justifies λ Eri's demotion to the slow tier.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip done">done</span></td><td><b>Characterise the era-C FITS repackaging</b><br><code>BE-S-1c-erac-geometry</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §3.5</span></td><td>The HDU layout of the post-2026-04-25 files, and repaired geometry in the catalog — the 'NAXIS1=8' frames are full-frame images, not 8-pixel strips.</td><td><code>S0e</code> <a href="../pipeline/s0e_geometry_fix.html">s0e_geometry_fix.html</a></td><td><a href="../pipeline/s0e_geometry_fix.html">s0e_geometry_fix.html</a></td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Settle the hrg O₂ B-band coverage question</b><br><code>BE-S-1c-hrg-bandpass</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step −1(c)</span></td><td>Either a telluric anchor at 6867 Å for hrg, or a stated fallback to continuum cross-correlation.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Steps 0–2 — Master table, QC and calibration</h3>
+<p class="sub">One master frame table keyed on measured instrument era, then the gates every frame must pass.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>Master frame table</b><br><code>BE-S0-master-table</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 0</span></td><td>stage_bestar_grism: the grism-whitelisted science set with era, night and calibration family attached.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a></td></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>Adjudicate the blank-target rows</b><br><code>BE-S0-cone-match</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §3.2</span></td><td>The measured answer: the blank-target pool is not hidden core-ten inventory, so the §3.2 totals do not move.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a></td></tr>
+<tr><td><span class="chip in_progress">in progress</span></td><td><b>Measure, don't assume, which filters disperse</b><br><code>BE-S0-filter-identity</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §3.4</span></td><td>A per-frame direct/dispersed/indeterminate verdict from source elongation, replacing the assumption that a filter NAME implies a spectrum.</td><td><code>S2c</code> <a href="../pipeline/s2c_filter_identity.html">s2c_filter_identity.html</a> <span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s2c_filter_identity.html">s2c_filter_identity.html</a></td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Re-scrape FITS headers for temperature</b><br><code>BE-S0-header-rescrape</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 0</span></td><td>A per-frame detector temperature series — the catalog's camtemp is NULL for every grism frame.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>BJD_TDB for every grism frame</b><br><code>BE-S0-times</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §3.3</span></td><td>Barycentric timestamps before any period analysis.</td><td><code>S3</code> <a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a></td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Frame QC gates</b><br><code>BE-S1-qc-gates</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 1</span></td><td>A logged pass/reject per frame, whose trace-peak distribution IS the paper's saturation statement.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Era-C calibration set</b><br><code>BE-S2-calibration</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 2</span></td><td>Real biases, darks and flats for the QHY/Fast era, plus the answer on whether the era-B camera survives.</td><td><code>OPS</code> &mdash;</td><td><code>ops/2026-08_observatory_request.md</code></td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Steps 3–6 — Extraction and the calibration chain</h3>
+<p class="sub">Trace, wavelength, delivered resolution, and the response chain rebuilt on verified overlaps.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Per-frame trace and optimal extraction</b><br><code>BE-S3-extraction</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 3</span></td><td>Horne-extracted spectra with a per-frame trace fit — never reused between frames.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Wavelength calibration per (filter, era)</b><br><code>BE-S4-wavelength</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 4</span></td><td>A dispersion solution per filter/era plus a per-frame zero point, with the achieved telluric-anchor rms in Å reported.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Measure the delivered resolution</b><br><code>BE-S5-resolution</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 5</span></td><td>The number that decides scope: V/R decomposition if FWHM at Hα &lt; ~4 Å, otherwise the asymmetry moment.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Response and telluric correction</b><br><code>BE-S6-response-chain</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 6</span></td><td>A sensitivity curve per (filter, era, season): era C on Vega, era B transferred via η Hya/θ Vir, era A on the 2024-05-20 Vega ladder, season 1 relative only.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Steps 7–10 — Measurement and error calibration</h3>
+<p class="sub">Equivalent widths on fixed windows, three flux tiers, and two honestly separated error floors.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Equivalent widths on the paper-wide windows</b><br><code>BE-S7-ew</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 7</span></td><td>Per-frame and nightly EW with the photospheric template subtracted before any disk-radius conversion.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Three-tier continuum/flux calibration</b><br><code>BE-S8-flux-tiers</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 8</span></td><td>A pseudo-r flux series that breaks the EW/continuum degeneracy — where Tier 2 exists.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Era cross-calibration</b><br><code>BE-S9-era-crosscal</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 9</span></td><td>One offset per (star, band) from overlaps, verified star-independent to &lt;1%.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Two-floor error calibration</b><br><code>BE-S10-error-floors</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 10</span></td><td>Per-night errors from standards where they exist (2025-12 onward), labelled intra-night lower bounds elsewhere; precision quoted per star in Å.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Steps 11–13 — Time series, events, external</h3>
+<p class="sub">Two tiers, both with published windows and closed completeness contours.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Slow- and short-tier searches</b><br><code>BE-S11-timeseries</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 11</span></td><td>GLS + PDM on nightly medians for every target, and the 0.3–2 d search on Phecda/Spica/φ Leo only.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Outburst/disk-event epochs</b><br><code>BE-S12-event-timing</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 12</span></td><td>Onset epochs to ~1–3 d from template fits — the money figure if one is TESS-coincident.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>BeSS and TESS co-analysis</b><br><code>BE-S13-external</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 13</span></td><td>The resolution-matched one-to-one BeSS validation plot — the figure the paper stands on.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>The twelve-figure set</b><br><code>BE-figures</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §7 Figure list</span></td><td>Figures 1–12: campaign overview, instrument eras, calibration performance, the flat and noise panel, the stability-standards panel, the BeSS validation (the credibility figure), the main EW curves, the event analysis, periodograms, injection–recovery maps, disk physics, and the conditional V/R series.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip pending">pending</span></td><td><b>Write the manuscript</b><br><code>BE-draft</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §8 Manuscript outline</span><br><span class="src"><b>Gated:</b> waiting on <code>BE-figures</code></span></td><td>manuscripts/BeStar_Grism/main.tex through the manuscript outline.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+</table>
+</div>
+</div>
+</section>
+
+<section id="blocking">
+<div class="bhead"><h2>What's blocking</h2>
+<span class="tag">1 blocked task</span></div>
+<div class="stage">
+<p class="sub">Each entry states the reason and what would clear it. A
+blocker with no clearing condition is a decision nobody has made yet, and
+it is written as one.</p>
+<div class="blockcard"><b>Era-C calibration set</b> <span class="src">(BE-S2-calibration, stage <code>OPS</code>)</span><br>The only external blocker of this project. Winer is closed until October 2026; the request is submitted (Item B) and first in queue. The interim surrogate-dark scheme carries era B meanwhile.</div>
+</div>
+</section>
+
+<section id="next">
+<div class="bhead"><h2>Next up</h2>
+<span class="tag">the actionable front of the plan</span></div>
+<div class="stage">
+<p class="sub">In plan order, excluding blocked work.</p>
+<h3>First, restore the evidence</h3><p class="sub">These tasks were done and are not backed any more — the stage their result rested on is no longer FRESH. One row per stage: re-running the stage clears every task that rests on it, so this is a list of RE-RUNS, not of re-decisions. The ordered commands are in <code>check_pipeline_status.py plan</code>.</p><div class="nextcard"><span class="chip redo_needed">redo needed</span> <b>Master frame table</b> <span class="src">(Steps 0–2 — Master table, QC and calibration &middot; BE-S0-master-table &middot; stage <code>S0c</code>)</span><br>stage_bestar_grism: the grism-whitelisted science set with era, night and calibration family attached.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step 0</span></div><div class="nextcard"><span class="chip redo_needed">redo needed</span> <b>BJD_TDB for every grism frame</b> <span class="src">(Steps 0–2 — Master table, QC and calibration &middot; BE-S0-times &middot; stage <code>S3</code>)</span><br>Barycentric timestamps before any period analysis.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §3.3</span></div><h3>Then, the next steps forward</h3><div class="nextcard"><span class="chip in_progress">in progress</span> <b>Measure, don't assume, which filters disperse</b> <span class="src">(Steps 0–2 — Master table, QC and calibration &middot; BE-S0-filter-identity &middot; stage <code>S2c</code>)</span><br>A per-frame direct/dispersed/indeterminate verdict from source elongation, replacing the assumption that a filter NAME implies a spectrum.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §3.4</span></div><div class="nextcard"><span class="chip pending">pending</span> <b>BeSS emission-state check, all ten targets</b> <span class="src">(Step −1 — Feasibility gates &middot; BE-S-1a-bess &middot; stage <code>S0c</code>)</span><br>A verified-active count that fixes the venue and the science ranking before the abstract exists.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step −1(a)</span></div><div class="nextcard"><span class="chip pending">pending</span> <b>λ Eri injection–recovery on the real timestamps</b> <span class="src">(Step −1 — Feasibility gates &middot; BE-S-1b-lameri-injection &middot; stage <code>S0c</code>)</span><br>The completeness map that justifies λ Eri's demotion to the slow tier.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">BeStar_Grism/ANALYSIS_STRATEGY.md</a> §4 Step −1(b)</span></div><h3>Started or startable, but out of order</h3><p class="sub">These are deliberately NOT recommended above. Their status says they are available; the execution order this plan was derived from says something else has to land first. That distinction used to be invisible — dependencies lived only inside blocker prose that nothing read, so the page offered production photometry as the actionable front while the detector work its own strategy puts in front of it sat blocked on destroyed tables.</p><div class="blockcard"><span class="chip pending">pending</span> <b>Write the manuscript</b> <span class="src">(Steps 11–13 — Time series, events, external &middot; BE-draft)</span><br>Waiting on <code>BE-figures</code> (pending).</div>
+<p class="sub">When one completes:
+<code>python pipeline/scripts/update_project_plan.py set &lt;task-id&gt; done
+--evidence &lt;page-or-product&gt;</code>, then re-render. The page is never
+edited by hand.</p>
+</div>
+</section>
+
+<section id="evidence">
+<div class="bhead"><h2>Evidence</h2>
+<span class="tag">6 of 7 stages are not FRESH</span></div>
+<div class="stage">
+<p class="sub">The pipeline stages this project's plan rests on, each with
+the verdict <code>macro_core.provenance</code> returns right now.
+<b>DESTROYED</b> is separated from <b>STALE</b> deliberately: stale means the
+numbers moved, destroyed means the table the number came from is not in the
+database at all. A reader is never invited to trust an orphaned report.</p>
+<table class="data">
+<tr><th>Stage</th><th>What it produces</th><th>Verdict now</th><th>Report</th><th>Why</th></tr>
+<tr><td><code>S0e</code></td><td>Geometry repair of the external catalog</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s0e_geometry_fix.html">s0e_geometry_fix.html</a></td><td>&mdash;</td></tr>
+<tr class="warn"><td><code>S0</code></td><td>Manifest (dedup, aliases, eras, pointing)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>input stat:rlmt-catalog: changed after this stage ran — S0e changed 2026-08-18T19:38:06Z, after this stage ran 2026-08-18T15:03:50.623928+00:00</td></tr>
+<tr class="warn"><td><code>G</code></td><td>Grism extraction + identity gate (T CrB)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td><td>upstream not fresh: S0 (STALE), S0b (STALE_UPSTREAM) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>OPS</code></td><td>Observatory request (October shopping list)</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>input table:calib_coverage: changed after this stage ran — S0b changed 2026-08-18T15:04:14.574732+00:00, after this stage ran 2026-08-18T02:52:50Z</td></tr>
+<tr class="warn"><td><code>S0c</code></td><td>Per-project staging manifests</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE), S0b (STALE_UPSTREAM) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>S2c</code></td><td>Per-frame dispersion (is this FILTER a spectrum?)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s2c_filter_identity.html">s2c_filter_identity.html</a> <span class="chip v-stale">STALE</span></td><td>output table:frame_dispersion changed since it was recorded (25323:f7bddf62c1066086 -&gt; 25323:77002b31abc6d218) — written out of band</td></tr>
+<tr class="warn"><td><code>S3</code></td><td>Timing (BJD_TDB, clock, cadence)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+</table>
+
+</div>
+</section>
+
+<footer>Generated 2026-08-18T21:49:54Z by
+<code>macro_core.report_projects</code> from the plan ledger in
+<code>macro_core.project_plan</code> (PLAN v1.0 (2026-08-18)), the
+progress recorded in <code>project_plan_status</code>, and live queries
+against <code>products/manifest/rlmt-manifest.sqlite</code>. Stage verdicts
+come from <code>macro_core.provenance</code>
+(P v1.0 (2026-08-18)). Regenerate with
+<code>python pipeline/scripts/update_project_plan.py render</code>; record a
+completed step with <code>… update_project_plan.py set &lt;task-id&gt;
+done</code>.<br><br><b>Every number in the tables above is queried at render
+time.</b> That is the claim this page can make, and the earlier and stronger
+one — "no number on this page is typed by hand" — was false: task
+descriptions quote figures from the strategy documents, and a quoted figure
+can disagree with the table beside it when the two count under different
+rules. Where a quoted number gates a decision, the accounting rule is stated
+with it. Prose is prose; the tables are the measurement.</footer>
 </body></html>

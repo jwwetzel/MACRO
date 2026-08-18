@@ -2,74 +2,116 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MACRO — Analysis Evidence</title>
 <link rel="stylesheet" href="assets/macro.css">
+<style>
+.chip{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12px;
+      white-space:nowrap;font-weight:600}
+.chip.done{background:#1d3a26;color:#9fd8ae}
+.chip.in_progress{background:#1b3247;color:#8fc4f0}
+.chip.blocked{background:#3d2224;color:#f0a3a3}
+.chip.pending{background:#242a35;color:#8a93a3}
+.chip.redo_needed{background:#3a3320;color:#e6cc7a}
+.chip.v-fresh{background:#1d3a26;color:#9fd8ae}
+.chip.v-stale{background:#3a3320;color:#e6cc7a}
+.chip.v-wait{background:#242a35;color:#8a93a3}
+.chip.v-never{background:#1b3247;color:#8fc4f0}
+.chip.v-gone{background:#3d2224;color:#f0a3a3}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;max-width:1100px;
+     border:1px solid #2a3140;background:#11151c;margin:10px 0 6px}
+.bar span{display:block;height:100%}
+.bar .done{background:#3f8f5c}
+.bar .in_progress{background:#4a86c4}
+.bar .redo_needed{background:#b09134}
+.bar .blocked{background:#a24f52}
+.bar .pending{background:#2a3140}
+.legend{color:#8a93a3;font-size:12.5px;margin:0 0 14px}
+.legend b{color:#dfe6f0}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}
+.stat{background:#161a22;border:1px solid #2a3140;border-radius:8px;
+      padding:9px 14px;min-width:150px}
+.stat .n{display:block;font-size:21px;color:#fff}
+.stat .k{display:block;font-size:12px;color:#8a93a3;margin-top:2px}
+.phase{border-left:3px solid #2a3140;padding-left:14px;margin:20px 0}
+.phase h3{margin:0 0 2px;font-size:16px;color:#dfe6f0}
+.blockcard{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
+           margin:10px 0;font-size:13.5px;color:#e3d4d5;max-width:1100px}
+.blockcard b{color:#fff}
+.nextcard{border-left:3px solid #4a86c4;background:#131a24;padding:10px 14px;
+          margin:10px 0;font-size:13.5px;color:#cfe0f5;max-width:1100px}
+.nextcard b{color:#fff}
+.unbacked{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
+          margin:10px 0;font-size:13px;color:#e3d4d5;max-width:1100px}
+.src{color:#6f7a8a;font-size:11.5px}
+table.data td.tight{white-space:nowrap}
+</style>
 </head><body>
 
 <header>
   <h1>MACRO Consortium — Analysis Chain of Evidence</h1>
-  <p>Robert L. Mutel Telescope (0.5 m, Winer Observatory) · 2023–2026 archive: 3.34 TiB,
-     ~329k FITS, 628 nights · Every analytical decision on this site is backed by a plot
-     and a script-emitted number. Code: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a></p>
+  <p>Robert L. Mutel Telescope (0.5 m, Winer Observatory) &middot; 2023–2026
+     archive: 3.34 TiB, ~329k FITS, 628 nights &middot; Every analytical
+     decision on this site is backed by a plot and a script-emitted number.
+     Code: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a></p>
 </header>
 
 <nav>
-  <a href="#pipeline">Pipeline</a> ·
-  <a href="#projects">Projects</a>
+  <a href="#projects">Projects</a> &middot;
+  <a href="#pipeline">Pipeline</a>
 </nav>
-
-<section id="pipeline">
-  <div class="bhead"><h2>Shared pipeline</h2>
-    <span class="tag">facility-grade infrastructure, built once, consumed by every paper</span></div>
-  <div class="stage">
-    <p class="sub">Stages in build order. Each report is a chain of evidence: the question the
-    stage answers, the plots that answer it, and the decision carried forward.</p>
-    <table class="data">
-      <tr><th>Stage</th><th>Scope</th><th>Status</th><th>Report</th></tr>
-      <tr><td>S0 Manifest &amp; curation</td><td>global dedup, alias table, era tagging, pointing validation, night labels</td>
-          <td><span class="badge done">done</span></td><td><a href="pipeline/s0_manifest.html">s0_manifest</a></td></tr>
-      <tr><td>S0b Calibration inventory</td><td>raw&harr;reduced links, calibration census per era, coverage matrix, October shopping list</td>
-          <td><span class="badge done">done</span></td><td><a href="pipeline/s0b_calibration_inventory.html">s0b_calibration_inventory</a></td></tr>
-      <tr><td>S1 Astrometry</td><td>stratified go/no-go experiment (batch solve decision at Week-2 review)</td>
-          <td><span class="badge done">done</span></td><td><a href="pipeline/s1_astrometry.html">s1_astrometry</a></td></tr>
-      <tr><td>S2 Detector &amp; calibration</td><td>ceiling memo, StackPro PTC, master reconstruction, linearity</td>
-          <td><span class="badge done">done</span></td><td><a href="pipeline/s2_detector.html">s2_detector</a></td></tr>
-      <tr><td>S0c Project staging</td><td>per-project frame + calibration manifests (no copies; provenance by reference)</td>
-          <td><span class="badge done">done</span></td><td><a href="pipeline/s0c_staging.html">s0c_staging</a></td></tr>
-      <tr><td>S3 Timing</td><td>mid-exposure BJD_TDB (193,550 frames), DATE-OBS/JD-HELIO audit, clock bound</td>
-          <td><span class="badge done">done</span></td><td><a href="pipeline/s3_timing.html">s3_timing</a></td></tr>
-      <tr><td>S4 Ensemble photometry</td><td>Honeycutt ensemble core proven on AN UMa/VV Pup + empirical error model</td>
-          <td><span class="badge done">done</span></td><td><a href="pipeline/s4_photometry.html">s4_photometry</a></td></tr>
-      <tr><td>S5 Error model &amp; validation</td><td>check-star RMS vs mag, χ² inflation, Allan deviation — built and figured inside S4; awaits promotion to its own stage</td>
-          <td><span class="badge active">partial</span></td><td><a href="pipeline/s4_photometry.html">in s4_photometry</a></td></tr>
-      <tr><td>S6 Time-series toolkit</td><td>periodograms, bootstrap FAPs, injection–recovery, GP fits</td>
-          <td><span class="badge pending">pending</span></td><td>—</td></tr>
-      <tr><td>G Grism track</td><td>identity gate, optimal extraction, wavelength, response, EW</td>
-          <td><span class="badge active">building</span></td><td>—</td></tr>
-    </table>
-  </div>
-</section>
 
 <section id="projects">
   <div class="bhead"><h2>Projects</h2>
-    <span class="tag">five archival papers, committee-strategized, referee-hardened</span></div>
+    <span class="tag">1 of 153 plan tasks complete across six projects</span></div>
   <div class="stage">
-    <table class="data">
-      <tr><th>Project</th><th>Headline product</th><th>Venue posture</th><th>Report</th></tr>
-      <tr><td>T CrB pre-eruption monitoring</td><td>Hα EW/profile series through the 2025 dip recovery + photometric anchors</td>
-          <td>ApJ</td><td><a href="TCrB_Monitoring/index.html">evidence</a></td></tr>
-      <tr><td>CV time series</td><td>state-tagged, cycle-resolved light curves of 3 polars + YZ Cnc superhumps</td>
-          <td>ApJ</td><td><a href="CV_TimeSeries/index.html">evidence</a></td></tr>
-      <tr><td>SN 2023ixf</td><td>gri/narrowband +5.4→+50 d; possible flash-phase grism series</td>
-          <td>AJ/PASP base, ApJ upside</td><td><a href="SN2023ixf_LightCurve/index.html">evidence</a></td></tr>
-      <tr><td>Be-star grism campaign</td><td>~3-day-cadence Hα EW monitoring of bright Be stars</td>
-          <td>ApJ if ≥4 verified-active</td><td><a href="BeStar_Grism/index.html">evidence</a></td></tr>
-      <tr><td>Dwarf galaxies + NGC 5548</td><td>Hα fluxes/limits for 13 fields + band-integrated AGN light curve</td>
-          <td>ApJ (AGN section conditional)</td><td><a href="DwarfGalaxy_AGN_Survey/index.html">evidence</a></td></tr>
-      <tr><td>Rigel-era legacy archive <span class="tag2">(candidate)</span></td>
-          <td>pre-MACRO 2015–2023 contact-binary program, 210k frames — census in progress</td>
-          <td>undecided</td><td><a href="Legacy_Rigel/index.html">evidence</a></td></tr>
-    </table>
+    <p class="sub">Each project page carries its whole plan — every phase,
+    every task, what it produces, and where it stands — derived from that
+    project's committee strategy and re-checked against the database on every
+    render. The progress column is a count of plan tasks, not an opinion.</p>
+<table class="data">
+<tr><th>Project</th><th>Venue posture</th><th>Plan progress</th><th>Blocked</th><th>Next up</th></tr>
+<tr><td><a href="TCrB_Monitoring/index.html">T CrB Pre-Eruption Monitoring</a></td><td>ApJ, with a slitless-spectrophotometry methods appendix</td><td><b>0/34</b> <span class="chip redo_needed">2 redo</span><div class="bar" style="width:150px;margin:4px 0"><span class="in_progress" style="width:8.8235%"></span><span class="redo_needed" style="width:5.8824%"></span><span class="blocked" style="width:20.5882%"></span><span class="pending" style="width:64.7059%"></span></div></td><td>7</td><td>Working set staged by reference</td></tr>
+<tr><td><a href="CV_TimeSeries/index.html">Cataclysmic-Variable Time Series</a></td><td>ApJ (AASTeX 7 skeleton in manuscripts/CV_TimeSeries/main.tex)</td><td><b>0/33</b> <span class="chip redo_needed">7 redo</span><div class="bar" style="width:150px;margin:4px 0"><span class="in_progress" style="width:9.0909%"></span><span class="redo_needed" style="width:21.2121%"></span><span class="blocked" style="width:12.1212%"></span><span class="pending" style="width:57.5758%"></span></div></td><td>4</td><td>Canonical per-target frame view</td></tr>
+<tr><td><a href="SN2023ixf_LightCurve/index.html">SN 2023ixf Early Light Curve</a></td><td>AJ/PASP base case; ApJ upside decided at week 3, post-Gate 0</td><td><b>0/20</b> <span class="chip redo_needed">3 redo</span><div class="bar" style="width:150px;margin:4px 0"><span class="in_progress" style="width:10.0000%"></span><span class="redo_needed" style="width:15.0000%"></span><span class="blocked" style="width:20.0000%"></span><span class="pending" style="width:55.0000%"></span></div></td><td>4</td><td>Manifest freeze with global dedup</td></tr>
+<tr><td><a href="BeStar_Grism/index.html">Be-Star Grism Campaign</a></td><td>ApJ if ≥4 BeSS-verified active emitters; AJ/PASP otherwise</td><td><b>1/24</b> <span class="chip redo_needed">3 redo</span><div class="bar" style="width:150px;margin:4px 0"><span class="done" style="width:4.1667%"></span><span class="in_progress" style="width:4.1667%"></span><span class="redo_needed" style="width:12.5000%"></span><span class="blocked" style="width:4.1667%"></span><span class="pending" style="width:75.0000%"></span></div></td><td>1</td><td>Master frame table</td></tr>
+<tr><td><a href="DwarfGalaxy_AGN_Survey/index.html">Dwarf Galaxies + NGC 5548</a></td><td>ApJ (NGC 5548 section conditional; pre-authorised RNAAS fallback)</td><td><b>0/31</b> <span class="chip redo_needed">1 redo</span><div class="bar" style="width:150px;margin:4px 0"><span class="in_progress" style="width:6.4516%"></span><span class="redo_needed" style="width:3.2258%"></span><span class="blocked" style="width:25.8065%"></span><span class="pending" style="width:64.5161%"></span></div></td><td>8</td><td>Working set staged by reference</td></tr>
+<tr><td><a href="Legacy_Rigel/index.html">Rigel-Era Legacy Archive (candidate)</a></td><td>undecided — a go/no-go, not a venue posture</td><td><b>0/11</b><div class="bar" style="width:150px;margin:4px 0"><span class="in_progress" style="width:27.2727%"></span><span class="pending" style="width:72.7273%"></span></div></td><td>&mdash;</td><td>Complete the archive transfer</td></tr>
+</table>
   </div>
 </section>
 
-<footer>MACRO Consortium · reports regenerate with the pipeline; numbers are never edited by hand.</footer>
+<section id="pipeline">
+  <div class="bhead"><h2>Shared pipeline</h2>
+    <span class="tag">1 of 12 stages are FRESH right now</span></div>
+  <div class="stage">
+    <p class="sub">Stages in build order. The verdict column is computed by
+    <code>macro_core.provenance</code> at render time — it is not a
+    hand-maintained "done" list, which is what let this table claim eight
+    finished stages while two of them had no tables in the database at all.
+    <b>DESTROYED</b> means the stage's declared outputs are absent, not merely
+    stale.</p>
+<table class="data">
+<tr><th>Stage</th><th>Scope</th><th>Verdict now</th><th>Report</th></tr>
+<tr><td><code>S0e</code> Geometry repair of the external catalog</td><td>rewrites the NAXIS values a raw-header parser got wrong; the event that invalidated S0</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="pipeline/s0e_geometry_fix.html">s0e_geometry_fix.html</a></td></tr>
+<tr class="warn"><td><code>S0</code> Manifest (dedup, aliases, eras, pointing)</td><td>global dedup, alias table, era tagging, pointing validation, night labels</td><td><span class="chip v-stale">STALE</span></td><td><a href="pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td></tr>
+<tr class="warn"><td><code>S0b</code> Calibration inventory (links, coverage, gaps)</td><td>raw↔reduced links, calibration census per era, coverage matrix, the October shopping list</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="pipeline/s0b_calibration_inventory.html">s0b_calibration_inventory.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td></tr>
+<tr class="warn"><td><code>S0c</code> Per-project staging manifests</td><td>per-project working sets, by reference — no project ever copies a frame</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td></tr>
+<tr class="warn"><td><code>S1</code> Astrometry solvability experiment</td><td>the stratified go/no-go that set the batch-solve acceptance threshold</td><td><span class="chip v-gone">DESTROYED</span></td><td><a href="pipeline/s1_astrometry.html">s1_astrometry.html</a> <span class="chip v-gone">DESTROYED</span></td></tr>
+<tr class="warn"><td><code>S1b</code> Astrometry production batch</td><td>the production solve queue: which frames actually have a WCS</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><code>S2</code> Detector truth (ceiling, PTC, recon, linearity)</td><td>ceiling, StackPro PTC, master reconstruction, linearity — every detector constant any paper would quote</td><td><span class="chip v-gone">DESTROYED</span></td><td><a href="pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td></tr>
+<tr class="warn"><td><code>S2c</code> Per-frame dispersion (is this FILTER a spectrum?)</td><td>measures source elongation per frame: is this FILTER a spectrum, or was that only its name?</td><td><span class="chip v-stale">STALE</span></td><td><a href="pipeline/s2c_filter_identity.html">s2c_filter_identity.html</a> <span class="chip v-stale">STALE</span></td></tr>
+<tr class="warn"><td><code>S3</code> Timing (BJD_TDB, clock, cadence)</td><td>mid-exposure BJD_TDB, DATE-OBS audit, the clock bound, cadence</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td></tr>
+<tr class="warn"><td><code>S4</code> Ensemble photometry (AN UMa / VV Pup prototype)</td><td>the Honeycutt ensemble core and the empirical error model</td><td><span class="chip v-stale">STALE</span></td><td><a href="pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td></tr>
+<tr class="warn"><td><code>CV-S4</code> Production CV photometry (five staged targets)</td><td>the five staged CV targets, taken through the production photometry chain</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><code>G</code> Grism extraction + identity gate (T CrB)</td><td>grism identity gate, extraction, wavelength, response, EW</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td></tr>
+</table>
+    <p class="sub">Full DAG, reasons and the ordered re-run plan:
+    <code>python pipeline/scripts/check_pipeline_status.py status</code>.</p>
+  </div>
+</section>
+
+<footer>Generated 2026-08-18T21:49:54Z by
+<code>macro_core.report_projects</code> &middot; project progress from
+<code>macro_core.project_plan</code> (PLAN v1.0 (2026-08-18)) and
+<code>project_plan_status</code>; stage verdicts from
+<code>macro_core.provenance</code> (P v1.0 (2026-08-18)).
+Reports regenerate with the pipeline; numbers are never edited by hand.</footer>
 </body></html>

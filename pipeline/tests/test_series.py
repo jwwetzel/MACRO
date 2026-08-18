@@ -499,3 +499,93 @@ class TestGainPolicy:
         # the empirical inflation factor absorbs.
         lo, hi = sr.GAIN_BRACKET_E_PER_ADU
         assert np.sqrt(hi / lo) < 2.0
+
+
+# ---------------------------------------------------------------------------
+# Translation voting (the dither-aware registration route)
+# ---------------------------------------------------------------------------
+class TestTranslationVote:
+    def _field(self, n=60, seed=3):
+        rng = np.random.default_rng(seed)
+        return rng.uniform(0, 4000, size=(n, 2))
+
+    def test_recovers_a_pure_dither(self):
+        ref = self._field()
+        shift = np.array([-161.0, 38.7])       # a real measured EU UMa dither
+        frame = ref - shift
+        got = reg.vote_translation(frame, ref)
+        assert got is not None
+        assert np.allclose(got, shift, atol=0.5)
+
+    def test_works_when_the_frame_is_far_shallower(self):
+        # THE case astroalign cannot do: 60 frame stars against an
+        # 1,839-star reference.  The shift is still one modal offset.
+        ref = self._field(n=1839, seed=7)
+        shift = np.array([120.0, -75.0])
+        frame = ref[:60] - shift
+        got = reg.vote_translation(frame, ref)
+        assert got is not None and np.allclose(got, shift, atol=1.0)
+
+    def test_survives_noise_and_non_common_stars(self):
+        rng = np.random.default_rng(11)
+        ref = self._field(n=200, seed=5)
+        shift = np.array([40.0, -12.0])
+        common = ref[:120] - shift + rng.normal(0, 0.3, size=(120, 2))
+        spurious = rng.uniform(0, 4000, size=(80, 2))   # frame-only junk
+        frame = np.vstack([common, spurious])
+        got = reg.vote_translation(frame, ref)
+        assert got is not None and np.allclose(got, shift, atol=1.0)
+
+    def test_two_unrelated_fields_produce_no_proposal(self):
+        # A frame pointed somewhere else must NOT be handed a translation:
+        # the offsets scatter and no bin can win.
+        a = self._field(n=150, seed=1)
+        b = self._field(n=150, seed=2)
+        assert reg.vote_translation(a, b) is None
+
+    def test_too_few_stars_declines(self):
+        assert reg.vote_translation(np.zeros((2, 2)), np.zeros((10, 2))) is None
+        assert reg.vote_translation(np.empty((0, 2)), np.zeros((10, 2))) is None
+
+    def test_offset_on_a_bin_edge_is_still_recovered(self):
+        # A shift landing exactly on a bin boundary splits its votes; the
+        # refinement pass exists precisely so that does not bias the answer.
+        ref = self._field(n=120, seed=9)
+        shift = np.array([reg.VOTE_BIN_PX * 10.0, reg.VOTE_BIN_PX * 4.0])
+        got = reg.vote_translation(ref - shift, ref)
+        assert got is not None and np.allclose(got, shift, atol=0.5)
+
+
+# ---------------------------------------------------------------------------
+# The chance-coincidence gate
+# ---------------------------------------------------------------------------
+class TestChanceGate:
+    # A real EU UMa era-80 frame: 4,787 x 3,193 px, 1,839 reference stars,
+    # 2 px tolerance.
+    AREA = 4787.0 * 3193.0
+
+    def test_a_wrong_shift_matches_almost_nothing(self):
+        chance = sr.expected_chance_matches(400, 1839, 2.0, self.AREA)
+        assert chance < 1.0
+
+    def test_a_dozen_matches_on_a_cloudy_frame_are_believed(self):
+        # THE case the fraction gate wrongly rejected: 400 detections of
+        # which only ~60 are stars, so a third of 400 is unreachable — but
+        # 19 matches beat a 0.6-pair expectation by thirty times.
+        assert not sr.wcs_match_ok(19, 400, 1839)
+        assert sr.matches_beat_chance(19, 400, 1839, 2.0, self.AREA)
+
+    def test_the_absolute_floor_still_applies(self):
+        # Two coincidences in a sparse field are not a registration, no
+        # matter how small the chance expectation is.
+        assert not sr.matches_beat_chance(3, 50, 60, 2.0, self.AREA)
+
+    def test_a_crowded_field_demands_more(self):
+        # Pack 40,000 stars into a small frame and chance matches become
+        # common, so the same 19 matches no longer prove anything.
+        small = 500.0 * 500.0
+        assert not sr.matches_beat_chance(19, 400, 40000, 2.0, small)
+
+    def test_degenerate_inputs_fail_closed(self):
+        assert not sr.matches_beat_chance(100, 400, 1839, 2.0, 0.0)
+        assert not sr.matches_beat_chance(100, 400, 1839, 0.0, self.AREA)

@@ -2,34 +2,253 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MACRO — T CrB Pre-Eruption Monitoring</title>
 <link rel="stylesheet" href="../assets/macro.css">
+<style>
+.chip{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12px;
+      white-space:nowrap;font-weight:600}
+.chip.done{background:#1d3a26;color:#9fd8ae}
+.chip.in_progress{background:#1b3247;color:#8fc4f0}
+.chip.blocked{background:#3d2224;color:#f0a3a3}
+.chip.pending{background:#242a35;color:#8a93a3}
+.chip.redo_needed{background:#3a3320;color:#e6cc7a}
+.chip.v-fresh{background:#1d3a26;color:#9fd8ae}
+.chip.v-stale{background:#3a3320;color:#e6cc7a}
+.chip.v-wait{background:#242a35;color:#8a93a3}
+.chip.v-never{background:#1b3247;color:#8fc4f0}
+.chip.v-gone{background:#3d2224;color:#f0a3a3}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;max-width:1100px;
+     border:1px solid #2a3140;background:#11151c;margin:10px 0 6px}
+.bar span{display:block;height:100%}
+.bar .done{background:#3f8f5c}
+.bar .in_progress{background:#4a86c4}
+.bar .redo_needed{background:#b09134}
+.bar .blocked{background:#a24f52}
+.bar .pending{background:#2a3140}
+.legend{color:#8a93a3;font-size:12.5px;margin:0 0 14px}
+.legend b{color:#dfe6f0}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}
+.stat{background:#161a22;border:1px solid #2a3140;border-radius:8px;
+      padding:9px 14px;min-width:150px}
+.stat .n{display:block;font-size:21px;color:#fff}
+.stat .k{display:block;font-size:12px;color:#8a93a3;margin-top:2px}
+.phase{border-left:3px solid #2a3140;padding-left:14px;margin:20px 0}
+.phase h3{margin:0 0 2px;font-size:16px;color:#dfe6f0}
+.blockcard{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
+           margin:10px 0;font-size:13.5px;color:#e3d4d5;max-width:1100px}
+.blockcard b{color:#fff}
+.nextcard{border-left:3px solid #4a86c4;background:#131a24;padding:10px 14px;
+          margin:10px 0;font-size:13.5px;color:#cfe0f5;max-width:1100px}
+.nextcard b{color:#fff}
+.unbacked{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
+          margin:10px 0;font-size:13px;color:#e3d4d5;max-width:1100px}
+.src{color:#6f7a8a;font-size:11.5px}
+table.data td.tight{white-space:nowrap}
+</style>
 </head><body>
+
 <header>
-  <h1>T CrB Pre-Eruption Monitoring — Chain of Evidence</h1>
-  <p>Hα series through the 2025 dip recovery, photometric anchors, flickering limits — the recurrent nova's quiescent baseline.
-     Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a>
-     · <a href="../index.html">← all reports</a></p>
+  <h1>T CrB Pre-Eruption Monitoring — Plan &amp; Progress</h1>
+  <p>0 of 34 plan tasks complete (2 need redoing, 7 blocked)
+  &middot; ApJ, with a slitless-spectrophotometry methods appendix<br>
+  Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a> &middot; <a href="../index.html">&larr; all reports</a></p>
 </header>
-<nav><a href="#status">Readiness</a></nav>
-<section id="status">
-  <div class="bhead"><h2>Readiness</h2><span class="badge active">unblocked on calibration; grism spine building</span></div>
-  <div class="stage">
-    <h3>Gates cleared</h3>
-    <ul class="sub">
-      <li><b>Calibration debt retired:</b> the recovered Mode0 masters (103 bias, 776 dark across 26 exposure times including three 240 s masters, 68 flats) sit under exactly this grism series</li>
-      <li><b>Timing (S3):</b> 392 of 402 frames carry mid-exposure BJD_TDB</li>
-      <li><b>Staging (S0c):</b> 826 science frames staged (T CrB + the θ CrB calibrator)</li>
-    </ul>
-    <h3>Still blocking</h3>
-    <ul class="sub">
-      <li><b>Grism track (G):</b> extraction, identity gate and wavelength solution are mid-build — this is the paper's spine</li>
-      <li><b>Observations:</b> RLMT dark on T CrB since 2025-06-24; restart requested for the October re-opening</li>
-      <li>θ CrB is itself a Be/shell star — its Hα region carries a contamination flag in every product</li>
-    </ul>
-    <div class="decision"><b>Verdict:</b> the calibration blocker that stalled this project is gone. Work begins the moment the grism extraction chain passes review.</div>
-    <p class="sub">Analysis sections appear here as they are executed: each states the question,
-    shows the plot that answers it, and records the decision carried forward. Nothing is
-    published here without a figure and a script behind it.</p>
-  </div>
+
+<nav>
+  <a href="#claim">Claim</a> &middot;
+  <a href="#progress">Progress</a> &middot;
+  <a href="#plan">The plan</a> &middot;
+  <a href="#blocking">Blocking</a> &middot;
+  <a href="#next">Next up</a> &middot;
+  <a href="#evidence">Evidence</a>
+</nav>
+
+<section id="claim">
+<div class="bhead"><h2>What this paper will claim</h2>
+<span class="tag">ApJ, with a slitless-spectrophotometry methods appendix</span></div>
+<div class="stage">
+<div class="decision">Accretion diagnostics of T CrB across the pre-eruption dip and recovery, led by the 2025 slitless-grism Hα series — 247 spectra on 60 nights at ~2-day cadence — with equivalent width as the season-long observable and absolute Hα flux only for the Mar–Apr 2025 window where a contemporaneous θ CrB calibrator exists. Calibrated 2023–2024 photometric anchors and an archival flickering UPPER-LIMIT table support it; real flickering science needs the post-restart data, not the archive. The paper makes zero eruption-date predictions.</div>
+
+<h3>Standing decisions</h3><p class="sub">Rulings this project is already operating under. They are held in the plan ledger so a page regeneration cannot lose them.</p><div class="decision"><b>The strategy states no timing rule, and that is a gap, not a silence to fill.</b> Mid-exposure BJD_TDB is real, built, and published (S3) — but this project's ANALYSIS_STRATEGY.md contains no BJD, TDB, barycentric or mid-exposure rule anywhere in its 213 lines. The timing task therefore cites §9's facility-level products, which is where shared machinery is authorised, and NOT a Phase A/B timing rule, which does not exist. It was cited that way once, on this page, hyperlinked to a document that did not contain it; the citation checker now refuses that. When the committee next revises the strategy, a per-project timing rule belongs in it.</div>
+</div>
 </section>
-<footer>MACRO Consortium · numbers are script-emitted, never hand-edited.</footer>
+
+
+<section id="progress">
+<div class="bhead"><h2>Progress at a glance</h2>
+<span class="tag">0 of 34 plan tasks complete</span></div>
+<div class="stage">
+<div class="bar"><span class="in_progress" style="width:8.8235%"></span><span class="redo_needed" style="width:5.8824%"></span><span class="blocked" style="width:20.5882%"></span><span class="pending" style="width:64.7059%"></span></div>
+<p class="legend"><b>3</b> in progress &middot; <b>2</b> redo needed &middot; <b>7</b> blocked &middot; <b>22</b> pending</p>
+<div class="stats"><div class="stat"><span class="n">0/34</span><span class="k">plan tasks complete</span></div><div class="stat"><span class="n">820</span><span class="k">staged science frames</span></div><div class="stat"><span class="n">112</span><span class="k">nights</span></div><div class="stat"><span class="n">2</span><span class="k">catalog target names</span></div><div class="stat"><span class="n">15%</span><span class="k">carry a WCS (127/820)</span></div><div class="stat"><span class="n">100%</span><span class="k">carry BJD_TDB (820/820)</span></div><div class="stat"><span class="n">1,472</span><span class="k">era-matched calibration rows</span></div><div class="stat"><span class="n">9</span><span class="k">camera eras spanned</span></div></div>
+<p class="sub">Every row is counted from <code>stage_tcrb_monitoring</code> at render time — the project's actual working set, not a number transcribed from a strategy document. Each row is one <code>canonical_target</code> STRING, which is not the same as one object.</p><table class="data">
+<tr><th>Target</th><th>Staged science frames</th><th>Nights</th><th>With WCS</th><th>With BJD_TDB</th></tr>
+<tr><td>tet CrB</td><td>424</td><td>43</td><td>10 (2%)</td><td>424 (100%)</td></tr>
+<tr><td>T CrB</td><td>396</td><td>86</td><td>117 (30%)</td><td>396 (100%)</td></tr>
+</table>
+<h3>What this project&rsquo;s filters actually do</h3><p class="sub">Per-frame verdicts from S2c, restricted to this project&rsquo;s staged science frames. The measurement is source elongation, not the filter&rsquo;s name — which is the point, since every strategy here carries an exclusion rule keyed on the name. The verdict column uses <b>S2c&rsquo;s own published rule</b> — ≥80% dispersed is SPECTRA, ≥80% direct is images, anything else is MIXED, and only filters with at least 20 measured frames get a verdict at all — so the word means the same thing here as it does on <a href="../pipeline/s2c_filter_identity.html">the S2c page</a>. The strength column matters: a verdict built from low-confidence frames is a weaker claim, and most dispersed verdicts in this archive are low. Frames S2c has not reached yet simply do not appear.</p><table class="data">
+<tr><th>Filter</th><th>Measured</th><th>Dispersed</th><th>Direct</th><th>Indeterminate</th><th>Dispersed strength</th><th>Verdict</th></tr>
+<tr class="warn"><td><code>lrg</code></td><td>305</td><td>247</td><td>6</td><td>52</td><td>225 of 247 low</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td><code>hrg</code></td><td>262</td><td>228</td><td>2</td><td>32</td><td>57 of 228 low</td><td><b>SPECTRA</b></td></tr>
+<tr><td><code>B</code></td><td>21</td><td>0</td><td>21</td><td>0</td><td>&mdash;</td><td>images</td></tr>
+<tr><td><code>6</code></td><td>18</td><td>14</td><td>0</td><td>4</td><td>14 of 14 low</td><td>too few measured</td></tr>
+<tr><td><code>W</code></td><td>8</td><td>4</td><td>0</td><td>4</td><td>4 of 4 low</td><td>too few measured</td></tr>
+<tr><td><code>R</code></td><td>2</td><td>0</td><td>2</td><td>0</td><td>&mdash;</td><td>too few measured</td></tr>
+<tr><td><code>L</code></td><td>2</td><td>0</td><td>2</td><td>0</td><td>&mdash;</td><td>too few measured</td></tr>
+</table>
+<h3>What the strategy claims vs what the manifest holds <span class="chip v-stale">STALE</span></h3><p class="sub">Reconciliation rows written by S0 — and re-checked at render time by looking for the sentence S0 says it transcribed in the strategy document as it stands now. A non-zero diff is not necessarily an error — it is a question that has an answer in the <code>source</code> column of <code>project_counts</code>. A SUPERSEDED row is a different thing: the question itself has expired.</p><table class="data">
+<tr><th>Target</th><th>Metric</th><th>Strategy claims</th><th>Manifest holds</th><th>Reconciliation</th></tr>
+<tr><td>T CrB</td><td><code>rows_all_trees</code></td><td>862</td><td>862</td><td>agrees</td></tr>
+<tr class="warn"><td>T CrB</td><td><code>unique_light</code></td><td>471</td><td>402</td><td><b>SUPERSEDED</b><br><span class="src">the sentence S0 transcribed is no longer in the strategy</span></td></tr>
+<tr class="warn"><td>T CrB</td><td><code>grism_light</code></td><td>247</td><td>247</td><td><b>SUPERSEDED</b><br><span class="src">the sentence S0 transcribed is no longer in the strategy</span></td></tr>
+<tr class="warn"><td>tet CrB</td><td><code>grism_light</code></td><td>403</td><td>403</td><td><b>SUPERSEDED</b><br><span class="src">the sentence S0 transcribed is no longer in the strategy</span></td></tr>
+</table><div class="unbacked"><b>3 row(s) transcribe a sentence the strategy no longer contains.</b> S0 copied these numbers out of the strategy the last time it ran, and the strategy has been revised since. A row marked SUPERSEDED is not a disagreement between the plan and the pipeline — it is a stale copy sitting between them, and the number in the "strategy claims" column is not what the strategy currently claims. Re-run S0 to refresh them.</div>
+</div>
+</section>
+
+<section id="plan">
+<div class="bhead"><h2>The plan</h2>
+<span class="tag">34 tasks in 5 phases</span></div>
+<div class="stage">
+<p class="sub">Every task below was read out of the project's execution
+order — derived from <a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> — and names the pipeline stage its result rests on. That
+last column is not decoration: when a stage stops being fresh, every
+<span class="chip done">done</span> task resting on it becomes
+<span class="chip redo_needed">redo needed</span>, automatically, with the
+reason attached.</p>
+
+<div class="phase">
+<h3>Phase 0 — Gates</h3>
+<p class="sub">Nothing downstream starts until these finish; two of them are observatory actions, not analysis.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>Working set staged by reference</b><br><code>TCRB-P0-staging</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §9 catalog hygiene</span></td><td>stage_tcrb_monitoring: T CrB and θ CrB science frames with their era-matched calibration.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a></td></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>Mid-exposure BJD_TDB</b><br><code>TCRB-P0-timing</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §9 facility-level products</span></td><td>frame_times entries for the imaging and grism series — a FACILITY-level product, built once for every project; T CrB's own strategy states no timing rule (see the standing decision).</td><td><code>S3</code> <a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a></td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Restart T CrB observations</b><br><code>TCRB-P0-restart</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase 0 P0-1</span></td><td>A nightly block (3×1 s r + short B + one lrg + one hrg) resuming the 2025 series homogeneously.</td><td><code>OPS</code> &mdash;</td><td><code>ops/2026-08_observatory_request.md</code></td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Map the single-character filter codes</b><br><code>TCRB-P0-filter-forensics</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase 0 P0-2</span></td><td>A filter-mapping table for codes 6,1,G,H,L,O,W — 62 frames are unusable for calibrated work until it exists.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>High Gain bit-depth hardware check</b><br><code>TCRB-P0-bitdepth</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase 0 P0-3(i)</span></td><td>The one-afternoon test that arbitrates the 12-bit vs 16-bit dispute and decides whether the archival R series survives at all (§3 counts 121 R rawimage rows; the staging table's working set is smaller after the global dedup — see the table above for the number this project actually analyses).</td><td><code>S2</code> <a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Exposure ladders and the 70% cap</b><br><code>TCRB-P0-ladders</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase 0 P0-3(ii)</span></td><td>A measured ceiling per readout mode and a hard photometry cap at 70% of it.</td><td><code>S2</code> <a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Acquire Mode0 240 s darks/biases and current flats</b><br><code>TCRB-P0-calib-acquisition</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase 0 P0-3(iii)</span></td><td>The facility calibration library the amended cross-mode rule (ruling 7) depends on.</td><td><code>OPS</code> &mdash;</td><td><code>ops/2026-08_observatory_request.md</code></td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Shutter/exposure-timing uniformity at short exposures</b><br><code>TCRB-P0-shutter-timing</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase 0 P0-3(iv)</span></td><td>Verified 0.1 s timing before the eruption-response plan relies on it — tested on the archival 0.085 s θ CrB frames.</td><td><code>S2</code> <a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>ZMAG provenance per filter</b><br><code>TCRB-P0-zmag-provenance</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase 0 P0-3(v)</span></td><td>Which catalog bandpass PinPoint solved each filter's ZMAG against — without it the QC cut of step B4 is applied to a quantity nobody has defined.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip in_progress">in progress</span></td><td><b>Re-solve the unsolved imaging</b><br><code>TCRB-P0-resolve</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase 0 P0-4</span></td><td>WCS for the ~40% of imaging frames that lack it; grism frames get the identity gate instead.</td><td><code>S1b</code> &mdash;</td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Phase A — Grism (the paper's spine)</h3>
+<p class="sub">Nine steps from per-frame identity to the cross-validated EW series; no frame that fails the gate enters anything.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip in_progress">in progress</span></td><td><b>Per-frame Gaia identity gate on the zero order</b><br><code>TCRB-A0-identity-gate</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase A step 0</span></td><td>A pass/fail per frame with the discard fraction published — 21 of 247 header pointings are &gt;1° off.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Characterise θ CrB before using θ CrB</b><br><code>TCRB-A1-calibrator-characterization</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase A step 1</span></td><td>Its own Hα/Hβ profile and stability across all 412 frames — it is a Be/shell star, not a clean standard.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip in_progress">in progress</span></td><td><b>Trace and optimal extraction</b><br><code>TCRB-A2-extraction</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase A step 2</span></td><td>Boxcar and Horne-extracted 1-D spectra per frame, with flanking-band background doubling as the Mode0 dark-structure remover.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Per-frame self-anchored wavelength solution</b><br><code>TCRB-A3-wavelength</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase A step 3</span></td><td>A zero point from zero-order geometry per frame, with the km/s uncertainty quoted beside every velocity. Never a global solution.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Instrument response from θ CrB, Hα interpolated over</b><br><code>TCRB-A4-response</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase A step 4</span></td><td>An absolute-flux calibration for Mar–Apr 2025 only; the other 32 of 60 nights are EW-only, stated.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Hα equivalent width on Munari's convention</b><br><code>TCRB-A5-ew</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase A step 5</span></td><td>THE primary observable: a season-long EW series that splices onto the published curves.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Scripted saturation triage of every grism frame</b><br><code>TCRB-A6-saturation-triage</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase A step 6</span></td><td>Flagged and discarded frames with the fraction reported.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Rebuild the empirical error floor</b><br><code>TCRB-A7-error-floor</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase A step 7</span></td><td>θ CrB night-to-night EW scatter from the matched 2025 Mode0 subset, split by (exposure, mode), plus a separate 240 s smear term.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>ARAS/published EW cross-validation</b><br><code>TCRB-A8-cross-validation</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase A step 8</span></td><td>Agreement within 10–15% or an explanation — and the spectra-per-month table that has to exist before the 'densest record' claim can appear.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Phase B — Photometry (supporting)</h3>
+<p class="sub">The 2023–2024 anchors, calibrated honestly under the amended cross-mode rule.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Calibrate per readout mode with measured penalties</b><br><code>TCRB-B1-calibration</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase B step 1 (ruling 7)</span></td><td>Mode-matched masters where they exist; a MEASURED cross-mode penalty term where they never will.</td><td><code>S2</code> <a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Aperture photometry with growth curves</b><br><code>TCRB-B2-aperture</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase B step 2</span></td><td>Per-frame photometry at r = 1.5×FWHM, cross-checked against fixed and wide apertures.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>REFCAT2 ensemble with propagated colour extrapolation</b><br><code>TCRB-B3-ensemble</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase B step 3</span></td><td>Natural-system and transformed magnitudes, with the M4III colour-extrapolation uncertainty separated.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip pending">pending</span></td><td><b>ZMAG demoted to QC only</b><br><code>TCRB-B4-zmag-qc</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase B step 4 (ruling 4)</span><br><span class="src"><b>Gated:</b> waiting on <code>TCRB-P0-zmag-provenance</code></span></td><td>A per-frame QC flag cutting frames &gt;0.5 mag below the per-filter season mode, with M1's 0.3 mag flag recorded alongside so the paper can tabulate how sensitive the results are to the threshold. ZMAG is never used as calibration.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Empirical per-frame errors</b><br><code>TCRB-B5-errors</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase B step 5</span></td><td>Check-star RMS per night per mode — no Poisson arithmetic on StackPro, ever.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip pending">pending</span></td><td><b>Hold the precision budget</b><br><code>TCRB-B6-precision-budget</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase B step 6</span><br><span class="src"><b>Gated:</b> waiting on <code>TCRB-B5-errors</code></span></td><td>The adopted budget stated and checked against what was achieved: 5–8 mmag per frame, 3–5 mmag nightly means, 5–10 mmag season-level systematic floor — and no promise of mmag-class work anywhere in the paper.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Phase C — Time series</h3>
+<p class="sub">What the archive can and cannot bound, said out loud.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Archival per-snippet flickering upper limits</b><br><code>TCRB-C1-flickering-limits</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase C step 1</span></td><td>A per-snippet detrended rms and 95% σ_flick upper limit table — the honest ceiling of an 11-minute StackPro snippet.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Weekly ≥2 hr B flickering runs</b><br><code>TCRB-C2-2026-runs</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase C step 2</span></td><td>The first monitoring-grade flickering data RLMT has; the results subsection exists only if ≥6 good runs land.</td><td><code>OPS</code> &mdash;</td><td><code>ops/2026-08_observatory_request.md</code></td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Per-season period search, P ≤ span/3</b><br><code>TCRB-C3-period-search</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase C step 3</span></td><td>Periodograms with published windows, bootstrap FAPs and injection–recovery contours — or an honest emptiness.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Uncertainties on every quoted number</b><br><code>TCRB-C4-uncertainties</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase C step 4</span></td><td>emcee posteriors, a red-noise inflation factor from binned comparison-star rms, and every headline value quoted as value ± stat ± sys with the linearity and cross-mode penalty terms listed separately.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Phase D — Co-analysis and release</h3>
+<p class="sub">External data, the centrepiece figure, the archive deposit.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Pull AAVSO / ASAS-SN / ARAS / Swift / TESS</b><br><code>TCRB-D1-external-pulls</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase D</span></td><td>A cached external context set with pull dates, fetched now rather than in October.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>The centrepiece figure</b><br><code>TCRB-D2-centerpiece</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §7 Figure 8</span></td><td>The RLMT Hα EW series over the AAVSO B curve through high state → dip → recovery.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Release the reduced 1-D spectra</b><br><code>TCRB-D3-release</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase D</span></td><td>A Zenodo deposit plus a submission to the ARAS T CrB database.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>The full ten-figure set</b><br><code>TCRB-D4-figures</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §7 Figure list</span></td><td>Figures 1–10: the three-band coverage map, the filter/detector forensics, photometric performance, the 2023–2024 light curve, the flickering-limits panel, injection–recovery contours, the grism atlas, the centrepiece, profile evolution, and the θ CrB repeatability appendix figure.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip pending">pending</span></td><td><b>Write the manuscript</b><br><code>TCRB-D5-draft</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §8 Manuscript outline</span><br><span class="src"><b>Gated:</b> waiting on <code>TCRB-D4-figures</code></span></td><td>manuscripts/TCrB_Monitoring/main.tex through the §8 outline — and its FIRST action, which the outline states outright: change the title, because the skeleton's 'Three-Year Quiescent Baseline' claims exactly what the panel rejected.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+</table>
+</div>
+</div>
+</section>
+
+<section id="blocking">
+<div class="bhead"><h2>What's blocking</h2>
+<span class="tag">7 blocked tasks</span></div>
+<div class="stage">
+<p class="sub">Each entry states the reason and what would clear it. A
+blocker with no clearing condition is a decision nobody has made yet, and
+it is written as one.</p>
+<div class="blockcard"><b>Restart T CrB observations</b> <span class="src">(TCRB-P0-restart, stage <code>OPS</code>)</span><br>Winer is closed for monsoon until October 2026. The request is submitted and first in queue; clears at the re-opening.</div><div class="blockcard"><b>High Gain bit-depth hardware check</b> <span class="src">(TCRB-P0-bitdepth, stage <code>S2</code>)</span><br>S2's tables were destroyed by the S0 table swap, so there is no measured ceiling to compare a check against. Clears when S2 re-runs (and the afternoon test happens).</div><div class="blockcard"><b>Exposure ladders and the 70% cap</b> <span class="src">(TCRB-P0-ladders, stage <code>S2</code>)</span><br>Same destroyed S2 evidence tables. Clears when S2 re-runs.</div><div class="blockcard"><b>Acquire Mode0 240 s darks/biases and current flats</b> <span class="src">(TCRB-P0-calib-acquisition, stage <code>OPS</code>)</span><br>Monsoon closure: acquisition happens at the October re-opening, Item B of the submitted request.</div><div class="blockcard"><b>Shutter/exposure-timing uniformity at short exposures</b> <span class="src">(TCRB-P0-shutter-timing, stage <code>S2</code>)</span><br>Rides the same S2 campaign. Clears when S2 re-runs.</div><div class="blockcard"><b>Calibrate per readout mode with measured penalties</b> <span class="src">(TCRB-B1-calibration, stage <code>S2</code>)</span><br>The penalty term is measured against S2's calibration library, whose tables are gone. Clears when S2 re-runs.</div><div class="blockcard"><b>Weekly ≥2 hr B flickering runs</b> <span class="src">(TCRB-C2-2026-runs, stage <code>OPS</code>)</span><br>No dark-sky ≥2 hr window until the field re-emerges after the October re-opening; the runs accrue mainly in the 2027 season.</div>
+</div>
+</section>
+
+<section id="next">
+<div class="bhead"><h2>Next up</h2>
+<span class="tag">the actionable front of the plan</span></div>
+<div class="stage">
+<p class="sub">In plan order, excluding blocked work.</p>
+<h3>First, restore the evidence</h3><p class="sub">These tasks were done and are not backed any more — the stage their result rested on is no longer FRESH. One row per stage: re-running the stage clears every task that rests on it, so this is a list of RE-RUNS, not of re-decisions. The ordered commands are in <code>check_pipeline_status.py plan</code>.</p><div class="nextcard"><span class="chip redo_needed">redo needed</span> <b>Working set staged by reference</b> <span class="src">(Phase 0 — Gates &middot; TCRB-P0-staging &middot; stage <code>S0c</code>)</span><br>stage_tcrb_monitoring: T CrB and θ CrB science frames with their era-matched calibration.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §9 catalog hygiene</span></div><div class="nextcard"><span class="chip redo_needed">redo needed</span> <b>Mid-exposure BJD_TDB</b> <span class="src">(Phase 0 — Gates &middot; TCRB-P0-timing &middot; stage <code>S3</code>)</span><br>frame_times entries for the imaging and grism series — a FACILITY-level product, built once for every project; T CrB's own strategy states no timing rule (see the standing decision).<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §9 facility-level products</span></div><h3>Then, the next steps forward</h3><div class="nextcard"><span class="chip in_progress">in progress</span> <b>Re-solve the unsolved imaging</b> <span class="src">(Phase 0 — Gates &middot; TCRB-P0-resolve &middot; stage <code>S1b</code>)</span><br>WCS for the ~40% of imaging frames that lack it; grism frames get the identity gate instead.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase 0 P0-4</span></div><div class="nextcard"><span class="chip in_progress">in progress</span> <b>Per-frame Gaia identity gate on the zero order</b> <span class="src">(Phase A — Grism (the paper's spine) &middot; TCRB-A0-identity-gate &middot; stage <code>G</code>)</span><br>A pass/fail per frame with the discard fraction published — 21 of 247 header pointings are &gt;1° off.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase A step 0</span></div><div class="nextcard"><span class="chip in_progress">in progress</span> <b>Trace and optimal extraction</b> <span class="src">(Phase A — Grism (the paper's spine) &middot; TCRB-A2-extraction &middot; stage <code>G</code>)</span><br>Boxcar and Horne-extracted 1-D spectra per frame, with flanking-band background doubling as the Mode0 dark-structure remover.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">TCrB_Monitoring/ANALYSIS_STRATEGY.md</a> §4 Phase A step 2</span></div><h3>Started or startable, but out of order</h3><p class="sub">These are deliberately NOT recommended above. Their status says they are available; the execution order this plan was derived from says something else has to land first. That distinction used to be invisible — dependencies lived only inside blocker prose that nothing read, so the page offered production photometry as the actionable front while the detector work its own strategy puts in front of it sat blocked on destroyed tables.</p><div class="blockcard"><span class="chip pending">pending</span> <b>ZMAG demoted to QC only</b> <span class="src">(Phase B — Photometry (supporting) &middot; TCRB-B4-zmag-qc)</span><br>Waiting on <code>TCRB-P0-zmag-provenance</code> (pending).<br><span class="src">Ruling 4 settled a four-way disagreement about the cut threshold (0.3 vs 0.5 vs 1.0 mag); applying it before P0-3(v) establishes what ZMAG is measured against would cut frames on an undefined quantity.</span></div><div class="blockcard"><span class="chip pending">pending</span> <b>Hold the precision budget</b> <span class="src">(Phase B — Photometry (supporting) &middot; TCRB-B6-precision-budget)</span><br>Waiting on <code>TCRB-B5-errors</code> (pending).</div><div class="blockcard"><span class="chip pending">pending</span> <b>Write the manuscript</b> <span class="src">(Phase D — Co-analysis and release &middot; TCRB-D5-draft)</span><br>Waiting on <code>TCRB-D4-figures</code> (pending).</div>
+<p class="sub">When one completes:
+<code>python pipeline/scripts/update_project_plan.py set &lt;task-id&gt; done
+--evidence &lt;page-or-product&gt;</code>, then re-render. The page is never
+edited by hand.</p>
+</div>
+</section>
+
+<section id="evidence">
+<div class="bhead"><h2>Evidence</h2>
+<span class="tag">8 of 8 stages are not FRESH</span></div>
+<div class="stage">
+<p class="sub">The pipeline stages this project's plan rests on, each with
+the verdict <code>macro_core.provenance</code> returns right now.
+<b>DESTROYED</b> is separated from <b>STALE</b> deliberately: stale means the
+numbers moved, destroyed means the table the number came from is not in the
+database at all. A reader is never invited to trust an orphaned report.</p>
+<table class="data">
+<tr><th>Stage</th><th>What it produces</th><th>Verdict now</th><th>Report</th><th>Why</th></tr>
+<tr class="warn"><td><code>S0</code></td><td>Manifest (dedup, aliases, eras, pointing)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>input stat:rlmt-catalog: changed after this stage ran — S0e changed 2026-08-18T19:38:06Z, after this stage ran 2026-08-18T15:03:50.623928+00:00</td></tr>
+<tr class="warn"><td><code>G</code></td><td>Grism extraction + identity gate (T CrB)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td><td>upstream not fresh: S0 (STALE), S0b (STALE_UPSTREAM) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>OPS</code></td><td>Observatory request (October shopping list)</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>input table:calib_coverage: changed after this stage ran — S0b changed 2026-08-18T15:04:14.574732+00:00, after this stage ran 2026-08-18T02:52:50Z</td></tr>
+<tr class="warn"><td><code>S0c</code></td><td>Per-project staging manifests</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE), S0b (STALE_UPSTREAM) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>S1b</code></td><td>Astrometry production batch</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>output table:s1_batch changed since it was recorded (38092:14516a7e027c9ace -&gt; 38092:ce56ca5a4bd89326) — written out of band</td></tr>
+<tr class="warn"><td><code>S2</code></td><td>Detector truth (ceiling, PTC, recon, linearity)</td><td><span class="chip v-gone">DESTROYED</span></td><td><a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td><td>it ran and its declared output(s) are now absent from the database: detector_params, s2_ceiling_modes, s2_linearity_ladders, s2_ptc_fits, s2_recon_eras</td></tr>
+<tr class="warn"><td><code>S3</code></td><td>Timing (BJD_TDB, clock, cadence)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>S4</code></td><td>Ensemble photometry (AN UMa / VV Pup prototype)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>input table:detector_params is ABSENT — the evidence this stage was built from no longer exists</td></tr>
+</table>
+<div class="unbacked"><b>Constants with no query behind them.</b> These tables are absent from the manifest right now: <code>detector_params, s2_ceiling_modes, s2_linearity_ladders, s2_ptc_fits, s2_recon_eras</code>. Every detector number this project would otherwise quote — a saturation ceiling, a veto threshold, a StackPro sub-read count, a read noise — lived in them. Until the producing stage re-runs, those values are <b>unbacked prose</b>, not measurements.<br><br><b>No page in this plan quotes them</b> — and that is the limit of what this panel can promise. The stage reports linked above are a different matter: they were rendered while the tables still existed and still print those constants as measured values, because nothing has re-rendered them since the wipe. That is why every link to a report whose stage is not FRESH now carries its verdict beside it. Treat an orphaned report as a historical document, not a reference.</div>
+</div>
+</section>
+
+<footer>Generated 2026-08-18T21:49:54Z by
+<code>macro_core.report_projects</code> from the plan ledger in
+<code>macro_core.project_plan</code> (PLAN v1.0 (2026-08-18)), the
+progress recorded in <code>project_plan_status</code>, and live queries
+against <code>products/manifest/rlmt-manifest.sqlite</code>. Stage verdicts
+come from <code>macro_core.provenance</code>
+(P v1.0 (2026-08-18)). Regenerate with
+<code>python pipeline/scripts/update_project_plan.py render</code>; record a
+completed step with <code>… update_project_plan.py set &lt;task-id&gt;
+done</code>.<br><br><b>Every number in the tables above is queried at render
+time.</b> That is the claim this page can make, and the earlier and stronger
+one — "no number on this page is typed by hand" — was false: task
+descriptions quote figures from the strategy documents, and a quoted figure
+can disagree with the table beside it when the two count under different
+rules. Where a quoted number gates a decision, the accounting rule is stated
+with it. Prose is prose; the tables are the measurement.</footer>
 </body></html>

@@ -625,9 +625,22 @@ def _extract_one(job: dict) -> dict:
 def cmd_extract(args) -> None:
     """Measure up to --limit pending frames with a pool of worker processes."""
     con = connect(args.db)
+    # 'pixel_path IS NOT NULL' is a guard with a history: a frame whose era
+    # uses the reduced tree but which has NO reduced counterpart has no file
+    # to read (the provenance rule forbids substituting its raw pixels), and
+    # a bulk retry that swept such rows back into 'pending' crashed the whole
+    # invocation on the first None path.  They are re-marked below instead,
+    # so they stay visible as excluded rather than becoming a crash.
+    con.execute("""UPDATE cv_frames SET status='excluded', exclude_reason=?
+                   WHERE status='pending' AND pixel_path IS NULL""",
+                ("no pixel file for this provenance: the frame has no "
+                 "server-reduced counterpart while its era uses the reduced "
+                 "tree, and mixing raw pixels into the series is forbidden",))
+    con.commit()
     todo = con.execute("""SELECT frame_id, pixel_path, provenance,
                                  master_dark, master_flat, veto_adu
                           FROM cv_frames WHERE status='pending'
+                            AND pixel_path IS NOT NULL
                           ORDER BY frame_id LIMIT ?""",
                        (args.limit,)).fetchall()
     if not todo:
@@ -819,6 +832,25 @@ def _ensure_reference(con, args, target_key: str, era_id: int):
     return ref_id, tol, stars
 
 
+#: Per-era registration context, set ONCE in each worker process by
+#: :func:`_match_init`.  It exists because the obvious design — put the
+#: reference catalog in every job — quietly became the bottleneck: VV Pup's
+#: era-76 reference holds 5,166 stars, so a 100-frame block was pickling
+#: and shipping five hundred thousand coordinate pairs to the workers, and
+#: the matching itself was a rounding error next to the serialization.  The
+#: reference is the same for every frame of an era, so it travels once.
+_REF: dict = {}
+
+
+def _match_init(ref_xy, ref_bright, tol, area_px2, ref_wcs_path) -> None:
+    """Worker-process initializer: install this era's reference context."""
+    _REF["ref_xy"] = np.asarray(ref_xy, dtype=float)
+    _REF["ref_bright"] = np.asarray(ref_bright, dtype=float)
+    _REF["tol"] = float(tol)
+    _REF["area_px2"] = float(area_px2)
+    _REF["ref_wcs"] = ref_wcs_path
+
+
 def _match_one(job: dict) -> dict:
     """Register ONE frame against its series reference. Worker process.
 
@@ -831,15 +863,15 @@ def _match_one(job: dict) -> dict:
     """
     out = {"frame_id": job["frame_id"]}
     xy = np.asarray(job["xy"], dtype=float)
-    ref_xy = np.asarray(job["ref_xy"], dtype=float)
-    tol = float(job["tol"])
+    ref_xy = _REF["ref_xy"]
+    tol = _REF["tol"]
     try:
         idx = None
         method = None
         scale = rot = None
         if job["method"] == "wcs":
             fw = reg.load_wcs(Path(job["frame_wcs"]))
-            rw = reg.load_wcs(Path(job["ref_wcs"]))
+            rw = reg.load_wcs(Path(_REF["ref_wcs"]))
             if fw is not None and rw is not None:
                 moved = reg.chain_to_reference(fw, rw, xy)
                 good = np.isfinite(moved).all(axis=1)
@@ -854,12 +886,32 @@ def _match_one(job: dict) -> dict:
             if len(xy) < ph.MIN_STARS_FOR_ALIGN:
                 raise ValueError("too few detections to align")
             bright = np.asarray(job["bright"], dtype=float)
-            ref_bright = np.asarray(job["ref_bright"], dtype=float)
+            ref_bright = _REF["ref_bright"]
+            # TRANSLATION VOTE first.  These series are dithers: every
+            # astroalign transform fitted here came back with ~0 rotation
+            # and unit scale.  Voting on star-to-star offsets finds that
+            # shift in milliseconds, works on frames far too shallow for
+            # triangle matching, and is verified by exactly the same
+            # credibility gate as everything else — so a wrong shift is
+            # rejected, not believed.  Only if it fails or does not
+            # convince do we pay for the triangle ladder.
+            shift = reg.vote_translation(bright, ref_bright)
+            if shift is not None:
+                cand_xy = xy + np.array(shift)
+                cand = ph.match_one_to_one(ref_xy, cand_xy, tol)
+                n = int((cand >= 0).sum())
+                if sr.matches_beat_chance(n, len(xy), len(ref_xy), tol,
+                                          _REF["area_px2"]):
+                    idx, method = cand, "translation_vote"
+                    scale, rot = 1.0, 0.0
+                    out["moved"] = cand_xy
+        if idx is None:
             # seed = frame_id pins astroalign's otherwise-unseedable RANSAC,
             # so star identities reproduce bit-for-bit on a re-run.
             try:
-                tf = ext.find_series_transform(bright, ref_bright,
-                                               seed=job["frame_id"])
+                tf = ext.find_series_transform(
+                    bright, ref_bright, seed=job["frame_id"],
+                    attempts=ext.PRODUCTION_ALIGN_ATTEMPTS)
             except Exception:
                 # DEPTH-MATCHED RETRY.  The ladder already builds both
                 # bright pools the same way; what it cannot fix is the two
@@ -875,10 +927,15 @@ def _match_one(job: dict) -> dict:
                 # brightness range.  Tried second, so frames that already
                 # matched keep exactly the transform they had.
                 n = min(len(bright), len(ref_bright))
-                if n < ph.MIN_STARS_FOR_ALIGN:
+                deep = max(len(bright), len(ref_bright))
+                # Skip the retry when the two catalogs already reach the
+                # same depth: it would repeat the identical fit for nothing,
+                # and a failed ladder is the most expensive thing here.
+                if n < ph.MIN_STARS_FOR_ALIGN or n >= 0.75 * max(deep, 1):
                     raise
-                tf = ext.find_series_transform(bright[:n], ref_bright[:n],
-                                               seed=job["frame_id"])
+                tf = ext.find_series_transform(
+                    bright[:n], ref_bright[:n], seed=job["frame_id"],
+                    attempts=ext.PRODUCTION_ALIGN_ATTEMPTS)
                 method_suffix = "_depthmatched"
                 job = dict(job, _suffix=method_suffix)
             moved = tf(xy)
@@ -921,7 +978,6 @@ def cmd_match(args) -> None:
     # that toll dozens of times over; creating it once amortizes it to
     # nothing.  The pool is closed by the surrounding 'with' on every exit
     # path, including an exception.
-    pool = cf.ProcessPoolExecutor(max_workers=nw)
     for tk, era in eras:
         if budget <= 0:
             break
@@ -941,6 +997,12 @@ def cmd_match(args) -> None:
             (ref_id, max_pool))], dtype=float)
         ref_raw = con.execute("SELECT raw_path FROM cv_frames WHERE frame_id=?",
                               (ref_id,)).fetchone()[0]
+        # The reference frame's on-sky extent, used to compute how many star
+        # matches pure luck would produce (macro_phot.series).  Taken from
+        # the detections themselves so it needs no header.
+        _mx, _my = con.execute("""SELECT max(x), max(y) FROM cv_detections
+                                  WHERE frame_id=?""", (ref_id,)).fetchone()
+        ref_area = float((_mx or 1.0) * (_my or 1.0))
         ref_wcs = reg.sidecar_path(args.wcs_root, ref_raw)
         ref_solved = ref_wcs.exists()
 
@@ -967,6 +1029,10 @@ def cmd_match(args) -> None:
               f"ref_wcs={ref_solved})", flush=True)
         # Build jobs in blocks so detection arrays for at most WRITE_BATCH
         # frames are ever resident at once.
+        # One pool per era, primed with that era's reference context.
+        pool = cf.ProcessPoolExecutor(
+            max_workers=nw, initializer=_match_init,
+            initargs=(ref_xy, ref_bright, tol, ref_area, str(ref_wcs)))
         for i0 in range(0, len(todo), WRITE_BATCH):
             block = todo[i0:i0 + WRITE_BATCH]
             jobs = []
@@ -989,10 +1055,8 @@ def cmd_match(args) -> None:
                 has = fw.exists()
                 jobs.append({
                     "frame_id": fid, "xy": xy, "bright": bright,
-                    "ref_xy": ref_xy.tolist(),
-                    "ref_bright": ref_bright.tolist(), "tol": tol,
                     "method": sr.registration_method(has, ref_solved),
-                    "frame_wcs": str(fw), "ref_wcs": str(ref_wcs),
+                    "frame_wcs": str(fw),
                     "has_wcs": 1 if has else 0})
             results = list(pool.map(_match_one, jobs, chunksize=2))
             con.execute("BEGIN")
@@ -1026,7 +1090,7 @@ def cmd_match(args) -> None:
                   flush=True)
             if budget <= 0:
                 break
-    pool.shutdown()
+        pool.shutdown()
     left = con.execute("SELECT count(*) FROM cv_frames "
                        "WHERE status='extracted'").fetchone()[0]
     print(f"match: {n_ok} ok, {n_fail} failed, {time.time() - t0:.0f}s "

@@ -2,34 +2,231 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MACRO — SN 2023ixf Early Light Curve</title>
 <link rel="stylesheet" href="../assets/macro.css">
+<style>
+.chip{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12px;
+      white-space:nowrap;font-weight:600}
+.chip.done{background:#1d3a26;color:#9fd8ae}
+.chip.in_progress{background:#1b3247;color:#8fc4f0}
+.chip.blocked{background:#3d2224;color:#f0a3a3}
+.chip.pending{background:#242a35;color:#8a93a3}
+.chip.redo_needed{background:#3a3320;color:#e6cc7a}
+.chip.v-fresh{background:#1d3a26;color:#9fd8ae}
+.chip.v-stale{background:#3a3320;color:#e6cc7a}
+.chip.v-wait{background:#242a35;color:#8a93a3}
+.chip.v-never{background:#1b3247;color:#8fc4f0}
+.chip.v-gone{background:#3d2224;color:#f0a3a3}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;max-width:1100px;
+     border:1px solid #2a3140;background:#11151c;margin:10px 0 6px}
+.bar span{display:block;height:100%}
+.bar .done{background:#3f8f5c}
+.bar .in_progress{background:#4a86c4}
+.bar .redo_needed{background:#b09134}
+.bar .blocked{background:#a24f52}
+.bar .pending{background:#2a3140}
+.legend{color:#8a93a3;font-size:12.5px;margin:0 0 14px}
+.legend b{color:#dfe6f0}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}
+.stat{background:#161a22;border:1px solid #2a3140;border-radius:8px;
+      padding:9px 14px;min-width:150px}
+.stat .n{display:block;font-size:21px;color:#fff}
+.stat .k{display:block;font-size:12px;color:#8a93a3;margin-top:2px}
+.phase{border-left:3px solid #2a3140;padding-left:14px;margin:20px 0}
+.phase h3{margin:0 0 2px;font-size:16px;color:#dfe6f0}
+.blockcard{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
+           margin:10px 0;font-size:13.5px;color:#e3d4d5;max-width:1100px}
+.blockcard b{color:#fff}
+.nextcard{border-left:3px solid #4a86c4;background:#131a24;padding:10px 14px;
+          margin:10px 0;font-size:13.5px;color:#cfe0f5;max-width:1100px}
+.nextcard b{color:#fff}
+.unbacked{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
+          margin:10px 0;font-size:13px;color:#e3d4d5;max-width:1100px}
+.src{color:#6f7a8a;font-size:11.5px}
+table.data td.tight{white-space:nowrap}
+</style>
 </head><body>
+
 <header>
-  <h1>SN 2023ixf Early Light Curve — Chain of Evidence</h1>
-  <p>gri/narrowband photometry +5.4→+50 d in M101, plus a possibly-unique flash-phase grism series.
-     Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a>
-     · <a href="../index.html">← all reports</a></p>
+  <h1>SN 2023ixf Early Light Curve — Plan &amp; Progress</h1>
+  <p>0 of 20 plan tasks complete (3 need redoing, 4 blocked)
+  &middot; AJ/PASP base case; ApJ upside decided at week 3, post-Gate 0<br>
+  Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a> &middot; <a href="../index.html">&larr; all reports</a></p>
 </header>
-<nav><a href="#status">Readiness</a></nav>
-<section id="status">
-  <div class="bhead"><h2>Readiness</h2><span class="badge active">partially ready — Gate 0 outstanding</span></div>
-  <div class="stage">
-    <h3>Gates cleared</h3>
-    <ul class="sub">
-      <li><b>Astrometry:</b> 691 of 1,054 frames carry WCS</li>
-      <li><b>Timing (S3) and staging (S0c):</b> complete (1,214 staged frames including the M101 templates)</li>
-      <li><b>Detector (S2):</b> the ~3.5 kADU High Gain clip is measured — the saturation census now has a defensible threshold</li>
-    </ul>
-    <h3>Still blocking</h3>
-    <ul class="sub">
-      <li><b>Gate 0:</b> the saturation matrix and filter forensics still have to run before any photometry is published</li>
-      <li><b>Frame quality:</b> the astrometry QC pass rejected 298 frames as blank/cloudy or defocused — a real constraint on what the light curve can claim</li>
-      <li><b>Grism triage:</b> whether the 83-frame Hα series is the flash-phase record depends on the G track</li>
-    </ul>
-    <div class="decision"><b>Verdict:</b> the broadband work can begin at Gate 0 immediately; the ApJ upside rests on the grism series.</div>
-    <p class="sub">Analysis sections appear here as they are executed: each states the question,
-    shows the plot that answers it, and records the decision carried forward. Nothing is
-    published here without a figure and a script behind it.</p>
-  </div>
+
+<nav>
+  <a href="#claim">Claim</a> &middot;
+  <a href="#progress">Progress</a> &middot;
+  <a href="#plan">The plan</a> &middot;
+  <a href="#blocking">Blocking</a> &middot;
+  <a href="#next">Next up</a> &middot;
+  <a href="#evidence">Evidence</a>
+</nav>
+
+<section id="claim">
+<div class="bhead"><h2>What this paper will claim</h2>
+<span class="tag">AJ/PASP base case; ApJ upside decided at week 3, post-Gate 0</span></div>
+<div class="stage">
+<div class="decision">A homogeneous, single-instrument nightly gri and narrowband record of SN 2023ixf from +5.4 to +50 d, released with the saturation matrix that defines where it is trustworthy, validated against the published world dataset. The unconditional clean start is +5.4 d; '+1.6 d' appears only in the saturated-frame inventory. The upside — and the reason ApJ is on the table at all — is the slot-'6' slitless grism series from +3.5 d, which may be the archive's only unsaturated flash-phase Hα record, and an Hα-band evolution curve forward-modelled through a recovered transmission profile. How much of that series is in fact a grism series is MEASURED, not assumed: the panel immediately below is the measurement, and this upside is worth exactly what that panel says it is worth.</div>
+<div class="blockcard"><b>What the claim rests on, measured.</b> Slot <code>6</code>: of 83 staged science frames S2c has measured, <b>61</b> are dispersed, 3 measure as <b>direct imaging</b>, and 19 are undecided — S2c&rsquo;s verdict for the slot is <b>MIXED</b>, and 61 of the 61 dispersed verdicts are low-strength. The claim above is worth what these numbers say it is worth, and no more.</div>
+
+</div>
 </section>
-<footer>MACRO Consortium · numbers are script-emitted, never hand-edited.</footer>
+
+
+<section id="progress">
+<div class="bhead"><h2>Progress at a glance</h2>
+<span class="tag">0 of 20 plan tasks complete</span></div>
+<div class="stage">
+<div class="bar"><span class="in_progress" style="width:10.0000%"></span><span class="redo_needed" style="width:15.0000%"></span><span class="blocked" style="width:20.0000%"></span><span class="pending" style="width:55.0000%"></span></div>
+<p class="legend"><b>2</b> in progress &middot; <b>3</b> redo needed &middot; <b>4</b> blocked &middot; <b>11</b> pending</p>
+<div class="stats"><div class="stat"><span class="n">0/20</span><span class="k">plan tasks complete</span></div><div class="stat"><span class="n">1,356</span><span class="k">staged science frames</span></div><div class="stat"><span class="n">42</span><span class="k">nights</span></div><div class="stat"><span class="n">5</span><span class="k">catalog target names</span></div><div class="stat"><span class="n">68%</span><span class="k">carry a WCS (917/1,356)</span></div><div class="stat"><span class="n">100%</span><span class="k">carry BJD_TDB (1,356/1,356)</span></div><div class="stat"><span class="n">496</span><span class="k">era-matched calibration rows</span></div><div class="stat"><span class="n">5</span><span class="k">camera eras spanned</span></div></div>
+<p class="sub">Every row is counted from <code>stage_sn2023ixf_lightcurve</code> at render time — the project's actual working set, not a number transcribed from a strategy document. Each row is one <code>canonical_target</code> STRING, which is not the same as one object.</p><table class="data">
+<tr><th>Target</th><th>Staged science frames</th><th>Nights</th><th>With WCS</th><th>With BJD_TDB</th></tr>
+<tr><td>2023ixf</td><td>1,054</td><td>33</td><td>691 (66%)</td><td>1,054 (100%)</td></tr>
+<tr><td>M101</td><td>160</td><td>7</td><td>118 (74%)</td><td>160 (100%)</td></tr>
+<tr><td>pinwheel galaxy</td><td>140</td><td>2</td><td>107 (76%)</td><td>140 (100%)</td></tr>
+<tr><td>2023ixf2</td><td>1</td><td>1</td><td>0 (0%)</td><td>1 (100%)</td></tr>
+<tr><td>2023ixf1</td><td>1</td><td>1</td><td>1 (100%)</td><td>1 (100%)</td></tr>
+</table><div class="blockcard"><b>Unmerged alias candidates.</b> <code>2023ixf2</code> (1 frame), <code>2023ixf1</code> (1 frame) — each holds at most 2 frames, which is what an alias fragment looks like, not a target. They are counted in "catalog target names" above because that stat counts names; they should not be read as separate objects. Merging them is the alias task's job, and until it runs this page will keep saying so.</div>
+<h3>What this project&rsquo;s filters actually do</h3><p class="sub">Per-frame verdicts from S2c, restricted to this project&rsquo;s staged science frames. The measurement is source elongation, not the filter&rsquo;s name — which is the point, since every strategy here carries an exclusion rule keyed on the name. The verdict column uses <b>S2c&rsquo;s own published rule</b> — ≥80% dispersed is SPECTRA, ≥80% direct is images, anything else is MIXED, and only filters with at least 20 measured frames get a verdict at all — so the word means the same thing here as it does on <a href="../pipeline/s2c_filter_identity.html">the S2c page</a>. The strength column matters: a verdict built from low-confidence frames is a weaker claim, and most dispersed verdicts in this archive are low. Frames S2c has not reached yet simply do not appear.</p><table class="data">
+<tr><th>Filter</th><th>Measured</th><th>Dispersed</th><th>Direct</th><th>Indeterminate</th><th>Dispersed strength</th><th>Verdict</th></tr>
+<tr class="warn"><td><code>6</code></td><td>83</td><td>61</td><td>3</td><td>19</td><td>61 of 61 low</td><td><b>MIXED</b></td></tr>
+<tr><td><code>I</code></td><td>23</td><td>0</td><td>22</td><td>1</td><td>&mdash;</td><td>images</td></tr>
+<tr><td><code>R</code></td><td>2</td><td>0</td><td>2</td><td>0</td><td>&mdash;</td><td>too few measured</td></tr>
+<tr><td><code>r</code></td><td>1</td><td>0</td><td>1</td><td>0</td><td>&mdash;</td><td>too few measured</td></tr>
+<tr><td><code>i</code></td><td>1</td><td>0</td><td>1</td><td>0</td><td>&mdash;</td><td>too few measured</td></tr>
+</table>
+<h3>What the strategy claims vs what the manifest holds <span class="chip v-stale">STALE</span></h3><p class="sub">Reconciliation rows written by S0 — and re-checked at render time by looking for the sentence S0 says it transcribed in the strategy document as it stands now. A non-zero diff is not necessarily an error — it is a question that has an answer in the <code>source</code> column of <code>project_counts</code>. A SUPERSEDED row is a different thing: the question itself has expired.</p><table class="data">
+<tr><th>Target</th><th>Metric</th><th>Strategy claims</th><th>Manifest holds</th><th>Reconciliation</th></tr>
+<tr><td>2023ixf</td><td><code>unique_light</code></td><td>1,052</td><td>1,052</td><td>agrees</td></tr>
+</table><p class="sub">S0, which wrote these rows, is currently <b>STALE</b>. Every quoted sentence still matches the strategy text, so the transcriptions are current even though the stage is not.</p>
+</div>
+</section>
+
+<section id="plan">
+<div class="bhead"><h2>The plan</h2>
+<span class="tag">20 tasks in 4 phases</span></div>
+<div class="stage">
+<p class="sub">Every task below was read out of the project's execution
+order — derived from <a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> — and names the pipeline stage its result rests on. That
+last column is not decoration: when a stage stops being fresh, every
+<span class="chip done">done</span> task resting on it becomes
+<span class="chip redo_needed">redo needed</span>, automatically, with the
+reason attached.</p>
+
+<div class="phase">
+<h3>Gate 0 — everything is downstream of this</h3>
+<p class="sub">Three parallel blocking activities: the frozen manifest, the saturation census, and the grism triage.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>Manifest freeze with global dedup</b><br><code>SN-G0a-manifest</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 0a</span></td><td>stage_sn2023ixf_lightcurve: one row per unique frame after (basename, jd) dedup across AND within trees.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a></td></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>Recover the alias-hidden template epochs</b><br><code>SN-S0-alias-recovery</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §3.4 templates</span></td><td>The 140-frame 2026-03-21/22 'pinwheel galaxy' epoch and the two 2023ixf1/2 post-fade frames folded into the working set — the deepest post-fade material.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s0_manifest.html">s0_manifest.html</a></td></tr>
+<tr class="warn"><td><span class="chip redo_needed">redo needed</span></td><td><b>Mid-exposure BJD_TDB</b><br><code>SN-P-timing</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 8</span></td><td>Barycentric timestamps for every campaign frame.</td><td><code>S3</code> <a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a></td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Full-campaign SN saturation census</b><br><code>SN-G0b-saturation-census</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 0b</span></td><td>THE saturation matrix (filter × night): pixel-level peak ADU of the SN in every frame, screened at 80% of the measured clip. It decides the true clean start per band and whether Q2 survives.</td><td><code>S2</code> <a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Contamination-hardened grism triage (2-week timebox)</b><br><code>SN-G0c-grism-triage</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 0c</span></td><td>A promote-or-appendix verdict on the 83 filter-'6' frames, gated on an offset-trace contamination test.</td><td><code>G</code> &mdash;</td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Steps 1–2 — The blocking audits</h3>
+<p class="sub">Nothing photometric is publishable before the filters are identified and the linearity curve exists.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip in_progress">in progress</span></td><td><b>Measure whether filter '6' disperses, per frame</b><br><code>SN-S1-slot6-dispersion</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §3.2 filter table / §4 Step 0c</span></td><td>A per-frame direct/dispersed verdict for the '6' frames — the measurement behind the grism claim.</td><td><code>S2c</code> <a href="../pipeline/s2c_filter_identity.html">s2c_filter_identity.html</a> <span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s2c_filter_identity.html">s2c_filter_identity.html</a></td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Empirical broadband filter identification</b><br><code>SN-S1-filter-crosswalk</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 1</span></td><td>A colour-term regression per filter code plus the MaxIm→pyscope crosswalk — which also gates template adoption, not just the appendix.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Recover the narrowband transmission profiles</b><br><code>SN-S1-narrowband-curves</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 1(d) / Step 6</span></td><td>The actual H/O/'1' filter curves, from a manufacturer sheet or a monochromator scan.</td><td><code>OPS</code> &mdash;</td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Linearity audit</b><br><code>SN-S2-linearity</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 2</span></td><td>A published linearity curve from the 0.5 s/2 s ladder we already own, and the star-side screen.</td><td><code>S2</code> <a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Steps 4–6 — Calibration, photometry, the Hα curve</h3>
+<p class="sub">Two photometric regimes with a published overlap test; the narrowband product forward-modelled, never raw.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip in_progress">in progress</span></td><td><b>Re-solve the unsolved broadband frames</b><br><code>SN-S4-resolve</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 4</span></td><td>WCS for the ~177 unsolved broadband frames.</td><td><code>S1b</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>REFCAT2 ensemble calibration</b><br><code>SN-S4-ensemble-cal</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 4</span></td><td>Per-frame zero points, one campaign colour term per filter, nightly extinction plus a second-order (colour × airmass) term.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Two-regime photometry</b><br><code>SN-S5-photometry</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 5</span></td><td>Aperture photometry bright, template-subtracted forced PSF photometry faint, with the overlap agreement published as a systematic.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Hα-band evolution curve</b><br><code>SN-S6-halpha-curve</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 6</span></td><td>Nightly H-band flux over the census-approved epochs, forward-modelled through the bandpass — never presented as a raw 'Hα light curve'.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Steps 7–10 — Limits, late time, release</h3>
+<p class="sub">Consistency rather than constraint; limits rather than detections; the manifest as the single source of truth.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Model consistency fits</b><br><code>SN-S7-model-consistency</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 7</span></td><td>Morag+23 / Martinez+24 tracks at published parameters, labelled consistency — no independent t0.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Variability and bump limits</b><br><code>SN-S8-variability-limits</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 8</span></td><td>A computed spectral window and a 90%-recovery amplitude-vs-period curve on an honest grid.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Late-time stacks and limits</b><br><code>SN-S9-late-time</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 9</span></td><td>Per-stack 5σ upper limits — a late-time detection is forbidden.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>The venue decision</b><br><code>SN-venue-decision</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §2 venue call</span></td><td>AJ/PASP or ApJ, decided at week 3 immediately after Gate 0 lands — not at referee stage.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Machine-readable release</b><br><code>SN-S10-release</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 10</span></td><td>Per-frame and nightly tables with census flags, the saturation matrix, pipeline on GitHub, Zenodo deposit, README regenerated from the manifest.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>The twelve-figure set</b><br><code>SN-figures</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §7 Figure list</span></td><td>Figures 1–12: campaign overview, filter identification, the saturation census and linearity, calibration honesty, the gri light curve, the RLMT-vs-the-world centrepiece, the conditional Hα-band and grism panels, nightly sampling, the window function and injection–recovery, model consistency, and the template-subtraction appendix.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip pending">pending</span></td><td><b>Write the manuscript</b><br><code>SN-draft</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §8 Manuscript outline</span><br><span class="src"><b>Gated:</b> waiting on <code>SN-figures</code></span></td><td>manuscripts/SN2023ixf_LightCurve/main.tex through the outline — including replacing the skeleton's sec:obs pointer at the T CrB strategy with a shared-facility paragraph both papers cite.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+</table>
+</div>
+</div>
+</section>
+
+<section id="blocking">
+<div class="bhead"><h2>What's blocking</h2>
+<span class="tag">4 blocked tasks</span></div>
+<div class="stage">
+<p class="sub">Each entry states the reason and what would clear it. A
+blocker with no clearing condition is a decision nobody has made yet, and
+it is written as one.</p>
+<div class="blockcard"><b>Full-campaign SN saturation census</b> <span class="src">(SN-G0b-saturation-census, stage <code>S2</code>)</span><br>The screen needs a MEASURED clip, and the S2 tables that held it were destroyed by the S0 table swap — the '~3.5 kADU' figure currently has no query behind it. Clears when S2 re-runs.</div><div class="blockcard"><b>Recover the narrowband transmission profiles</b> <span class="src">(SN-S1-narrowband-curves, stage <code>OPS</code>)</span><br>A colour-term regression cannot measure a narrowband profile. Without a sheet or a scan, Q2 is pre-agreed to demote to a methods demonstration. Clears when MACRO records or a member campus supply the curve.</div><div class="blockcard"><b>Linearity audit</b> <span class="src">(SN-S2-linearity, stage <code>S2</code>)</span><br>Same destroyed S2 tables; the clip value this fixes is exactly what is unbacked. Clears when S2 re-runs.</div><div class="blockcard"><b>Hα-band evolution curve</b> <span class="src">(SN-S6-halpha-curve, stage <code>S4</code>)</span><br>Two upstream gates: the saturation census (which epochs are clean) and the transmission curve (whether the product is physical at all). Clears when SN-G0b and SN-S1-narrowband-curves clear.</div>
+</div>
+</section>
+
+<section id="next">
+<div class="bhead"><h2>Next up</h2>
+<span class="tag">the actionable front of the plan</span></div>
+<div class="stage">
+<p class="sub">In plan order, excluding blocked work.</p>
+<h3>First, restore the evidence</h3><p class="sub">These tasks were done and are not backed any more — the stage their result rested on is no longer FRESH. One row per stage: re-running the stage clears every task that rests on it, so this is a list of RE-RUNS, not of re-decisions. The ordered commands are in <code>check_pipeline_status.py plan</code>.</p><div class="nextcard"><span class="chip redo_needed">redo needed</span> <b>Manifest freeze with global dedup</b> <span class="src">(Gate 0 — everything is downstream of this &middot; SN-G0a-manifest &middot; stage <code>S0c</code>)</span><br>stage_sn2023ixf_lightcurve: one row per unique frame after (basename, jd) dedup across AND within trees.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 0a</span></div><div class="nextcard"><span class="chip redo_needed">redo needed</span> <b>Recover the alias-hidden template epochs</b> <span class="src">(Gate 0 — everything is downstream of this &middot; SN-S0-alias-recovery &middot; stage <code>S0</code>)</span><br>The 140-frame 2026-03-21/22 'pinwheel galaxy' epoch and the two 2023ixf1/2 post-fade frames folded into the working set — the deepest post-fade material.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §3.4 templates</span></div><div class="nextcard"><span class="chip redo_needed">redo needed</span> <b>Mid-exposure BJD_TDB</b> <span class="src">(Gate 0 — everything is downstream of this &middot; SN-P-timing &middot; stage <code>S3</code>)</span><br>Barycentric timestamps for every campaign frame.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 8</span></div><h3>Then, the next steps forward</h3><div class="nextcard"><span class="chip in_progress">in progress</span> <b>Measure whether filter '6' disperses, per frame</b> <span class="src">(Steps 1–2 — The blocking audits &middot; SN-S1-slot6-dispersion &middot; stage <code>S2c</code>)</span><br>A per-frame direct/dispersed verdict for the '6' frames — the measurement behind the grism claim.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §3.2 filter table / §4 Step 0c</span></div><div class="nextcard"><span class="chip in_progress">in progress</span> <b>Re-solve the unsolved broadband frames</b> <span class="src">(Steps 4–6 — Calibration, photometry, the Hα curve &middot; SN-S4-resolve &middot; stage <code>S1b</code>)</span><br>WCS for the ~177 unsolved broadband frames.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 4</span></div><div class="nextcard"><span class="chip pending">pending</span> <b>Contamination-hardened grism triage (2-week timebox)</b> <span class="src">(Gate 0 — everything is downstream of this &middot; SN-G0c-grism-triage &middot; stage <code>G</code>)</span><br>A promote-or-appendix verdict on the 83 filter-'6' frames, gated on an offset-trace contamination test.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</a> §4 Step 0c</span></div><h3>Started or startable, but out of order</h3><p class="sub">These are deliberately NOT recommended above. Their status says they are available; the execution order this plan was derived from says something else has to land first. That distinction used to be invisible — dependencies lived only inside blocker prose that nothing read, so the page offered production photometry as the actionable front while the detector work its own strategy puts in front of it sat blocked on destroyed tables.</p><div class="blockcard"><span class="chip pending">pending</span> <b>Write the manuscript</b> <span class="src">(Steps 7–10 — Limits, late time, release &middot; SN-draft)</span><br>Waiting on <code>SN-figures</code> (pending).</div>
+<p class="sub">When one completes:
+<code>python pipeline/scripts/update_project_plan.py set &lt;task-id&gt; done
+--evidence &lt;page-or-product&gt;</code>, then re-render. The page is never
+edited by hand.</p>
+</div>
+</section>
+
+<section id="evidence">
+<div class="bhead"><h2>Evidence</h2>
+<span class="tag">9 of 9 stages are not FRESH</span></div>
+<div class="stage">
+<p class="sub">The pipeline stages this project's plan rests on, each with
+the verdict <code>macro_core.provenance</code> returns right now.
+<b>DESTROYED</b> is separated from <b>STALE</b> deliberately: stale means the
+numbers moved, destroyed means the table the number came from is not in the
+database at all. A reader is never invited to trust an orphaned report.</p>
+<table class="data">
+<tr><th>Stage</th><th>What it produces</th><th>Verdict now</th><th>Report</th><th>Why</th></tr>
+<tr class="warn"><td><code>S0</code></td><td>Manifest (dedup, aliases, eras, pointing)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>input stat:rlmt-catalog: changed after this stage ran — S0e changed 2026-08-18T19:38:06Z, after this stage ran 2026-08-18T15:03:50.623928+00:00</td></tr>
+<tr class="warn"><td><code>G</code></td><td>Grism extraction + identity gate (T CrB)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td><td>upstream not fresh: S0 (STALE), S0b (STALE_UPSTREAM) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>OPS</code></td><td>Observatory request (October shopping list)</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>input table:calib_coverage: changed after this stage ran — S0b changed 2026-08-18T15:04:14.574732+00:00, after this stage ran 2026-08-18T02:52:50Z</td></tr>
+<tr class="warn"><td><code>S0c</code></td><td>Per-project staging manifests</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE), S0b (STALE_UPSTREAM) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>S1b</code></td><td>Astrometry production batch</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>output table:s1_batch changed since it was recorded (38092:14516a7e027c9ace -&gt; 38092:ce56ca5a4bd89326) — written out of band</td></tr>
+<tr class="warn"><td><code>S2</code></td><td>Detector truth (ceiling, PTC, recon, linearity)</td><td><span class="chip v-gone">DESTROYED</span></td><td><a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td><td>it ran and its declared output(s) are now absent from the database: detector_params, s2_ceiling_modes, s2_linearity_ladders, s2_ptc_fits, s2_recon_eras</td></tr>
+<tr class="warn"><td><code>S2c</code></td><td>Per-frame dispersion (is this FILTER a spectrum?)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s2c_filter_identity.html">s2c_filter_identity.html</a> <span class="chip v-stale">STALE</span></td><td>output table:frame_dispersion changed since it was recorded (25323:f7bddf62c1066086 -&gt; 25323:77002b31abc6d218) — written out of band</td></tr>
+<tr class="warn"><td><code>S3</code></td><td>Timing (BJD_TDB, clock, cadence)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>S4</code></td><td>Ensemble photometry (AN UMa / VV Pup prototype)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>input table:detector_params is ABSENT — the evidence this stage was built from no longer exists</td></tr>
+</table>
+<div class="unbacked"><b>Constants with no query behind them.</b> These tables are absent from the manifest right now: <code>detector_params, s2_ceiling_modes, s2_linearity_ladders, s2_ptc_fits, s2_recon_eras</code>. Every detector number this project would otherwise quote — a saturation ceiling, a veto threshold, a StackPro sub-read count, a read noise — lived in them. Until the producing stage re-runs, those values are <b>unbacked prose</b>, not measurements.<br><br><b>No page in this plan quotes them</b> — and that is the limit of what this panel can promise. The stage reports linked above are a different matter: they were rendered while the tables still existed and still print those constants as measured values, because nothing has re-rendered them since the wipe. That is why every link to a report whose stage is not FRESH now carries its verdict beside it. Treat an orphaned report as a historical document, not a reference.</div>
+</div>
+</section>
+
+<footer>Generated 2026-08-18T21:49:54Z by
+<code>macro_core.report_projects</code> from the plan ledger in
+<code>macro_core.project_plan</code> (PLAN v1.0 (2026-08-18)), the
+progress recorded in <code>project_plan_status</code>, and live queries
+against <code>products/manifest/rlmt-manifest.sqlite</code>. Stage verdicts
+come from <code>macro_core.provenance</code>
+(P v1.0 (2026-08-18)). Regenerate with
+<code>python pipeline/scripts/update_project_plan.py render</code>; record a
+completed step with <code>… update_project_plan.py set &lt;task-id&gt;
+done</code>.<br><br><b>Every number in the tables above is queried at render
+time.</b> That is the claim this page can make, and the earlier and stronger
+one — "no number on this page is typed by hand" — was false: task
+descriptions quote figures from the strategy documents, and a quoted figure
+can disagree with the table beside it when the two count under different
+rules. Where a quoted number gates a decision, the accounting rule is stated
+with it. Prose is prose; the tables are the measurement.</footer>
 </body></html>

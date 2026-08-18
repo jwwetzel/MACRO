@@ -190,8 +190,28 @@ def seeded_ransac(seed: Optional[int]):
         np.random.default_rng = orig
 
 
+#: The PRODUCTION ladder used by the CV campaign
+#: (``pipeline/scripts/run_cv_photometry.py``).  Same three pools as
+#: :data:`ALIGN_ATTEMPTS`, but the deepest rung fits with 100 control points
+#: instead of 200.  The reason is throughput measured on real frames: for
+#: the dense unsolved fields (YZ Cnc, EU UMa) rungs 1 and 2 fail in about
+#: two seconds together and rung 3 decides the frame — and rung 3 at 200
+#: control points costs ~25 s, which at six workers is thirteen frames a
+#: minute and puts a 2,500-frame block three hours away.  astroalign's
+#: triangle-matching cost grows steeply with the control-point count while
+#: its REACH is set by the pool depth, which is unchanged here; the
+#: measured Gaia-tie probe locked the same field at 100 control points.
+#: Every accepted transform is still validated the same way afterwards (the
+#: one-to-one match rate and the alignment RMS are recorded per frame), so
+#: this is a speed-for-reach trade made where reach is not what is scarce.
+PRODUCTION_ALIGN_ATTEMPTS: tuple[tuple[int, int], ...] = ((100, 50),
+                                                          (300, 100),
+                                                          (800, 100))
+
+
 def find_series_transform(frame_bright: np.ndarray, ref_bright: np.ndarray,
-                          seed: Optional[int] = None):
+                          seed: Optional[int] = None,
+                          attempts: Optional[tuple] = None):
     """Fit frame -> reference with the :data:`ALIGN_ATTEMPTS` ladder.
 
     Both inputs are flux-descending (brightest first) position arrays at
@@ -203,11 +223,15 @@ def find_series_transform(frame_bright: np.ndarray, ref_bright: np.ndarray,
     ``seed`` (the build script passes the frame_id) pins astroalign's
     RANSAC via :func:`seeded_ransac`, making the returned transform — and
     therefore every star identity downstream — reproducible run to run.
+    ``attempts`` overrides the ladder itself; the CV campaign passes
+    :data:`PRODUCTION_ALIGN_ATTEMPTS`, whose cheaper deepest rung keeps the
+    same reach at a fraction of the cost (see that constant's note).
     """
     import astroalign as aa
     last_err: Exception | None = None
+    ladder = attempts if attempts is not None else ALIGN_ATTEMPTS
     with seeded_ransac(seed):
-        for pool, ctrl in ALIGN_ATTEMPTS:
+        for pool, ctrl in ladder:
             try:
                 tf, _ = aa.find_transform(frame_bright[:pool],
                                           ref_bright[:pool],

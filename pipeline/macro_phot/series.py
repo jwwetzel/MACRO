@@ -417,6 +417,53 @@ def order_reference_candidates(ranking: Sequence[int],
     return promoted + rest
 
 
+#: How many times the CHANCE-coincidence expectation a star match must
+#: exceed before a proposed registration is believed, and the floor on the
+#: absolute count.  See :func:`matches_beat_chance`.
+CHANCE_MATCH_FACTOR = 10.0
+CHANCE_MATCH_MIN_ABS = 8
+
+
+def expected_chance_matches(n_det: int, n_ref: int, tol_px: float,
+                            area_px2: float) -> float:
+    """How many star pairs a WRONG registration would match by luck.
+
+    Scatter ``n_ref`` reference stars at random over an image of
+    ``area_px2`` pixels; the chance that a given detection lands within
+    ``tol_px`` of one of them is ``n_ref * pi * tol^2 / area``.  Multiply by
+    ``n_det`` detections for the expected count.  Concretely, for a 4,787 x
+    3,193 EU UMa frame with 1,839 reference stars and a 2-pixel tolerance,
+    a completely wrong shift is expected to match 0.6 pairs.
+    """
+    if area_px2 <= 0 or tol_px <= 0:
+        return float("inf")
+    per_det = float(n_ref) * math.pi * float(tol_px) ** 2 / float(area_px2)
+    return float(n_det) * per_det
+
+
+def matches_beat_chance(n_match: int, n_det: int, n_ref: int, tol_px: float,
+                        area_px2: float,
+                        factor: float = CHANCE_MATCH_FACTOR,
+                        min_abs: int = CHANCE_MATCH_MIN_ABS) -> bool:
+    """Is a proposed registration supported by more matches than luck allows?
+
+    The fraction-based gate (:func:`wcs_match_ok`) asks a frame to match a
+    THIRD of everything it detected, which is the right question for a deep
+    frame and the wrong one for a cloudy one: a 240-second EU UMa exposure
+    through cirrus reports 400 detections of which perhaps 60 are stars, so
+    demanding 120 matches rejects a registration that is in fact certain.
+    This gate asks the question that actually matters — could luck have
+    produced this? — and for a wrong shift the answer is a fraction of one
+    pair, so even a dozen real matches clears it by an order of magnitude.
+    The absolute floor keeps a nearly-empty frame from qualifying on two
+    coincidences in a sparse field.
+    """
+    if n_match < min_abs:
+        return False
+    chance = expected_chance_matches(n_det, n_ref, tol_px, area_px2)
+    return float(n_match) >= factor * max(chance, 0.1)
+
+
 def match_rate(n_match: int, n_det: int, n_ref: int) -> float:
     """Matched fraction on the same denominator :func:`wcs_match_ok` uses.
 

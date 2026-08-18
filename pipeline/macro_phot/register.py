@@ -118,6 +118,75 @@ def chain_to_reference(frame_wcs, ref_wcs, xy: np.ndarray) -> np.ndarray:
     return out
 
 
+#: Bin size, in pixels, of the offset histogram used by
+#: :func:`vote_translation`.  It must be wider than the pointing jitter
+#: within one exposure (sub-pixel) and narrower than the spacing between
+#: unrelated stars (tens of pixels); 4 px sits comfortably between.
+VOTE_BIN_PX = 4.0
+
+#: A translation is only proposed when the winning bin collects at least
+#: this many votes AND this fraction of the smaller catalog.  Random pairs
+#: spread their offsets over the whole search plane, so the true shift wins
+#: by a wide margin when it exists at all.
+VOTE_MIN_COUNT = 8
+VOTE_MIN_FRAC = 0.15
+
+
+def vote_translation(frame_xy: np.ndarray, ref_xy: np.ndarray,
+                     bin_px: float = VOTE_BIN_PX,
+                     min_count: int = VOTE_MIN_COUNT,
+                     min_frac: float = VOTE_MIN_FRAC
+                     ) -> Optional[tuple[float, float]]:
+    """Find the pure TRANSLATION between two star lists by offset voting.
+
+    Why this exists.  The telescope does not rotate between exposures of a
+    series: every astroalign transform this campaign fitted for the dithered
+    eras came back with a rotation of ~0.01 degrees and a scale within 0.15%
+    of unity, and a translation of a hundred-odd pixels — a DITHER.  Yet
+    astroalign, which searches for that answer through triangle similarity,
+    fails outright when one frame is much shallower than its reference (a
+    cloudy EU UMa frame with 60 detections against an 1,839-star reference
+    exhausts its triangles in 20 seconds and returns nothing).  The
+    information needed was never in the triangles; it was in the fact that
+    every real star shares ONE offset.
+
+    The method: form every offset between a frame star and a reference star
+    (a few tens of thousands of pairs — milliseconds), and histogram them.
+    Genuine pairs all land in one bin; the rest scatter.  The modal bin is
+    the translation, refined to the mean of the offsets inside it.
+
+    Returns ``(dx, dy)`` to ADD to frame positions to reach reference
+    pixels, or None when no bin wins convincingly.  The caller must still
+    verify the resulting star match — a proposal is not a registration.
+    """
+    f = np.asarray(frame_xy, dtype=float)
+    r = np.asarray(ref_xy, dtype=float)
+    if f.shape[0] < 3 or r.shape[0] < 3:
+        return None
+    dx = (r[None, :, 0] - f[:, None, 0]).ravel()
+    dy = (r[None, :, 1] - f[:, None, 1]).ravel()
+    ix = np.floor(dx / bin_px).astype(np.int64)
+    iy = np.floor(dy / bin_px).astype(np.int64)
+    # One integer key per bin so the mode is a single bincount-style pass.
+    # Shifting by the minimum keeps the keys non-negative and compact.
+    ix -= ix.min()
+    iy -= iy.min()
+    key = ix * (iy.max() + 1) + iy
+    uniq, counts = np.unique(key, return_counts=True)
+    best = int(np.argmax(counts))
+    n_vote = int(counts[best])
+    need = max(min_count, min_frac * min(len(f), len(r)))
+    if n_vote < need:
+        return None
+    # Refine: the mean of the offsets that voted for the winning bin, plus
+    # the neighbouring bins (a true offset straddling a bin edge splits its
+    # votes, and the refinement must not inherit the split).
+    sel = key == uniq[best]
+    cx, cy = dx[sel].mean(), dy[sel].mean()
+    near = (np.abs(dx - cx) <= bin_px) & (np.abs(dy - cy) <= bin_px)
+    return float(dx[near].mean()), float(dy[near].mean())
+
+
 def pixel_grids_agree(xy_a: np.ndarray, xy_b: np.ndarray,
                       tol_px: float = 0.5) -> tuple[bool, float]:
     """Do two detection lists describe the SAME pixel grid?

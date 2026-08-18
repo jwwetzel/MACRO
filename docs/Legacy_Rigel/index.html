@@ -1,39 +1,194 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MACRO — Rigel-Era Legacy Archive</title>
+<title>MACRO — Rigel-Era Legacy Archive (candidate)</title>
 <link rel="stylesheet" href="../assets/macro.css">
+<style>
+.chip{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12px;
+      white-space:nowrap;font-weight:600}
+.chip.done{background:#1d3a26;color:#9fd8ae}
+.chip.in_progress{background:#1b3247;color:#8fc4f0}
+.chip.blocked{background:#3d2224;color:#f0a3a3}
+.chip.pending{background:#242a35;color:#8a93a3}
+.chip.redo_needed{background:#3a3320;color:#e6cc7a}
+.chip.v-fresh{background:#1d3a26;color:#9fd8ae}
+.chip.v-stale{background:#3a3320;color:#e6cc7a}
+.chip.v-wait{background:#242a35;color:#8a93a3}
+.chip.v-never{background:#1b3247;color:#8fc4f0}
+.chip.v-gone{background:#3d2224;color:#f0a3a3}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;max-width:1100px;
+     border:1px solid #2a3140;background:#11151c;margin:10px 0 6px}
+.bar span{display:block;height:100%}
+.bar .done{background:#3f8f5c}
+.bar .in_progress{background:#4a86c4}
+.bar .redo_needed{background:#b09134}
+.bar .blocked{background:#a24f52}
+.bar .pending{background:#2a3140}
+.legend{color:#8a93a3;font-size:12.5px;margin:0 0 14px}
+.legend b{color:#dfe6f0}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}
+.stat{background:#161a22;border:1px solid #2a3140;border-radius:8px;
+      padding:9px 14px;min-width:150px}
+.stat .n{display:block;font-size:21px;color:#fff}
+.stat .k{display:block;font-size:12px;color:#8a93a3;margin-top:2px}
+.phase{border-left:3px solid #2a3140;padding-left:14px;margin:20px 0}
+.phase h3{margin:0 0 2px;font-size:16px;color:#dfe6f0}
+.blockcard{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
+           margin:10px 0;font-size:13.5px;color:#e3d4d5;max-width:1100px}
+.blockcard b{color:#fff}
+.nextcard{border-left:3px solid #4a86c4;background:#131a24;padding:10px 14px;
+          margin:10px 0;font-size:13.5px;color:#cfe0f5;max-width:1100px}
+.nextcard b{color:#fff}
+.unbacked{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
+          margin:10px 0;font-size:13px;color:#e3d4d5;max-width:1100px}
+.src{color:#6f7a8a;font-size:11.5px}
+table.data td.tight{white-space:nowrap}
+</style>
 </head><body>
+
 <header>
-  <h1>Rigel-Era Legacy Archive (2015–2023) — Chain of Evidence</h1>
-  <p>The pre-MACRO Winer/Iowa archive: <b>Rigel System</b>, FLI ProLine PL16803 (2048&times;2048 CCD),
-     Johnson BVRI. 210,120 frames across ~1,100 observing nights, being folded into the pipeline as a
-     second archive root. <a href="../index.html">&larr; all reports</a></p>
+  <h1>Rigel-Era Legacy Archive (candidate) — Plan &amp; Progress</h1>
+  <p>0 of 11 plan tasks complete
+  &middot; undecided — a go/no-go, not a venue posture<br>
+  <b>No committee strategy exists for this archive yet.</b> &middot; <a href="../index.html">&larr; all reports</a></p>
 </header>
-<nav><a href="#status">Status</a> · <a href="#why">Why a separate root</a></nav>
-<section id="status">
-  <div class="bhead"><h2>Status</h2><span class="badge active">ingesting</span></div>
-  <div class="stage">
-    <p class="sub">A candidate sixth project rather than a supplement to the five: the first frames
-    scanned show a program dominated by contact binaries and eclipsing systems (W UMa, XY Leo,
-    TU Boo, RW Com, CC Com, RZ Com, AW Vir, TX Cnc), plus HAT-P-12, a comet and an asteroid —
-    only a small fraction overlaps the RLMT-era target lists. No committee strategy exists for it yet.</p>
-    <div class="decision"><b>Current work:</b> stage S0d makes the catalog multi-archive
-    (<code>archive_root</code> + <code>telescope</code> columns, telescope-aware era keying so Rigel
-    configurations can never share a camera era with RLMT ones, and a Rigel filename parser).
-    The full target census — and therefore the real science case — lands when the transfer completes.</div>
-  </div>
+
+<nav>
+  <a href="#claim">Claim</a> &middot;
+  <a href="#progress">Progress</a> &middot;
+  <a href="#plan">The plan</a> &middot;
+  <a href="#blocking">Blocking</a> &middot;
+  <a href="#next">Next up</a> &middot;
+  <a href="#evidence">Evidence</a>
+</nav>
+
+<section id="claim">
+<div class="bhead"><h2>What this paper will claim</h2>
+<span class="tag">undecided — a go/no-go, not a venue posture</span></div>
+<div class="stage">
+<div class="decision">UNDECIDED — and that is the honest state. This is the pre-MACRO Winer/Iowa archive: about 210,120 files across ~1,100 nights, 2015–2023 (a file count from the transfer itself — NOT a pipeline-emitted frame count, because nothing here has reached the manifest yet), on a different telescope (Rigel System, FLI ProLine PL16803, Johnson BVRI). The first frames scanned show a programme dominated by contact binaries and eclipsing systems, only a small fraction overlapping the RLMT-era target lists. NO committee strategy exists for it, so this page carries an INGEST plan, not a science plan: the census is what decides whether there is a sixth paper here and what it would claim. Every task below cites the archive page's recorded decisions rather than a strategy document, because there is none to cite.</div>
+
+<h3>Standing decisions</h3><p class="sub">Rulings this project is already operating under. They are held in the plan ledger so a page regeneration cannot lose them.</p><div class="decision"><b>Why a separate archive root.</b> The legacy data lives in legacy-archive/, never inside rlmt-archive/. Two reasons, both about not corrupting what already works. That tree is a byte-verified mirror of the Linode 'testimages' bucket (rclone check: 0 differences), and foreign files would break that equivalence permanently. And this is a different telescope, detector and filename convention, so merging them would let legacy frames leak into RLMT-era analyses. Consequence: the pipeline reads two roots and tags every frame with its origin.</div><div class="decision"><b>What the first scan shows.</b> A programme dominated by contact binaries and eclipsing systems (W UMa, XY Leo, TU Boo, RW Com, CC Com, RZ Com, AW Vir, TX Cnc), plus HAT-P-12, a comet and an asteroid — only a small fraction overlaps the RLMT-era target lists. That is why this is a candidate SIXTH project rather than a supplement to the five.</div><div class="decision"><b>Multi-archive keying (stage S0d).</b> The catalog gains archive_root and telescope columns, plus telescope-aware era keying so a Rigel configuration can never share a camera era with an RLMT one, and a Rigel filename parser. The full target census — and therefore the real science case — lands when the transfer completes.</div>
+</div>
 </section>
-<section id="why">
-  <div class="bhead"><h2>Why a separate archive root</h2></div>
-  <div class="stage">
-    <p class="sub">Two reasons, both about not corrupting what already works.</p>
-    <div class="decision"><b>Decision:</b> the legacy data lives in <code>legacy-archive/</code>,
-    never inside <code>rlmt-archive/</code>. That tree is a byte-verified mirror of the Linode
-    <code>testimages</code> bucket (<code>rclone check</code>: 0 differences) and foreign files would break
-    that equivalence permanently; and this is a different telescope, detector and filename
-    convention, so merging them would let legacy frames leak into RLMT-era analyses.
-    <b>Consequence:</b> the pipeline reads two roots and tags every frame with its origin.</div>
-  </div>
+
+
+<section id="progress">
+<div class="bhead"><h2>Progress at a glance</h2>
+<span class="tag">0 of 11 plan tasks complete</span></div>
+<div class="stage">
+<div class="bar"><span class="in_progress" style="width:27.2727%"></span><span class="pending" style="width:72.7273%"></span></div>
+<p class="legend"><b>3</b> in progress &middot; <b>8</b> pending</p>
+<div class="stats"><div class="stat"><span class="n">0/11</span><span class="k">plan tasks complete</span></div></div>
+<p class="sub">This project has no staging table in the manifest yet, so there are no pipeline-emitted numbers to show. Any frame count you have seen for it comes from the archive page, not from a query.</p>
+
+
+</div>
 </section>
-<footer>MACRO Consortium · numbers are script-emitted, never hand-edited.</footer>
+
+<section id="plan">
+<div class="bhead"><h2>The plan</h2>
+<span class="tag">11 tasks in 3 phases</span></div>
+<div class="stage">
+<p class="sub">Every task below was read out of the project's execution
+order — derived from this page's own recorded decisions — there is no committee strategy for this archive yet — and names the pipeline stage its result rests on. That
+last column is not decoration: when a stage stops being fresh, every
+<span class="chip done">done</span> task resting on it becomes
+<span class="chip redo_needed">redo needed</span>, automatically, with the
+reason attached.</p>
+
+<div class="phase">
+<h3>Phase L0 — Ingest</h3>
+<p class="sub">Make the pipeline multi-archive without letting legacy frames leak into RLMT-era analyses.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip in_progress">in progress</span></td><td><b>Complete the archive transfer</b><br><code>RIG-L0-transfer</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §Why a separate archive root</span></td><td>A byte-verified legacy-archive/ mirror, separate from the rlmt-archive/ tree whose rclone-check equivalence must not be broken.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip in_progress">in progress</span></td><td><b>Multi-archive catalog keying</b><br><code>RIG-L0-multi-archive</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §Multi-archive keying (stage S0d)</span></td><td>archive_root and telescope columns, and telescope-aware era keying so a Rigel configuration can never share a camera era with an RLMT one.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip in_progress">in progress</span></td><td><b>Rigel filename parser</b><br><code>RIG-L0-filename-parser</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §Multi-archive keying (stage S0d)</span></td><td>Target, filter and exposure recovered from the legacy filename convention.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Header scan of the legacy tree</b><br><code>RIG-L0-header-scan</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §What the first scan shows</span></td><td>A catalog row per legacy frame — the input S0 needs before any census is possible.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Phase L1 — Census</h3>
+<p class="sub">The full target census — and therefore the real science case — lands only when the transfer completes.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Target census</b><br><code>RIG-L1-target-census</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §Multi-archive keying (stage S0d)</span></td><td>Frames and nights per target across ~1,100 nights, alias-merged the way S0 merges RLMT targets.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Night and coverage census</b><br><code>RIG-L1-night-census</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §Multi-archive keying (stage S0d)</span></td><td>Per-target baselines, cadences and full-cycle night counts — what a contact-binary programme can carry.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Overlap with the RLMT-era targets</b><br><code>RIG-L1-overlap</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §What the first scan shows</span></td><td>The list of targets both archives observed — the only place a legacy frame could legitimately extend an RLMT baseline.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Legacy calibration census</b><br><code>RIG-L1-calibration-census</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §Multi-archive keying (stage S0d)</span></td><td>Whether mode-matched calibration exists for the Rigel-era configurations at all.</td><td><code>S0b</code> <a href="../pipeline/s0b_calibration_inventory.html">s0b_calibration_inventory.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td></tr>
+</table>
+</div>
+<div class="phase">
+<h3>Phase L2 — Decision</h3>
+<p class="sub">Whether this becomes a sixth project, and on what terms.</p>
+<table class="data">
+<tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Commission a committee strategy</b><br><code>RIG-L2-strategy</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §What the first scan shows</span></td><td>An ANALYSIS_STRATEGY.md for this archive — or a recorded decision not to write one.</td><td><code>STRAT</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Sixth-project go/no-go</b><br><code>RIG-L2-gonogo</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §What the first scan shows</span></td><td>A decision, with the census as its evidence, on whether the legacy archive carries a paper.</td><td><code>STRAT</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Publish the census on this page</b><br><code>RIG-L2-page</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §Multi-archive keying (stage S0d)</span></td><td>This page's science section, replacing the ingest status it currently carries.</td><td><code>WEB</code> <a href="../BeStar_Grism/index.html">index.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td></tr>
+</table>
+</div>
+</div>
+</section>
+
+<section id="blocking">
+<div class="bhead"><h2>What's blocking</h2>
+<span class="tag">0 blocked tasks</span></div>
+<div class="stage">
+<p class="sub">Each entry states the reason and what would clear it. A
+blocker with no clearing condition is a decision nobody has made yet, and
+it is written as one.</p>
+<p class="sub">Nothing in this plan is blocked. Every remaining task is startable.</p>
+</div>
+</section>
+
+<section id="next">
+<div class="bhead"><h2>Next up</h2>
+<span class="tag">the actionable front of the plan</span></div>
+<div class="stage">
+<p class="sub">In plan order, excluding blocked work.</p>
+<h3>Then, the next steps forward</h3><div class="nextcard"><span class="chip in_progress">in progress</span> <b>Complete the archive transfer</b> <span class="src">(Phase L0 — Ingest &middot; RIG-L0-transfer &middot; stage <code>S0</code>)</span><br>A byte-verified legacy-archive/ mirror, separate from the rlmt-archive/ tree whose rclone-check equivalence must not be broken.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §Why a separate archive root</span></div><div class="nextcard"><span class="chip in_progress">in progress</span> <b>Multi-archive catalog keying</b> <span class="src">(Phase L0 — Ingest &middot; RIG-L0-multi-archive &middot; stage <code>S0</code>)</span><br>archive_root and telescope columns, and telescope-aware era keying so a Rigel configuration can never share a camera era with an RLMT one.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §Multi-archive keying (stage S0d)</span></div><div class="nextcard"><span class="chip in_progress">in progress</span> <b>Rigel filename parser</b> <span class="src">(Phase L0 — Ingest &middot; RIG-L0-filename-parser &middot; stage <code>S0</code>)</span><br>Target, filter and exposure recovered from the legacy filename convention.<br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §Multi-archive keying (stage S0d)</span></div>
+<p class="sub">When one completes:
+<code>python pipeline/scripts/update_project_plan.py set &lt;task-id&gt; done
+--evidence &lt;page-or-product&gt;</code>, then re-render. The page is never
+edited by hand.</p>
+</div>
+</section>
+
+<section id="evidence">
+<div class="bhead"><h2>Evidence</h2>
+<span class="tag">4 of 4 stages are not FRESH</span></div>
+<div class="stage">
+<p class="sub">The pipeline stages this project's plan rests on, each with
+the verdict <code>macro_core.provenance</code> returns right now.
+<b>DESTROYED</b> is separated from <b>STALE</b> deliberately: stale means the
+numbers moved, destroyed means the table the number came from is not in the
+database at all. A reader is never invited to trust an orphaned report.</p>
+<table class="data">
+<tr><th>Stage</th><th>What it produces</th><th>Verdict now</th><th>Report</th><th>Why</th></tr>
+<tr class="warn"><td><code>S0</code></td><td>Manifest (dedup, aliases, eras, pointing)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>input stat:rlmt-catalog: changed after this stage ran — S0e changed 2026-08-18T19:38:06Z, after this stage ran 2026-08-18T15:03:50.623928+00:00</td></tr>
+<tr class="warn"><td><code>S0b</code></td><td>Calibration inventory (links, coverage, gaps)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0b_calibration_inventory.html">s0b_calibration_inventory.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>STRAT</code></td><td>Five ANALYSIS_STRATEGY.md documents + ROADMAP</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>input table:frame_dispersion: changed after this stage ran — S2c changed 2026-08-18T19:06:48+00:00, after this stage ran 2026-08-18T18:47:50Z</td></tr>
+<tr class="warn"><td><code>WEB</code></td><td>Public project pages (docs/*/index.html)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../BeStar_Grism/index.html">index.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE), S0c (STALE_UPSTREAM) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+</table>
+
+</div>
+</section>
+
+<footer>Generated 2026-08-18T21:49:54Z by
+<code>macro_core.report_projects</code> from the plan ledger in
+<code>macro_core.project_plan</code> (PLAN v1.0 (2026-08-18)), the
+progress recorded in <code>project_plan_status</code>, and live queries
+against <code>products/manifest/rlmt-manifest.sqlite</code>. Stage verdicts
+come from <code>macro_core.provenance</code>
+(P v1.0 (2026-08-18)). Regenerate with
+<code>python pipeline/scripts/update_project_plan.py render</code>; record a
+completed step with <code>… update_project_plan.py set &lt;task-id&gt;
+done</code>.<br><br><b>Every number in the tables above is queried at render
+time.</b> That is the claim this page can make, and the earlier and stronger
+one — "no number on this page is typed by hand" — was false: task
+descriptions quote figures from the strategy documents, and a quoted figure
+can disagree with the table beside it when the two count under different
+rules. Where a quoted number gates a decision, the accounting rule is stated
+with it. Prose is prose; the tables are the measurement.</footer>
 </body></html>
