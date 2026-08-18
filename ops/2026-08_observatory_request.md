@@ -58,7 +58,18 @@ archive is 2024-11-18** — every readout era active since 2025 has zero calibra
 frames of any kind — and **82 of 83 science eras fail the ≥20-bias spec (164,769
 science frames affected)**; only era 47 (the Andor iKon) is bias-complete.
 
-1. **Top gaps, ranked by science frames blocked** *(numbers script-emitted from
+0. **⏰ Recover the server-side master calibrations — executable NOW, no dome
+   needed (2026-08-18 addition).** Reduced-frame FITS headers record full
+   calibration provenance and *name the master files applied*, e.g.
+   `master_bias_read0_g100_o30_2x2.fts`, `master_dark_240s_...`, living in server
+   directories the headers cite verbatim: `/usr/local/telescope/rlmt/images/calibrations/`
+   (2024-era) and `/mnt/ExtraImages/telescope/rlmt/images/calibrations/` (2025-era).
+   None of these masters were ever synced to the archive bucket. **Request: copy
+   both calibration directories (and any sibling calibration trees) into the
+   `testimages` bucket now, during the closure.** If those directories survive,
+   much of the archival-era shopping list below is satisfied without new sky time,
+   and every applied master becomes auditable. The sky-time table below then
+   shrinks to whatever the recovered directories don't cover.
    `rlmt-manifest.sqlite` `calib_gaps`, 2026-08-17 — do not hand-edit the numbers;
    camera and project labels are abbreviated here for width, verbatim strings in the
    inventory page)*:
