@@ -6,13 +6,13 @@
 
 <header>
   <h1>S0 — Manifest &amp; Curation</h1>
-  <p>329,042 catalog rows &rarr; 196,627 canonical frames
-  &middot; 1,972 targets &middot; 83 camera eras
-  &middot; 628 nights &middot;
-  built 2026-08-17T17:29Z from
+  <p>330,865 catalog rows &rarr; 198,294 canonical frames
+  &middot; 1,977 targets &middot; 84 camera eras
+  &middot; 641 nights &middot;
+  built 2026-08-18T15:03Z from
   <code>rlmt-catalog.sqlite</code>
   (S0 v1.0 (2026-08-17),
-  commit <code>93a0205</code>)
+  commit <code>3fec788</code>)
   &middot; <a href="../index.html">back to the evidence hub</a></p>
 </header>
 
@@ -32,11 +32,11 @@
 <span class="tag">dedup global on (basename, JD)</span></div>
 
 <div class="stage"><h3>Question</h3>
-<p class="sub">The catalog holds 329,042 rows.  How many distinct
+<p class="sub">The catalog holds 330,865 rows.  How many distinct
 exposures is that, and which copy of each is the one the pipeline reads?</p>
 
 <h3>Evidence</h3>
-<div class="grid"><figure><a href="figures/s0/s0_dup_group_sizes.png"><img src="figures/s0/s0_dup_group_sizes.png" alt=""></a><figcaption>Duplicate-group size distribution: 196,627 groups from 329,042 rows; 132,415 rows are extra copies of an exposure that already exists.</figcaption></figure></div>
+<div class="grid"><figure><a href="figures/s0/s0_dup_group_sizes.png"><img src="figures/s0/s0_dup_group_sizes.png" alt=""></a><figcaption>Duplicate-group size distribution: 198,294 groups from 330,865 rows; 132,571 rows are extra copies of an exposure that already exists.</figcaption></figure></div>
 <table class="data">
 <tr><th>tree</th><th>catalog rows</th><th>canonical frames</th><th>duplicate copies</th><th>% duplicate</th></tr>
 <tr><td>rawimage</td><td>167,532</td><td>159,353</td><td>8,179</td><td>4.9%</td></tr>
@@ -47,6 +47,7 @@ exposures is that, and which copy of each is the one the pipeline reads?</p>
 <tr><td>external</td><td>4,572</td><td>148</td><td>4,424</td><td>96.8%</td></tr>
 <tr><td>coe</td><td>2,316</td><td>242</td><td>2,074</td><td>89.6%</td></tr>
 <tr><td>knox</td><td>1,839</td><td>0</td><td>1,839</td><td>100.0%</td></tr>
+<tr><td>Calibrations</td><td>1,823</td><td>1,667</td><td>156</td><td>8.6%</td></tr>
 <tr><td>iowa</td><td>1,587</td><td>49</td><td>1,538</td><td>96.9%</td></tr>
 <tr><td>augustana</td><td>512</td><td>1</td><td>511</td><td>99.8%</td></tr>
 <tr><td>mjc</td><td>488</td><td>473</td><td>15</td><td>3.1%</td></tr>
@@ -63,8 +64,8 @@ exposures is that, and which copy of each is the one the pipeline reads?</p>
 <tr><td>daily</td><td>4</td><td>4</td><td>0</td><td>0.0%</td></tr>
 <tr><td>forcolin</td><td>3</td><td>3</td><td>0</td><td>0.0%</td></tr>
 </table>
-<p class="sub">Tree-policy caveat: <b>25</b> of the
-619 observing nights with canonical Light frames hold them
+<p class="sub">Tree-policy caveat: <b>31</b> of the
+625 observing nights with canonical Light frames hold them
 in non-<code>rawimage</code> trees <i>only</i> (school mirrors, the iKon
 tree) — a project counting nothing but its primary tree misses those
 nights entirely (ST&nbsp;LMi&rsquo;s iKon surplus in section&nbsp;7 is the
@@ -85,7 +86,7 @@ re-copied night directories:</p>
 <tr><td><code>rawimage/2023-02-09</code></td><td>18</td></tr>
 </table>
 <p class="sub">Limitation, quantified: (basename, JD) cannot see a RENAMED
-copy.  <b>29,737</b> (target, JD) pairs occur on more than one
+copy.  <b>29,787</b> (target, JD) pairs occur on more than one
 canonical frame — overwhelmingly <code>reduced/</code> files renamed during
 processing (e.g. every one of EU UMa&rsquo;s 257
 reduced-only &ldquo;unique&rdquo; frames shares its JD with a rawimage
@@ -95,9 +96,9 @@ frame).  By tree:</p>
 <tr><td>reduced</td><td>27,075</td></tr>
 <tr><td>macalester</td><td>516</td></tr>
 <tr><td>mjc</td><td>395</td></tr>
+<tr><td>Calibrations</td><td>27</td></tr>
 <tr><td>ASTR1070</td><td>10</td></tr>
 <tr><td>external</td><td>9</td></tr>
-<tr><td>classes</td><td>6</td></tr>
 </table>
 
 <h3>Decision</h3>
@@ -112,7 +113,7 @@ does), and the (target,&nbsp;JD)-collision population above is handed to S1
 as a suspect list.</div>
 
 <h3>Consequence</h3>
-<p class="sub">Every count below this line uses the 196,627
+<p class="sub">Every count below this line uses the 198,294
 canonical frames.  A project quoting raw rows overstates its dataset by up
 to ~2.9&times; (SN 2023ixf: 3,018 rawimage
 rows &rarr; 1,052 frames).</p>
@@ -122,12 +123,12 @@ rows &rarr; 1,052 frames).</p>
 <span class="tag">rules + cone-gated synonyms, never fuzzy matching</span></div>
 
 <div class="stage"><h3>Question</h3>
-<p class="sub">The catalog carries 3,014 distinct raw target names.
+<p class="sub">The catalog carries 3,019 distinct raw target names.
 How many real targets is that, and by exactly what rule does each variant
 map to its canonical name?</p>
 
 <h3>Evidence</h3>
-<div class="grid"><figure><a href="figures/s0/s0_alias_top25.png"><img src="figures/s0/s0_alias_top25.png" alt=""></a><figcaption>3,014 raw names resolve to 1,972 canonical targets; 2,647 names needed at least one normalization rule. Yellow = the largest single raw variant; blue = the merged total.</figcaption></figure>
+<div class="grid"><figure><a href="figures/s0/s0_alias_top25.png"><img src="figures/s0/s0_alias_top25.png" alt=""></a><figcaption>3,019 raw names resolve to 1,977 canonical targets; 2,652 names needed at least one normalization rule. Yellow = the largest single raw variant; blue = the merged total.</figcaption></figure>
 </div>
 <table class="data">
 <tr><th>canonical target</th><th>raw variants merged</th><th>catalog rows</th><th>resolution methods (union)</th></tr>
@@ -162,7 +163,7 @@ pointings of extended fields (M31, rho&nbsp;Oph) and a moving target
 <tr><td>Dw1403+49 vs Dw1409+51 (adjacent survey fields)</td><td>separate keys &#10003;</td></tr>
 <tr><td>T CrB vs tet CrB (target vs its calibrator, 8&deg; apart)</td><td>separate keys &#10003;</td></tr>
 </table>
-<p class="sub">10,706 rows carry a blank target name (mostly
+<p class="sub">11,532 rows carry a blank target name (mostly
 raw-tree grism lights with valid coordinates); they form no alias group and
 are flagged <code>blank_target</code> for S1&rsquo;s cone match.</p>
 
@@ -192,8 +193,8 @@ archive, and when was each one live?</p>
 
 <h3>Evidence</h3>
 <div class="grid"><figure><a href="figures/s0/s0_era_timeline.png"><img src="figures/s0/s0_era_timeline.png" alt=""></a><figcaption>The 18 eras holding at least 100 canonical frames, on the calendar. Marker area scales with frames per night. Eras are numbered by first light.</figcaption></figure></div>
-<p class="sub">All 83 discovered configurations
-(10 distinct READOUTM strings; full table also exported as
+<p class="sub">All 84 discovered configurations
+(11 distinct READOUTM strings; full table also exported as
 <code>products/manifest/eras.csv</code>):</p>
 <table class="data">
 <tr><th>era</th><th>READOUTM</th><th>NAXIS1</th><th>NAXIS2</th><th>bin</th><th>EGAIN</th><th>canonical frames</th><th>first night</th><th>last night</th></tr>
@@ -243,7 +244,7 @@ archive, and when was each one live?</p>
 <tr><td>44</td><td>High Gain</td><td>1,666</td><td>1,659</td><td>1</td><td>1.057</td><td>2</td><td>2024-01-09</td><td>2024-01-09</td></tr>
 <tr><td>45</td><td>3MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>&mdash;</td><td>1</td><td>2024-04-04</td><td>2024-04-04</td></tr>
 <tr><td>46</td><td>1MHz High Sensitivity 16-bit</td><td>1,024</td><td>1,024</td><td>2</td><td>&mdash;</td><td>2</td><td>2024-04-04</td><td>2024-04-04</td></tr>
-<tr><td>47</td><td>1MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>&mdash;</td><td>4,030</td><td>2024-04-04</td><td>2024-11-18</td></tr>
+<tr><td>47</td><td>1MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>&mdash;</td><td>4,069</td><td>2024-04-04</td><td>2024-11-18</td></tr>
 <tr><td>48</td><td>5MHz High Sensitivity 16-bit</td><td>512</td><td>512</td><td>4</td><td>&mdash;</td><td>3</td><td>2024-04-04</td><td>2024-04-04</td></tr>
 <tr><td>49</td><td>5MHz High Sensitivity 16-bit</td><td>1,024</td><td>1,024</td><td>2</td><td>&mdash;</td><td>93</td><td>2024-04-04</td><td>2024-04-04</td></tr>
 <tr><td>50</td><td>3MHz High Sensitivity 16-bit</td><td>1,024</td><td>1,024</td><td>2</td><td>&mdash;</td><td>46</td><td>2024-04-04</td><td>2024-04-04</td></tr>
@@ -268,11 +269,11 @@ archive, and when was each one live?</p>
 <tr><td>69</td><td>5MHz High Sensitivity 16-bit</td><td>119</td><td>103</td><td>1</td><td>&mdash;</td><td>8</td><td>2024-04-09</td><td>2024-04-09</td></tr>
 <tr><td>70</td><td>5MHz High Sensitivity 16-bit</td><td>45</td><td>34</td><td>1</td><td>&mdash;</td><td>5</td><td>2024-04-09</td><td>2024-04-09</td></tr>
 <tr><td>71</td><td>1MHz High Sensitivity 16-bit</td><td>1,515</td><td>256</td><td>1</td><td>&mdash;</td><td>1</td><td>2024-04-12</td><td>2024-04-12</td></tr>
-<tr><td>72</td><td>1MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>0.0</td><td>17,485</td><td>2024-04-15</td><td>2024-12-10</td></tr>
+<tr><td>72</td><td>1MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>0.0</td><td>17,503</td><td>2024-04-15</td><td>2024-12-10</td></tr>
 <tr><td>73</td><td>1MHz High Sensitivity 16-bit</td><td>173</td><td>38</td><td>1</td><td>&mdash;</td><td>2</td><td>2024-04-16</td><td>2024-04-16</td></tr>
 <tr><td>74</td><td>5MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>0.0</td><td>245</td><td>2024-04-30</td><td>2024-12-02</td></tr>
 <tr><td>75</td><td>Mode0</td><td>9,576</td><td>6,388</td><td>1</td><td>0.247</td><td>61</td><td>2024-12-13</td><td>2025-11-01</td></tr>
-<tr><td>76</td><td>Mode0</td><td>4,788</td><td>3,194</td><td>2</td><td>0.247</td><td>69,009</td><td>2024-12-14</td><td>2026-03-16</td></tr>
+<tr><td>76</td><td>Mode0</td><td>4,788</td><td>3,194</td><td>2</td><td>0.247</td><td>70,603</td><td>2024-12-14</td><td>2026-03-16</td></tr>
 <tr><td>77</td><td>Mode0</td><td>4,788</td><td>3,194</td><td>2</td><td>0.78</td><td>56</td><td>2025-03-20</td><td>2025-11-30</td></tr>
 <tr><td>78</td><td>Fast</td><td>4,800</td><td>3,211</td><td>2</td><td>1.0</td><td>8,788</td><td>2026-03-21</td><td>2026-06-28</td></tr>
 <tr><td>79</td><td>Fast</td><td>4,787</td><td>3,193</td><td>2</td><td>1.0</td><td>25,579</td><td>2026-03-21</td><td>2026-06-28</td></tr>
@@ -280,6 +281,7 @@ archive, and when was each one live?</p>
 <tr><td>81</td><td><i>(blank)</i></td><td>4,800</td><td>3,211</td><td>2</td><td>56.0</td><td>383</td><td>2026-06-28</td><td>2026-06-29</td></tr>
 <tr><td>82</td><td><i>(blank)</i></td><td>4,787</td><td>3,193</td><td>2</td><td>56.0</td><td>1,682</td><td>2026-06-28</td><td>2026-07-02</td></tr>
 <tr><td>83</td><td><i>(blank)</i></td><td>8</td><td>3,211</td><td>2</td><td>56.0</td><td>1,831</td><td>2026-06-29</td><td>2026-07-02</td></tr>
+<tr><td>84</td><td>None</td><td>4,788</td><td>3,194</td><td>2</td><td>0.247</td><td>16</td><td>2025-10-11</td><td>2025-10-11</td></tr>
 </table>
 
 <h3>Decision</h3>
@@ -306,8 +308,8 @@ observing sequence is ever split across two labels?</p>
 
 <h3>Evidence</h3>
 <div class="grid">
-<figure><a href="figures/s0/s0_frames_per_night.png"><img src="figures/s0/s0_frames_per_night.png" alt=""></a><figcaption>628 distinct nights; median 197 canonical frames per night; the densest night (2026-05-31) holds 3,003.</figcaption></figure>
-<figure><a href="figures/s0/s0_night_boundary.png"><img src="figures/s0/s0_night_boundary.png" alt=""></a><figcaption>Left: all 3,003 frames of the densest night sit far inside the boundaries. Right: archive-wide, 1,357 canonical frames fall within one hour of a boundary, and only 1 of them is a Light frame — the rest are daytime bias/dark/flat frames. The boundary crosses no observing sequence.</figcaption></figure>
+<figure><a href="figures/s0/s0_frames_per_night.png"><img src="figures/s0/s0_frames_per_night.png" alt=""></a><figcaption>641 distinct nights; median 198 canonical frames per night; the densest night (2026-05-31) holds 3,003.</figcaption></figure>
+<figure><a href="figures/s0/s0_night_boundary.png"><img src="figures/s0/s0_night_boundary.png" alt=""></a><figcaption>Left: all 3,003 frames of the densest night sit far inside the boundaries. Right: archive-wide, 1,557 canonical frames fall within one hour of a boundary, and only 127 of them is a Light frame — the rest are daytime bias/dark/flat frames. The boundary crosses no observing sequence.</figcaption></figure>
 </div>
 
 <h3>Decision</h3>
@@ -392,7 +394,7 @@ frames can no longer hide inside a night&rsquo;s frame count.</p>
 about before trusting a header?</p>
 
 <h3>Evidence</h3>
-<div class="grid"><figure><a href="figures/s0/s0_qc_flags.png"><img src="figures/s0/s0_qc_flags.png" alt=""></a><figcaption>34,423 of all catalog rows carry at least one flag. exptime_nonpos: 3,358 rows, of which 197 claim to be Light frames (mostly biases; the light-frame subset is the real pathology).</figcaption></figure></div>
+<div class="grid"><figure><a href="figures/s0/s0_qc_flags.png"><img src="figures/s0/s0_qc_flags.png" alt=""></a><figcaption>35,626 of all catalog rows carry at least one flag. exptime_nonpos: 3,466 rows, of which 197 claim to be Light frames (mostly biases; the light-frame subset is the real pathology).</figcaption></figure></div>
 <p class="sub">The 5 files the cataloger could not read at
 all:</p>
 <table class="data">
@@ -406,7 +408,7 @@ all:</p>
 
 <h3>Decision</h3>
 <div class="decision"><b>QC flags mark; they never delete.</b>  Header
-airmass outside [1, 10] (318 rows)
+airmass outside [1, 10] (387 rows)
 is flagged and left alone — recomputation from coordinates and time is
 S3&rsquo;s job (ROADMAP convention 7), and camtemp is untrusted wholesale.
 ZMAG is carried as QC-only metadata and was used in <i>no</i> S0

@@ -7,11 +7,11 @@
 <header>
   <h1>S0b — Calibration Inventory &amp; Raw&harr;Reduced Links</h1>
   <p>106,925 raw&harr;reduced links (48 orphans)
-  &middot; 3,956 calibration frames &middot; 83 science
-  eras audited &middot; 1,543 open gaps for October &middot;
-  built 2026-08-17T20:59Z
+  &middot; 4,976 calibration frames &middot; 83 science
+  eras audited &middot; 1,494 open gaps for October &middot;
+  built 2026-08-18T15:04Z
   (S0b v1.1 (2026-08-17),
-  commit <code>38b7162</code>)
+  commit <code>3fec788</code>)
   &middot; <a href="../index.html">back to the evidence hub</a></p>
 </header>
 
@@ -44,9 +44,9 @@ is left over when we try?</p>
 <tr><td><code>target_jd_ambiguous</code></td><td>45</td><td>14</td><td>(target, JD) hits several raw frames; every candidate pair recorded</td></tr>
 <tr><td><code>target_jd</code></td><td>1</td><td>1</td><td>fully renamed — matched on (target, JD), the S0 collision-pair evidence</td></tr>
 </table>
-<p class="sub">Raw-side view: of the 165,443 canonical science
+<p class="sub">Raw-side view: of the 166,090 canonical science
 frames outside the reduced tree, <b>106,911</b> have at least
-one reduced counterpart (64.6%) —
+one reduced counterpart (64.4%) —
 the rest were never run through the reduction pipeline (or their products
 never reached the archive):</p>
 <table class="data">
@@ -100,18 +100,21 @@ hereby resolved into named, methodical links.</p>
 for which cameras?</p>
 
 <h3>Evidence</h3>
-<div class="grid"><figure><a href="figures/s0b/s0b_calib_timeline.png"><img src="figures/s0b/s0b_calib_timeline.png" alt=""></a><figcaption>All 3,956 canonical calibration frames (213 of them stacked master products) land in only 8 of the 83 camera eras that hold science frames.</figcaption></figure></div>
+<div class="grid"><figure><a href="figures/s0b/s0b_calib_timeline.png"><img src="figures/s0b/s0b_calib_timeline.png" alt=""></a><figcaption>All 4,976 canonical calibration frames (409 of them stacked master products) land in only 10 of the 83 camera eras that hold science frames.</figcaption></figure></div>
 <table class="data">
 <tr><th>kind</th><th>raw frames</th><th>master products</th><th>nights</th></tr>
-<tr><td><code>bias</code></td><td>3,158</td><td>2</td><td>4</td></tr>
-<tr><td><code>dark</code></td><td>250</td><td>101</td><td>20</td></tr>
-<tr><td><code>flat</code></td><td>335</td><td>110</td><td>27</td></tr>
+<tr><td><code>bias</code></td><td>3,256</td><td>10</td><td>11</td></tr>
+<tr><td><code>dark</code></td><td>933</td><td>211</td><td>35</td></tr>
+<tr><td><code>flat</code></td><td>378</td><td>188</td><td>36</td></tr>
 </table>
 <table class="data">
 <tr><th>tree</th><th>kind</th><th>frames</th></tr>
 <tr><td>iKon</td><td><code>bias</code></td><td>3,158</td></tr>
+<tr><td>Calibrations</td><td><code>dark</code></td><td>793</td></tr>
 <tr><td>calib</td><td><code>flat</code></td><td>324</td></tr>
 <tr><td>calib</td><td><code>dark</code></td><td>140</td></tr>
+<tr><td>Calibrations</td><td><code>flat</code></td><td>121</td></tr>
+<tr><td>Calibrations</td><td><code>bias</code></td><td>106</td></tr>
 <tr><td>cmos_tests</td><td><code>dark</code></td><td>90</td></tr>
 <tr><td>iKon</td><td><code>dark</code></td><td>85</td></tr>
 <tr><td>iKon</td><td><code>flat</code></td><td>84</td></tr>
@@ -129,13 +132,15 @@ for which cameras?</p>
 <tr><td>6</td><td>High Gain StackPro</td><td>1</td><td>1.057</td><td>0</td><td>20</td><td>11</td><td>2023-10-16</td><td>2023-10-18</td></tr>
 <tr><td>7</td><td>High Gain</td><td>1</td><td>1.057</td><td>0</td><td>103</td><td>256</td><td>2023-10-04</td><td>2024-02-24</td></tr>
 <tr><td>8</td><td>Low Gain</td><td>1</td><td>22.744</td><td>0</td><td>23</td><td>11</td><td>2023-10-18</td><td>2023-10-20</td></tr>
-<tr><td>47</td><td>1MHz High Sensitivity 16-bit</td><td>1</td><td>&mdash;</td><td>3,159</td><td>86</td><td>111</td><td>2024-04-04</td><td>2024-11-18</td></tr>
+<tr><td>47</td><td>1MHz High Sensitivity 16-bit</td><td>1</td><td>&mdash;</td><td>3,160</td><td>87</td><td>148</td><td>2024-04-04</td><td>2024-11-18</td></tr>
 <tr><td>52</td><td>5MHz High Sensitivity 16-bit</td><td>1</td><td>&mdash;</td><td>0</td><td>0</td><td>23</td><td>2024-04-09</td><td>2024-04-09</td></tr>
-<tr><td>72</td><td>1MHz High Sensitivity 16-bit</td><td>1</td><td>0.0</td><td>1</td><td>1</td><td>16</td><td>2024-05-07</td><td>2024-10-03</td></tr>
+<tr><td>72</td><td>1MHz High Sensitivity 16-bit</td><td>1</td><td>0.0</td><td>2</td><td>2</td><td>32</td><td>2024-05-07</td><td>2024-10-03</td></tr>
+<tr><td>76</td><td>Mode0</td><td>2</td><td>0.247</td><td>103</td><td>776</td><td>68</td><td>2024-12-24</td><td>2026-01-23</td></tr>
+<tr><td>84</td><td>None</td><td>2</td><td>0.247</td><td>1</td><td>15</td><td>0</td><td>2025-10-11</td><td>2025-10-11</td></tr>
 </table>
 <table class="data">
 <tr><th>roadmap cross-check</th><th>expected</th><th>found</th></tr>
-<tr><td>Mode0 darks at 240 s (T CrB grism exposure)</td><td>0</td><td>0</td></tr>
+<tr class="warn"><td>Mode0 darks at 240 s (T CrB grism exposure)</td><td>0</td><td>3 — <b>ROADMAP CONTRADICTION</b></td></tr>
 <tr><td>StackPro flats — raw frames</td><td>0</td><td>0</td></tr>
 <tr class="warn"><td>StackPro flats — master products (header may be inherited from the stacking tool)</td><td>0</td><td>11 — in <code>calib/10-19-23</code></td></tr>
 </table>
@@ -171,10 +176,10 @@ filter</span></div>
 requirements are actually met — to spec, from raw frames?</p>
 
 <h3>Evidence</h3>
-<div class="grid"><figure><a href="figures/s0b/s0b_coverage_heatmap.png"><img src="figures/s0b/s0b_coverage_heatmap.png" alt=""></a><figcaption>1,562 requirement cells across 83 science eras; only 18 are met. The page shows the 17 eras holding at least 100 science frames; every era is in the calib_coverage table.</figcaption></figure></div>
+<div class="grid"><figure><a href="figures/s0b/s0b_coverage_heatmap.png"><img src="figures/s0b/s0b_coverage_heatmap.png" alt=""></a><figcaption>1,563 requirement cells across 83 science eras; only 68 are met. The page shows the 17 eras holding at least 100 science frames; every era is in the calib_coverage table.</figcaption></figure></div>
 <table class="data">
 <tr><th>era</th><th>READOUTM</th><th>bin</th><th>science frames</th><th>bias</th><th>dark bins ok</th><th>filters ok</th></tr>
-<tr class="warn"><td>76</td><td>Mode0</td><td>2</td><td>68,965</td><td>missing</td><td>0 / 783</td><td>0 / 10</td></tr>
+<tr class="warn"><td>76</td><td>Mode0</td><td>2</td><td>69,612</td><td>ok</td><td>48 / 784</td><td>1 / 10</td></tr>
 <tr class="warn"><td>7</td><td>High Gain</td><td>1</td><td>22,079</td><td>missing</td><td>2 / 26</td><td>9 / 12</td></tr>
 <tr class="warn"><td>80</td><td>Fast</td><td>2</td><td>18,149</td><td>missing</td><td>0 / 26</td><td>0 / 9</td></tr>
 <tr class="warn"><td>72</td><td>1MHz High Sensitivity 16-bit</td><td>1</td><td>17,414</td><td>master_only</td><td>0 / 54</td><td>0 / 25</td></tr>
@@ -204,8 +209,8 @@ ladder steps by &ge;25%).</b>  Specs count RAW frames only
 &ge;10 flats per filter); master products satisfy nothing
 but are tallied (<code>master_only</code> status) because they remain
 usable.  Scaled-dark fallback is noted only where an era has bias frames
-(eras: 47, 72) — without a bias, dark scaling is arithmetic
-fiction.  Science FILTER strings that collide with the calibration vocabulary (&lsquo;dark&rsquo;/&lsquo;bias&rsquo;/&lsquo;flat&rsquo; — filter-wheel/header glitches passed through verbatim) keep their matrix cells (1 cell(s), 3 science frames) but are excluded from the shopping list: a flat &ldquo;in filter dark&rdquo; is not an acquirable item.</div>
+(eras: 47, 72, 76) — without a bias, dark scaling is arithmetic
+fiction.  Science FILTER strings that collide with the calibration vocabulary (&lsquo;dark&rsquo;/&lsquo;bias&rsquo;/&lsquo;flat&rsquo; — filter-wheel/header glitches passed through verbatim) keep their matrix cells (1 cell(s), 83 science frames) but are excluded from the shopping list: a flat &ldquo;in filter dark&rdquo; is not an acquirable item.</div>
 
 <h3>Consequence</h3>
 <p class="sub">Every unmet cell becomes one row of the shopping list below
@@ -243,8 +248,8 @@ grism-chain flats; top 10:</p>
 <tr><td>83</td><td><code>flat lum x &gt;=10 (have 0)</code></td><td>116</td><td>&mdash;</td></tr>
 <tr><td>83</td><td><code>flat i x &gt;=10 (have 0)</code></td><td>105</td><td>&mdash;</td></tr>
 </table>
-<p class="sub">Across the whole archive: 1,543 unmet requirements;
-the bias rows alone show 164,769 science frames sitting in eras
+<p class="sub">Across the whole archive: 1,494 unmet requirements;
+the bias rows alone show 95,804 science frames sitting in eras
 with no usable bias set.  Top 30 by science frames blocked
 (<span class="tag">highlighted rows</span> = the 5 eras
 whose last science night falls within
@@ -253,24 +258,19 @@ whose last science night falls within
 October):</p>
 <table class="data">
 <tr><th>era</th><th>READOUTM</th><th>bin</th><th>science span</th><th>acquisition spec</th><th>science frames blocked</th><th>projects affected</th><th>current instrument?</th></tr>
-<tr><td>76</td><td>Mode0</td><td>2</td><td>2024-12-14 &rarr; 2026-03-16</td><td><code>bias x &gt;=20 (have 0)</code></td><td>68,965</td><td>BeStar_Grism,CV_TimeSeries,TCrB_Monitoring</td><td>&mdash;</td></tr>
-<tr><td>76</td><td>Mode0</td><td>2</td><td>2024-12-14 &rarr; 2026-03-16</td><td><code>flat g x &gt;=10 (have 0)</code></td><td>40,031</td><td>BeStar_Grism,CV_TimeSeries</td><td>&mdash;</td></tr>
 <tr><td>7</td><td>High Gain</td><td>1</td><td>2023-10-03 &rarr; 2024-03-26</td><td><code>bias x &gt;=20 (have 0)</code></td><td>22,079</td><td>CV_TimeSeries,TCrB_Monitoring</td><td>&mdash;</td></tr>
 <tr class="warn"><td>80</td><td>Fast</td><td>2</td><td>2026-04-23 &rarr; 2026-06-28</td><td><code>bias x &gt;=20 (have 0)</code></td><td>18,149</td><td>BeStar_Grism,CV_TimeSeries,TCrB_Monitoring</td><td>YES</td></tr>
 <tr><td>72</td><td>1MHz High Sensitivity 16-bit</td><td>1</td><td>2024-04-15 &rarr; 2024-12-10</td><td><code>bias x &gt;=20 (have 0)</code></td><td>17,414</td><td>BeStar_Grism,CV_TimeSeries,DwarfGalaxy_AGN_Survey</td><td>&mdash;</td></tr>
 <tr class="warn"><td>80</td><td>Fast</td><td>2</td><td>2026-04-23 &rarr; 2026-06-28</td><td><code>flat g x &gt;=10 (have 0)</code></td><td>13,821</td><td>CV_TimeSeries</td><td>YES</td></tr>
 <tr><td>1</td><td>High Gain StackPro</td><td>1</td><td>2023-02-06 &rarr; 2023-07-06</td><td><code>bias x &gt;=20 (have 0)</code></td><td>12,914</td><td>DwarfGalaxy_AGN_Survey,TCrB_Monitoring</td><td>&mdash;</td></tr>
-<tr><td>76</td><td>Mode0</td><td>2</td><td>2024-12-14 &rarr; 2026-03-16</td><td><code>dark 32s x &gt;=15 (have 0)</code></td><td>10,004</td><td>&mdash;</td><td>&mdash;</td></tr>
 <tr class="warn"><td>78</td><td>Fast</td><td>2</td><td>2026-03-21 &rarr; 2026-06-28</td><td><code>bias x &gt;=20 (have 0)</code></td><td>8,788</td><td>BeStar_Grism,CV_TimeSeries,TCrB_Monitoring</td><td>YES</td></tr>
-<tr><td>76</td><td>Mode0</td><td>2</td><td>2024-12-14 &rarr; 2026-03-16</td><td><code>dark 60s x &gt;=15 (have 0)</code></td><td>7,964</td><td>BeStar_Grism,CV_TimeSeries,TCrB_Monitoring</td><td>&mdash;</td></tr>
-<tr><td>76</td><td>Mode0</td><td>2</td><td>2024-12-14 &rarr; 2026-03-16</td><td><code>dark 8s x &gt;=15 (have 0)</code></td><td>7,599</td><td>BeStar_Grism</td><td>&mdash;</td></tr>
+<tr><td>76</td><td>Mode0</td><td>2</td><td>2024-12-14 &rarr; 2026-03-16</td><td><code>dark 60s x &gt;=15 (have 0)</code></td><td>7,970</td><td>BeStar_Grism,CV_TimeSeries,TCrB_Monitoring</td><td>&mdash;</td></tr>
+<tr><td>76</td><td>Mode0</td><td>2</td><td>2024-12-14 &rarr; 2026-03-16</td><td><code>flat i x &gt;=10 (have 6)</code></td><td>7,456</td><td>BeStar_Grism,CV_TimeSeries</td><td>&mdash;</td></tr>
 <tr><td>6</td><td>High Gain StackPro</td><td>1</td><td>2023-10-03 &rarr; 2024-03-19</td><td><code>bias x &gt;=20 (have 0)</code></td><td>7,420</td><td>CV_TimeSeries,TCrB_Monitoring</td><td>&mdash;</td></tr>
-<tr><td>76</td><td>Mode0</td><td>2</td><td>2024-12-14 &rarr; 2026-03-16</td><td><code>flat i x &gt;=10 (have 0)</code></td><td>7,325</td><td>BeStar_Grism,CV_TimeSeries</td><td>&mdash;</td></tr>
+<tr><td>76</td><td>Mode0</td><td>2</td><td>2024-12-14 &rarr; 2026-03-16</td><td><code>flat r x &gt;=10 (have 6)</code></td><td>7,298</td><td>BeStar_Grism,CV_TimeSeries,TCrB_Monitoring</td><td>&mdash;</td></tr>
 <tr><td>1</td><td>High Gain StackPro</td><td>1</td><td>2023-02-06 &rarr; 2023-07-06</td><td><code>flat R x &gt;=10 (have 0)</code></td><td>7,217</td><td>DwarfGalaxy_AGN_Survey,TCrB_Monitoring</td><td>&mdash;</td></tr>
 <tr><td>76</td><td>Mode0</td><td>2</td><td>2024-12-14 &rarr; 2026-03-16</td><td><code>flat hrg x &gt;=10 (have 0)</code></td><td>7,202</td><td>BeStar_Grism,TCrB_Monitoring</td><td>&mdash;</td></tr>
-<tr><td>76</td><td>Mode0</td><td>2</td><td>2024-12-14 &rarr; 2026-03-16</td><td><code>flat r x &gt;=10 (have 0)</code></td><td>7,168</td><td>BeStar_Grism,CV_TimeSeries,TCrB_Monitoring</td><td>&mdash;</td></tr>
 <tr><td>7</td><td>High Gain</td><td>1</td><td>2023-10-03 &rarr; 2024-03-26</td><td><code>dark 32s x &gt;=15 (have 0)</code></td><td>6,621</td><td>CV_TimeSeries,TCrB_Monitoring</td><td>&mdash;</td></tr>
-<tr><td>76</td><td>Mode0</td><td>2</td><td>2024-12-14 &rarr; 2026-03-16</td><td><code>dark 1s x &gt;=15 (have 0)</code></td><td>6,540</td><td>BeStar_Grism</td><td>&mdash;</td></tr>
 <tr><td>76</td><td>Mode0</td><td>2</td><td>2024-12-14 &rarr; 2026-03-16</td><td><code>dark 30s x &gt;=15 (have 0)</code></td><td>5,998</td><td>BeStar_Grism,CV_TimeSeries</td><td>&mdash;</td></tr>
 <tr class="warn"><td>80</td><td>Fast</td><td>2</td><td>2026-04-23 &rarr; 2026-06-28</td><td><code>dark 10s x &gt;=15 (have 0)</code></td><td>5,962</td><td>&mdash;</td><td>YES</td></tr>
 <tr class="warn"><td>78</td><td>Fast</td><td>2</td><td>2026-03-21 &rarr; 2026-06-28</td><td><code>flat g x &gt;=10 (have 0)</code></td><td>5,032</td><td>CV_TimeSeries</td><td>YES</td></tr>
@@ -283,18 +283,23 @@ October):</p>
 <tr><td>72</td><td>1MHz High Sensitivity 16-bit</td><td>1</td><td>2024-04-15 &rarr; 2024-12-10</td><td><code>flat g x &gt;=10 (have 0)</code></td><td>3,780</td><td>BeStar_Grism,CV_TimeSeries,DwarfGalaxy_AGN_Survey</td><td>&mdash;</td></tr>
 <tr><td>1</td><td>High Gain StackPro</td><td>1</td><td>2023-02-06 &rarr; 2023-07-06</td><td><code>dark 32s x &gt;=15 (have 10)</code></td><td>3,745</td><td>DwarfGalaxy_AGN_Survey,TCrB_Monitoring</td><td>&mdash;</td></tr>
 <tr><td>72</td><td>1MHz High Sensitivity 16-bit</td><td>1</td><td>2024-04-15 &rarr; 2024-12-10</td><td><code>flat r x &gt;=10 (have 0)</code></td><td>3,608</td><td>BeStar_Grism,CV_TimeSeries,DwarfGalaxy_AGN_Survey</td><td>&mdash;</td></tr>
+<tr><td>2</td><td>High Gain</td><td>1</td><td>2023-02-06 &rarr; 2023-07-06</td><td><code>bias x &gt;=20 (have 0)</code></td><td>3,520</td><td>DwarfGalaxy_AGN_Survey,SN2023ixf_LightCurve,TCrB_Monitoring</td><td>&mdash;</td></tr>
+<tr><td>6</td><td>High Gain StackPro</td><td>1</td><td>2023-10-03 &rarr; 2024-03-19</td><td><code>dark 64s x &gt;=15 (have 0)</code></td><td>3,450</td><td>CV_TimeSeries</td><td>&mdash;</td></tr>
+<tr><td>7</td><td>High Gain</td><td>1</td><td>2023-10-03 &rarr; 2024-03-26</td><td><code>dark 16s x &gt;=15 (have 0)</code></td><td>3,323</td><td>CV_TimeSeries</td><td>&mdash;</td></tr>
+<tr class="warn"><td>78</td><td>Fast</td><td>2</td><td>2026-03-21 &rarr; 2026-06-28</td><td><code>dark 15s x &gt;=15 (have 0)</code></td><td>3,152</td><td>&mdash;</td><td>YES</td></tr>
+<tr><td>6</td><td>High Gain StackPro</td><td>1</td><td>2023-10-03 &rarr; 2024-03-19</td><td><code>flat R x &gt;=10 (have 0)</code></td><td>2,762</td><td>CV_TimeSeries</td><td>&mdash;</td></tr>
 </table>
 <p class="sub">The T&nbsp;CrB-critical subset (the 247 archival grism
 spectra are Mode0 240&nbsp;s exposures with <i>zero</i> matching darks —
 the roadmap&rsquo;s known debt, now a ranked line item):</p>
 <table class="data">
 <tr><th>era</th><th>READOUTM</th><th>spec</th><th>science frames blocked</th></tr>
-<tr><td>76</td><td>Mode0</td><td><code>bias x &gt;=20 (have 0)</code></td><td>68,965</td></tr>
 <tr><td>7</td><td>High Gain</td><td><code>bias x &gt;=20 (have 0)</code></td><td>22,079</td></tr>
 <tr><td>80</td><td>Fast</td><td><code>bias x &gt;=20 (have 0)</code></td><td>18,149</td></tr>
 <tr><td>1</td><td>High Gain StackPro</td><td><code>bias x &gt;=20 (have 0)</code></td><td>12,914</td></tr>
 <tr><td>78</td><td>Fast</td><td><code>bias x &gt;=20 (have 0)</code></td><td>8,788</td></tr>
-<tr><td>76</td><td>Mode0</td><td><code>dark 60s x &gt;=15 (have 0)</code></td><td>7,964</td></tr>
+<tr><td>76</td><td>Mode0</td><td><code>dark 60s x &gt;=15 (have 0)</code></td><td>7,970</td></tr>
+<tr><td>6</td><td>High Gain StackPro</td><td><code>bias x &gt;=20 (have 0)</code></td><td>7,420</td></tr>
 </table>
 
 <h3>Decision</h3>
