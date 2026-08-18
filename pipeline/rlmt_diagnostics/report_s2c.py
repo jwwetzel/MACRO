@@ -268,8 +268,9 @@ def section_calibration(con) -> str:
             continue
         truth = dsp.expected_verdict(label)
         agree = (r[1] if truth == dsp.VERDICT_DISPERSED else r[2]) or 0
-        cls = "good" if n and agree / n >= 0.95 else (
-            "warn" if n and agree / n >= 0.80 else "bad")
+        # House convention: only disagreement is coloured, so the eye lands
+        # on the rows that need explaining.
+        cls = "" if agree / n >= 0.95 else "warn"
         rows.append(([f"<code>{esc(label)}</code>", esc(truth), fmt(n),
                       fmt(r[1] or 0), fmt(r[2] or 0), fmt(r[3] or 0),
                       f"<b>{pct(agree, n)}</b>"], cls))
@@ -493,25 +494,45 @@ def section_slot6(con) -> str:
     trows, tcls = [], []
     for tgt, n, d, di, ind, n0, n1 in by_target:
         d, di, ind = d or 0, di or 0, ind or 0
+        # Amber marks every target whose slot-'6' frames are NOT plain
+        # images — i.e. every target where trusting the label would have
+        # put dispersed pixels into a photometry pipeline.
         if d / n >= 0.8:
-            verdict, cls = "SPECTRA", "bad"
+            verdict, cls = "SPECTRA", "warn"
         elif di / n >= 0.8:
-            verdict, cls = "images", "good"
+            verdict, cls = "images", ""
         else:
             verdict, cls = "MIXED", "warn"
         trows.append([esc(tgt), fmt(n), fmt(d), fmt(di), fmt(ind),
                       f"{esc(n0)} &rarr; {esc(n1)}", f"<b>{verdict}</b>"])
         tcls.append(cls)
 
-    # Is there a changeover date?  Compare the dispersed fraction before and
-    # after each month boundary and report the sharpest transition.
-    months = q(con, f"""
-        SELECT substr(night,1,7), count(*), sum(verdict='dispersed')
-        FROM frame_dispersion
-        WHERE {MEASURED} AND filter = '6' AND night IS NOT NULL
-        GROUP BY 1 ORDER BY 1""")
-    mrows = [[esc(m), fmt(n), fmt(d or 0), pct(d or 0, n)]
-             for m, n, d in months]
+    # Is there a changeover date?  Report the dispersed fraction per month,
+    # both raw and among the frames that produced a verdict at all — the
+    # latter is the fair number, since indeterminate frames are missing
+    # evidence rather than evidence of directness.
+    def _months(filt):
+        rows = q(con, f"""
+            SELECT substr(night,1,7), count(*), sum(verdict='dispersed'),
+                   sum(verdict='direct'), sum(verdict='indeterminate')
+            FROM frame_dispersion
+            WHERE {MEASURED} AND filter = ? AND night IS NOT NULL
+            GROUP BY 1 ORDER BY 1""", (filt,))
+        out, cls = [], []
+        for m, n, d, di, ind in rows:
+            d, di, ind = d or 0, di or 0, ind or 0
+            decided = d + di
+            out.append([esc(m), fmt(n), fmt(d), fmt(di), fmt(ind),
+                        pct(d, n), f"<b>{pct(d, decided)}</b>"])
+            cls.append("warn" if decided and d > di else "")
+        return out, cls
+
+    mrows, mcls = _months("6")
+    wrows, wcls = _months("W")
+    wtot = q(con, f"""SELECT count(*), sum(verdict='dispersed'),
+                             sum(verdict='direct')
+                      FROM frame_dispersion
+                      WHERE {MEASURED} AND filter = 'W'""")[0]
 
     return f"""
 <section id="slot6"><h2>3&nbsp;&middot;&nbsp;Slot <code>6</code>: the
@@ -542,17 +563,41 @@ the slot is not one thing.</p>
 {table(["target", "frames", "dispersed", "direct", "indet.",
         "nights", "verdict"], trows, tcls)}
 
-<p>Month by month, for the record:</p>
+<p>Month by month, for the record. There is no step: slot <code>6</code> is
+used both ways throughout its life, so <b>no changeover date exists</b> and
+no date-based rule can rescue the label.</p>
 
-{table(["month", "frames", "dispersed", "% dispersed"], mrows)}
+{table(["month", "frames", "dispersed", "direct", "indet.",
+        "% dispersed", "% of decided"], mrows, mcls)}
+
+<h4>The same test applied to <code>W</code> &mdash; which turns out to be a
+second mislabelled slot, and a different kind of one</h4>
+
+<p>The <code>W</code> slot was not part of the original dispute, but it is
+the other filter whose name says nothing about its optics, so it was
+measured on the same footing. Of {fmt(wtot[0])} frames,
+<b>{fmt(wtot[1] or 0)}</b> are dispersed and {fmt(wtot[2] or 0)} are direct
+&mdash; and unlike slot <code>6</code>, the split is almost perfectly
+datable:</p>
+
+{table(["month", "frames", "dispersed", "direct", "indet.",
+        "% dispersed", "% of decided"], wrows, wcls)}
+
+<p><code>W</code> is a direct filter through 2024-01 and a grism from
+2024-02 onward. The two disputed slots therefore fail in <em>opposite</em>
+ways: slot <code>6</code> is mixed by <b>target</b> with no usable date
+rule, while <code>W</code> is mixed by <b>date</b> with a clean boundary.
+Neither can be resolved by the kind of rule &mdash; "frames after date X are
+spectra", "slot 6 means grism" &mdash; that a label-based audit would
+naturally reach for.</p>
 
 <h3>Decision</h3>
 <p>Slot <code>6</code> is <b>not a filter identity at all</b> &mdash; it is
 a wheel position that carried a grism for some programmes and a clear or
 broadband element for others, within the same observing season. The label
-must therefore never be used to decide whether a frame is a spectrum. Every
-downstream consumer reads the per-frame verdict in
-<code>frame_dispersion</code> instead.</p>
+must therefore never be used to decide whether a frame is a spectrum, and
+neither may <code>W</code>. Every downstream consumer reads the per-frame
+verdict in <code>frame_dispersion</code> instead.</p>
 
 <h3>Consequence</h3>
 <p>Both review panels were reasoning correctly from insufficient evidence,
@@ -588,25 +633,55 @@ def section_projects(con) -> str:
     ngc = _target_block(con, "NGC 5548", ["NGC 5548", "NGC5548"])
     sn = _target_block(con, "SN 2023ixf", ["2023ixf", "SN2023ixf"])
 
-    sn_months = q(con, f"""
-        SELECT night, count(*), sum(verdict='dispersed'), sum(verdict='direct')
-        FROM frame_dispersion
-        WHERE {MEASURED} AND filter = '6'
-          AND (canonical_target LIKE '%2023ixf%' OR path LIKE '%2023ixf%')
-        GROUP BY night ORDER BY night""")
-    snrows = [[esc(n), fmt(c), fmt(d or 0), fmt(di or 0),
-               "<b>spectra</b>" if (d or 0) > (di or 0) else "images"]
-              for n, c, d, di in sn_months]
+    def _nights(match):
+        """Per-night verdict table for one target.
 
-    ngc_nights = q(con, f"""
-        SELECT night, count(*), sum(verdict='dispersed'), sum(verdict='direct')
+        The reading column is deliberately three-way. An earlier draft asked
+        only whether dispersed outnumbered direct, which silently labelled a
+        night with NO usable verdict at all — every frame indeterminate,
+        which happens when cloud or trailing destroys the evidence — as
+        "images". That is the most dangerous possible mislabel here: it
+        would hand unmeasurable frames to a photometry pipeline wearing a
+        clean bill of health.
+        """
+        rows = q(con, f"""
+            SELECT night, count(*), sum(verdict='dispersed'),
+                   sum(verdict='direct'), sum(verdict='indeterminate')
+            FROM frame_dispersion
+            WHERE {MEASURED} AND filter = '6' AND ({match})
+            GROUP BY night ORDER BY night""")
+        out, cls = [], []
+        for n, c, d, di, ind in rows:
+            d, di, ind = d or 0, di or 0, ind or 0
+            if d == 0 and di == 0:
+                reading, k = "no verdict", "warn"
+            elif d > di:
+                reading, k = "<b>spectra</b>", "warn"
+            elif di > d:
+                reading, k = "images", ""
+            else:
+                reading, k = "<b>split</b>", "warn"
+            out.append([esc(n), fmt(c), fmt(d), fmt(di), fmt(ind), reading])
+            cls.append(k)
+        return out, cls
+
+    snrows, sncls = _nights(
+        "canonical_target LIKE '%2023ixf%' OR path LIKE '%2023ixf%'")
+    ngrows, ngcls = _nights(
+        "canonical_target LIKE '%5548%' OR path LIKE '%5548%'")
+
+    # Which grism unit produced the SN series, and over what baseline?
+    sn_str = q(con, f"""
+        SELECT sum(strength_class='high'), sum(strength_class='low'),
+               sum(strength_class='ambiguous'), min(night), max(night)
         FROM frame_dispersion
-        WHERE {MEASURED} AND filter = '6'
-          AND (canonical_target LIKE '%5548%' OR path LIKE '%5548%')
-        GROUP BY night ORDER BY night""")
-    ngrows = [[esc(n), fmt(c), fmt(d or 0), fmt(di or 0),
-               "<b>spectra</b>" if (d or 0) > (di or 0) else "images"]
-              for n, c, d, di in ngc_nights]
+        WHERE {MEASURED} AND filter = '6' AND verdict = 'dispersed'
+          AND (canonical_target LIKE '%2023ixf%' OR path LIKE '%2023ixf%')
+        """)[0]
+    sn_nights = q1(con, f"""
+        SELECT count(DISTINCT night) FROM frame_dispersion
+        WHERE {MEASURED} AND filter = '6' AND verdict = 'dispersed'
+          AND (canonical_target LIKE '%2023ixf%' OR path LIKE '%2023ixf%')""")
 
     ngc_disp = ngc[1] or 0
     sn_disp = sn[1] or 0
@@ -629,20 +704,44 @@ measured across {esc(ngc[4])}&nbsp;&rarr;&nbsp;{esc(ngc[5])}:
 <b>{fmt(ngc_disp)} dispersed</b> ({pct(ngc_disp, ngc[0])}),
 {fmt(ngc[2] or 0)} direct, {fmt(ngc[3] or 0)} indeterminate.</p>
 
-{table(["night", "frames", "dispersed", "direct", "reading"], ngrows)}
+{table(["night", "frames", "dispersed", "direct", "indet.", "reading"],
+       ngrows, ngcls)}
+
+<p>The campaign alternates: whole nights of spectroscopy
+(2023-03-27&nbsp;&rarr;&nbsp;04-02, 04-23, 04-25) interleaved with nights of
+imaging (04-05, 04-19). Only <b>{fmt(ngc[2] or 0)} of the {fmt(ngc[0])}
+frames</b> are usable photometry.</p>
 
 <p><b>SN&nbsp;2023ixf</b> &mdash; {fmt(sn[0])} slot-<code>6</code> frames
 measured across {esc(sn[4])}&nbsp;&rarr;&nbsp;{esc(sn[5])}:
 <b>{fmt(sn_disp)} dispersed</b> ({pct(sn_disp, sn[0])}),
-{fmt(sn[2] or 0)} direct, {fmt(sn[3] or 0)} indeterminate.</p>
+{fmt(sn[2] or 0)} direct, {fmt(sn[3] or 0)} indeterminate. Every one of the
+dispersed frames measures as the <b>broad-spectrum grism</b>
+({fmt(sn_str[1] or 0)} low-dispersion against {fmt(sn_str[0] or 0)}
+high-dispersion), spread over {fmt(sn_nights)} separate nights.</p>
 
-{table(["night", "frames", "dispersed", "direct", "reading"], snrows)}
+{table(["night", "frames", "dispersed", "direct", "indet.", "reading"],
+       snrows, sncls)}
 
 <h3>Decision</h3>
-<p>The per-night tables above are the operative answer for each project, and
-they must be applied at frame granularity rather than as a blanket ruling
-per target: a night-by-night split is exactly what a mixed wheel position
-produces. Any frame the classifier marks <code>indeterminate</code> stays
+<p><b>The NGC&nbsp;5548 AGN light curve does not survive as photometry.</b>
+{pct(ngc_disp, ngc[0])} of its slot-<code>6</code> frames are spectra, and
+only {fmt(ngc[2] or 0)} frames across the whole 2023 campaign are direct
+images &mdash; too few, and too unevenly spaced, to carry a variability
+result. The Dwarf/AGN survey should rebuild that light curve from its other
+filters and treat the slot-<code>6</code> frames as a spectroscopic dataset
+it did not know it had.</p>
+
+<p><b>The SN&nbsp;2023ixf frames are a genuine spectral series.</b>
+{fmt(sn_disp)} dispersed frames on {fmt(sn_nights)} nights, opening
+{esc(sn_str[3])} &mdash; two days after the 2023-05-19 discovery, inside the
+flash-ionisation window &mdash; and running to {esc(sn_str[4])}. All of them
+are broad-spectrum grism, so they share one dispersion and can be reduced as
+a single homogeneous series.</p>
+
+<p>Both answers must be applied at frame granularity rather than as a
+blanket ruling per target: a night-by-night split is exactly what a mixed
+wheel position produces. Any frame marked <code>indeterminate</code> stays
 out of both the light curve and the spectral series until a human has looked
 at it.</p>
 
@@ -653,7 +752,16 @@ been spread along a trace and most of it now falls outside the aperture &mdash;
 and that number lands in the light curve as a fake dimming, correlated with
 whichever nights the grism happened to be in the beam. That is the failure
 mode this measurement exists to prevent, and it is invisible to every check
-that does not look at the pixels.</p>
+that does not look at the pixels. For NGC&nbsp;5548 the correlation would
+have been particularly convincing: the dispersed and direct nights come in
+runs of several days, so the artefact would have looked like real AGN
+variability on exactly the timescale the survey was hunting.</p>
+
+<p>The SN&nbsp;2023ixf result runs the other way and is worth stating as a
+gain rather than a correction. A flash-phase spectral series of a
+Type&nbsp;II supernova in M101 is a scarce object; this one was sitting in
+the archive labelled with a slot number, uncounted, because nobody could
+prove what the label meant.</p>
 </section>"""
 
 
@@ -668,16 +776,23 @@ def section_census(con) -> str:
                      FROM frame_dispersion
                      WHERE {MEASURED} AND verdict = 'dispersed'""")[0]
 
-    # By label epoch — how the archive's spectra are distributed in time.
-    by_label = q(con, f"""
-        SELECT filter, count(*), sum(verdict='dispersed'),
+    # By label — with COVERAGE stated, because the campaign is resumable and
+    # a partially-measured label must never be read as a complete count.
+    by_label = q(con, """
+        SELECT filter, count(*) AS queued,
+               sum(status = 'measured') AS measured,
+               sum(verdict = 'dispersed') AS disp,
                min(night), max(night)
         FROM frame_dispersion
-        WHERE {MEASURED} AND population = 'candidate'
-        GROUP BY filter ORDER BY count(*) DESC""")
-    lrows = [[f"<code>{esc(f)}</code>", fmt(n), fmt(d or 0), pct(d or 0, n),
-              f"{esc(n0)} &rarr; {esc(n1)}"]
-             for f, n, d, n0, n1 in by_label]
+        WHERE population = 'candidate'
+        GROUP BY filter ORDER BY queued DESC""")
+    lrows, lcls = [], []
+    for f, queued, meas, disp, n0, n1 in by_label:
+        meas, disp = meas or 0, disp or 0
+        lrows.append([f"<code>{esc(f)}</code>", fmt(queued), fmt(meas),
+                      pct(meas, queued), fmt(disp), pct(disp, meas),
+                      f"{esc(n0)} &rarr; {esc(n1)}"])
+        lcls.append("" if meas == queued else "warn")
 
     # The two quoted claims, checked.
     tcrb = q(con, f"""
@@ -716,8 +831,16 @@ frames are dispersed</b>: {fmt(tot[1] or 0)} through the H-alpha unit,
 {fmt(tot[2] or 0)} through the broad unit, and {fmt(tot[3] or 0)} whose
 dispersion strength is ambiguous.</p>
 
-{table(["label", "frames measured", "dispersed", "% dispersed", "date span"],
-       lrows)}
+{table(["label", "in archive", "measured", "coverage", "dispersed",
+        "% of measured", "date span"], lrows, lcls)}
+
+<p class="decision">Rows highlighted amber are not yet fully measured. The
+campaign is resumable and runs in priority order &mdash; the disputed labels
+and the control first, the undisputed <code>hrg</code>/<code>lrg</code> bulk
+last &mdash; so a partial run answers the contested questions completely
+while leaving only the census refinement outstanding. Where coverage is
+below 100%, the dispersed count is a floor, not a total, and the
+&ldquo;% of measured&rdquo; column is the quantity that generalises.</p>
 
 {_figure(fig, "Measured spectra per target for the 25 most-observed "
               "spectroscopic targets, split by grism unit.")}

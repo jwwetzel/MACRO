@@ -187,8 +187,13 @@ def candidate_paths(con: sqlite3.Connection, max_naxis1: int,
 # Subcommands
 # ---------------------------------------------------------------------------
 def cmd_plan(args) -> int:
+    # The audit table has to exist before candidate_paths can reference it.
+    # Opened and closed explicitly rather than leaked into the read path:
+    # a stray write handle on this catalog blocks every other stage.
+    wcon = connect(DB)
+    ensure_audit_table(wcon)                 # safe: CREATE IF NOT EXISTS
+    wcon.close()
     con = connect(DB, read_only=True)
-    ensure_audit_table(connect(DB))          # safe: CREATE IF NOT EXISTS
     todo = candidate_paths(con, args.max_naxis1)
     print(f"catalog rows with naxis1 <= {args.max_naxis1}: "
           f"{con.execute('SELECT COUNT(*) FROM obs WHERE naxis1 <= ?', (args.max_naxis1,)).fetchone()[0]}")
@@ -271,13 +276,20 @@ def cmd_status(args) -> int:
     except sqlite3.OperationalError:
         print("no geom_rescan table yet — run `plan` then `run`")
         return 0
-    total = con.execute("SELECT COUNT(*) FROM obs WHERE naxis1 <= ?",
-                        (args.max_naxis1,)).fetchone()[0]
+    # Remaining work is counted as candidates NOT yet in the audit table —
+    # not as "rows still matching the candidate filter".  A repaired row no
+    # longer has a small naxis1, so a naive denominator would shrink as the
+    # run progressed and report nonsense like "20,071 of 91 done".
+    remaining = con.execute(
+        "SELECT COUNT(*) FROM obs WHERE naxis1 IS NOT NULL AND naxis1 <= ? "
+        "AND path NOT IN (SELECT path FROM geom_rescan WHERE error IS NULL)",
+        (args.max_naxis1,)).fetchone()[0]
     changed = con.execute(
         "SELECT COUNT(*) FROM geom_rescan WHERE changed = 1").fetchone()[0]
     errs = con.execute(
         "SELECT COUNT(*) FROM geom_rescan WHERE error IS NOT NULL").fetchone()[0]
-    print(f"rescanned {done}/{total}   repaired {changed}   errors {errs}")
+    print(f"rescanned {done}   repaired {changed}   errors {errs}   "
+          f"remaining {remaining}")
     print("\nchange matrix (old -> new):")
     for o1, o2, n1, n2, c in con.execute("""
             SELECT old_naxis1, old_naxis2, new_naxis1, new_naxis2, COUNT(*)
@@ -295,41 +307,68 @@ def _g(v) -> str:
 def cmd_verify(args) -> int:
     """Prove the repair was surgical.
 
-    Two claims must hold, and both are checked against the audit table:
+    THE CONTROL GROUP, and why it is what it is.  The first version of this
+    check defined the control as "uncompressed rows" — and that turned out
+    to be VACUOUS: the Andor iKon focus windows are ``.fts.fz`` files too,
+    so every candidate row is tile-compressed and the control group was
+    empty.  An empty control group passes trivially, which is worse than no
+    check at all.
 
-    1. every row that changed was a COMPRESSED file whose stored geometry
-       came from the BINTABLE header — no uncompressed row was rewritten;
-    2. every row that was already correct came back IDENTICAL.
+    The correct control is the rows that came back UNCHANGED.  Those are
+    genuinely small frames, and the fact that they survived is the real
+    proof: the repair did not key on "naxis1 is small" and blanket-rewrite
+    everything that looked odd — it read ``ZNAXIS*`` from each file, and
+    for these files ``ZNAXIS*`` genuinely says 57x48.  A crude fix would
+    have inflated them to 4800x3211 and destroyed real sub-frame geometry.
+
+    Claims checked:
+      1. no phantom 8x3211 row survives in the catalog;
+      2. every unchanged row is genuinely small (its TRUE geometry has an
+         axis below the solvability floor) — they were read, not skipped;
+      3. every changed row moved from a BINTABLE row-length to a real
+         image width, i.e. grew;
+      4. nothing failed to read.
     """
     con = connect(DB, read_only=True)
-    bad_uncompressed = con.execute(
-        "SELECT COUNT(*) FROM geom_rescan "
-        "WHERE changed = 1 AND compressed = 0").fetchone()[0]
+    n_changed = con.execute(
+        "SELECT COUNT(*) FROM geom_rescan WHERE changed = 1").fetchone()[0]
     control = con.execute(
-        "SELECT COUNT(*) FROM geom_rescan WHERE compressed = 0").fetchone()[0]
-    control_moved = con.execute(
-        "SELECT COUNT(*) FROM geom_rescan "
-        "WHERE compressed = 0 AND changed = 1").fetchone()[0]
-    print(f"control group (uncompressed rows rescanned): {control}")
-    print(f"  of which changed: {control_moved}   (MUST be 0)")
-    print(f"changed rows that were not compressed: {bad_uncompressed}")
+        "SELECT COUNT(*) FROM geom_rescan WHERE changed = 0").fetchone()[0]
+    errs = con.execute("SELECT COUNT(*) FROM geom_rescan "
+                       "WHERE error IS NOT NULL").fetchone()[0]
+    # (2) every untouched row is genuinely small in its TRUE geometry.
+    control_not_small = con.execute(
+        "SELECT COUNT(*) FROM geom_rescan WHERE changed = 0 "
+        "AND (new_naxis1 >= 512 AND new_naxis2 >= 512)").fetchone()[0]
+    # (3) a repair must GROW a frame; a repair that shrank one is a bug.
+    shrank = con.execute(
+        "SELECT COUNT(*) FROM geom_rescan WHERE changed = 1 "
+        "AND new_naxis1 <= old_naxis1").fetchone()[0]
+    print(f"repaired rows: {n_changed}")
+    print(f"control group (re-read, left unchanged): {control}")
+    print(f"  of those, any that were NOT genuinely small: "
+          f"{control_not_small}   (MUST be 0)")
+    print(f"repaired rows that SHRANK: {shrank}   (MUST be 0)")
+    print(f"rows that failed to read: {errs}   (MUST be 0)")
     print("\nsample of repaired rows (old -> new):")
     for p, o1, o2, n1, n2 in con.execute(
             "SELECT path, old_naxis1, old_naxis2, new_naxis1, new_naxis2 "
-            "FROM geom_rescan WHERE changed = 1 LIMIT 5"):
+            "FROM geom_rescan WHERE changed = 1 LIMIT 4"):
         print(f"   {_g(o1)}x{_g(o2)} -> {_g(n1)}x{_g(n2)}  {p}")
-    print("\nsample of untouched control rows:")
-    for p, o1, o2, n1, n2 in con.execute(
-            "SELECT path, old_naxis1, old_naxis2, new_naxis1, new_naxis2 "
-            "FROM geom_rescan WHERE compressed = 0 LIMIT 5"):
-        print(f"   {_g(o1)}x{_g(o2)} == {_g(n1)}x{_g(n2)}  {p}")
-    # Live catalog cross-check: no 8x3211 rows may survive the repair.
+    print("\nthe control group — real sub-frames, read and left alone:")
+    for p, o1, o2, n1, n2, comp in con.execute(
+            "SELECT path, old_naxis1, old_naxis2, new_naxis1, new_naxis2, "
+            "compressed FROM geom_rescan WHERE changed = 0 LIMIT 5"):
+        print(f"   {_g(o1)}x{_g(o2)} == {_g(n1)}x{_g(n2)} "
+              f"(compressed={comp})  {p}")
+    # (1) Live catalog cross-check: no 8x3211 rows may survive the repair.
     left = con.execute("SELECT COUNT(*) FROM obs "
                        "WHERE naxis1 = 8 AND naxis2 = 3211").fetchone()[0]
-    print(f"\nphantom 8x3211 rows still in the catalog: {left}")
-    ok = (control_moved == 0 and bad_uncompressed == 0)
-    print("\nVERDICT:", "PASS — repair was surgical" if ok
-          else "FAIL — a correct row was modified")
+    print(f"\nphantom 8x3211 rows still in the catalog: {left}   (MUST be 0)")
+    ok = (control_not_small == 0 and shrank == 0 and errs == 0 and left == 0
+          and control > 0)
+    print("\nVERDICT:", "PASS — repair was surgical, control group intact"
+          if ok else "FAIL — see the MUST-be-0 lines above")
     return 0 if ok else 1
 
 

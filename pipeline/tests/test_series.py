@@ -148,6 +148,55 @@ class TestProvenance:
 # ---------------------------------------------------------------------------
 # Geometry
 # ---------------------------------------------------------------------------
+class TestPlateScaleResolution:
+    def test_header_optics_wins_when_present(self):
+        # Era 76: XPIXSZ 7.52 um (binned), FOCALLEN 3454 mm -> 0.449 "/px.
+        s, basis = sr.resolve_plate_scale(
+            {"xpixsz": 7.52, "focallen": 3454.0, "cd1_1": -0.000125,
+             "cd2_2": 0.000125})
+        assert basis == "header_optics"
+        assert s == pytest.approx(0.449, abs=0.002)
+
+    def test_cd_matrix_rescues_a_zero_focal_length(self):
+        # THE bug this fixes: the March-2026 'Fast' frames write
+        # FOCALLEN = 0.0, which is a MISSING card, not a short lens.  All
+        # 74 frames of one EU UMa block failed extraction outright while
+        # carrying a perfectly good CD matrix.
+        s, basis = sr.resolve_plate_scale(
+            {"xpixsz": 7.52, "focallen": 0.0,
+             "cd1_1": -0.0001252494762232, "cd1_2": 0.0,
+             "cd2_1": 0.0, "cd2_2": 0.0001252503528998})
+        assert basis == "header_cd"
+        assert s == pytest.approx(0.4509, abs=0.001)
+
+    def test_rotation_does_not_shrink_the_scale(self):
+        # A 45-degree rotated CD matrix has |CD1_1| = scale/sqrt(2); using
+        # that alone would understate the scale by 30%.  The determinant
+        # is rotation-invariant, which is why it is what we take.
+        import math as _m
+        d, r = 0.000125, _m.radians(45.0)
+        s = sr.plate_scale_from_cd(-d * _m.cos(r), d * _m.sin(r),
+                                   d * _m.sin(r), d * _m.cos(r))
+        assert s == pytest.approx(0.45, abs=0.005)
+
+    def test_cdelt_is_the_last_resort(self):
+        s, basis = sr.resolve_plate_scale(
+            {"xpixsz": None, "focallen": None,
+             "cdelt1": -0.000125, "cdelt2": 0.000125})
+        assert basis == "header_cdelt"
+        assert s == pytest.approx(0.45, abs=0.005)
+
+    def test_no_route_names_the_failure(self):
+        s, basis = sr.resolve_plate_scale({"xpixsz": None, "focallen": None})
+        assert s is None and basis == "none"
+
+    def test_degenerate_matrix_is_refused(self):
+        assert sr.plate_scale_from_cd(0.0, 0.0, 0.0, 0.0) is None
+        assert sr.plate_scale_from_cd(None, None, None, None) is None
+        # Singular (both rows parallel) — no area, no scale.
+        assert sr.plate_scale_from_cd(1e-4, 1e-4, 1e-4, 1e-4) is None
+
+
 class TestGeometry:
     def test_readout_strip_is_refused(self):
         # EU UMa era 80: 8 x 3,211 pixel strips against a ~9 px aperture
@@ -200,6 +249,43 @@ class TestRegistrationPolicy:
 
     def test_match_rate_matches_the_gate(self):
         assert sr.match_rate(150, 200, 300) == pytest.approx(0.75)
+
+
+class TestReferencePreference:
+    def test_a_deep_solved_candidate_is_promoted(self):
+        ranking = [10, 11, 12]
+        n = {10: 500, 11: 480, 12: 460}
+        solved = {10: 0, 11: 1, 12: 0}
+        assert sr.order_reference_candidates(ranking, n, solved)[0] == 11
+
+    def test_a_shallow_solved_candidate_is_not_promoted(self):
+        # Astrometry is worth having, but not at the price of two thirds of
+        # the star catalog: the reference's depth caps every frame's match.
+        ranking = [10, 11, 12]
+        n = {10: 500, 11: 100, 12: 460}
+        solved = {10: 0, 11: 1, 12: 0}
+        assert sr.order_reference_candidates(ranking, n, solved)[0] == 10
+
+    def test_nothing_is_ever_dropped(self):
+        # The caller walks the list until one candidate passes double-image
+        # QC, so demotion must never mean deletion.
+        ranking = [10, 11, 12]
+        n = {10: 500, 11: 100, 12: 460}
+        solved = {10: 0, 11: 1, 12: 0}
+        out = sr.order_reference_candidates(ranking, n, solved)
+        assert sorted(out) == sorted(ranking)
+
+    def test_relative_order_survives_promotion(self):
+        ranking = [10, 11, 12, 13]
+        n = {10: 500, 11: 490, 12: 480, 13: 470}
+        solved = {10: 0, 11: 1, 12: 0, 13: 1}
+        assert sr.order_reference_candidates(ranking, n, solved) == \
+            [11, 13, 10, 12]
+
+    def test_empty_and_unsolved_cases(self):
+        assert sr.order_reference_candidates([], {}, {}) == []
+        assert sr.order_reference_candidates([1, 2], {1: 5, 2: 4},
+                                             {1: 0, 2: 0}) == [1, 2]
 
 
 # ---------------------------------------------------------------------------

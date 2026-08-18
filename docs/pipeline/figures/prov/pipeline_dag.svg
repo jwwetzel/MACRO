@@ -1,0 +1,62 @@
+<svg viewBox="0 0 1438 572" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif,system-ui,sans-serif" role="img" aria-label="pipeline dependency DAG">
+<defs><marker id="a" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 z" fill="#8a8a8a"/></marker></defs>
+<path d="M188,61 C222,61 232,61 266,61" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 478,125 512,125" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 724,253 758,253" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M680,125 C714,125 724,253 758,253" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 478,189 512,189" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 478,253 512,253" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 724,381 758,381" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M680,125 C714,125 724,381 758,381" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 478,317 512,317" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 478,381 512,381" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 970,253 1004,253" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M926,381 C960,381 970,253 1004,253" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 970,189 1004,189" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M680,125 C714,125 970,189 1004,189" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M926,253 C960,253 970,189 1004,189" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M926,381 C960,381 970,189 1004,189" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M680,381 C714,381 970,189 1004,189" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 724,61 758,61" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M680,125 C714,125 724,61 758,61" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 478,61 512,61" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 724,189 758,189" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M680,125 C714,125 724,189 758,189" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M926,253 C960,253 970,61 1004,61" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 724,317 758,317" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M680,189 C714,189 724,317 758,317" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M926,381 C960,381 970,125 1004,125" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M680,317 C714,317 724,445 758,445" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M680,381 C714,381 724,509 758,509" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M1172,253 C1206,253 1216,61 1250,61" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 724,125 758,125" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M680,125 C714,125 724,125 758,125" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 970,317 1004,317" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M926,253 C960,253 970,317 1004,317" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M680,317 C714,317 970,317 1004,317" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 970,381 1004,381" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M926,253 C960,253 970,381 1004,381" fill="none" stroke="#8a8a8a" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<g><title>S0e: FRESH — Geometry repair of the external catalog</title><rect x="20" y="40" width="168" height="42" rx="7" fill="#1f7a3f" stroke="#00000033"/><text x="30" y="58" fill="#fff" font-size="13" font-weight="700">S0e</text><text x="30" y="73" fill="#ffffffcc" font-size="10.5">FRESH</text></g>
+<g><title>S0: STALE — Manifest (dedup, aliases, eras, pointing)</title><rect x="266" y="40" width="168" height="42" rx="7" fill="#a06a00" stroke="#00000033"/><text x="276" y="58" fill="#fff" font-size="13" font-weight="700">S0</text><text x="276" y="73" fill="#ffffffcc" font-size="10.5">STALE</text></g>
+<g><title>R-S0: STALE_UPSTREAM — Report: S0 manifest page</title><rect x="512" y="40" width="168" height="42" rx="7" fill="#5b6470" stroke="#00000033"/><text x="522" y="58" fill="#fff" font-size="13" font-weight="700">R-S0</text><text x="522" y="73" fill="#ffffffcc" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>S0b: STALE_UPSTREAM — Calibration inventory (links, coverage, gaps)</title><rect x="512" y="104" width="168" height="42" rx="7" fill="#5b6470" stroke="#00000033"/><text x="522" y="122" fill="#fff" font-size="13" font-weight="700">S0b</text><text x="522" y="137" fill="#ffffffcc" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>S1: NEVER_RUN — Astrometry solvability experiment</title><rect x="512" y="168" width="168" height="42" rx="7" fill="#1f5f7a" stroke="#00000033"/><text x="522" y="186" fill="#fff" font-size="13" font-weight="700">S1</text><text x="522" y="201" fill="#ffffffcc" font-size="10.5">NEVER_RUN</text></g>
+<g><title>S1b: STALE — Astrometry production batch</title><rect x="512" y="232" width="168" height="42" rx="7" fill="#a06a00" stroke="#00000033"/><text x="522" y="250" fill="#fff" font-size="13" font-weight="700">S1b</text><text x="522" y="265" fill="#ffffffcc" font-size="10.5">STALE</text></g>
+<g><title>S2c: STALE — Per-frame dispersion (is this FILTER a spectrum?)</title><rect x="512" y="296" width="168" height="42" rx="7" fill="#a06a00" stroke="#00000033"/><text x="522" y="314" fill="#fff" font-size="13" font-weight="700">S2c</text><text x="522" y="329" fill="#ffffffcc" font-size="10.5">STALE</text></g>
+<g><title>S3: STALE_UPSTREAM — Timing (BJD_TDB, clock, cadence)</title><rect x="512" y="360" width="168" height="42" rx="7" fill="#5b6470" stroke="#00000033"/><text x="522" y="378" fill="#fff" font-size="13" font-weight="700">S3</text><text x="522" y="393" fill="#ffffffcc" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>G: STALE_UPSTREAM — Grism extraction + identity gate (T CrB)</title><rect x="758" y="40" width="168" height="42" rx="7" fill="#5b6470" stroke="#00000033"/><text x="768" y="58" fill="#fff" font-size="13" font-weight="700">G</text><text x="768" y="73" fill="#ffffffcc" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>OPS: STALE — Observatory request (October shopping list)</title><rect x="758" y="104" width="168" height="42" rx="7" fill="#a06a00" stroke="#00000033"/><text x="768" y="122" fill="#fff" font-size="13" font-weight="700">OPS</text><text x="768" y="137" fill="#ffffffcc" font-size="10.5">STALE</text></g>
+<g><title>R-S0b: STALE_UPSTREAM — Report: S0b calibration inventory page</title><rect x="758" y="168" width="168" height="42" rx="7" fill="#5b6470" stroke="#00000033"/><text x="768" y="186" fill="#fff" font-size="13" font-weight="700">R-S0b</text><text x="768" y="201" fill="#ffffffcc" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>S0c: STALE_UPSTREAM — Per-project staging manifests</title><rect x="758" y="232" width="168" height="42" rx="7" fill="#5b6470" stroke="#00000033"/><text x="768" y="250" fill="#fff" font-size="13" font-weight="700">S0c</text><text x="768" y="265" fill="#ffffffcc" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>R-S1: STALE — Report: S1 astrometry page</title><rect x="758" y="296" width="168" height="42" rx="7" fill="#a06a00" stroke="#00000033"/><text x="768" y="314" fill="#fff" font-size="13" font-weight="700">R-S1</text><text x="768" y="329" fill="#ffffffcc" font-size="10.5">STALE</text></g>
+<g><title>S2: NEVER_RUN — Detector truth (ceiling, PTC, recon, linearity)</title><rect x="758" y="360" width="168" height="42" rx="7" fill="#1f5f7a" stroke="#00000033"/><text x="768" y="378" fill="#fff" font-size="13" font-weight="700">S2</text><text x="768" y="393" fill="#ffffffcc" font-size="10.5">NEVER_RUN</text></g>
+<g><title>R-S2c: STALE — Report: S2c filter-identity page</title><rect x="758" y="424" width="168" height="42" rx="7" fill="#a06a00" stroke="#00000033"/><text x="768" y="442" fill="#fff" font-size="13" font-weight="700">R-S2c</text><text x="768" y="457" fill="#ffffffcc" font-size="10.5">STALE</text></g>
+<g><title>R-S3: STALE_UPSTREAM — Report: S3 timing page</title><rect x="758" y="488" width="168" height="42" rx="7" fill="#5b6470" stroke="#00000033"/><text x="768" y="506" fill="#fff" font-size="13" font-weight="700">R-S3</text><text x="768" y="521" fill="#ffffffcc" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>R-S0c: STALE_UPSTREAM — Report: S0c staging page</title><rect x="1004" y="40" width="168" height="42" rx="7" fill="#5b6470" stroke="#00000033"/><text x="1014" y="58" fill="#fff" font-size="13" font-weight="700">R-S0c</text><text x="1014" y="73" fill="#ffffffcc" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>R-S2: STALE — Report: S2 detector page</title><rect x="1004" y="104" width="168" height="42" rx="7" fill="#a06a00" stroke="#00000033"/><text x="1014" y="122" fill="#fff" font-size="13" font-weight="700">R-S2</text><text x="1014" y="137" fill="#ffffffcc" font-size="10.5">STALE</text></g>
+<g><title>CV-S4: STALE — Production CV photometry (five staged targets)</title><rect x="1004" y="168" width="168" height="42" rx="7" fill="#a06a00" stroke="#00000033"/><text x="1014" y="186" fill="#fff" font-size="13" font-weight="700">CV-S4</text><text x="1014" y="201" fill="#ffffffcc" font-size="10.5">STALE</text></g>
+<g><title>S4: STALE — Ensemble photometry (AN UMa / VV Pup prototype)</title><rect x="1004" y="232" width="168" height="42" rx="7" fill="#a06a00" stroke="#00000033"/><text x="1014" y="250" fill="#fff" font-size="13" font-weight="700">S4</text><text x="1014" y="265" fill="#ffffffcc" font-size="10.5">STALE</text></g>
+<g><title>STRAT: STALE — Five ANALYSIS_STRATEGY.md documents + ROADMAP</title><rect x="1004" y="296" width="168" height="42" rx="7" fill="#a06a00" stroke="#00000033"/><text x="1014" y="314" fill="#fff" font-size="13" font-weight="700">STRAT</text><text x="1014" y="329" fill="#ffffffcc" font-size="10.5">STALE</text></g>
+<g><title>WEB: STALE — Public project pages (docs/*/index.html)</title><rect x="1004" y="360" width="168" height="42" rx="7" fill="#a06a00" stroke="#00000033"/><text x="1014" y="378" fill="#fff" font-size="13" font-weight="700">WEB</text><text x="1014" y="393" fill="#ffffffcc" font-size="10.5">STALE</text></g>
+<g><title>R-S4: STALE_UPSTREAM — Report: S4 photometry page</title><rect x="1250" y="40" width="168" height="42" rx="7" fill="#5b6470" stroke="#00000033"/><text x="1260" y="58" fill="#fff" font-size="13" font-weight="700">R-S4</text><text x="1260" y="73" fill="#ffffffcc" font-size="10.5">STALE_UPSTREAM</text></g>
+</svg>

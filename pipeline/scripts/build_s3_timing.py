@@ -82,6 +82,7 @@ PIPELINE_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PIPELINE_ROOT))
 
 from macro_core import timing as tm                          # noqa: E402
+from macro_core import fitsgeom                              # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Default locations (real paths, so the bare command Just Works).
@@ -606,14 +607,19 @@ def stage_audit_headers(con: sqlite3.Connection, archive: Path,
         # points at the frame CENTER, and an object at a corner differs
         # by up to corner_ltt_s.  Measured from each sampled header's own
         # WCS/optics rather than hand-typed once for the whole archive.
+        # TRUE geometry, not the header's NAXIS cards: for a tile-compressed
+        # file whose header astropy could not fully translate, NAXIS1 is the
+        # BINTABLE row length in bytes (8), and a pixel scale or a corner
+        # light-time computed from an 8-pixel field is nonsense.  See
+        # macro_core.fitsgeom and docs/pipeline/s0e_geometry_fix.html.
+        g_n1, g_n2 = fitsgeom.resolve_geometry_or_none(hdr)
         scale, scale_source = tm.pixel_scale_arcsec(
-            hdr.get("NAXIS1"), hdr.get("NAXIS2"),
+            g_n1, g_n2,
             cdelt1=hdr.get("CDELT1"), cdelt2=hdr.get("CDELT2"),
             cd1_1=hdr.get("CD1_1"), cd1_2=hdr.get("CD1_2"),
             xpixsz=hdr.get("XPIXSZ"), focallen=hdr.get("FOCALLEN"),
             secpix1=hdr.get("SECPIX1"))
-        corner_ltt = tm.field_corner_light_time_s(
-            hdr.get("NAXIS1"), hdr.get("NAXIS2"), scale)
+        corner_ltt = tm.field_corner_light_time_s(g_n1, g_n2, scale)
         con.execute("INSERT OR REPLACE INTO s3_header_audit "
                     "(path, family, year, era_id, night, exptime_s, "
                     " jd_header, date_obs, jd_minus_dateobs_s, "
@@ -627,7 +633,7 @@ def stage_audit_headers(con: sqlite3.Connection, archive: Path,
                      telut_minus_dateobs, ra_deg, dec_deg,
                      resid_start, resid_mid,
                      str(hdr.get("SWCREATE") or ""),
-                     hdr.get("NAXIS1"), hdr.get("NAXIS2"),
+                     g_n1, g_n2,
                      scale, scale_source, corner_ltt))
         n_read += 1
         if n_read % 20 == 0:

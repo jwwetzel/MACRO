@@ -31,9 +31,31 @@ Module layout:
   the photometry database and emits ``docs/pipeline/s4_photometry.html``
   plus every figure under ``docs/pipeline/figures/s4/``.
 
-Build entry point: ``pipeline/scripts/build_s4_photometry.py`` (resumable
-staged CLI — the extraction loop is chunked so no single invocation runs
-long).
+The PRODUCTION layer, added when the proven core was run over the whole
+staged CV set (five targets, 14 (target, era) blocks, 8,716 frames) rather
+than two prototype polars.  These modules hold the rules that only appear
+at scale; the photometry itself is unchanged.
+
+* ``macro_phot.series``     — pure production rules: the (target, era,
+  filter) series key, the S2 per-readout-mode saturation vetoes and their
+  mapping through a server reduction, the one-provenance-per-era decision,
+  the geometry verdict that refuses 8-pixel readout strips, and the
+  registration policy (when a plate solution may replace astroalign, and
+  when its result must be disbelieved).  Unit-tested in
+  ``pipeline/tests/test_series.py``.
+* ``macro_phot.register``   — the sky-chained registration route: S1 WCS
+  sidecars, frame pixels -> sky -> reference pixels, and the pixel-grid
+  agreement test that licenses applying a raw-frame plate solution to the
+  reduced version of the same exposure.
+* ``macro_phot.calib``      — local master-calibration I/O for the eras
+  that have no server-reduced tree at all (ST LMi and YZ Cnc 2024): read
+  the era-matched master dark and flat, apply one uniform recipe to the
+  whole era, and name the recipe on every frame.
+
+Build entry points: ``pipeline/scripts/build_s4_photometry.py`` (the
+two-polar prototype) and ``pipeline/scripts/run_cv_photometry.py`` (the
+production CV campaign).  Both are resumable staged CLIs whose heavy loops
+are chunked, so no single invocation runs long.
 """
 
 # Version note recorded into the photometry DB's s4_build_meta table.  Bump

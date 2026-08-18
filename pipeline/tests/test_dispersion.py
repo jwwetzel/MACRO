@@ -202,6 +202,31 @@ class TestClassify:
         ]))
         assert dsp.classify_frame(s).verdict == dsp.VERDICT_DISPERSED
 
+    def test_defocused_frame_with_scattered_angles_is_rejected(self):
+        """The control-sample false positive that forced the PA gate down
+        from 20 deg to 5: a 2-second r-band exposure so defocused its blobs
+        sat at 86, -73 and -43 deg.  Two of them cleared the trace gates,
+        and their 15.1-deg axial scatter squeaked under the old bound.
+        Real gratings hold their traces parallel to ~0.15 deg."""
+        s = dsp.summarize_sources(**_sources([
+            (38.9, 6.28, -72.7, 5.2e4, 662),
+            (45.7, 4.88, -43.1, 2.7e4, 546),
+            (15.2, 3.43, 86.5, 2.4e5, 914),
+        ]))
+        assert s.n_trace >= 2
+        assert s.trace_pa_scatter > dsp.TRACE_MAX_PA_SCATTER_DEG
+        assert dsp.classify_frame(s).verdict == dsp.VERDICT_INDETERMINATE
+
+    def test_real_grism_alignment_clears_the_gate_with_room(self):
+        """The measured median alignment of the labelled grism populations
+        is 0.15 deg — two orders of magnitude inside the gate."""
+        s = dsp.summarize_sources(**_sources([
+            (905.0, 8.8, 1.30, 1.0e7, 163004),
+            (731.0, 5.0, 1.45, 2.1e6, 55578),
+        ]))
+        assert s.trace_pa_scatter < 0.5
+        assert dsp.classify_frame(s).verdict == dsp.VERDICT_DISPERSED
+
     def test_satellite_across_a_rich_star_field_is_not_a_grism(self):
         """The real false positive that forced the sparsity gate: a 60-s
         luminance frame of M57 with 1,278 round stars and ONE 1,095-px

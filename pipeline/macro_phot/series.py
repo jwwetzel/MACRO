@@ -235,6 +235,70 @@ def choose_provenance(n_staged: int, n_linked: int,
 
 
 # --------------------------------------------------------------------------
+# Plate scale: header cards first, the frame's own sky transform second
+# --------------------------------------------------------------------------
+
+def plate_scale_from_cd(cd1_1, cd1_2, cd2_1, cd2_2) -> Optional[float]:
+    """Plate scale in arcsec/pixel from a FITS CD matrix.
+
+    The CD matrix maps pixel offsets to degrees on the sky, so the area of
+    one pixel on the sky is |det CD| square degrees and the linear scale is
+    its square root.  Taking the determinant rather than |CD1_1| is what
+    makes this correct for a ROTATED frame, where CD1_1 alone shrinks with
+    the cosine of the rotation angle and would understate the scale — by up
+    to 100% at 90 degrees.  Missing off-diagonal terms are treated as zero
+    (the common CDELT-style header).  Returns None when the matrix is
+    absent or degenerate.
+    """
+    if cd1_1 is None and cd2_2 is None:
+        return None
+    a = float(cd1_1 or 0.0)
+    b = float(cd1_2 or 0.0)
+    c = float(cd2_1 or 0.0)
+    d = float(cd2_2 or 0.0)
+    det = abs(a * d - b * c)
+    if not (det > 0):
+        return None
+    return math.sqrt(det) * 3600.0
+
+
+def resolve_plate_scale(meta: dict) -> tuple[Optional[float], str]:
+    """This frame's plate scale and the EVIDENCE it rests on.
+
+    Order of preference, with the basis string recorded per frame:
+
+    1. ``'header_optics'`` — XPIXSZ (binned pixel size, um) and FOCALLEN
+       (mm).  The primary route: it is independent of any astrometric
+       solution and available on nearly every frame.
+    2. ``'header_cd'`` — the frame's own CD matrix, i.e. a scale MEASURED
+       against the sky rather than computed from optics.  This exists for
+       exactly the reason a fallback must: the March-2026 'Fast' frames
+       write ``FOCALLEN = 0.0``, which is not a small focal length but a
+       missing card, and rejecting them for 'no plate scale' discarded a
+       74-frame EU UMa observing block that was carrying a perfectly good
+       0.4509"/px CD matrix all along.
+    3. ``'header_cdelt'`` — the older CDELT1/CDELT2 form of the same thing.
+
+    Returns ``(scale_or_None, basis)``; the basis is ``'none'`` when no
+    route worked, so the failure is named rather than inferred.
+    """
+    from . import photometry as _ph          # local: avoids a cycle at import
+    s = _ph.plate_scale_arcsec_per_px(meta.get("xpixsz"), meta.get("focallen"))
+    if s is not None:
+        return s, "header_optics"
+    s = plate_scale_from_cd(meta.get("cd1_1"), meta.get("cd1_2"),
+                            meta.get("cd2_1"), meta.get("cd2_2"))
+    if s is not None:
+        return s, "header_cd"
+    d1, d2 = meta.get("cdelt1"), meta.get("cdelt2")
+    if d1 and d2:
+        s = math.sqrt(abs(float(d1) * float(d2))) * 3600.0
+        if s > 0:
+            return s, "header_cdelt"
+    return None, "none"
+
+
+# --------------------------------------------------------------------------
 # Geometry: can this frame be aperture-photometered at all?
 # --------------------------------------------------------------------------
 
@@ -312,6 +376,45 @@ def wcs_match_ok(n_match: int, n_det: int, n_ref: int,
     if possible <= 0:
         return False
     return (n_match / float(possible)) >= min_frac
+
+
+#: How deep a PLATE-SOLVED reference candidate must be, as a fraction of
+#: the deepest candidate's detection count, before its plate solution is
+#: worth preferring.  A solved reference buys three things — the cheap
+#: sky-chained route for every solved frame in the era, a target
+#: identification straight from catalogue coordinates with no network
+#: query, and a real sky position for every star in the catalog — but the
+#: reference's own star list is the ceiling on what any frame can match,
+#: so a solved-but-shallow frame would quietly cap the whole series.  0.6
+#: buys the astrometry whenever it is nearly free and refuses to pay for
+#: it with a third of the field.
+REF_SOLVED_MIN_DEPTH_FRAC = 0.6
+
+
+def order_reference_candidates(ranking: Sequence[int],
+                               n_detected: dict, solved: dict,
+                               min_frac: float = REF_SOLVED_MIN_DEPTH_FRAC
+                               ) -> list[int]:
+    """Re-order reference candidates to prefer a plate-solved one — if it is
+    deep enough to deserve the promotion.
+
+    ``ranking`` is the quality order from
+    :func:`macro_phot.photometry.rank_references` (best first).  Solved
+    candidates whose detection count reaches ``min_frac`` of the deepest
+    candidate's move to the front, keeping their relative order; every
+    other candidate follows in unchanged rank order, so nothing is ever
+    dropped — the caller still walks the whole list until one passes the
+    double-image quality control.
+    """
+    cand = list(ranking)
+    if not cand:
+        return []
+    deepest = max(float(n_detected.get(c) or 0) for c in cand)
+    floor = min_frac * deepest
+    promoted = [c for c in cand
+                if solved.get(c) and float(n_detected.get(c) or 0) >= floor]
+    rest = [c for c in cand if c not in set(promoted)]
+    return promoted + rest
 
 
 def match_rate(n_match: int, n_det: int, n_ref: int) -> float:

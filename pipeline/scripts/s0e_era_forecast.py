@@ -167,6 +167,42 @@ def main() -> int:
     print(f"\n[S0e] wrote s0e_era_forecast ({len(rows)} rows) to the catalog")
 
     # ------------------------------------------------------------------
+    # Snapshot the PRE-FIX blast radius while we can still see it.
+    # ------------------------------------------------------------------
+    # The affected frames are identified by their phantom geometry, so the
+    # moment the live manifest is rebuilt that evidence disappears — a
+    # report querying the live manifest would silently render zeros and the
+    # incident would become unprovable.  The 'before' copy is the last
+    # faithful witness, so its counts are copied into the catalog now.
+    bcon = sqlite3.connect(f"file:{before_db}?mode=ro", uri=True)
+    bcon.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
+    era_blast = bcon.execute("""
+        SELECT f.era_id, e.readoutm, e.naxis1, e.naxis2, e.xbinning,
+               e.egain, count(*)
+        FROM frames f JOIN eras e ON e.era_id = f.era_id
+        WHERE f.naxis1 = 8 AND f.naxis2 = 3211
+        GROUP BY 1 ORDER BY 7 DESC""").fetchall()
+    tgt_blast = bcon.execute("""
+        SELECT canonical_target, count(*) FROM frames
+        WHERE naxis1 = 8 AND naxis2 = 3211 AND is_canonical = 1
+        GROUP BY 1 ORDER BY 2 DESC""").fetchall()
+    bcon.close()
+
+    con.execute("DROP TABLE IF EXISTS s0e_blast_era")
+    con.execute("""CREATE TABLE s0e_blast_era (
+        era_id INTEGER PRIMARY KEY, readoutm TEXT, naxis1 INTEGER,
+        naxis2 INTEGER, xbinning REAL, egain REAL, n_frames INTEGER)""")
+    con.executemany("INSERT INTO s0e_blast_era VALUES (?,?,?,?,?,?,?)",
+                    era_blast)
+    con.execute("DROP TABLE IF EXISTS s0e_blast_target")
+    con.execute("""CREATE TABLE s0e_blast_target (
+        canonical_target TEXT, n_frames INTEGER)""")
+    con.executemany("INSERT INTO s0e_blast_target VALUES (?,?)", tgt_blast)
+    con.commit()
+    print(f"[S0e] snapshotted blast radius: {len(era_blast)} eras, "
+          f"{len(tgt_blast)} targets")
+
+    # ------------------------------------------------------------------
     # The S1 re-queue population, measured on the REBUILT manifest.
     # ------------------------------------------------------------------
     # These are the frames the astrometry batch excluded as "sub-frame

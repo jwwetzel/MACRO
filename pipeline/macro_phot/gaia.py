@@ -32,6 +32,13 @@ import numpy as np
 #: star at these exposure times; shallow enough to keep the match sparse).
 GAIA_G_MAX = 19.0
 
+#: Cone-query retry policy against the public archive's transient failures
+#: (see :func:`cone_query`).  Three attempts with a widening pause covers
+#: the observed 'statement timeout' spikes without turning a genuine
+#: outage into a ten-minute stall.
+CONE_RETRIES = 3
+CONE_RETRY_PAUSE_S = 10.0
+
 #: Match tolerance between transformed reference stars and Gaia positions,
 #: arcsec (generous: proper motions over ~9 years and centroid noise).
 GAIA_MATCH_TOL_ARCSEC = 2.0
@@ -148,17 +155,38 @@ def cone_query(ra_deg: float, dec_deg: float, radius_deg: float,
     failure; the build script catches and records the outage so the
     pipeline still completes with an instrumental-only zero point.
     """
+    import time
+
     from astroquery.gaia import Gaia         # deferred: import cost + net
     Gaia.ROW_LIMIT = -1
-    job = Gaia.launch_job(f"""
+    adql = f"""
         SELECT TOP 2000 source_id, ra, dec, phot_g_mean_mag
         FROM gaiadr3.gaia_source
         WHERE 1 = CONTAINS(POINT('ICRS', ra, dec),
                            CIRCLE('ICRS', {ra_deg:.6f}, {dec_deg:.6f},
                                   {radius_deg:.6f}))
           AND phot_g_mean_mag < {g_max:.2f}
-        ORDER BY phot_g_mean_mag""")
-    tab = job.get_results()
+        ORDER BY phot_g_mean_mag"""
+    # RETRY, because the archive is a shared public service and its
+    # failures are transient rather than semantic.  Measured on
+    # 2026-08-18 while this campaign ran: the SAME query returned
+    # 'Error 500: canceling statement due to statement timeout' twice and
+    # then succeeded in 6 seconds, and a ten-row cone took 68 seconds
+    # once and one second the next time.  A build that gives up on the
+    # first 500 loses a whole field tie to somebody else's load spike, so
+    # each attempt is retried with a widening pause and only a persistent
+    # failure is reported to the caller.
+    last: Exception | None = None
+    for attempt in range(CONE_RETRIES):
+        try:
+            tab = Gaia.launch_job(adql).get_results()
+            break
+        except Exception as e:                # HTTP 500, timeouts, resets
+            last = e
+            if attempt < CONE_RETRIES - 1:
+                time.sleep(CONE_RETRY_PAUSE_S * (attempt + 1))
+    else:
+        raise last
     return {
         "source_id": np.asarray(tab["source_id"], dtype=np.int64),
         "ra": np.asarray(tab["ra"], dtype=float),

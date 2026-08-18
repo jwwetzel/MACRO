@@ -6,8 +6,8 @@
 
 <header>
   <h1>S2c — Filter Identity, Measured</h1>
-  <p>479 frames measured from their pixels &middot;
-  419 dispersed &middot; 1 unreadable &middot;
+  <p>3,598 frames measured from their pixels &middot;
+  2,463 dispersed &middot; 2 unreadable &middot;
   built 2026-08-18T19:06Z
   (S2c v1.0 (2026-08-18))
   &middot; <a href="../index.html">back to the evidence hub</a></p>
@@ -51,26 +51,28 @@ points wherever it likes.</p>
 
 <table class="data">
 <tr><th>label</th><th>truth</th><th>measured</th><th>dispersed</th><th>direct</th><th>indeterminate</th><th>agreement</th></tr>
-<tr class="good"><td><code>hrg</code></td><td>dispersed</td><td>168</td><td>168</td><td>0</td><td>0</td><td><b>100.0%</b></td></tr>
-<tr class="good"><td><code>lrg</code></td><td>dispersed</td><td>108</td><td>108</td><td>0</td><td>0</td><td><b>100.0%</b></td></tr>
-<tr class="warn"><td><code>OGGrism</code></td><td>dispersed</td><td>106</td><td>95</td><td>2</td><td>9</td><td><b>89.6%</b></td></tr>
-<tr class="good"><td><code>HaG</code></td><td>dispersed</td><td>106</td><td>106</td><td>0</td><td>0</td><td><b>100.0%</b></td></tr>
-<tr class="good"><td><code>r</code></td><td>direct</td><td>1</td><td>0</td><td>1</td><td>0</td><td><b>100.0%</b></td></tr>
-<tr class="good"><td><code>R</code></td><td>direct</td><td>1</td><td>0</td><td>1</td><td>0</td><td><b>100.0%</b></td></tr>
-<tr class="good"><td><code>I</code></td><td>direct</td><td>3</td><td>0</td><td>3</td><td>0</td><td><b>100.0%</b></td></tr>
-<tr class="good"><td><code>B</code></td><td>direct</td><td>5</td><td>0</td><td>5</td><td>0</td><td><b>100.0%</b></td></tr>
-<tr class="good"><td><code>L</code></td><td>direct</td><td>16</td><td>0</td><td>16</td><td>0</td><td><b>100.0%</b></td></tr>
+<tr><td><code>hrg</code></td><td>dispersed</td><td>168</td><td>168</td><td>0</td><td>0</td><td><b>100.0%</b></td></tr>
+<tr><td><code>lrg</code></td><td>dispersed</td><td>108</td><td>108</td><td>0</td><td>0</td><td><b>100.0%</b></td></tr>
+<tr class="warn"><td><code>OGGrism</code></td><td>dispersed</td><td>205</td><td>182</td><td>5</td><td>18</td><td><b>88.8%</b></td></tr>
+<tr><td><code>HaG</code></td><td>dispersed</td><td>192</td><td>185</td><td>0</td><td>7</td><td><b>96.4%</b></td></tr>
+<tr class="warn"><td><code>r</code></td><td>direct</td><td>10</td><td>0</td><td>7</td><td>3</td><td><b>70.0%</b></td></tr>
+<tr class="warn"><td><code>i</code></td><td>direct</td><td>4</td><td>0</td><td>3</td><td>1</td><td><b>75.0%</b></td></tr>
+<tr><td><code>V</code></td><td>direct</td><td>88</td><td>0</td><td>88</td><td>0</td><td><b>100.0%</b></td></tr>
+<tr class="warn"><td><code>R</code></td><td>direct</td><td>146</td><td>4</td><td>136</td><td>6</td><td><b>93.2%</b></td></tr>
+<tr><td><code>I</code></td><td>direct</td><td>65</td><td>2</td><td>62</td><td>1</td><td><b>95.4%</b></td></tr>
+<tr class="warn"><td><code>B</code></td><td>direct</td><td>62</td><td>2</td><td>54</td><td>6</td><td><b>87.1%</b></td></tr>
+<tr><td><code>L</code></td><td>direct</td><td>42</td><td>0</td><td>41</td><td>1</td><td><b>97.6%</b></td></tr>
 </table>
 
-<p>Pooled over the 488 known-dispersed frames, the classifier
-recovers <b>97.7%</b> as dispersed. Pooled over the 26
-known-direct control frames it calls <b>0.0%</b> dispersed &mdash; that is
+<p>Pooled over the 673 known-dispersed frames, the classifier
+recovers <b>95.5%</b> as dispersed. Pooled over the 417
+known-direct control frames it calls <b>1.9%</b> dispersed &mdash; that is
 the false-positive rate, and it is the number that decides whether any
 verdict on slot <code>6</code> can be believed.</p>
 
-<p>The overlap, stated plainly: 5 known-dispersed frames
+<p>The overlap, stated plainly: 11 known-dispersed frames
 contained no trace-shaped source at all (too short an exposure, too faint a
-target, or cloud), and 0 known-direct frames contained at least
+target, or cloud), and 23 known-direct frames contained at least
 one (satellites, cosmic-ray tracks, edge-on galaxies). Those frames are the
 irreducible ambiguity in the method, and the classifier is built to return
 <code>indeterminate</code> across it rather than to guess.</p>
@@ -78,7 +80,7 @@ irreducible ambiguity in the method, and the classifier is built to return
 <h3>Decision</h3>
 <p>Dispersion is measurable per frame, and the classifier is adopted with
 three rules. <b>(1)</b> Two or more traces sharing an axis to within
-20&nbsp;deg &rarr;
+5&nbsp;deg &rarr;
 <code>dispersed</code>. <b>(2)</b> A single trace of
 a/b&nbsp;&ge;&nbsp;20 in a sparse field
 (&le;&nbsp;60 sources) &rarr;
@@ -115,8 +117,8 @@ not &mdash; and a spectrum is useless if you do not know its dispersion. So:
 <p>The obvious statistic is aspect ratio, and it does not work. The
 2025-01-23 focus sweep is the cleanest possible test &mdash; the same star,
 the same night, the same camera, shot through both units &mdash; and it
-measures a/b&nbsp;of 106 for the H-alpha unit against
-51 for the broad one across the full populations: overlapping
+measures a/b&nbsp;of 113 for the H-alpha unit against
+49 for the broad one across the full populations: overlapping
 distributions. The reason is that a/b divides by the minor axis, which is
 the seeing width, so every wobble in focus or atmosphere feeds straight into
 the statistic.</p>
@@ -124,14 +126,14 @@ the statistic.</p>
 <p>Trace <em>length</em> does not have that problem. Expressed as a fraction
 of frame width &mdash; which normalises the archive's three cameras and two
 binnings onto one scale &mdash; the same frames separate by a factor of
-<b>3.1</b>.</p>
+<b>2.8</b>.</p>
 
 <figure><a href="figures/s2c/s2c_strength.png"><img src="figures/s2c/s2c_strength.png" alt=""></a><figcaption>Left: trace aspect ratio, where the two grisms overlap. Right: trace length as a fraction of frame width, where they do not. Dashed lines are the adopted bounds; the gap between them is the ambiguous band.</figcaption></figure>
 
 <table class="data">
 <tr><th>grism unit</th><th>frames</th><th>median a/b</th><th>median length/width</th><th>10&ndash;90 pct</th><th>assigned correctly</th><th>left ambiguous</th></tr>
-<tr><td>H-alpha grism (<code>hrg</code>, <code>HaGrism</code>)</td><td>274</td><td>106.3</td><td><b>0.208</b></td><td>0.043 &ndash; 0.236</td><td>71.5%</td><td>3.6%</td></tr>
-<tr><td>broad grism (<code>lrg</code>, <code>OGGrism</code>)</td><td>203</td><td>51.4</td><td><b>0.067</b></td><td>0.055 &ndash; 0.125</td><td>63.1%</td><td>36.5%</td></tr>
+<tr><td>H-alpha grism (<code>hrg</code>, <code>HaGrism</code>)</td><td>353</td><td>113.2</td><td><b>0.206</b></td><td>0.047 &ndash; 0.236</td><td>75.4%</td><td>3.7%</td></tr>
+<tr><td>broad grism (<code>lrg</code>, <code>OGGrism</code>)</td><td>290</td><td>49.3</td><td><b>0.074</b></td><td>0.052 &ndash; 0.125</td><td>66.2%</td><td>33.4%</td></tr>
 </table>
 
 <h3>Decision</h3>
@@ -166,10 +168,10 @@ neither is. <b>What fraction of slot-<code>6</code> frames are actually
 dispersed, and does the answer depend on when or on what was observed?</b></p>
 
 <h3>Evidence</h3>
-<p>35 slot-<code>6</code> frames were measured.
-<b>35</b> (100.0%) are dispersed,
-<b>0</b> (0.0%) are direct images,
-and 0 are indeterminate. Neither panel was right, because
+<p>2,208 slot-<code>6</code> frames were measured.
+<b>1,739</b> (78.8%) are dispersed,
+<b>116</b> (5.3%) are direct images,
+and 353 are indeterminate. Neither panel was right, because
 the slot is not one thing.</p>
 
 <figure><a href="figures/s2c/s2c_slot6_timeline.png"><img src="figures/s2c/s2c_slot6_timeline.png" alt=""></a><figcaption>Slot-'6' frames per month by measured verdict (top) and the dispersed fraction (bottom). A wheel that changed on a date would show a step; a wheel used both ways throughout would not.</figcaption></figure>
@@ -179,27 +181,90 @@ the slot is not one thing.</p>
 
 <table class="data">
 <tr><th>target</th><th>frames</th><th>dispersed</th><th>direct</th><th>indet.</th><th>nights</th><th>verdict</th></tr>
+<tr class="warn"><td>SN2024gy</td><td>158</td><td>85</td><td>9</td><td>64</td><td>2024-01-25 &rarr; 2024-02-23</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>NGC 5548</td><td>143</td><td>100</td><td>17</td><td>26</td><td>2023-03-23 &rarr; 2023-04-25</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>HD9167</td><td>97</td><td>95</td><td>0</td><td>2</td><td>2023-02-09 &rarr; 2023-12-13</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td>SAO12096</td><td>90</td><td>90</td><td>0</td><td>0</td><td>2023-02-09 &rarr; 2023-12-13</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td>2023ixf</td><td>83</td><td>61</td><td>3</td><td>19</td><td>2023-05-21 &rarr; 2023-06-23</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>HD44811</td><td>82</td><td>80</td><td>1</td><td>1</td><td>2023-02-09 &rarr; 2023-12-13</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td>SAO12149</td><td>75</td><td>75</td><td>0</td><td>0</td><td>2023-02-09 &rarr; 2023-03-04</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td>HD242908</td><td>75</td><td>73</td><td>0</td><td>2</td><td>2023-02-09 &rarr; 2023-12-13</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td>NGC 5394</td><td>74</td><td>48</td><td>0</td><td>26</td><td>2023-04-06 &rarr; 2023-04-25</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>HD35619</td><td>61</td><td>59</td><td>1</td><td>1</td><td>2023-02-09 &rarr; 2023-12-13</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td>NGC 4725</td><td>59</td><td>39</td><td>0</td><td>20</td><td>2023-03-23 &rarr; 2023-04-25</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>UX Arietis</td><td>55</td><td>53</td><td>0</td><td>2</td><td>2024-01-30 &rarr; 2024-03-10</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td>NGC 4670</td><td>54</td><td>44</td><td>0</td><td>10</td><td>2023-04-17 &rarr; 2023-04-25</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td>HD5394</td><td>54</td><td>50</td><td>0</td><td>4</td><td>2023-02-10 &rarr; 2023-03-04</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td>M33</td><td>38</td><td>0</td><td>17</td><td>21</td><td>2023-12-02 &rarr; 2023-12-04</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>SN2024any</td><td>34</td><td>27</td><td>0</td><td>7</td><td>2024-02-12 &rarr; 2024-02-23</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>FEIGE41</td><td>34</td><td>8</td><td>16</td><td>10</td><td>2023-02-16 &rarr; 2024-03-21</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>Ton599</td><td>33</td><td>18</td><td>11</td><td>4</td><td>2024-02-29 &rarr; 2024-03-05</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>HR 3454</td><td>32</td><td>17</td><td>0</td><td>15</td><td>2023-03-13 &rarr; 2023-03-28</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>(untargeted)</td><td>31</td><td>11</td><td>1</td><td>19</td><td>2023-02-06 &rarr; 2024-03-13</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>NGC 4151</td><td>30</td><td>19</td><td>0</td><td>11</td><td>2023-03-13 &rarr; 2023-04-17</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>NGC 4593</td><td>29</td><td>16</td><td>0</td><td>13</td><td>2023-03-09 &rarr; 2023-04-18</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>17 Leporis</td><td>26</td><td>26</td><td>0</td><td>0</td><td>2023-02-09 &rarr; 2023-02-09</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td>Betelgeuse</td><td>22</td><td>22</td><td>0</td><td>0</td><td>2023-12-02 &rarr; 2023-12-02</td><td><b>SPECTRA</b></td></tr>
+<tr class="warn"><td>T UMI</td><td>21</td><td>18</td><td>2</td><td>1</td><td>2023-04-20 &rarr; 2023-07-05</td><td><b>SPECTRA</b></td></tr>
 </table>
 
-<p>Month by month, for the record:</p>
+<p>Month by month, for the record. There is no step: slot <code>6</code> is
+used both ways throughout its life, so <b>no changeover date exists</b> and
+no date-based rule can rescue the label.</p>
 
 <table class="data">
-<tr><th>month</th><th>frames</th><th>dispersed</th><th>% dispersed</th></tr>
-<tr><td>2023-02</td><td>23</td><td>23</td><td>100.0%</td></tr>
-<tr><td>2023-03</td><td>1</td><td>1</td><td>100.0%</td></tr>
-<tr><td>2023-04</td><td>5</td><td>5</td><td>100.0%</td></tr>
-<tr><td>2023-05</td><td>4</td><td>4</td><td>100.0%</td></tr>
-<tr><td>2024-02</td><td>1</td><td>1</td><td>100.0%</td></tr>
-<tr><td>2024-03</td><td>1</td><td>1</td><td>100.0%</td></tr>
+<tr><th>month</th><th>frames</th><th>dispersed</th><th>direct</th><th>indet.</th><th>% dispersed</th><th>% of decided</th></tr>
+<tr class="warn"><td>2023-02</td><td>594</td><td>548</td><td>18</td><td>28</td><td>92.3%</td><td><b>96.8%</b></td></tr>
+<tr class="warn"><td>2023-03</td><td>320</td><td>236</td><td>0</td><td>84</td><td>73.8%</td><td><b>100.0%</b></td></tr>
+<tr class="warn"><td>2023-04</td><td>268</td><td>188</td><td>24</td><td>56</td><td>70.1%</td><td><b>88.7%</b></td></tr>
+<tr class="warn"><td>2023-05</td><td>109</td><td>97</td><td>5</td><td>7</td><td>89.0%</td><td><b>95.1%</b></td></tr>
+<tr class="warn"><td>2023-06</td><td>54</td><td>30</td><td>7</td><td>17</td><td>55.6%</td><td><b>81.1%</b></td></tr>
+<tr class="warn"><td>2023-07</td><td>1</td><td>1</td><td>0</td><td>0</td><td>100.0%</td><td><b>100.0%</b></td></tr>
+<tr class="warn"><td>2023-10</td><td>112</td><td>98</td><td>8</td><td>6</td><td>87.5%</td><td><b>92.5%</b></td></tr>
+<tr class="warn"><td>2023-11</td><td>131</td><td>101</td><td>2</td><td>28</td><td>77.1%</td><td><b>98.1%</b></td></tr>
+<tr class="warn"><td>2023-12</td><td>165</td><td>125</td><td>17</td><td>23</td><td>75.8%</td><td><b>88.0%</b></td></tr>
+<tr class="warn"><td>2024-01</td><td>115</td><td>57</td><td>7</td><td>51</td><td>49.6%</td><td><b>89.1%</b></td></tr>
+<tr class="warn"><td>2024-02</td><td>184</td><td>157</td><td>2</td><td>25</td><td>85.3%</td><td><b>98.7%</b></td></tr>
+<tr class="warn"><td>2024-03</td><td>155</td><td>101</td><td>26</td><td>28</td><td>65.2%</td><td><b>79.5%</b></td></tr>
 </table>
+
+<h4>The same test applied to <code>W</code> &mdash; which turns out to be a
+second mislabelled slot, and a different kind of one</h4>
+
+<p>The <code>W</code> slot was not part of the original dispute, but it is
+the other filter whose name says nothing about its optics, so it was
+measured on the same footing. Of 298 frames,
+<b>73</b> are dispersed and 158 are direct
+&mdash; and unlike slot <code>6</code>, the split is almost perfectly
+datable:</p>
+
+<table class="data">
+<tr><th>month</th><th>frames</th><th>dispersed</th><th>direct</th><th>indet.</th><th>% dispersed</th><th>% of decided</th></tr>
+<tr><td>2023-03</td><td>7</td><td>0</td><td>6</td><td>1</td><td>0.0%</td><td><b>0.0%</b></td></tr>
+<tr><td>2023-05</td><td>43</td><td>1</td><td>37</td><td>5</td><td>2.3%</td><td><b>2.6%</b></td></tr>
+<tr><td>2023-06</td><td>4</td><td>0</td><td>3</td><td>1</td><td>0.0%</td><td><b>0.0%</b></td></tr>
+<tr><td>2023-10</td><td>25</td><td>0</td><td>24</td><td>1</td><td>0.0%</td><td><b>0.0%</b></td></tr>
+<tr><td>2023-12</td><td>66</td><td>0</td><td>64</td><td>2</td><td>0.0%</td><td><b>0.0%</b></td></tr>
+<tr><td>2024-01</td><td>1</td><td>0</td><td>1</td><td>0</td><td>0.0%</td><td><b>0.0%</b></td></tr>
+<tr class="warn"><td>2024-02</td><td>66</td><td>31</td><td>1</td><td>34</td><td>47.0%</td><td><b>96.9%</b></td></tr>
+<tr class="warn"><td>2024-03</td><td>86</td><td>41</td><td>22</td><td>23</td><td>47.7%</td><td><b>65.1%</b></td></tr>
+</table>
+
+<p><code>W</code> is a direct filter through 2024-01 and a grism from
+2024-02 onward. The two disputed slots therefore fail in <em>opposite</em>
+ways: slot <code>6</code> is mixed by <b>target</b> with no usable date
+rule, while <code>W</code> is mixed by <b>date</b> with a clean boundary.
+Neither can be resolved by the kind of rule &mdash; "frames after date X are
+spectra", "slot 6 means grism" &mdash; that a label-based audit would
+naturally reach for.</p>
 
 <h3>Decision</h3>
 <p>Slot <code>6</code> is <b>not a filter identity at all</b> &mdash; it is
 a wheel position that carried a grism for some programmes and a clear or
 broadband element for others, within the same observing season. The label
-must therefore never be used to decide whether a frame is a spectrum. Every
-downstream consumer reads the per-frame verdict in
-<code>frame_dispersion</code> instead.</p>
+must therefore never be used to decide whether a frame is a spectrum, and
+neither may <code>W</code>. Every downstream consumer reads the per-frame
+verdict in <code>frame_dispersion</code> instead.</p>
 
 <h3>Consequence</h3>
 <p>Both review panels were reasoning correctly from insufficient evidence,
@@ -223,29 +288,82 @@ flash-phase spectral series, which requires them to be spectra. Both cannot
 be safely assumed. <b>Which is which?</b></p>
 
 <h3>Evidence</h3>
-<p><b>NGC&nbsp;5548</b> &mdash; 0 slot-<code>6</code> frames
-measured across &mdash;&nbsp;&rarr;&nbsp;&mdash;:
-<b>0 dispersed</b> (&mdash;),
-0 direct, 0 indeterminate.</p>
+<p><b>NGC&nbsp;5548</b> &mdash; 143 slot-<code>6</code> frames
+measured across 2023-03-23&nbsp;&rarr;&nbsp;2023-04-25:
+<b>100 dispersed</b> (69.9%),
+17 direct, 26 indeterminate.</p>
 
 <table class="data">
-<tr><th>night</th><th>frames</th><th>dispersed</th><th>direct</th><th>reading</th></tr>
+<tr><th>night</th><th>frames</th><th>dispersed</th><th>direct</th><th>indet.</th><th>reading</th></tr>
+<tr class="warn"><td>2023-03-23</td><td>8</td><td>0</td><td>0</td><td>8</td><td>no verdict</td></tr>
+<tr class="warn"><td>2023-03-24</td><td>7</td><td>0</td><td>0</td><td>7</td><td>no verdict</td></tr>
+<tr class="warn"><td>2023-03-25</td><td>10</td><td>8</td><td>0</td><td>2</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-03-27</td><td>10</td><td>10</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-03-28</td><td>10</td><td>10</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-03-29</td><td>10</td><td>10</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-03-31</td><td>9</td><td>9</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-04-01</td><td>10</td><td>10</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-04-02</td><td>10</td><td>10</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr><td>2023-04-05</td><td>10</td><td>1</td><td>6</td><td>3</td><td>images</td></tr>
+<tr class="warn"><td>2023-04-17</td><td>7</td><td>2</td><td>0</td><td>5</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-04-18</td><td>5</td><td>5</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr><td>2023-04-19</td><td>10</td><td>0</td><td>9</td><td>1</td><td>images</td></tr>
+<tr class="warn"><td>2023-04-22</td><td>9</td><td>7</td><td>2</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-04-23</td><td>8</td><td>8</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-04-25</td><td>10</td><td>10</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
 </table>
 
-<p><b>SN&nbsp;2023ixf</b> &mdash; 0 slot-<code>6</code> frames
-measured across &mdash;&nbsp;&rarr;&nbsp;&mdash;:
-<b>0 dispersed</b> (&mdash;),
-0 direct, 0 indeterminate.</p>
+<p>The campaign alternates: whole nights of spectroscopy
+(2023-03-27&nbsp;&rarr;&nbsp;04-02, 04-23, 04-25) interleaved with nights of
+imaging (04-05, 04-19). Only <b>17 of the 143
+frames</b> are usable photometry.</p>
+
+<p><b>SN&nbsp;2023ixf</b> &mdash; 83 slot-<code>6</code> frames
+measured across 2023-05-21&nbsp;&rarr;&nbsp;2023-06-23:
+<b>61 dispersed</b> (73.5%),
+3 direct, 19 indeterminate. Every one of the
+dispersed frames measures as the <b>broad-spectrum grism</b>
+(61 low-dispersion against 0
+high-dispersion), spread over 13 separate nights.</p>
 
 <table class="data">
-<tr><th>night</th><th>frames</th><th>dispersed</th><th>direct</th><th>reading</th></tr>
+<tr><th>night</th><th>frames</th><th>dispersed</th><th>direct</th><th>indet.</th><th>reading</th></tr>
+<tr class="warn"><td>2023-05-21</td><td>4</td><td>4</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-05-23</td><td>9</td><td>7</td><td>0</td><td>2</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-05-24</td><td>4</td><td>4</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-05-26</td><td>7</td><td>3</td><td>3</td><td>1</td><td><b>split</b></td></tr>
+<tr class="warn"><td>2023-05-27</td><td>8</td><td>8</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-05-28</td><td>8</td><td>7</td><td>0</td><td>1</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-05-29</td><td>8</td><td>8</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-05-31</td><td>7</td><td>7</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-06-01</td><td>7</td><td>3</td><td>0</td><td>4</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-06-03</td><td>7</td><td>0</td><td>0</td><td>7</td><td>no verdict</td></tr>
+<tr class="warn"><td>2023-06-04</td><td>3</td><td>0</td><td>0</td><td>3</td><td>no verdict</td></tr>
+<tr class="warn"><td>2023-06-10</td><td>1</td><td>1</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-06-11</td><td>1</td><td>1</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-06-13</td><td>6</td><td>5</td><td>0</td><td>1</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-06-23</td><td>3</td><td>3</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
 </table>
 
 <h3>Decision</h3>
-<p>The per-night tables above are the operative answer for each project, and
-they must be applied at frame granularity rather than as a blanket ruling
-per target: a night-by-night split is exactly what a mixed wheel position
-produces. Any frame the classifier marks <code>indeterminate</code> stays
+<p><b>The NGC&nbsp;5548 AGN light curve does not survive as photometry.</b>
+69.9% of its slot-<code>6</code> frames are spectra, and
+only 17 frames across the whole 2023 campaign are direct
+images &mdash; too few, and too unevenly spaced, to carry a variability
+result. The Dwarf/AGN survey should rebuild that light curve from its other
+filters and treat the slot-<code>6</code> frames as a spectroscopic dataset
+it did not know it had.</p>
+
+<p><b>The SN&nbsp;2023ixf frames are a genuine spectral series.</b>
+61 dispersed frames on 13 nights, opening
+2023-05-21 &mdash; two days after the 2023-05-19 discovery, inside the
+flash-ionisation window &mdash; and running to 2023-06-23. All of them
+are broad-spectrum grism, so they share one dispersion and can be reduced as
+a single homogeneous series.</p>
+
+<p>Both answers must be applied at frame granularity rather than as a
+blanket ruling per target: a night-by-night split is exactly what a mixed
+wheel position produces. Any frame marked <code>indeterminate</code> stays
 out of both the light curve and the spectral series until a human has looked
 at it.</p>
 
@@ -256,7 +374,16 @@ been spread along a trace and most of it now falls outside the aperture &mdash;
 and that number lands in the light curve as a fake dimming, correlated with
 whichever nights the grism happened to be in the beam. That is the failure
 mode this measurement exists to prevent, and it is invisible to every check
-that does not look at the pixels.</p>
+that does not look at the pixels. For NGC&nbsp;5548 the correlation would
+have been particularly convincing: the dispersed and direct nights come in
+runs of several days, so the artefact would have looked like real AGN
+variability on exactly the timescale the survey was hunting.</p>
+
+<p>The SN&nbsp;2023ixf result runs the other way and is worth stating as a
+gain rather than a correction. A flash-phase spectral series of a
+Type&nbsp;II supernova in M101 is a scarce object; this one was sitting in
+the archive labelled with a slot number, uncounted, because nobody could
+prove what the label meant.</p>
 </section>
 <section id="census"><h2>5&nbsp;&middot;&nbsp;How many spectra does the
 archive actually hold?</h2>
@@ -268,35 +395,46 @@ quoted as <b>247 Mode0 spectra</b>, and the BeStar campaign as
 they survive measurement?</b></p>
 
 <h3>Evidence</h3>
-<p>Across every candidate and control frame measured, <b>530
-frames are dispersed</b>: 210 through the H-alpha unit,
-236 through the broad unit, and 84 whose
+<p>Across every candidate and control frame measured, <b>2,463
+frames are dispersed</b>: 299 through the H-alpha unit,
+2,020 through the broad unit, and 144 whose
 dispersion strength is ambiguous.</p>
 
 <table class="data">
-<tr><th>label</th><th>frames measured</th><th>dispersed</th><th>% dispersed</th><th>date span</th></tr>
-<tr><td><code>hrg</code></td><td>168</td><td>168</td><td>100.0%</td><td>2025-01-23 &rarr; 2025-03-19</td></tr>
-<tr><td><code>lrg</code></td><td>108</td><td>108</td><td>100.0%</td><td>2025-01-23 &rarr; 2025-01-23</td></tr>
-<tr><td><code>OGGrism</code></td><td>106</td><td>95</td><td>89.6%</td><td>2024-04-12 &rarr; 2024-04-16</td></tr>
-<tr><td><code>HaG</code></td><td>106</td><td>106</td><td>100.0%</td><td>2024-04-12 &rarr; 2024-04-16</td></tr>
-<tr><td><code>W</code></td><td>50</td><td>18</td><td>36.0%</td><td>2024-02-04 &rarr; 2024-03-13</td></tr>
-<tr><td><code>6</code></td><td>35</td><td>35</td><td>100.0%</td><td>2023-02-18 &rarr; 2024-03-13</td></tr>
+<tr><th>label</th><th>in archive</th><th>measured</th><th>coverage</th><th>dispersed</th><th>% of measured</th><th>date span</th></tr>
+<tr class="warn"><td><code>hrg</code></td><td>9,926</td><td>168</td><td>1.7%</td><td>168</td><td>100.0%</td><td>2024-11-08 &rarr; 2026-07-02</td></tr>
+<tr class="warn"><td><code>lrg</code></td><td>6,656</td><td>108</td><td>1.6%</td><td>108</td><td>100.0%</td><td>2024-11-08 &rarr; 2026-07-02</td></tr>
+<tr><td><code>6</code></td><td>2,208</td><td>2,208</td><td>100.0%</td><td>1,739</td><td>78.8%</td><td>2023-02-06 &rarr; 2024-03-26</td></tr>
+<tr class="warn"><td><code>OGGrism</code></td><td>1,428</td><td>205</td><td>14.4%</td><td>182</td><td>88.8%</td><td>2024-04-04 &rarr; 2025-01-20</td></tr>
+<tr class="warn"><td><code>HaGrism</code></td><td>1,411</td><td>0</td><td>0.0%</td><td>0</td><td>&mdash;</td><td>2024-05-07 &rarr; 2025-03-20</td></tr>
+<tr class="warn"><td><code>W</code></td><td>299</td><td>298</td><td>99.7%</td><td>73</td><td>24.5%</td><td>2023-03-27 &rarr; 2024-03-25</td></tr>
+<tr><td><code>HaG</code></td><td>192</td><td>192</td><td>100.0%</td><td>185</td><td>96.4%</td><td>2024-04-04 &rarr; 2024-04-16</td></tr>
+<tr><td><code>w</code></td><td>2</td><td>2</td><td>100.0%</td><td>0</td><td>0.0%</td><td>2026-03-21 &rarr; 2026-03-21</td></tr>
+<tr class="warn"><td><code>lrgblue</code></td><td>1</td><td>0</td><td>0.0%</td><td>0</td><td>&mdash;</td><td>2026-03-21 &rarr; 2026-03-21</td></tr>
 </table>
+
+<p class="decision">Rows highlighted amber are not yet fully measured. The
+campaign is resumable and runs in priority order &mdash; the disputed labels
+and the control first, the undisputed <code>hrg</code>/<code>lrg</code> bulk
+last &mdash; so a partial run answers the contested questions completely
+while leaving only the census refinement outstanding. Where coverage is
+below 100%, the dispersed count is a floor, not a total, and the
+&ldquo;% of measured&rdquo; column is the quantity that generalises.</p>
 
 <figure><a href="figures/s2c/s2c_census.png"><img src="figures/s2c/s2c_census.png" alt=""></a><figcaption>Measured spectra per target for the 25 most-observed spectroscopic targets, split by grism unit.</figcaption></figure>
 
-<p><b>T&nbsp;CrB.</b> The monitoring stage holds 0 measured
-frames, of which <b>0 are dispersed</b>
-(0 H-alpha, 0 broad). Counting instead
-by target name across the whole archive, 0 frames carry the
-target <code>T CrB</code> and 0 of them measure as
+<p><b>T&nbsp;CrB.</b> The monitoring stage holds 33 measured
+frames, of which <b>18 are dispersed</b>
+(0 H-alpha, 18 broad). Counting instead
+by target name across the whole archive, 26 frames carry the
+target <code>T CrB</code> and 16 of them measure as
 spectra.</p>
 
 <p><b>BeStar campaign.</b> The staged campaign holds 0
 measured frames, 0 of them dispersed. The
 ~23,000 figure is not a count of that campaign: it is close to the
-488 frames carrying <em>any</em> grism label archive-wide,
-of which 477 measure as dispersed.</p>
+673 frames carrying <em>any</em> grism label archive-wide,
+of which 643 measure as dispersed.</p>
 
 <h3>Decision</h3>
 <p>The census above replaces both quoted figures as the citable numbers, and

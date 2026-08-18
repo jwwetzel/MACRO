@@ -358,7 +358,7 @@ def cmd_init(args) -> None:
         naxis1 INTEGER, naxis2 INTEGER,
         status TEXT DEFAULT 'pending',
         exclude_reason TEXT,
-        plate_scale REAL, aper_px REAL,
+        plate_scale REAL, scale_basis TEXT, aper_px REAL,
         n_detected INTEGER, n_saturated INTEGER, n_nonfinite INTEGER,
         bkg_adu REAL, bkg_rms REAL, fwhm_px REAL,
         has_wcs INTEGER,
@@ -381,7 +381,8 @@ def cmd_init(args) -> None:
     # declared: a database created by an earlier run of this script has no
     # n_nonfinite column, and re-creating the table would throw away
     # measurements that are still perfectly good.
-    for ddl in ("ALTER TABLE cv_frames ADD COLUMN n_nonfinite INTEGER",):
+    for ddl in ("ALTER TABLE cv_frames ADD COLUMN n_nonfinite INTEGER",
+                "ALTER TABLE cv_frames ADD COLUMN scale_basis TEXT"):
         try:
             con.execute(ddl)
         except sqlite3.OperationalError:
@@ -480,17 +481,18 @@ def cmd_init(args) -> None:
                 "no pixel file for this provenance: the frame has no "
                 "server-reduced counterpart while its era uses the reduced "
                 "tree, and mixing raw pixels into the series is forbidden")
-        else:
-            # A per-era nominal plate scale is enough for the geometry
-            # verdict; the true per-frame value comes from the header at
-            # extraction.  Era 76/78/79/80 bin 2x on a 7.52 um sensor at
-            # f = 3454 mm -> 0.449"/px; the iKon eras run 0.81"/px.  We
-            # take the SMALLEST plausible scale (largest aperture in
-            # pixels) so the strip test errs toward exclusion.
-            aper = ph.aperture_radius_px(0.449)
-            ok, why = sr.geometry_verdict(nax1, nax2, aper)
-            if not ok:
-                status, reason = "excluded", why
+        # NOTE (2026-08-18): there is deliberately NO geometry test here.
+        # An earlier version of this stage rejected frames whose manifest
+        # NAXIS said the image was too small to hold an aperture, and it
+        # threw out all 207 EU UMa era-80 frames as '8-pixel readout
+        # strips'.  They are nothing of the kind: opening the files shows
+        # 4,800 x 3,211 raw and 4,787 x 3,193 reduced images.  The 8 is the
+        # BINTABLE ROW LENGTH of a tile-compressed header that the S0 scan
+        # read without translating — the same artifact macro_core.fitsgeom
+        # exists to resolve.  Geometry is now judged ONLY at extraction,
+        # against the pixels themselves (macro_phot.series.geometry_verdict
+        # on the resolved header), because a decision this destructive must
+        # never rest on a second-hand number.
         if bjd is None and status == "pending":
             status, reason = "excluded", (
                 "no BJD_TDB in frame_times: the timing rule forbids "
@@ -581,10 +583,11 @@ def _extract_one(job: dict) -> dict:
                 # moves with them.  (The flat is median-normalized, so it
                 # does not shift levels.)
                 veto = float(veto) - float(np.median(dark))
-        scale = ph.plate_scale_arcsec_per_px(meta["xpixsz"], meta["focallen"])
+        scale, scale_basis = sr.resolve_plate_scale(meta)
         aper = ph.aperture_radius_px(scale)
         if aper is None:
-            raise ValueError("no plate scale in header (XPIXSZ/FOCALLEN)")
+            raise ValueError("no plate scale: neither XPIXSZ/FOCALLEN nor a "
+                             "CD matrix nor CDELT is usable in this header")
         ok, why = sr.geometry_verdict(meta["naxis1"], meta["naxis2"], aper)
         if not ok:
             raise ValueError(why)
@@ -609,7 +612,8 @@ def _extract_one(job: dict) -> dict:
             dets = {k: np.asarray(v)[keep] for k, v in dets.items()}
             sat = sat[keep]
             stats = dict(stats, n_detected=int(keep.sum()))
-        out.update(ok=True, recipe=recipe, plate_scale=scale, aper_px=aper,
+        out.update(ok=True, recipe=recipe, plate_scale=scale,
+                   scale_basis=scale_basis, aper_px=aper,
                    veto_used=veto, stats=stats, dets=dets,
                    saturated=sat.astype(int),
                    n_saturated=int(sat.sum()), n_nonfinite=n_bad)
@@ -654,11 +658,12 @@ def cmd_extract(args) -> None:
                 continue
             s, d = res["stats"], res["dets"]
             con.execute("""UPDATE cv_frames SET status='extracted',
-                calib_recipe=?, plate_scale=?, aper_px=?, veto_adu=?,
-                n_detected=?, n_saturated=?, n_nonfinite=?,
+                calib_recipe=?, plate_scale=?, scale_basis=?, aper_px=?,
+                veto_adu=?, n_detected=?, n_saturated=?, n_nonfinite=?,
                 bkg_adu=?, bkg_rms=?, fwhm_px=?
                 WHERE frame_id=?""",
-                (res["recipe"], fnum(res["plate_scale"]), fnum(res["aper_px"]),
+                (res["recipe"], fnum(res["plate_scale"]), res["scale_basis"],
+                 fnum(res["aper_px"]),
                  fnum(res["veto_used"]), s["n_detected"], res["n_saturated"],
                  res["n_nonfinite"],
                  fnum(s["bkg_adu"]), fnum(s["bkg_rms"]), fnum(s["fwhm_px"]),
@@ -747,10 +752,11 @@ def _ensure_reference(con, args, target_key: str, era_id: int):
         fwhm_of = {s[0]: s[2] for s in stats}
         ranking = ph.rank_references([(s[0], s[1], s[2], solved[s[0]])
                                       for s in stats])
-        # Solved-first, then everyone (stable: preserves rank order inside
-        # each group, so the choice stays deterministic).
-        ordered = ([c for c in ranking if solved.get(c)] +
-                   [c for c in ranking if not solved.get(c)])
+        # Solved candidates go first, but only if they are deep enough to
+        # be worth it — the reference's star list is the ceiling on what
+        # any frame in the era can match.
+        ordered = sr.order_reference_candidates(
+            ranking, {s[0]: s[1] for s in stats}, solved)
         ref_id = None
         doubled = None
         n_rejected = 0
@@ -851,12 +857,34 @@ def _match_one(job: dict) -> dict:
             ref_bright = np.asarray(job["ref_bright"], dtype=float)
             # seed = frame_id pins astroalign's otherwise-unseedable RANSAC,
             # so star identities reproduce bit-for-bit on a re-run.
-            tf = ext.find_series_transform(bright, ref_bright,
-                                           seed=job["frame_id"])
+            try:
+                tf = ext.find_series_transform(bright, ref_bright,
+                                               seed=job["frame_id"])
+            except Exception:
+                # DEPTH-MATCHED RETRY.  The ladder already builds both
+                # bright pools the same way; what it cannot fix is the two
+                # catalogs reaching DIFFERENT DEPTHS.  A reference is
+                # chosen as the deepest frame of its era, and ST LMi's 2024
+                # season runs from 16 to 815 detections per frame — so a
+                # cloudy 50-star frame's "brightest 100" is its whole
+                # catalog while the reference's "brightest 100" reaches two
+                # magnitudes fainter, the two control sets barely overlap,
+                # and astroalign exhausts its triangles on stars the frame
+                # never saw.  Truncating BOTH catalogs to the shallower
+                # one's length puts the two control sets back on the same
+                # brightness range.  Tried second, so frames that already
+                # matched keep exactly the transform they had.
+                n = min(len(bright), len(ref_bright))
+                if n < ph.MIN_STARS_FOR_ALIGN:
+                    raise
+                tf = ext.find_series_transform(bright[:n], ref_bright[:n],
+                                               seed=job["frame_id"])
+                method_suffix = "_depthmatched"
+                job = dict(job, _suffix=method_suffix)
             moved = tf(xy)
             idx = ph.match_one_to_one(ref_xy, moved, tol)
             method = ("astroalign" if job["method"] == "astroalign"
-                      else "astroalign_fallback")
+                      else "astroalign_fallback") + job.get("_suffix", "")
             scale, rot = float(tf.scale), float(np.degrees(tf.rotation))
             out["moved"] = moved
         matched = idx >= 0
@@ -1009,6 +1037,18 @@ def cmd_match(args) -> None:
 # ---------------------------------------------------------------------------
 # Stage: field (identify the target in each (target, era))
 # ---------------------------------------------------------------------------
+
+def _tie_upsert(con, row: tuple) -> None:
+    """Record ONE (target, era) field tie immediately, not at the end.
+
+    Written the moment it is known so a later network failure cannot undo
+    an identification that already cost a slow archive query.
+    """
+    con.execute("INSERT OR REPLACE INTO cv_field_tie VALUES "
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?)", row)
+    con.commit()
+
+
 def cmd_field(args) -> None:
     """Find THE TARGET among each (target, era) reference catalog.
 
@@ -1034,11 +1074,28 @@ def cmd_field(args) -> None:
     against.
     """
     con = connect(args.db)
+    # RESUMABLE by design.  The Gaia archive is a shared public service
+    # whose transient 500s cost minutes each (measured during this build),
+    # and rebuilding the whole table on every run would throw away every
+    # tie already paid for whenever the last one failed.  So the table
+    # persists and each (target, era) is upserted; --force recomputes.
+    con.execute("""CREATE TABLE IF NOT EXISTS cv_field_tie (
+        target_key TEXT, era_id INTEGER, method TEXT, parity TEXT,
+        scale_fit REAL, rot_deg REAL, target_star_id INTEGER,
+        n_gaia INTEGER, n_gaia_matched INTEGER,
+        target_ra REAL, target_dec REAL, coord_source TEXT, status TEXT,
+        PRIMARY KEY (target_key, era_id))""")
+    done = set() if args.force else {
+        (r[0], r[1]) for r in con.execute(
+            "SELECT target_key, era_id FROM cv_field_tie WHERE status='ok'")}
     refs = con.execute("""SELECT r.target_key, r.era_id, r.ref_frame_id,
                                  r.ref_raw_path, r.ref_has_wcs, r.plate_scale
                           FROM cv_ref r ORDER BY 1, 2""").fetchall()
-    tie_rows = []
     for tk, era, ref_id, ref_raw, has_wcs, scale in refs:
+        if (tk, era) in done:
+            print(f"  field {tk}/era{era}: already tied — skipping "
+                  f"(use --force to redo)", flush=True)
+            continue
         ra0, dec0, coord_src = gg.resolve_target(tk)
         stars = con.execute("""SELECT star_id, x, y FROM cv_ref_stars
                                WHERE target_key=? AND era_id=?
@@ -1064,7 +1121,7 @@ def cmd_field(args) -> None:
                     method = "wcs"
                 except Exception:
                     radec = None
-            if radec is not None:
+            if radec is not None and args.gaia_identities:
                 # A solved reference already knows where its stars are, so
                 # the Gaia tie needs no triangle fit at all — the two star
                 # lists are cross-matched directly on the sky.  This is not
@@ -1074,7 +1131,14 @@ def cmd_field(args) -> None:
                 # which is what makes a comparison set checkable by someone
                 # who was not here.  A failed cone query is not fatal: the
                 # field tie stands on the WCS, and the Gaia columns simply
-                # stay empty.
+                # stay empty.  It is OPT-IN (--gaia-identities) because the
+                # archive is a shared public service whose latency this
+                # campaign measured at 6 to 68 seconds per identical query,
+                # with intermittent 500s on top: a convenience column must
+                # not be allowed to hold the whole campaign hostage.  An
+                # UNSOLVED reference has no such choice — Gaia is the only
+                # route to a target identification there — so that branch
+                # always queries.
                 try:
                     sc = scale or 0.45
                     n1, n2 = con.execute(
@@ -1119,18 +1183,18 @@ def cmd_field(args) -> None:
             except Exception as e:
                 print(f"  gaia: cone failed for {tk}/era{era}: {e}",
                       flush=True)
-                tie_rows.append((tk, era, "none", None, None, None, None,
-                                 0, 0, ra0, dec0, coord_src,
-                                 f"query_failed: {type(e).__name__}"))
+                _tie_upsert(con, (tk, era, "none", None, None, None, None,
+                                  0, 0, ra0, dec0, coord_src,
+                                  f"query_failed: {type(e).__name__}"))
                 continue
             fit = gg.identify_reference(ref_xy, gaia_tab, ra0, dec0,
                                         ref_bright_xy=ref_bright,
                                         fit_radius_arcsec=fit_radius,
                                         seed=ref_id)
             if fit is None:
-                tie_rows.append((tk, era, "none", None, None, None, None,
-                                 n_gaia, 0, ra0, dec0, coord_src,
-                                 "fit_failed"))
+                _tie_upsert(con, (tk, era, "none", None, None, None, None,
+                                  n_gaia, 0, ra0, dec0, coord_src,
+                                  "fit_failed"))
                 continue
             method = "gaia"
             radec = fit["ref_radec"]
@@ -1165,19 +1229,13 @@ def cmd_field(args) -> None:
             f"target not in reference catalog (nearest star "
             f"{sep_arcsec:.1f}\" away, tolerance "
             f"{gg.TARGET_ID_TOL_ARCSEC:g}\")")
-        tie_rows.append((tk, era, method, parity, fnum(scale_fit), fnum(rot),
-                         target_sid, n_gaia, n_matched, ra0, dec0, coord_src,
-                         status))
+        _tie_upsert(con, (tk, era, method, parity, fnum(scale_fit),
+                          fnum(rot), target_sid, n_gaia, n_matched, ra0,
+                          dec0, coord_src, status))
         print(f"  field {tk}/era{era}: via {method}; target star "
               f"{target_sid} at {sep_arcsec:.2f}\"; "
               f"gaia matched {n_matched}/{len(sids)}", flush=True)
 
-    swap_in(con, "cv_field_tie",
-            """CREATE TABLE {t} (target_key TEXT, era_id INTEGER,
-               method TEXT, parity TEXT, scale_fit REAL, rot_deg REAL,
-               target_star_id INTEGER, n_gaia INTEGER, n_gaia_matched INTEGER,
-               target_ra REAL, target_dec REAL, coord_source TEXT,
-               status TEXT)""", tie_rows)
     meta_write(con)
     con.close()
 
@@ -1261,9 +1319,9 @@ def cmd_ensemble(args) -> None:
         prov = prov[0] if prov else None
         if not admitted:
             series_rows.append((skey, tk, era, filt, prov, n_staged,
-                                len(fids), fnum(rate), n_sat or 0,
-                                0, 0, 0, 0, 0, None, None, None, None, None,
-                                None, "not_solved", why))
+                                len(fids), fnum(rate), n_sat or 0, 0, 0,
+                                0, 0, 0, None, 0, 0, None, None, None, None,
+                                None, None, "not_solved", why))
             print(f"  {skey:24s} NOT SOLVED — {why}", flush=True)
             continue
 
@@ -1339,6 +1397,16 @@ def cmd_ensemble(args) -> None:
                                     fnum(m - zp) if np.isfinite(zp) else None,
                                     int(sat)))
 
+        # ---- how often the TARGET itself hit the digitization ceiling.
+        # The campaign's contract is that a saturated target measurement is
+        # flagged, never silently fitted; this is the number that lets the
+        # next analyst see at a glance whether that mattered here.
+        n_tgt = n_tgt_sat = 0
+        for row in lc_rows:
+            if row[0] == skey and row[2] == "target":
+                n_tgt += 1
+                n_tgt_sat += int(row[9])
+
         # ---- per-series diagnostics
         chk = np.flatnonzero(roles == "check")
         chk_rms = fnum(np.nanmedian(rms[chk])) if chk.size else None
@@ -1346,12 +1414,14 @@ def cmd_ensemble(args) -> None:
         zp_ok = sol.zp[np.isfinite(sol.zp)]
         series_rows.append((
             skey, tk, era, filt, prov, n_staged, len(fids), fnum(rate),
-            n_sat or 0, n_comp, n_check, n_drop, sol.n_iter,
+            n_sat or 0, n_tgt, n_tgt_sat,
+            n_comp, n_check, n_drop, sel.n_passes, sol.n_iter,
             int(sol.converged), fnum(sel.comp_rms_median), chk_rms,
             fnum(infl), fnum(np.std(zp_ok)) if zp_ok.size else None,
             target_sid, sr.check_star_verdict(n_check), "solved", why))
         print(f"  {skey:24s} n={len(fids):5d} rate={rate or float('nan'):.2f} "
               f"comps={n_comp:3d} checks={n_check} dropped={n_drop:3d} "
+              f"passes={sel.n_passes} "
               f"iters={sol.n_iter:3d} conv={int(sol.converged)} "
               f"checkRMS={chk_rms if chk_rms is not None else float('nan'):.4f} "
               f"infl={infl:.2f}", flush=True)
@@ -1374,8 +1444,11 @@ def cmd_ensemble(args) -> None:
             """CREATE TABLE {t} (series_key TEXT PRIMARY KEY,
                target_key TEXT, era_id INTEGER, filter TEXT, provenance TEXT,
                n_staged INTEGER, n_frames_used INTEGER, match_rate REAL,
-               n_saturated_dets INTEGER, n_comp INTEGER, n_check INTEGER,
-               n_dropped_unstable INTEGER, ens_niter INTEGER,
+               n_saturated_dets INTEGER,
+               n_target_points INTEGER, n_target_saturated INTEGER,
+               n_comp INTEGER, n_check INTEGER,
+               n_dropped_unstable INTEGER, comp_passes INTEGER,
+               ens_niter INTEGER,
                ens_converged INTEGER, comp_rms_median REAL,
                check_rms_median REAL, chi2_inflation REAL, zp_std REAL,
                target_star_id INTEGER, check_verdict TEXT,
@@ -1528,7 +1601,14 @@ def main() -> None:
                         help="max frames this invocation (chunked runs)")
         sp.add_argument("--workers", type=int, default=4,
                         help=f"worker processes (clamped to {MAX_WORKERS})")
-    for name in ("field", "ensemble", "errors", "status"):
+    fp = sub.add_parser("field")
+    fp.add_argument("--force", action="store_true",
+                    help="recompute ties that already succeeded")
+    fp.add_argument("--gaia-identities", action="store_true",
+                    help="also query Gaia for star identities on eras whose "
+                         "reference is already plate-solved (optional; the "
+                         "tie itself does not need it)")
+    for name in ("ensemble", "errors", "status"):
         sub.add_parser(name)
     args = p.parse_args()
     {"init": cmd_init, "extract": cmd_extract, "match": cmd_match,

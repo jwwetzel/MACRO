@@ -136,6 +136,25 @@ NON_SCIENCE_TREES = ("calib",)
 #: transaction is brief.
 CHUNK = 120
 
+#: Queue priority — frames are measured in this order, lowest number first.
+#:
+#: The campaign takes hours against a shared spinning disk, so the order is
+#: chosen so that a run interrupted at ANY point has already answered the
+#: questions that were asked.  The disputed labels come first because they
+#: are the entire question; the control follows immediately because without
+#: a measured false-positive rate no verdict on the disputed labels can be
+#: believed; the small transitional vocabulary comes next because it bridges
+#: the naming epochs; and the 16k-frame hrg/lrg bulk — whose labels are not
+#: in dispute and which only refines the census — comes last.
+PRIORITY = {
+    "6": 1, "W": 1, "w": 1,                       # the disputed slots
+    # control frames get priority 2, assigned in build()
+    "HaGrism": 3, "OGGrism": 3, "HaG": 3, "lrgblue": 3,
+    "hrg": 4, "lrg": 4,
+}
+CONTROL_PRIORITY = 2
+DEFAULT_PRIORITY = 4
+
 
 def utcnow() -> str:
     """ISO-8601 UTC timestamp for log lines and DB facts."""
@@ -169,6 +188,7 @@ CREATE TABLE IF NOT EXISTS frame_dispersion (
     xbinning         REAL,
     era_id           INTEGER,
     population       TEXT NOT NULL,   -- candidate | control
+    priority         INTEGER NOT NULL DEFAULT 4,   -- lower is measured first
     status           TEXT NOT NULL,   -- pending | measured | unreadable
     -- measured numbers (NULL until measured)
     n_detected       INTEGER,
@@ -257,12 +277,17 @@ def cmd_build(args) -> int:
             take = min(CONTROL_PER_FILTER, len(pool))
             ctrl.extend(rng.sample(pool, take))
 
-        rows = ([(*r, "candidate", "pending") for r in cand]
-                + [(*r, "control", "pending") for r in ctrl])
+        # ``filter`` is the 4th column of _FRAME_COLS; priority keys off it
+        # for candidates and is fixed for the control population.
+        fi = _FRAME_COLS.index("filter")
+        rows = ([(*r, "candidate", PRIORITY.get(r[fi], DEFAULT_PRIORITY),
+                  "pending") for r in cand]
+                + [(*r, "control", CONTROL_PRIORITY, "pending")
+                   for r in ctrl])
         con.executemany(
             f"INSERT OR REPLACE INTO frame_dispersion "
-            f"({cols}, population, status) "
-            f"VALUES ({','.join('?' * (len(_FRAME_COLS) + 2))})", rows)
+            f"({cols}, population, priority, status) "
+            f"VALUES ({','.join('?' * (len(_FRAME_COLS) + 3))})", rows)
         for k, v in (("built_at", utcnow()),
                      ("code_version", DISPERSION_CODE_VERSION),
                      ("archive_root", str(args.archive)),
@@ -358,7 +383,8 @@ def cmd_run(args) -> int:
                 rows = con.execute(
                     """SELECT obs_rowid, path FROM frame_dispersion
                        WHERE status = 'pending'
-                       ORDER BY obs_rowid LIMIT ?""", (CHUNK,)).fetchall()
+                       ORDER BY priority, obs_rowid LIMIT ?""",
+                    (CHUNK,)).fetchall()
                 if not rows:
                     print("run: no pending frames left — campaign complete.",
                           flush=True)

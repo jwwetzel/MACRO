@@ -5,14 +5,16 @@ Reads the S0e evidence tables and writes:
 * ``docs/pipeline/s0e_geometry_fix.html``   — the report
 * ``docs/pipeline/figures/s0e/*.png``       — every figure
 
-UNUSUALLY FOR THIS SITE, this report reads TWO databases, and says so on
-the page.  The other reports read only the manifest, because that is where
-their evidence lives.  S0e's evidence is a CATALOG defect: the audit trail
-of what was re-read and what changed (``geom_rescan``), the exhibit header
-(``s0e_header_dump``), the era forecast (``s0e_era_forecast``) and the
-re-queue population (``s0e_requeue``) are all catalog-side tables written
-by ``rescan_geometry.py`` and ``s0e_era_forecast.py``.  The manifest is
-read for the *consequences* — which eras and which S1 frames were affected.
+UNUSUALLY FOR THIS SITE, this report reads the CATALOG, not the manifest,
+and says so on the page.  The other reports read only the manifest, because
+that is where their evidence lives.  S0e's evidence is a catalog defect, and
+— more importantly — it is evidence that the fix DESTROYS: once the manifest
+is rebuilt, no frame carries the phantom geometry any more.  So the whole
+argument (the audit trail ``geom_rescan``, the exhibit header
+``s0e_header_dump``, the pre-fix breakdowns ``s0e_blast_era`` /
+``s0e_blast_target``, the era forecast ``s0e_era_forecast`` and the re-queue
+population ``s0e_requeue``) was snapshotted into catalog-side tables by
+``rescan_geometry.py`` and ``s0e_era_forecast.py`` while it was still true.
 
 Every number on the page comes from a SQL query in this module.  Nothing is
 typed by hand, so re-running the repair regenerates the whole argument.
@@ -64,36 +66,58 @@ def fig_anatomy(cat) -> str:
         o1, o2 = int(old[0][0]), int(old[0][1])
         n1, n2 = int(new[0][0]), int(new[0][1])
     with plt.rc_context(DARK):
-        fig, ax = plt.subplots(figsize=(9.4, 3.6))
+        fig, (ax, ax2) = plt.subplots(
+            1, 2, figsize=(9.4, 4.0), gridspec_kw={"width_ratios": [2.2, 1]})
+
+        # --- left: the two shapes, honestly to scale -------------------
+        # The phantom strip is 8 px inside a 4800 px frame, so at true
+        # scale it is a HAIRLINE.  That is the whole point and it is left
+        # un-exaggerated: an artifact this thin is exactly what nobody
+        # noticed.  An arrow does the pointing instead of a fake width.
         ax.add_patch(plt.Rectangle((0, 0), n1, n2, facecolor="#1d2633",
-                                   edgecolor=OK_GREEN, lw=2))
-        ax.add_patch(plt.Rectangle((0, 0), o1, o2, facecolor=WARN,
-                                   edgecolor=WARN, lw=2))
-        ax.annotate(f"TRUE image: ZNAXIS1 x ZNAXIS2 = {n1} x {n2}",
-                    (n1 * 0.5, n2 * 0.55), color=OK_GREEN, ha="center",
-                    fontsize=11, weight="bold")
-        ax.annotate(f"what the BINTABLE header says:\nNAXIS1 x NAXIS2 = "
-                    f"{o1} x {o2}\n(row length in BYTES x row COUNT)",
-                    (n1 * 0.06, n2 * 1.06), color=WARN, ha="left", fontsize=9)
-        ax.set_xlim(-150, n1 * 1.05)
-        ax.set_ylim(-150, n2 * 1.35)
+                                   edgecolor=OK_GREEN, lw=2.0))
+        ax.add_patch(plt.Rectangle((0, 0), max(o1, n1 * 0.004), o2,
+                                   facecolor=WARN, edgecolor=WARN, lw=1.0))
+        ax.annotate(f"TRUE image\nZNAXIS1 × ZNAXIS2\n{n1} × {n2}",
+                    (n1 * 0.55, n2 * 0.5), color=OK_GREEN, ha="center",
+                    va="center", fontsize=11, weight="bold")
+        ax.annotate(f"NAXIS1 × NAXIS2 = {o1} × {o2}\n"
+                    f"(table row BYTES × row COUNT)",
+                    xy=(o1, n2 * 0.80), xytext=(n1 * 0.30, n2 * 1.10),
+                    color=WARN, fontsize=9, ha="left", va="center",
+                    arrowprops=dict(arrowstyle="->", color=WARN, lw=1.4))
+        ax.set_xlim(-n1 * 0.06, n1 * 1.06)
+        ax.set_ylim(-n2 * 0.08, n2 * 1.30)
         ax.set_aspect("equal")
         ax.set_xlabel("pixels")
         ax.set_ylabel("pixels")
-        ax.set_title("The same frame, described two ways — one of them wrong")
+        ax.set_title("Drawn to scale", fontsize=10)
         ax.grid(False)
+
+        # --- right: the same two numbers where the ratio is legible ----
+        bars = ax2.bar(["NAXIS1\n(table)", "ZNAXIS1\n(image)"], [o1, n1],
+                       color=[WARN, OK_GREEN])
+        ax2.set_yscale("log")
+        ax2.set_ylabel("frame width (pixels, log scale)")
+        ax2.set_title(f"{n1 // o1}× wrong", fontsize=10)
+        for b, v in zip(bars, [o1, n1]):
+            ax2.annotate(f"{v:,}", (b.get_x() + b.get_width() / 2, v),
+                         ha="center", va="bottom", fontsize=10,
+                         color="#e8eaed")
+        ax2.set_ylim(1, n1 * 6)
+
+        fig.suptitle("The same frame, described two ways — one of them wrong")
         fig.tight_layout()
         fig.savefig(FIG_DIR / "s0e_anatomy.png", dpi=DPI)
         plt.close(fig)
     return "figures/s0e/s0e_anatomy.png"
 
 
-def fig_blast(cat, man) -> str:
+def fig_blast(cat) -> str:
     """Who was affected: frames per target, and the repair's control group."""
-    rows = q(man, """
-        SELECT canonical_target, count(*) FROM frames
-        WHERE naxis1 = 8 AND naxis2 = 3211 AND is_canonical = 1
-        GROUP BY 1 ORDER BY 2 DESC LIMIT 12""")
+    rows = q(cat, """
+        SELECT canonical_target, n_frames FROM s0e_blast_target
+        ORDER BY n_frames DESC LIMIT 12""")
     names = [r[0] or "(unnamed)" for r in rows][::-1]
     counts = [r[1] for r in rows][::-1]
     changed = q1(cat, "SELECT count(*) FROM geom_rescan WHERE changed = 1")
@@ -104,6 +128,7 @@ def fig_blast(cat, man) -> str:
         bars = ax1.barh(names, counts, color=WARN)
         ax1.set_xlabel("canonical frames carrying phantom geometry")
         ax1.set_title("Blast radius by target")
+        ax1.set_xlim(0, max(counts) * 1.16)   # room for the value labels
         for b, c in zip(bars, counts):
             ax1.annotate(f" {c:,}", (c, b.get_y() + b.get_height() / 2),
                          va="center", fontsize=8, color="#e8eaed")
@@ -168,6 +193,7 @@ def fig_requeue(cat) -> str:
         bars = ax.barh(names, counts, color=colors)
         ax.set_xlabel("frames to re-queue for astrometry")
         ax.set_title("Wrongly-excluded frames, by S1 stratum")
+        ax.set_xlim(0, max(counts) * 1.12)    # room for the value labels
         for b, c in zip(bars, counts):
             ax.annotate(f" {c:,}", (c, b.get_y() + b.get_height() / 2),
                         va="center", fontsize=8, color="#e8eaed")
@@ -234,12 +260,12 @@ fallback read the raw table header. The scanner now merges cards
 </section>"""
 
 
-def section_blast(cat, man) -> str:
+def section_blast(cat) -> str:
     n_changed = q1(cat, "SELECT count(*) FROM geom_rescan WHERE changed = 1")
     n_control = q1(cat, "SELECT count(*) FROM geom_rescan WHERE changed = 0")
     n_err = q1(cat, "SELECT count(*) FROM geom_rescan WHERE error IS NOT NULL")
     n_left = q1(cat, "SELECT count(*) FROM obs WHERE naxis1 = 8 AND naxis2 = 3211")
-    src = fig_blast(cat, man)
+    src = fig_blast(cat)
 
     # One query, used for both the cells and the row highlighting — asking
     # the database the same question twice invites the two answers to differ.
@@ -254,17 +280,18 @@ def section_blast(cat, man) -> str:
         row_classes=["warn" if (o1, o2) != (n1, n2) else None
                      for o1, o2, n1, n2, _ in matrix_rows])
 
+    # From the pre-fix SNAPSHOT, not the live manifest: once the manifest is
+    # rebuilt no frame carries the phantom geometry any more, and a live
+    # query would render this whole section as zeros.
+    era_rows = q(cat, """
+        SELECT era_id, readoutm, naxis1, naxis2, xbinning, egain, n_frames
+        FROM s0e_blast_era ORDER BY n_frames DESC""")
     era_tbl = table(
         ["era", "readout", "geometry", "bin", "EGAIN", "affected frames"],
         [[fmt(e), esc(r or "(blank)"), f"{fmt(n1)} &times; {fmt(n2)}",
           fmt(xb), fmt(eg), fmt(c)]
-         for e, r, n1, n2, xb, eg, c in q(man, """
-            SELECT f.era_id, e.readoutm, e.naxis1, e.naxis2, e.xbinning,
-                   e.egain, count(*)
-            FROM frames f JOIN eras e ON e.era_id = f.era_id
-            WHERE f.naxis1 = 8 AND f.naxis2 = 3211
-            GROUP BY 1 ORDER BY 7 DESC""")],
-        row_classes=["warn"] * 8)
+         for e, r, n1, n2, xb, eg, c in era_rows],
+        row_classes=["warn"] * len(era_rows))
 
     return f"""
 <section id="blast">
@@ -371,7 +398,7 @@ should be corrected to cite the era that absorbed its frames.</p>
 </section>"""
 
 
-def section_requeue(cat, man) -> str:
+def section_requeue(cat) -> str:
     n_new = q1(cat, "SELECT count(*) FROM s0e_requeue")
     n_unstrat = q1(cat, "SELECT count(*) FROM s0e_requeue "
                         "WHERE stratum_id IS NULL")
@@ -438,14 +465,20 @@ belong, and its population roughly grows sevenfold.</p>
 
 
 # ---------------------------------------------------------------------------
-def render_report(catalog_path: Path = DEFAULT_CATALOG,
-                  manifest_path: Path = DEFAULT_MANIFEST) -> Path:
-    """Render the S0e report. Returns the HTML path."""
+def render_report(catalog_path: Path = DEFAULT_CATALOG) -> Path:
+    """Render the S0e report. Returns the HTML path.
+
+    Reads ONLY the catalog: every consequence this page reports — the
+    pre-fix era and target breakdowns, the era forecast, the re-queue
+    population — was snapshotted into catalog-side ``s0e_*`` tables while
+    the evidence still existed.  Querying the live manifest instead would
+    make the page render zeros the moment the manifest is rebuilt, i.e. the
+    page would stop being able to prove the incident precisely once the
+    incident was fixed.
+    """
     FIG_DIR.mkdir(parents=True, exist_ok=True)
     cat = sqlite3.connect(f"file:{catalog_path}?mode=ro", uri=True)
-    man = sqlite3.connect(f"file:{manifest_path}?mode=ro", uri=True)
     cat.execute("PRAGMA busy_timeout = 300000")
-    man.execute("PRAGMA busy_timeout = 300000")
     try:
         n_changed = q1(cat, "SELECT count(*) FROM geom_rescan WHERE changed = 1")
         n_read = q1(cat, "SELECT count(*) FROM geom_rescan")
@@ -454,9 +487,9 @@ def render_report(catalog_path: Path = DEFAULT_CATALOG,
                           "WHERE verdict = 'REDEFINED'")
         sections = [
             section_artifact(cat),
-            section_blast(cat, man),
+            section_blast(cat),
             section_eras(cat),
-            section_requeue(cat, man),
+            section_requeue(cat),
         ]
         html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -486,11 +519,11 @@ pre.cards {{ background:#0b0d12; border:1px solid #2a3140; border-radius:6px;
 
 {"".join(sections)}
 
-<footer>Generated by <code>macro_core.report_s0e</code> from
-<code>rlmt-catalog.sqlite</code> (S0e evidence tables) and
-<code>products/manifest/rlmt-manifest.sqlite</code> (consequences) &mdash;
-every number on this page is the result of a SQL query; none is typed by
-hand. Regenerate with <code>pipeline/scripts/rescan_geometry.py</code> then
+<footer>Generated by <code>macro_core.report_s0e</code> from the
+<code>s0e_*</code> and <code>geom_rescan</code> evidence tables in
+<code>rlmt-catalog.sqlite</code> &mdash; snapshotted before the repair so
+this page keeps working after the manifest is rebuilt. Every number here is
+the result of a SQL query; none is typed by hand. Regenerate with <code>pipeline/scripts/rescan_geometry.py</code> then
 <code>pipeline/scripts/s0e_era_forecast.py</code>.</footer>
 </body></html>"""
         HTML_PATH.write_text(html, encoding="utf-8")
@@ -502,7 +535,6 @@ hand. Regenerate with <code>pipeline/scripts/rescan_geometry.py</code> then
         return HTML_PATH
     finally:
         cat.close()
-        man.close()
 
 
 if __name__ == "__main__":

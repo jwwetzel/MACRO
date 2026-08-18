@@ -22,6 +22,9 @@ import sep
 from astropy.io import fits
 
 from . import photometry as ph
+# Sibling package under pipeline/ — the single source of truth for turning
+# a FITS header into image dimensions (tile compression included).
+from macro_core import fitsgeom
 
 #: Keep only the brightest this-many detections for triangle matching
 #: (astroalign cost grows fast with control points; the bright end carries
@@ -58,6 +61,11 @@ def read_reduced(path: Path) -> tuple[np.ndarray, dict]:
         hdu = hdul[1] if len(hdul) > 1 and hdul[1].data is not None else hdul[0]
         data = np.ascontiguousarray(hdu.data, dtype=np.float32)
         hdr = hdu.header
+        # TRUE geometry via the compression-aware resolver, resolved ONCE.
+        # A tile-compressed header that astropy could not translate reports
+        # NAXIS1 as the BINTABLE row length in bytes (8), not the image
+        # width — see macro_core.fitsgeom and the S0e report.
+        naxis1, naxis2 = fitsgeom.resolve_geometry_or_none(hdr)
         meta = {
             "exptime": hdr.get("EXPTIME"),
             "jd": hdr.get("JD"),
@@ -66,9 +74,19 @@ def read_reduced(path: Path) -> tuple[np.ndarray, dict]:
             "focallen": hdr.get("FOCALLEN"),
             "egain": hdr.get("EGAIN"),
             "pltsolvd": 1 if hdr.get("PLTSOLVD") else 0,
-            "naxis1": hdr.get("NAXIS1"),
-            "naxis2": hdr.get("NAXIS2"),
+            "naxis1": naxis1,
+            "naxis2": naxis2,
             "airmass": hdr.get("AIRMASS"),
+            # The frame's own linear sky transform, when it carries one.
+            # This is the FALLBACK plate scale for headers whose XPIXSZ /
+            # FOCALLEN cards are unusable: the March-2026 'Fast' frames
+            # write FOCALLEN = 0.0 while carrying a perfectly good CD
+            # matrix, and reading the scale off that matrix rescues a whole
+            # observing block that otherwise fails extraction outright.
+            # See ``macro_phot.series.resolve_plate_scale``.
+            "cd1_1": hdr.get("CD1_1"), "cd1_2": hdr.get("CD1_2"),
+            "cd2_1": hdr.get("CD2_1"), "cd2_2": hdr.get("CD2_2"),
+            "cdelt1": hdr.get("CDELT1"), "cdelt2": hdr.get("CDELT2"),
         }
     return data, meta
 

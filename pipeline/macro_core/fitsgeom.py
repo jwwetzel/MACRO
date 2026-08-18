@@ -269,6 +269,28 @@ def parse_card_block(block: bytes | str) -> dict:
     return out
 
 
+def resolve_geometry_or_none(hdr: Mapping) -> tuple[Optional[int],
+                                                    Optional[int]]:
+    """Like :func:`resolve_geometry`, but returns ``(None, None)`` instead
+    of raising when the header cannot be understood.
+
+    This is NOT the silent fallback that caused the S0e artifact, and the
+    difference matters.  The bug returned a *plausible wrong number*
+    (8 x 3211) that flowed downstream as fact.  This returns ``None``,
+    which every consumer already treats as "geometry unknown" — the
+    astrometry gate refuses to promise a solvable field for it, and the
+    timing code declines to compute a pixel scale from it.  Unknown is a
+    safe answer; wrong is not.
+
+    Use it in bulk scanners that must not die on one bad file; use
+    :func:`resolve_geometry` anywhere a missing answer should stop the run.
+    """
+    try:
+        return resolve_geometry(hdr)
+    except GeometryError:
+        return (None, None)
+
+
 def geometry_from_card_block(block: bytes | str) -> tuple[int, int]:
     """Convenience: :func:`parse_card_block` then :func:`resolve_geometry`.
 

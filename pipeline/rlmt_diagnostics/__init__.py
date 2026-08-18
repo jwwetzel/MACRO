@@ -23,6 +23,17 @@ October — nothing here waits on new frames):
 * ``rlmt_diagnostics.linearity``   — counts-vs-exptime residuals from the
   2024-05-20 Vega exposure ladder and every other archival ladder the
   manifest can surface.
+* ``rlmt_diagnostics.dispersion``  — S2c: per-frame FILTER IDENTITY measured
+  from the pixels rather than read off the header.  Source elongation, the
+  trace population, and whether those traces share a dispersion axis decide
+  ``dispersed`` / ``direct`` / ``indeterminate`` per frame; trace length as a
+  fraction of frame width separates the two grism units.  Settles the
+  long-open slot-``6`` conflict, which turned out to be mixed rather than
+  either of the two answers under debate.  Build entry point:
+  ``pipeline/scripts/run_s2c_dispersion.py`` (table ``frame_dispersion``).
+  Report renderer: ``rlmt_diagnostics.report_s2c`` →
+  ``docs/pipeline/s2c_filter_identity.html``.  Unit tests:
+  ``pipeline/tests/test_dispersion.py``.
 
 Build entry point: ``pipeline/scripts/run_s2_campaign.py`` (resumable,
 batched — every subcommand can be re-invoked and picks up where it left

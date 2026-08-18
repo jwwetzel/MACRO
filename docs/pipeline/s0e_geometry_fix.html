@@ -1,0 +1,248 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S0e — The Geometry Artifact</title>
+<link rel="stylesheet" href="../assets/macro.css">
+<style>
+pre.cards { background:#0b0d12; border:1px solid #2a3140; border-radius:6px;
+  padding:.8rem 1rem; overflow-x:auto; font-size:.78rem; line-height:1.45;
+  color:#c8d1dc; }
+</style>
+</head><body>
+
+<header>
+  <h1>S0e — The Geometry Artifact</h1>
+  <p>20,071 catalog rows re-read &middot; 19,980 repaired
+  &middot; 18,381 frames returned to astrometry &middot;
+  0 published era ids redefined &middot;
+  <a href="../index.html">back to the evidence hub</a></p>
+</header>
+
+<nav>
+  <a href="#artifact">1 The artifact</a> &middot;
+  <a href="#blast">2 Blast radius</a> &middot;
+  <a href="#eras">3 Eras</a> &middot;
+  <a href="#requeue">4 Re-queue</a>
+</nav>
+
+
+<section id="artifact">
+<div class="bhead"><h2>1 &middot; The artifact</h2>
+<span class="tag">an 8-pixel strip that was never there</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">The catalog said the observatory had taken thousands of
+8&nbsp;&times;&nbsp;3211-pixel exposures &mdash; strips one hundredth the
+width of the detector. No observing programme in the archive asks for that
+shape. Are they real?</p>
+
+<h3>Evidence</h3>
+<p class="sub">They are not. Here are the first cards of a real archive
+file, <code>rawimage/2026-04-24/img_IC2167_120s_g_0.fts.fz</code>, read straight from disk:</p>
+<pre class="cards">XTENSION= 'BINTABLE'           / binary table extension
+BITPIX  =                    8 / 8-bit bytes
+NAXIS   =                    2 / 2-dimensional binary table
+NAXIS1  =                    8 / width of table in bytes
+NAXIS2  =                 3211 / number of rows in table
+PCOUNT  =             15051851 / size of special data area
+GCOUNT  =                    1 / one data group (required keyword)
+TFIELDS =                    1 / number of fields in each row
+TTYPE1  = 'COMPRESSED_DATA'    / label for field   1
+TFORM1  = '1PB(4777)'          / data format of field: variable length array
+ZIMAGE  =                    T / extension contains compressed image
+ZTILE1  =                 4800 / size of tiles to be compressed
+ZTILE2  =                    1 / size of tiles to be compressed
+ZCMPTYPE= 'RICE_1  '           / compression algorithm
+ZNAME1  = 'BLOCKSIZE'          / compression block size
+ZVAL1   =                   32 / pixels per block
+ZNAME2  = 'BYTEPIX '           / bytes per pixel (1, 2, 4, or 8)
+ZVAL2   =                    2 / bytes per pixel (1, 2, 4, or 8)
+EXTNAME = 'COMPRESSED_IMAGE'
+ZSIMPLE =                    T / conforms to FITS standard
+ZBITPIX =                   16 / array data type
+ZNAXIS  =                    2 / number of array dimensions</pre>
+<p class="sub">A tile-compressed FITS file does not store an image; it
+stores a <strong>binary table</strong> whose rows hold compressed tiles.
+So <code>NAXIS1</code> is the width of one table row <em>in bytes</em>
+(8 &mdash; a single variable-length-array descriptor) and
+<code>NAXIS2</code> is the <em>number of rows</em> (3211, one per tile row).
+The real picture size sits nine cards lower, in
+<code>ZNAXIS1</code>&nbsp;/&nbsp;<code>ZNAXIS2</code>.</p>
+<figure><a href="figures/s0e/s0e_anatomy.png"><img src="figures/s0e/s0e_anatomy.png" alt=""></a><figcaption>The phantom strip (yellow) drawn inside the frame that was actually recorded. Both shapes are described by the same header; only one of them is the image.</figcaption></figure>
+
+<h3>Decision</h3>
+<p class="sub">Geometry is resolved by one pure function,
+<code>macro_core.fitsgeom.resolve_geometry</code>: when a header carries the
+compression markers (<code>ZIMAGE</code>&nbsp;/&nbsp;<code>ZCMPTYPE</code>)
+the dimensions are <code>ZNAXIS*</code>; otherwise they are
+<code>NAXIS*</code>. A header that claims compression but carries no
+<code>ZNAXIS*</code> <strong>raises</strong> rather than falling back &mdash;
+falling back is precisely what produced this defect.</p>
+
+<h3>Consequence</h3>
+<p class="sub">Why the rows were wrong in the first place: astropy
+translates <code>Z*</code> for you, so the scanner was safe <em>when it
+could read the header at all</em>. These files carry a malformed
+<code>CONTINUE</code> card (a <code>CONTINUE</code> following a non-string
+<code>FWALLNAM</code> value) that makes <code>Header.update</code> raise
+<code>VerifyError</code> and abandon the whole header &mdash; and the
+fallback read the raw table header. The scanner now merges cards
+<em>one at a time</em>, so one bad card costs that card, not the frame.</p>
+</div>
+</section>
+<section id="blast">
+<div class="bhead"><h2>2 &middot; Blast radius</h2>
+<span class="tag">counted before anything was changed</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">How far did the phantom geometry travel &mdash; how many
+rows, which cameras, which science targets, and how many frames did it cost
+the astrometry batch?</p>
+
+<h3>Evidence</h3>
+<p class="sub">Every catalog row whose stored <code>naxis1</code> was small
+enough to be a table row-length (20,071 rows) was
+re-read from the archive. The change matrix:</p>
+<table class="data">
+<tr><th>stored geometry</th><th>re-read as</th><th>rows</th><th>outcome</th></tr>
+<tr class="warn"><td>8 &times; 3,211</td><td>4,800 &times; 3,211</td><td>19,980</td><td>repaired</td></tr>
+<tr><td>57 &times; 48</td><td>57 &times; 48</td><td>48</td><td>left alone</td></tr>
+<tr><td>56 &times; 52</td><td>56 &times; 52</td><td>36</td><td>left alone</td></tr>
+<tr><td>45 &times; 34</td><td>45 &times; 34</td><td>5</td><td>left alone</td></tr>
+<tr><td>16 &times; 23</td><td>16 &times; 23</td><td>2</td><td>left alone</td></tr>
+</table>
+<p class="sub"><strong>19,980</strong> rows carried phantom
+geometry and were repaired. <strong>91</strong> rows were
+genuinely small &mdash; Andor iKon focus and guide windows, uncompressed
+&mdash; and came back byte-identical. That control group is the proof the
+repair was surgical: it was included in the re-scan on purpose.
+0 rows failed to read. 0 phantom rows remain.</p>
+<figure><a href="figures/s0e/s0e_blast.png"><img src="figures/s0e/s0e_blast.png" alt=""></a><figcaption>Left: which science targets lost frames to the artifact. Right: repaired rows against the untouched control group (log scale).</figcaption></figure>
+<p class="sub">By camera era &mdash; both affected eras are keyed on the
+phantom geometry, so both are phantom configurations:</p>
+<table class="data">
+<tr><th>era</th><th>readout</th><th>geometry</th><th>bin</th><th>EGAIN</th><th>affected frames</th></tr>
+<tr class="warn"><td>80</td><td>Fast</td><td>8 &times; 3,211</td><td>2</td><td>1</td><td>18,149</td></tr>
+<tr class="warn"><td>83</td><td>(blank)</td><td>8 &times; 3,211</td><td>2</td><td>56</td><td>1,831</td></tr>
+</table>
+
+<h3>Decision</h3>
+<p class="sub">Repair the geometry in place, and <em>only</em> the geometry:
+<code>rescan_geometry.py</code> writes <code>naxis1</code>/<code>naxis2</code>
+and nothing else, recording the old and new value of every row it reads in
+<code>geom_rescan</code> whether that row changed or not.</p>
+
+<h3>Consequence</h3>
+<p class="sub">The audit table is permanent, so the repair is reversible and
+the before/after diff on this page is evidence rather than recollection.</p>
+</div>
+</section>
+<section id="eras">
+<div class="bhead"><h2>3 &middot; What happens to the eras</h2>
+<span class="tag">rehearsed on a copy, never on the live manifest</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Camera eras are keyed on
+<code>(READOUTM, NAXIS1, NAXIS2, XBINNING, EGAIN)</code>, so correcting the
+geometry changes the key of every affected frame. Era ids are also a
+<strong>pinned registry</strong>: reports, five strategy documents and the
+ops request cite &ldquo;era&nbsp;76&rdquo;, &ldquo;era&nbsp;47&rdquo;. Does
+any published id change meaning underneath a citation?</p>
+
+<h3>Evidence</h3>
+<p class="sub">The manifest was copied and rebuilt against the repaired
+catalog &mdash; twice, once before and once after &mdash; and the two era
+tables were diffed. The live manifest was never written to; an S1 batch
+solve was running throughout. Of 84 eras, these moved:</p>
+<table class="data">
+<tr><th>era</th><th>key before</th><th>key after</th><th>frames before</th><th>frames after</th><th>verdict</th></tr>
+<tr><td>78</td><td><code>('Fast', 4800, 3211, 2, 1.0)</code></td><td><code>('Fast', 4800, 3211, 2, 1.0)</code></td><td>8,788</td><td>26,937</td><td>ABSORBED (+frames)</td></tr>
+<tr class="warn"><td>80</td><td><code>('Fast', 8, 3211, 2, 1.0)</code></td><td><code>('Fast', 8, 3211, 2, 1.0)</code></td><td>18,149</td><td>0</td><td>RETIRED (emptied)</td></tr>
+<tr><td>81</td><td><code>('', 4800, 3211, 2, 56.0)</code></td><td><code>('', 4800, 3211, 2, 56.0)</code></td><td>383</td><td>2,214</td><td>ABSORBED (+frames)</td></tr>
+<tr class="warn"><td>83</td><td><code>('', 8, 3211, 2, 56.0)</code></td><td><code>('', 8, 3211, 2, 56.0)</code></td><td>1,831</td><td>0</td><td>RETIRED (emptied)</td></tr>
+</table>
+<figure><a href="figures/s0e/s0e_eras.png"><img src="figures/s0e/s0e_eras.png" alt=""></a><figcaption>Frame counts before and after, for every era the repair moves. The phantom eras empty; the real ones absorb.</figcaption></figure>
+
+<h3>Decision</h3>
+<p class="sub"><strong>No published era id was redefined.</strong> Every id still denotes exactly the camera configuration it denoted before &mdash; the phantom ids simply now describe a configuration that never existed and hold zero frames.</p>
+<p class="sub">This falls out of the registry design rather than from care
+taken after the fact: because ids are keyed on the configuration tuple
+<em>itself</em>, a frame whose geometry is corrected moves to the id that
+already owns its true configuration. The phantom id keeps its definition
+and loses its frames &mdash; which is exactly &ldquo;retire the phantom,
+do not redefine a cited number&rdquo;, enforced structurally.</p>
+
+<h3>Consequence</h3>
+<p class="sub">The retired ids must stay in the registry as zero-frame
+entries, not be deleted and not be reused: a future build that reissued
+those numbers to a new configuration would resurrect precisely the citation
+corruption this design prevents. Any document that cites a retired era
+should be corrected to cite the era that absorbed its frames.</p>
+</div>
+</section>
+<section id="requeue">
+<div class="bhead"><h2>4 &middot; What astrometry must reconsider</h2>
+<span class="tag">18k frames that were never unsolvable</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">S1 excludes frames narrower than
+<code>MIN_SOLVABLE_NAXIS</code> = 512&nbsp;px as &ldquo;sub-frame photometry
+windows&rdquo; &mdash; too little sky for quad matching. Given the geometry
+was wrong, how many of those exclusions were wrong too?</p>
+
+<h3>Evidence</h3>
+<p class="sub">Running the project&rsquo;s own gates
+(<code>macro_core.astrom</code>) over the before- and after-manifests:
+<strong>18,381</strong> frames move from excluded to solvable. The
+window-geometry exclusion does not merely shrink &mdash; it goes to
+<strong>zero</strong>. There were never any photometry windows in the S1
+candidate universe; the entire population was this artifact.</p>
+<figure><a href="figures/s0e/s0e_requeue.png"><img src="figures/s0e/s0e_requeue.png" alt=""></a><figcaption>The re-queue population by stratum. The yellow bar is the part a queue rebuild would NOT pick up.</figcaption></figure>
+<table class="data">
+<tr><th>stratum</th><th>frames</th><th>status</th></tr>
+<tr><td><code>fast_fullframe</code></td><td>16,460</td><td>queued by a rebuild</td></tr>
+<tr class="warn"><td><em>(none &mdash; classify_stratum returns NULL)</em></td><td>1,921</td><td>SILENTLY DROPPED</td></tr>
+</table>
+<p class="sub">Among them are all <strong>207</strong> EU&nbsp;UMa
+frames &mdash; the series the CV time-series project recorded as permanently
+unsolvable. They are full 4800&nbsp;&times;&nbsp;3211 fields.</p>
+<table class="data">
+<tr><th>target</th><th>frames to re-queue</th></tr>
+<tr><td>V426 Oph</td><td>6,975</td></tr>
+<tr><td>LS Peg</td><td>2,166</td></tr>
+<tr><td>V2400 Oph</td><td>1,415</td></tr>
+<tr><td>RX J2133 7+5107</td><td>1,307</td></tr>
+<tr><td>FO Aqr</td><td>1,134</td></tr>
+<tr><td>QS Vir</td><td>435</td></tr>
+<tr><td>BE UMa</td><td>349</td></tr>
+<tr><td>Pa 164</td><td>292</td></tr>
+<tr><td>MR UMa</td><td>214</td></tr>
+<tr><td>EU UMa</td><td>207</td></tr>
+<tr><td>AR UMa</td><td>194</td></tr>
+<tr><td>SDSS J134841 61+183410 5</td><td>180</td></tr>
+</table>
+
+<h3>Decision</h3>
+<p class="sub">Rebuild the manifest, then rebuild the S1 queue so the batch
+picks these frames up. <strong>But 1,921 of them carry no
+stratum</strong> and a queue rebuild alone would drop them without a word:
+<code>classify_stratum</code> returns <code>NULL</code> for a CV target in an
+unplanned configuration (EU&nbsp;UMa on <code>Fast</code> readout hits
+<code>return None &nbsp;# CV frame in an unplanned config</code>) and for the
+blank-<code>READOUTM</code> era. Closing that gap changes an accepted
+experiment design, so it is raised here as a decision, not taken quietly.</p>
+
+<h3>Consequence</h3>
+<p class="sub">The comment beside the <code>fast_fullframe</code> stratum
+&mdash; &ldquo;geometry gate already dropped strips&rdquo; &mdash; is now
+false and must be corrected: that stratum is where most of these frames
+belong, and its population roughly grows sevenfold.</p>
+</div>
+</section>
+
+<footer>Generated by <code>macro_core.report_s0e</code> from the
+<code>s0e_*</code> and <code>geom_rescan</code> evidence tables in
+<code>rlmt-catalog.sqlite</code> &mdash; snapshotted before the repair so
+this page keeps working after the manifest is rebuilt. Every number here is
+the result of a SQL query; none is typed by hand. Regenerate with <code>pipeline/scripts/rescan_geometry.py</code> then
+<code>pipeline/scripts/s0e_era_forecast.py</code>.</footer>
+</body></html>
