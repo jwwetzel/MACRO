@@ -1,0 +1,39 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MACRO — Rigel-Era Legacy Archive</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+<header>
+  <h1>Rigel-Era Legacy Archive (2015–2023) — Chain of Evidence</h1>
+  <p>The pre-MACRO Winer/Iowa archive: <b>Rigel System</b>, FLI ProLine PL16803 (2048&times;2048 CCD),
+     Johnson BVRI. 210,120 frames across ~1,100 observing nights, being folded into the pipeline as a
+     second archive root. <a href="../index.html">&larr; all reports</a></p>
+</header>
+<nav><a href="#status">Status</a> · <a href="#why">Why a separate root</a></nav>
+<section id="status">
+  <div class="bhead"><h2>Status</h2><span class="badge active">ingesting</span></div>
+  <div class="stage">
+    <p class="sub">A candidate sixth project rather than a supplement to the five: the first frames
+    scanned show a program dominated by contact binaries and eclipsing systems (W UMa, XY Leo,
+    TU Boo, RW Com, CC Com, RZ Com, AW Vir, TX Cnc), plus HAT-P-12, a comet and an asteroid —
+    only a small fraction overlaps the RLMT-era target lists. No committee strategy exists for it yet.</p>
+    <div class="decision"><b>Current work:</b> stage S0d makes the catalog multi-archive
+    (<code>archive_root</code> + <code>telescope</code> columns, telescope-aware era keying so Rigel
+    configurations can never share a camera era with RLMT ones, and a Rigel filename parser).
+    The full target census — and therefore the real science case — lands when the transfer completes.</div>
+  </div>
+</section>
+<section id="why">
+  <div class="bhead"><h2>Why a separate archive root</h2></div>
+  <div class="stage">
+    <p class="sub">Two reasons, both about not corrupting what already works.</p>
+    <div class="decision"><b>Decision:</b> the legacy data lives in <code>legacy-archive/</code>,
+    never inside <code>rlmt-archive/</code>. That tree is a byte-verified mirror of the Linode
+    <code>testimages</code> bucket (<code>rclone check</code>: 0 differences) and foreign files would break
+    that equivalence permanently; and this is a different telescope, detector and filename
+    convention, so merging them would let legacy frames leak into RLMT-era analyses.
+    <b>Consequence:</b> the pipeline reads two roots and tags every frame with its origin.</div>
+  </div>
+</section>
+<footer>MACRO Consortium · numbers are script-emitted, never hand-edited.</footer>
+</body></html>
