@@ -10,6 +10,10 @@ MACRO_Newsletter/
 RLMT_Diagnostics/
 XRay_AR_UMa/
 XRay_Chandra_preCMS/
+# On macOS git matches ignore patterns case-insensitively, so the
+# RLMT_Diagnostics/ rule above would also swallow the S2 pipeline package
+# pipeline/rlmt_diagnostics/ — that one is CODE and must be tracked:
+!pipeline/rlmt_diagnostics/
 
 # ---- Data & derived products: regenerable from the archive + this pipeline.
 # ---- The repo carries code, decisions, and reports — never pixels.

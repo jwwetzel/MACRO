@@ -1,0 +1,312 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S1 — Astrometry Go/No-Go Experiment</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+
+<header>
+  <h1>S1 — Astrometry Go/No-Go Experiment</h1>
+  <p>413 / 472 sampled frames solved &middot;
+  10 strata (6 GO) &middot;
+  seed 20260817 &middot;
+  built 2026-08-18T07:28Z
+  (S1 v1.1 (2026-08-18),
+  commit <code>c930015</code>)
+  &middot; <a href="../index.html">back to the evidence hub</a></p>
+</header>
+
+<nav>
+  <a href="#tooling">1 Tooling</a> &middot;
+  <a href="#universe">2 Candidate universe</a> &middot;
+  <a href="#results">3 Experiment</a> &middot;
+  <a href="#autopsy">4 Failure autopsy</a> &middot;
+  <a href="#verdict">5 Verdict &amp; cost</a>
+</nav>
+
+
+<section id="tooling">
+<div class="bhead"><h2>1 &middot; Tooling</h2>
+<span class="tag">local astrometry.net + downloaded index files</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">No local plate-solving stack existed on this machine (no
+<code>solve-field</code>, no index files anywhere on the attached disks).
+Can one be assembled that solves RLMT frames at all — and at what
+per-frame cost?</p>
+
+<h3>Evidence</h3>
+<p class="sub">Installed <code>0.97</code>
+(astrometry.net, Homebrew) and downloaded
+145 index files
+(5.4&nbsp;GB) into <code>/Users/jameswetzel/astrometry-indices</code> —
+series 4107.fits,4108.fits,4109.fits,4110.fits,4111.fits,4112.fits,4113.fits,4114.fits,4115.fits,4116.fits,4117.fits,4118.fits,4119.fits,4203,4204,4205,4206,4207: the 4200 (2MASS) skymark
+scales 3&ndash;7 (5.6&prime;&ndash;30&prime; quads) that bracket the
+&sim;37&prime; RLMT field, plus the small wide-field 4100 (Tycho-2) set.
+Solves ran with <code>--downsample 2</code>,
+a 55&nbsp;s CPU limit
+(75&nbsp;s wall cap), and the header
+pointing as a &plusmn;15.0&deg; hint
+where present.  The measured plate scales, per camera family:</p>
+<table class="data">
+<tr><th>READOUTM</th><th>bin</th><th>solved frames</th><th>measured scale ("/px)</th><th>prior handed to solver</th></tr>
+<tr><td>Mode0</td><td>2</td><td>190</td><td>0.4505 – 0.4515</td><td>0.30 – 0.66</td></tr>
+<tr><td>1MHz High Sensitivity 16-bit</td><td>1</td><td>90</td><td>0.8084 – 0.8102</td><td>0.40 – 1.30</td></tr>
+<tr><td>High Gain</td><td>1</td><td>78</td><td>0.5388 – 0.5401</td><td>0.40 – 0.75</td></tr>
+<tr><td>Fast</td><td>2</td><td>41</td><td>0.4502 – 0.4513</td><td>0.30 – 0.66</td></tr>
+<tr><td>High Gain StackPro</td><td>1</td><td>11</td><td>0.5390 – 0.5393</td><td>0.40 – 0.75</td></tr>
+<tr><td>5MHz High Sensitivity 16-bit</td><td>1</td><td>3</td><td>0.8090 – 0.8092</td><td>0.40 – 1.30</td></tr>
+</table>
+<p class="sub">A <b>solution-acceptance gate</b> guards every
+&ldquo;solved&rdquo; verdict: a solution counts only when its measured
+pixel scale sits inside the prior handed to the solver, at least
+8 index stars matched, and the astrometric
+RMS stays under 5&Prime;.  The gate caught
+1 false positive(s) in the experiment (recorded as
+<code>bad_solve</code>): astrometry.net emitted a confident-looking WCS
+at 7&times; the true plate scale from a 4-star quad match on a healthy
+Mode0 field.  Any batch run inherits the same gate, so false solutions
+are never written into the manifest.</p>
+
+<h3>Decision</h3>
+<div class="decision"><b>The local stack is real and the scale priors are
+verified from the gate-accepted WCS headers themselves</b> — Mode0/Fast
+is the IMX455 optic at &sim;0.45&Prime;/px binned, the GSENSE4040 sits at
+its facility-fact 0.54&Prime;/px, and the Andor iKon lands inside its
+deliberately wide prior.  Every future solve can reuse these bounds
+tightened to the measured band, behind the same acceptance gate.</div>
+
+<h3>Consequence</h3>
+<p class="sub">A successful solve costs seconds (median times per stratum
+below); the tooling is not the bottleneck — frame quality is.</p>
+</div></section>
+<section id="universe">
+<div class="bhead"><h2>2 &middot; The candidate universe</h2>
+<span class="tag">what astrometry cannot even apply to, counted first</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">The manifest counts 78,225 unsolved canonical raw
+Light frames.  How many of them can a plate solver even be pointed at?</p>
+
+<h3>Evidence</h3>
+<table class="data">
+<tr><th>population class</th><th>frames</th><th>meaning</th></tr>
+<tr><td><code>unsolved_total</code></td><td>78,225</td><td>canonical rawimage Light frames with pltsolvd != 1</td></tr>
+<tr class="warn"><td><code>excluded_grism</code></td><td>16,566</td><td>FILTER names a grism — slitless spectra, never solvable</td></tr>
+<tr class="warn"><td><code>excluded_calib_vocab_filter</code></td><td>3</td><td>FILTER = 'dark'/'bias'/'flat' header glitch (S0b)</td></tr>
+<tr class="warn"><td><code>excluded_window_geometry</code></td><td>18,381</td><td>either axis &lt; 512 px — high-speed photometry windows (8×3211 strips), no sky for quads</td></tr>
+<tr><td><code>solvable_candidates</code></td><td>43,275</td><td>frames the solver can be pointed at</td></tr>
+<tr><td><code>candidates_unstratified</code></td><td>5,183</td><td>solvable but in no stratum (small heterogeneous residue)</td></tr>
+</table>
+<p class="sub">The geometry exclusion is the headline: 18,381
+&ldquo;frames&rdquo; are high-speed photometry WINDOWS — 8-pixel-wide
+strips read out around a single target star.  Among them sit all
+207 of EU&nbsp;UMa&rsquo;s unsolved Fast-readout series:
+that population can never be plate-solved by any tool, and its astrometry
+must come from the pointing header + the window geometry instead.  The
+16,566 grism rows are slitless spectra (hrg/lrg/HaGrism/OGGrism)
+— they have no star field by design.</p>
+
+<h3>Decision</h3>
+<div class="decision"><b>The astrometry batch universe is the
+43,275 solvable candidates: non-grism FILTER, both axes
+&ge; 512 px.</b>  Exclusions are recorded
+per class in <code>s1_populations</code> — nothing is silently dropped,
+and the window-strip populations are handed to the time-series pipeline
+as a named fact, not a failure.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Success rates below are rates on frames a solver could in
+principle solve — the honest denominator for the batch decision.</p>
+</div></section>
+<section id="results">
+<div class="bhead"><h2>3 &middot; The experiment</h2>
+<span class="tag">472 frames, 10 strata, seed
+20,260,817</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Per stratum — camera family &times; exposure band &times;
+project — what fraction of sampled frames does the local solver actually
+solve, how fast, and how well?</p>
+
+<h3>Evidence</h3>
+<div class="grid"><figure><a href="figures/s1/s1_success_rates.png"><img src="figures/s1/s1_success_rates.png" alt=""></a><figcaption>413 of 472 sampled frames solved (gate-accepted). Bars are point rates; whiskers the Wilson 95% interval; the dashed line the 80% GO bar the interval's LOWER bound must clear.</figcaption></figure>
+<figure><a href="figures/s1/s1_solve_times.png"><img src="figures/s1/s1_solve_times.png" alt=""></a><figcaption>Successes cluster at seconds; failures burn the full CPU budget — the failure rate, not the solve speed, sets the batch cost.</figcaption></figure></div>
+<table class="data">
+<tr><th>stratum</th><th>definition</th><th>backlog</th><th>solved</th><th>rate [95% CI]</th><th>median t (s)</th><th>median RMS (")</th><th>median stars</th><th>verdict</th></tr>
+<tr><td><code>cv_mode0_sloan_short</code></td><td>ST LMi / VV Pup / EU UMa / AN UMa — Mode0 (ASI/IMX455) bin2, Sloan g/r/i, exptime &lt; 150 s</td><td>2,341</td><td>48 / 48</td><td>100% [93&ndash;100]</td><td>4.3</td><td>0.92</td><td>196.50</td><td><b>GO</b></td></tr>
+<tr><td><code>cv_mode0_sloan_long</code></td><td>same targets/camera, Sloan g/r/i, exptime ≥ 150 s</td><td>1,663</td><td>48 / 48</td><td>100% [93&ndash;100]</td><td>4.6</td><td>0.79</td><td>232.50</td><td><b>GO</b></td></tr>
+<tr><td><code>cv_ikon_sloan</code></td><td>VV Pup on the Andor iKon (1MHz 16-bit, 2048²), Sloan + blank filter</td><td>558</td><td>48 / 48</td><td>100% [93&ndash;100]</td><td>1.7</td><td>0.49</td><td>236</td><td><b>GO</b></td></tr>
+<tr class="warn"><td><code>cv_gsense_misc</code></td><td>CV polars on the GSENSE4040 (High Gain family) — small legacy set, mostly ST LMi</td><td>40</td><td>25 / 40</td><td>62% (census)</td><td>5.0</td><td>0.80</td><td>20</td><td><b>CAUTION</b></td></tr>
+<tr class="warn"><td><code>sn_gsense_broadband</code></td><td>SN 2023ixf on the GSENSE4040 (High Gain / StackPro bin1), all filters</td><td>368</td><td>22 / 48</td><td>46% [33&ndash;60]</td><td>5.0</td><td>2.13</td><td>32.50</td><td><b>NO-GO</b></td></tr>
+<tr class="warn"><td><code>dwarf_gsense_deep</code></td><td>Dw survey fields + NGC 5548 + NGC 5238 on the GSENSE4040, deep broadband/narrowband</td><td>247</td><td>42 / 48</td><td>88% [75&ndash;94]</td><td>6.6</td><td>1.67</td><td>22</td><td><b>CAUTION</b></td></tr>
+<tr><td><code>mode0_backlog_short</code></td><td>Mode0 bin2 non-CV imaging, exptime &lt; 10 s (rho Oph campaign and friends)</td><td>9,232</td><td>48 / 48</td><td>100% [93&ndash;100]</td><td>3.9</td><td>1.14</td><td>135</td><td><b>GO</b></td></tr>
+<tr><td><code>mode0_backlog_long</code></td><td>Mode0 bin2 non-CV imaging, exptime ≥ 10 s</td><td>8,478</td><td>46 / 48</td><td>96% [86&ndash;99]</td><td>4.0</td><td>0.75</td><td>237</td><td><b>GO</b></td></tr>
+<tr class="warn"><td><code>fast_fullframe</code></td><td>Fast-readout FULL frames (naxis ≥ 512; the 8-px photometry strips are excluded by geometry)</td><td>2,560</td><td>41 / 48</td><td>85% [73&ndash;93]</td><td>4.1</td><td>1.08</td><td>63</td><td><b>CAUTION</b></td></tr>
+<tr><td><code>ikon_backlog</code></td><td>Andor iKon imaging beyond VV Pup</td><td>12,605</td><td>45 / 48</td><td>94% [83&ndash;98]</td><td>2.1</td><td>0.64</td><td>224</td><td><b>GO</b></td></tr>
+</table>
+<p class="sub"><code>cv_gsense_misc</code> is a <b>census</b>: all 40 population frames were attempted, so its rate is the exact population rate — no confidence interval applies, and the verdict judges 62.5% directly against the thresholds.  Its &ldquo;batch decision&rdquo; is moot: the 25 solutions already exist.</p>
+<p class="sub"><b>How independent are these trials?</b>  Frames within a
+night share cloud, focus and wind state, and the failure autopsy below
+attributes most failures to exactly those nightly conditions — so the
+Wilson intervals&rsquo; frame-level independence assumption is optimistic,
+and the effective sample size sits somewhere between the night count and
+the frame count.  The stress test: collapse each stratum to
+all-or-nothing NIGHTS (a night succeeds only if every sampled frame on it
+solved) and re-read the interval.</p>
+<table class="data">
+<tr><th>stratum</th><th>nights sampled / in backlog</th><th>perfect nights (all frames solved)</th><th>night-level Wilson lower bound</th></tr>
+<tr class="warn"><td><code>cv_mode0_sloan_short</code></td><td>14 / 15</td><td>14 / 14</td><td>78%</td></tr>
+<tr><td><code>cv_mode0_sloan_long</code></td><td>18 / 35</td><td>18 / 18</td><td>82%</td></tr>
+<tr class="warn"><td><code>cv_ikon_sloan</code></td><td>7 / 8</td><td>7 / 7</td><td>65%</td></tr>
+<tr><td><code>cv_gsense_misc</code></td><td>9 / 9</td><td>6 / 9</td><td>exact</td></tr>
+<tr><td><code>sn_gsense_broadband</code></td><td>21 / 33</td><td>5 / 21</td><td>11%</td></tr>
+<tr><td><code>dwarf_gsense_deep</code></td><td>18 / 30</td><td>15 / 18</td><td>61%</td></tr>
+<tr><td><code>mode0_backlog_short</code></td><td>24 / 107</td><td>24 / 24</td><td>86%</td></tr>
+<tr><td><code>mode0_backlog_long</code></td><td>34 / 151</td><td>32 / 34</td><td>81%</td></tr>
+<tr><td><code>fast_fullframe</code></td><td>13 / 21</td><td>8 / 13</td><td>36%</td></tr>
+<tr class="warn"><td><code>ikon_backlog</code></td><td>32 / 74</td><td>30 / 32</td><td>80%</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>Verdicts are mechanical: GO when the Wilson 95%
+lower bound clears 80%, CAUTION above
+50%, NO-GO below — judged on the
+worst rate each sample still allows, never on the point estimate (census
+strata are judged on their exact, fully-enumerated rate).</b>  Solutions
+are trustworthy where the gate accepts them: median astrometric RMS
+&sim;0.86&Prime; against the 2MASS index across all strata,
+with plate scales landing inside every family prior.  <b>The frame-level
+intervals assume within-stratum independence that weather demonstrably
+violates</b> — under the harsher night-level collapse, the perfect strata
+keep lower bounds of
+78%/82%/65%/86%
+across far fewer effective trials, and each stratum samples only a
+minority of its backlog&rsquo;s nights (the coverage column above) — so
+unsampled bad nights are expected in any batch.  The mitigation is not a
+wider interval but the QC pre-gate of section 4: starless frames from
+unsampled cloudy nights are detected and skipped at batch time, they do
+not silently drag the yield.</div>
+
+<h3>Consequence</h3>
+<p class="sub">4 of the
+10 strata solved every sampled frame — including the
+Mode0 and iKon strata that carry the bulk of the CV Sloan backlog.  The
+failure analysis below shows where the other strata lose frames: to the
+frames, not to the solver.</p>
+</div></section>
+<section id="autopsy">
+<div class="bhead"><h2>4 &middot; Failure autopsy</h2>
+<span class="tag">read the pixels before blaming the solver</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">59 sampled frames failed to solve (the
+gate-rejected false positive included).  Is the solver missing solvable
+fields — or were these frames never solvable?</p>
+
+<h3>Evidence</h3>
+<div class="grid"><figure><a href="figures/s1/s1_failure_gallery.png"><img src="figures/s1/s1_failure_gallery.png" alt=""></a><figcaption>6 of the 59 autopsied failures — every failure is autopsied, no sampling cap — machine-diagnosed from source-extraction statistics.</figcaption></figure></div>
+<table class="data">
+<tr><th>diagnosis</th><th>autopsied frames</th><th>strata affected</th></tr>
+<tr><td>starved (blank/clouds/hot-pixel-only)</td><td>28</td><td><code>dwarf_gsense_deep,sn_gsense_broadband,cv_gsense_misc,ikon_backlog,mode0_backlog_long,fast_fullframe</code></td></tr>
+<tr><td>trailing (guiding/wind)</td><td>18</td><td><code>sn_gsense_broadband,cv_gsense_misc,fast_fullframe</code></td></tr>
+<tr><td>defocused (giant blobs, no point sources)</td><td>9</td><td><code>sn_gsense_broadband,cv_gsense_misc,ikon_backlog</code></td></tr>
+<tr><td>unexplained (stars present, solver still failed)</td><td>4</td><td><code>sn_gsense_broadband,cv_gsense_misc,mode0_backlog_long</code></td></tr>
+</table>
+<p class="sub">Diagnosis is computed, not eyeballed: 10&sigma;
+source extraction (min 5 px) splits
+detections into PSF-shaped sources
+(1.2&ndash;8 px semi-major
+axis) versus the hot-pixel spikes these RAW, dark-unsubtracted CMOS
+frames carry by the thousand.  &lsquo;Defocused&rsquo; = the brightest
+detections are &gt;6 px blobs;
+&lsquo;starved&rsquo; = fewer than 15
+real sources <i>or</i> brightest detections smaller than
+0.9 px (single-pixel spikes — hot-pixel
+pairs can fake both the source count and the elongation of a blank
+frame, so the trailing verdict additionally requires star-sized
+brightest detections); &lsquo;trailing&rsquo; = median elongation &gt;
+1.8.  Only 4 autopsied
+failure(s) show a healthy star field the solver still missed.</p>
+
+<h3>Decision</h3>
+<div class="decision"><b>The failures are frame-quality facts, not solver
+shortfalls — and the claim now covers every failure, because every
+failure was autopsied: blank/cloud frames, badly defocused sequences
+(notably the filter-&lsquo;6&rsquo; series on the GSENSE), and
+wind-trailed exposures.</b>  No solver setting recovers a frame with no
+stars on it; these frames should be flagged by the same statistics at
+batch time and spent zero further CPU.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Batch success rates will track the experiment&rsquo;s
+rates, and the batch runner inherits a cheap pre-filter: the autopsy
+statistics double as a QC gate that skips starless frames before the
+solver burns its budget on them.</p>
+</div></section>
+<section id="verdict">
+<div class="bhead"><h2>5 &middot; Verdict &amp; batch cost</h2>
+<span class="tag">the Week-2 review's decision table</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Per population: is batch re-solving viable, how many new
+WCS solutions should it yield, and what does it cost in wall-clock?</p>
+
+<h3>Evidence</h3>
+<table class="data">
+<tr><th>population</th><th>backlog frames</th><th>sample solved</th><th>pooled sample rate [95% CI]</th><th>backlog-weighted rate</th><th>expected new WCS (range)</th><th>projected hours</th><th>verdict</th></tr>
+<tr><td>CV polars (Sloan)</td><td>4,602</td><td>169 / 184</td><td>92% [87&ndash;95]</td><td>99.7%</td><td>4,249&ndash;4,587</td><td>0.5</td><td><b>GO</b></td></tr>
+<tr class="warn"><td>SN 2023ixf</td><td>368</td><td>22 / 48</td><td>46% [33&ndash;60]</td><td>45.8%</td><td>120&ndash;220</td><td>0.6</td><td><b>NO-GO</b></td></tr>
+<tr class="warn"><td>Dwarf/AGN</td><td>247</td><td>42 / 48</td><td>88% [75&ndash;94]</td><td>87.5%</td><td>186&ndash;233</td><td>0.0</td><td><b>CAUTION</b></td></tr>
+<tr><td>Facility backlog</td><td>32,875</td><td>180 / 192</td><td>94% [89&ndash;96]</td><td>95.4%</td><td>28,188&ndash;32,321</td><td>3.0</td><td><b>GO</b></td></tr>
+</table>
+<p class="sub">Hours are population-weighted: each stratum&rsquo;s FULL
+backlog &times; its own median per-frame wall time &divide;
+10 parallel workers — the same worker count the experiment
+ran at, on this machine.  Failures are what cost time, and the
+projection charges every stratum its own failure-heavy median.  The two
+rate columns answer different questions: the <i>pooled sample rate</i>
+pools the strata&rsquo;s equal-size samples, which over-represents small
+strata relative to their backlog share (conservatively, for these data —
+the small strata are the weak ones); the <i>backlog-weighted rate</i> is
+what the expected-WCS column implies, weighting each stratum&rsquo;s own
+rate by its backlog.  The expected-WCS range multiplies each
+stratum&rsquo;s backlog by its own interval bounds (a census stratum
+contributes its exactly-known count).</p>
+
+<h3>Decision</h3>
+<div class="decision"><b>GO for the CV polars&rsquo;
+Sloan series — the paper-gating population solved
+169 of
+184 sampled frames
+(92%; the
+per-stratum table in section 3 locates every miss) — and the same
+mechanical rule for every population: GO where the Wilson lower bound
+clears 80%.</b>  The projected cost of the
+project-critical populations (5,217 frames) is
+&sim;1&nbsp;h; the stratified backlog
+(38,092 of the 43,275 solvable frames) is
+&sim;4&nbsp;h and should yield
+&sim;32,700&ndash;37,400 new WCS solutions.  The remaining 5,183 solvable
+candidates fit no stratum (a heterogeneous residue of one-off configs):
+they carry <b>no measured rate</b> and are excluded from the yield and
+hours projections — batching them means extrapolating, and that choice
+belongs to the review.  Populations below GO stay viable as
+<i>filtered</i> batches: run the QC pre-gate from section 4, solve what
+has stars, and book the starless/defocused frames as facts.  <b>No batch
+runs before the Week-2 review accepts this report</b> — S1&rsquo;s
+mandate ends at the experiment.</div>
+
+<h3>Consequence</h3>
+<p class="sub">On acceptance, the batch writes its solutions into a NEW
+manifest table (headers in the archive are never rewritten), zero-point
+photometry for the CV paper unblocks behind it, and the October frames
+inherit a verified solving stack with measured per-camera scale
+priors.</p>
+</div></section>
+
+<footer>Generated by <code>macro_core.report_s1</code> from
+<code>products/manifest/rlmt-manifest.sqlite</code> — every number on this
+page is the result of a SQL query or a named constant in
+<code>macro_core.astrom</code>; none is typed by hand.  Regenerate with
+<code>pipeline/scripts/run_s1_experiment.py report</code>.</footer>
+</body></html>

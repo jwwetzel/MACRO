@@ -519,3 +519,65 @@ class TestStrategyClaimsTable:
             assert cf is None or isinstance(cf, int)
             assert cn is None or isinstance(cn, int)
             assert isinstance(source, str) and source
+
+
+class TestEraIdRegistry:
+    """Regression (2026-08-18): era ids are a registry — a rebuild that sees
+    NEW camera configurations must never renumber ids already published.
+    Trigger: the Calibrations/ recovery added mid-timeline configurations
+    that a pure first-on-sky ordering would have spliced into, silently
+    re-pointing every published "era N" reference at a different camera."""
+
+    def _first_build_fixture(self):
+        # Two configurations: A (oldest on sky) and B (newer) -> ids 1, 2.
+        return pd.DataFrame([
+            frame_row(obs_rowid=1, path="rawimage/2023-06-08/a1.fts",
+                      jd=2460103.8, readoutm="High Gain"),
+            frame_row(obs_rowid=2, path="rawimage/2024-06-08/b1.fts",
+                      jd=2460469.8, readoutm="Mode0",
+                      naxis1=4788.0, naxis2=3194.0, xbinning=2.0,
+                      egain=0.2467),
+        ])
+
+    def _second_build_fixture(self):
+        # Same two configurations PLUS a new one (C) whose first JD falls
+        # BETWEEN A and B — exactly the splice case.
+        df = self._first_build_fixture()
+        extra = pd.DataFrame([
+            frame_row(obs_rowid=3, path="Calibrations/masters/c1.fts",
+                      jd=2460300.5, readoutm="Mode0",
+                      naxis1=9576.0, naxis2=6388.0, xbinning=1.0,
+                      egain=0.2467),
+        ])
+        return pd.concat([df, extra], ignore_index=True)
+
+    def _registry_of(self, eras):
+        # Rebuild {era_key: era_id} exactly the way load_prior_era_ids does.
+        return {m.era_key(r.readoutm, r.naxis1, r.naxis2, r.xbinning,
+                          r.egain): int(r.era_id)
+                for r in eras.itertuples()}
+
+    def test_new_mid_timeline_key_never_renumbers_published_ids(self):
+        # First build: no registry -> ids by first-on-sky order.
+        _, eras1 = build.build_frames(
+            self._first_build_fixture(), {"T CrB": "tcrb"}, {"tcrb": "T CrB"})
+        reg1 = self._registry_of(eras1)
+        # Second build: pass the first build's registry, add the splicer.
+        frames2, eras2 = build.build_frames(
+            self._second_build_fixture(), {"T CrB": "tcrb"},
+            {"tcrb": "T CrB"}, prior_era_ids=reg1)
+        reg2 = self._registry_of(eras2)
+        # Every previously-published id survives unchanged ...
+        for key, eid in reg1.items():
+            assert reg2[key] == eid, "published era id was renumbered"
+        # ... and the newcomer appends AFTER the existing maximum instead of
+        # splicing into the middle, despite its earlier first-on-sky JD.
+        new_ids = set(reg2.values()) - set(reg1.values())
+        assert new_ids == {max(reg1.values()) + 1}
+
+    def test_without_registry_ordering_is_first_on_sky(self):
+        # First-build behaviour is untouched: oldest configuration is era 1.
+        frames, eras = build.build_frames(
+            self._first_build_fixture(), {"T CrB": "tcrb"}, {"tcrb": "T CrB"})
+        oldest = frames.loc[frames["jd"].idxmin(), "era_id"]
+        assert oldest == 1

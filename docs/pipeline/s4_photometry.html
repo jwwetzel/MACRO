@@ -1,0 +1,311 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+
+<header>
+  <h1>S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</h1>
+  <p>2,333 of 2,558 frames measured &amp; star-matched
+  without a WCS &middot; 10 Honeycutt ensembles over
+  5,044 stars &middot; Gaia-anchored &middot; empirical error
+  model (S5 seed) &middot;
+  built 2026-08-18T09:06Z
+  (S4 v1.0 (2026-08-17),
+  commit <code>c930015-dirty</code>)
+  &middot; <a href="../index.html">back to the evidence hub</a></p>
+</header>
+
+<nav>
+  <a href="#selection">1 Selection</a> &middot;
+  <a href="#matching">2 Matching</a> &middot;
+  <a href="#ensemble">3 Ensemble</a> &middot;
+  <a href="#gaia">4 Gaia anchor</a> &middot;
+  <a href="#errors">5 Error model</a> &middot;
+  <a href="#lightcurves">6 Light curves</a>
+</nav>
+
+
+<section id="selection">
+<div class="bhead"><h2>1 &middot; Frame selection &amp; provenance</h2>
+<span class="tag">server-reduced pixels only — one provenance per series</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Which frames may the photometry prototype touch, and under
+what provenance rule?</p>
+
+<h3>Evidence</h3>
+<table class="data">
+<tr><th>target</th><th>era</th><th>raw canonical light frames</th><th>with reduced counterpart</th><th>selected</th></tr>
+<tr><td>anuma</td><td>76</td><td>1,279</td><td>1,279</td><td>1,279</td></tr>
+<tr><td>vvpup</td><td>72</td><td>558</td><td>558</td><td>558</td></tr>
+<tr class="warn"><td>vvpup</td><td>76</td><td>795</td><td>721</td><td>721</td></tr>
+</table>
+<table class="data">
+<tr><th>frame status</th><th>frames</th></tr>
+<tr><td><code>matched</code></td><td>2,333</td></tr>
+<tr><td><code>skipped_pointing</code></td><td>159</td></tr>
+<tr class="warn"><td><code>failed_match:MaxIterError</code></td><td>57</td></tr>
+<tr class="warn"><td><code>failed_match:ValueError</code></td><td>9</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>The prototype reads SERVER-REDUCED pixels only:
+canonical raw light frames of the two reduction-complete polars whose
+reduced counterpart exists in <code>raw_reduced_links</code>
+(2,558 of 2,632 raw frames; 2,558 selected), and
+reduction provenances are never mixed within a (target,&nbsp;era) series
+(decision 2026-08-18).</b>  Frames without a reduced counterpart are
+counted in the ledger above and excluded — when S2 delivers our own
+master-calibrated reductions, they rejoin as a NEW provenance series, not
+as patches to this one.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Every downstream number in this report descends from
+exactly these frames; the ledger row that excludes a night is the audit
+trail for its absence from the light curves.</p>
+</div></section>
+<section id="matching">
+<div class="bhead"><h2>2 &middot; Star matching without a WCS</h2>
+<span class="tag">astroalign triangles &rarr; one reference per (target, era)</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Most polar frames are unsolved (73&ndash;95% of the Sloan
+series carry <code>pltsolvd=0</code> — S1&rsquo;s future business).  Can
+stars be matched across thousands of frames using GEOMETRY alone?</p>
+
+<h3>Evidence</h3>
+<div class="grid"><figure><a href="figures/s4/s4_match_qc.png"><img src="figures/s4/s4_match_qc.png" alt=""></a><figcaption>2,333 of 2,558 extraction-complete frames matched; 159 skipped for known S0 mispointing, 66 failed alignment; median matched fraction 94% of frame detections; median registration residual 0.509 ref-px.</figcaption></figure></div>
+<table class="data">
+<tr><th>target</th><th>era</th><th>reference frame</th><th>night</th><th>ref stars</th><th>FWHM px</th><th>plate scale "/px</th><th>match tol px</th><th>paired-star frac</th><th>doubled candidates rejected</th><th>frames matched</th></tr>
+<tr><td>anuma</td><td>76</td><td>139,628</td><td>2025-04-30</td><td>461</td><td>3.49</td><td>0.4491</td><td>2.79</td><td>0.007</td><td>0</td><td>1,114</td></tr>
+<tr class="warn"><td>vvpup</td><td>72</td><td>123,011</td><td>2024-12-06</td><td>3,301</td><td>2.75</td><td>0.8062</td><td>2.20</td><td>0.045</td><td>9</td><td>548</td></tr>
+<tr class="warn"><td>vvpup</td><td>76</td><td>130,659</td><td>2025-02-22</td><td>5,166</td><td>3.61</td><td>0.4491</td><td>2.89</td><td>0.051</td><td>2</td><td>671</td></tr>
+</table>
+<table class="data">
+<tr><th>target</th><th>night</th><th>failed frames</th><th>S0 pointing offset (deg)</th><th>failure</th></tr>
+<tr class="warn"><td>anuma</td><td>2025-04-22</td><td>147</td><td>10.92</td><td><code>skipped_pointing</code></td></tr>
+<tr class="warn"><td>anuma</td><td>2025-03-28</td><td>14</td><td>0.12</td><td><code>failed_match:MaxIterError,failed_match:ValueError</code></td></tr>
+<tr class="warn"><td>vvpup</td><td>2025-04-15</td><td>9</td><td>23.13</td><td><code>failed_match:MaxIterError,skipped_pointing</code></td></tr>
+<tr class="warn"><td>vvpup</td><td>2025-04-17</td><td>9</td><td>14.25</td><td><code>failed_match:MaxIterError,skipped_pointing</code></td></tr>
+<tr class="warn"><td>vvpup</td><td>2025-04-21</td><td>9</td><td>0.11</td><td><code>failed_match:MaxIterError</code></td></tr>
+<tr class="warn"><td>vvpup</td><td>2025-04-12</td><td>8</td><td>0.18</td><td><code>failed_match:MaxIterError</code></td></tr>
+<tr class="warn"><td>vvpup</td><td>2024-12-06</td><td>7</td><td>0.09</td><td><code>failed_match:MaxIterError</code></td></tr>
+<tr class="warn"><td>vvpup</td><td>2025-03-02</td><td>5</td><td>0.07</td><td><code>failed_match:ValueError,failed_match:MaxIterError</code></td></tr>
+<tr class="warn"><td>anuma</td><td>2025-03-04</td><td>4</td><td>112.66</td><td><code>skipped_pointing</code></td></tr>
+<tr class="warn"><td>vvpup</td><td>2025-04-20</td><td>4</td><td>0.13</td><td><code>failed_match:MaxIterError</code></td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>Each (target,&nbsp;era) series is registered to
+ONE reference frame — chosen as the most-populated frame within the
+sharpest 75% of the series, PROVIDED it passes
+double-image quality control — by astroalign triangle matching, followed
+by one-to-one nearest-neighbour assignment with a seeing-scaled tolerance
+(max(2&nbsp;px, 0.8&nbsp;&times;
+ref FWHM)).</b>  Quality control exists because a guiding jump doubles
+every star into an equal-brightness pair and thereby INFLATES the
+detection count — the very statistic the selection rewards: a candidate
+is rejected when more than 20% of its
+stars have a companion within 3&nbsp;&times;
+FWHM at a flux ratio under 2 (the paired-star
+fraction and rejection count are tabulated above — clean frames sit near
+zero, doubled frames near one).  The star catalog IS the reference
+frame&rsquo;s detection list; star identity is its detection id — stable,
+auditable, and WCS-free.  astroalign&rsquo;s RANSAC is seeded per frame
+(<code>seeded_ransac</code>), so every transform and star identity
+reproduces bit-for-bit on re-run.  Frames that cannot produce
+8 detections or defeat the triangle fit are marked
+<code>failed_match</code>, counted, and excluded — never force-fitted.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Every detection now carries a star id (or none), so the
+ensemble below is a pure database join — no pixel is touched again.</p>
+</div></section>
+<section id="ensemble">
+<div class="bhead"><h2>3 &middot; The Honeycutt ensemble</h2>
+<span class="tag">robust ZP per frame + mean mag per star, per (target, era, filter)</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">With no photometric nights guaranteed and clouds in the
+data, how does every frame get a zero point it can defend?</p>
+
+<h3>Evidence</h3>
+<div class="grid"><figure><a href="figures/s4/s4_zp_timeline.png"><img src="figures/s4/s4_zp_timeline.png" alt=""></a><figcaption>Frame zero points of all 10 series (10 converged). Cloud events and focus drifts appear as excursions; the ensemble absorbs them into ZP rather than into star magnitudes.</figcaption></figure></div>
+<table class="data">
+<tr><th>target</th><th>era</th><th>filter</th><th>frames</th><th>comps</th><th>checks</th><th>dropped variable</th><th>iterations</th><th>converged</th><th>comp RMS med (mag)</th><th>ZP spread (mag)</th></tr>
+<tr><td>anuma</td><td>76</td><td>g</td><td>449</td><td>113</td><td>4</td><td>10</td><td>21</td><td>yes</td><td>0.0297</td><td>0.733</td></tr>
+<tr><td>anuma</td><td>76</td><td>i</td><td>257</td><td>111</td><td>4</td><td>38</td><td>12</td><td>yes</td><td>0.0284</td><td>0.081</td></tr>
+<tr><td>anuma</td><td>76</td><td>r</td><td>408</td><td>125</td><td>4</td><td>14</td><td>18</td><td>yes</td><td>0.0329</td><td>0.720</td></tr>
+<tr><td>vvpup</td><td>72</td><td>empty</td><td>76</td><td>1,288</td><td>4</td><td>131</td><td>12</td><td>yes</td><td>0.0243</td><td>0.110</td></tr>
+<tr><td>vvpup</td><td>72</td><td>g</td><td>196</td><td>1,825</td><td>4</td><td>383</td><td>12</td><td>yes</td><td>0.0346</td><td>0.337</td></tr>
+<tr><td>vvpup</td><td>72</td><td>i</td><td>87</td><td>2,262</td><td>4</td><td>292</td><td>12</td><td>yes</td><td>0.0455</td><td>0.047</td></tr>
+<tr><td>vvpup</td><td>72</td><td>r</td><td>189</td><td>1,919</td><td>4</td><td>388</td><td>12</td><td>yes</td><td>0.0358</td><td>0.368</td></tr>
+<tr><td>vvpup</td><td>76</td><td>g</td><td>387</td><td>2,660</td><td>4</td><td>367</td><td>18</td><td>yes</td><td>0.0353</td><td>0.674</td></tr>
+<tr><td>vvpup</td><td>76</td><td>i</td><td>116</td><td>1,803</td><td>4</td><td>159</td><td>21</td><td>yes</td><td>0.0383</td><td>0.994</td></tr>
+<tr><td>vvpup</td><td>76</td><td>r</td><td>168</td><td>2,509</td><td>4</td><td>369</td><td>18</td><td>yes</td><td>0.0337</td><td>0.801</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>Honeycutt&rsquo;s (1992) inhomogeneous ensemble,
+solved by alternating weighted least squares with a
+4&sigma; robust re-solve, a
+5&nbsp;mmag systematic weight floor, and the
+mean-ZP gauge.</b>  Comparison stars are chosen by stability iteration —
+candidates must appear on &ge;50% of
+frames, and stars whose residual RMS exceeds
+max(2.5&nbsp;&times;&nbsp;median,
+20&nbsp;mmag) are dropped each pass; the
+TARGET is excluded from comp duty a priori (a polar&rsquo;s modulation
+must never set the zero point).  4 stable stars nearest
+the target&rsquo;s magnitude are held OUT of the solve as check stars —
+their statistics below are honest hold-outs, not self-graded
+homework.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Every frame carries zp&nbsp;&plusmn;&nbsp;zp_err and every
+star a mean magnitude + RMS + &chi;&sup2; — the raw material of both the
+light curves (section 6) and the error model (section 5).</p>
+</div></section>
+<section id="gaia">
+<div class="bhead"><h2>4 &middot; The Gaia DR3 anchor</h2>
+<span class="tag">identity + geometry check + an honest offset, not absolute cal</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">What ties these WCS-free pixel catalogs to the sky — and
+how far toward absolute photometry does that tie honestly reach?</p>
+
+<h3>Evidence</h3>
+<table class="data">
+<tr><th>target</th><th>era</th><th>status</th><th>parity</th><th>fitted scale "/px</th><th>header scale "/px</th><th>rotation deg</th><th>Gaia stars</th><th>matched</th><th>target star id</th><th>target offset "</th><th>coords via</th></tr>
+<tr><td>anuma</td><td>76</td><td>ok</td><td>direct</td><td>0.4509</td><td>0.4491</td><td>0.47</td><td>581</td><td>213</td><td>291</td><td>1.11</td><td>simbad</td></tr>
+<tr><td>vvpup</td><td>72</td><td>ok</td><td>direct</td><td>0.8095</td><td>0.8062</td><td>-155.58</td><td>2,000</td><td>897</td><td>1,516</td><td>1.77</td><td>simbad</td></tr>
+<tr><td>vvpup</td><td>76</td><td>ok</td><td>direct</td><td>0.4511</td><td>0.4491</td><td>0.67</td><td>2,000</td><td>750</td><td>2,700</td><td>1.87</td><td>simbad</td></tr>
+</table>
+<p class="sub">The fitted similarity scale is measured from the SKY and
+agrees with the header plate scale — an independent check of the
+XPIXSZ/FOCALLEN cards that no header can fake.  Zero-point offsets per
+series (comparison stars with Gaia G only):</p>
+<table class="data">
+<tr><th>target</th><th>era</th><th>filter</th><th>median (G - ensemble) mag</th><th>scatter (MAD) mag</th><th>stars</th><th>zero-point status</th></tr>
+<tr><td>anuma</td><td>76</td><td>g</td><td>-3.351</td><td>0.256</td><td>102</td><td><code>gaia_median_offset</code></td></tr>
+<tr><td>anuma</td><td>76</td><td>i</td><td>-4.061</td><td>0.167</td><td>99</td><td><code>gaia_median_offset</code></td></tr>
+<tr><td>anuma</td><td>76</td><td>r</td><td>-3.509</td><td>0.038</td><td>113</td><td><code>gaia_median_offset</code></td></tr>
+<tr><td>vvpup</td><td>72</td><td>empty</td><td>-3.073</td><td>0.157</td><td>771</td><td><code>gaia_median_offset</code></td></tr>
+<tr><td>vvpup</td><td>72</td><td>g</td><td>-2.909</td><td>0.153</td><td>760</td><td><code>gaia_median_offset</code></td></tr>
+<tr><td>vvpup</td><td>72</td><td>i</td><td>-3.183</td><td>0.133</td><td>760</td><td><code>gaia_median_offset</code></td></tr>
+<tr><td>vvpup</td><td>72</td><td>r</td><td>-2.770</td><td>0.056</td><td>756</td><td><code>gaia_median_offset</code></td></tr>
+<tr><td>vvpup</td><td>76</td><td>g</td><td>-3.207</td><td>0.166</td><td>659</td><td><code>gaia_median_offset</code></td></tr>
+<tr><td>vvpup</td><td>76</td><td>i</td><td>-4.601</td><td>0.142</td><td>650</td><td><code>gaia_median_offset</code></td></tr>
+<tr><td>vvpup</td><td>76</td><td>r</td><td>-3.519</td><td>0.049</td><td>664</td><td><code>gaia_median_offset</code></td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>Gaia supplies three things: star identity
+(source_id + G), an independent plate-scale/orientation measurement, and
+a single median (G&nbsp;&minus;&nbsp;ensemble) offset per series.  The
+ensemble magnitudes remain INSTRUMENTAL: no color terms are fitted, and
+the quoted MAD of each offset is dominated by star color — which is
+precisely why applying the offset is a courtesy scale, not absolute
+calibration.</b>  Absolute calibration (color terms per filter per era)
+is a later S4 milestone; relative photometry is the product here.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Every ensemble star is now a named Gaia source; the target
+star&rsquo;s identity is fixed by coordinates
+(simbad), so the light
+curves in section 6 are attached to AN&nbsp;UMa and VV&nbsp;Pup by
+astrometry, not by hope.</p>
+</div></section>
+<section id="errors">
+<div class="bhead"><h2>5 &middot; The empirical error model (S5 seed)</h2>
+<span class="tag">check stars only — the target never grades its own errors</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Are the formal error bars TRUE?  Both targets are polars
+whose modulation is signal, so the question is answered entirely by field
+CHECK stars held out of the ensemble solve.</p>
+
+<h3>Evidence</h3>
+<div class="grid"><figure><a href="figures/s4/s4_rms_vs_mag.png"><img src="figures/s4/s4_rms_vs_mag.png" alt=""></a><figcaption>Star RMS vs ensemble magnitude per (era, filter): comparison stars (blue), held-out check stars (yellow), dropped variables (red), the target (pink), against the photon+sky floor predicted by the measurement errors (green line).</figcaption></figure></div>
+<table class="data">
+<tr><th>era</th><th>filter</th><th>check stars</th><th>best check RMS (mmag)</th><th>median check RMS (mmag)</th><th>median &chi;&sup2;<sub>&nu;</sub></th><th>inflation factor</th></tr>
+<tr><td>72</td><td>empty</td><td>4</td><td>42.4</td><td>53.4</td><td>1.26</td><td>1.12</td></tr>
+<tr><td>72</td><td>g</td><td>4</td><td>42.9</td><td>55.1</td><td>2.73</td><td>1.65</td></tr>
+<tr><td>72</td><td>i</td><td>4</td><td>64.5</td><td>81.0</td><td>1.82</td><td>1.35</td></tr>
+<tr><td>72</td><td>r</td><td>4</td><td>53.1</td><td>63.3</td><td>1.98</td><td>1.41</td></tr>
+<tr><td>76</td><td>g</td><td>8</td><td>15.2</td><td>26.3</td><td>3.12</td><td>1.77</td></tr>
+<tr><td>76</td><td>i</td><td>8</td><td>42.0</td><td>61.5</td><td>0.87</td><td>0.93</td></tr>
+<tr><td>76</td><td>r</td><td>8</td><td>28.6</td><td>34.7</td><td>0.82</td><td>0.91</td></tr>
+</table>
+<div class="grid"><figure><a href="figures/s4/s4_allan.png"><img src="figures/s4/s4_allan.png" alt=""></a><figcaption>Allan deviation of check star 2,763 (vvpup/era 72/g), night 2024-12-03: 5 tau rungs from 160s to 2560s.  The longest-tau rungs rest on as few as 5 difference pairs (N annotated per rung; error bars are the 1&sigma; sampling uncertainty adev/&radic;(2N)) — any apparent flattening there is SUGGESTIVE, not statistically established; a claim of a correlated-noise floor awaits longer runs.</figcaption></figure></div>
+
+<h3>Decision</h3>
+<div class="decision"><b>Three statistics form the standard validation
+set every downstream paper reuses: (1) check-star RMS vs magnitude
+against the photon-noise floor; (2) the error INFLATION FACTOR
+sqrt(median &chi;&sup2;<sub>&nu;</sub>) of constant-star fits; (3) the
+Allan deviation of one long night, whose departure from
+&tau;<sup>&minus;1/2</sup> probes the correlated noise that averaging
+cannot remove.</b>  Three fine-print clauses S5 must honor: the
+&chi;&sup2; denominators are the formal errors WITH the
+5&nbsp;mmag systematic floor added in
+quadrature, so the factor calibrates floored errors, not raw photon
+errors; application is ONE-SIDED — use max(1,&nbsp;inflation), because a
+factor below 1 (see era&nbsp;76&nbsp;r) licenses no shrinking of error
+bars; and the check population passed the same stability screen as comps
+before being held out (RMS below
+max(2.5&nbsp;&times;&nbsp;median comp RMS,
+20&nbsp;mmag)), so the check floor is
+measured on pre-selected quiet stars — with only
+4&nbsp;checks per series (era-76 rows pool the sparse
+AN&nbsp;UMa field with the crowded b&nbsp;&asymp;&nbsp;+2&deg;
+VV&nbsp;Pup field, 4&nbsp;+&nbsp;4), the tabulated medians are coarse.
+The iKon era (72) writes EGAIN=0, so its predicted errors omit the
+source shot term and its inflation factor is expected &gt;1 by
+construction — the empirical model absorbs exactly this kind of header
+poverty, which is why S5 builds on measured scatter, never on claimed
+gains.</div>
+
+<h3>Consequence</h3>
+<p class="sub">S5 inherits these numbers as priors; October&rsquo;s new
+frames extend the same tables by re-running this build.</p>
+</div></section>
+<section id="lightcurves">
+<div class="bhead"><h2>6 &middot; Light-curve sanity — pipeline evidence,
+not science</h2>
+<span class="tag">AN UMa is a polar: its modulation is EXPECTED signal</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Does the assembled machinery produce a light curve a CV
+astronomer recognizes?</p>
+
+<h3>Evidence</h3>
+<div class="grid"><figure><a href="figures/s4/s4_anuma_lc.png"><img src="figures/s4/s4_anuma_lc.png" alt=""></a><figcaption>AN UMa: 1,043 ensemble-corrected target points across 13 nights (VV Pup holds 1,045 more). Times are header UTC start JDs — barycentric correction is stage S3, deliberately absent here.</figcaption></figure></div>
+<div class="grid"><figure><a href="figures/s4/s4_anuma_folded.png"><img src="figures/s4/s4_anuma_folded.png" alt=""></a><figcaption>The same points folded on the literature period P = 0.0797528 d (AAVSO VSX (0.07975274 d)). Coherent per-night structure at the orbital period — plus night-to-night level shifts (accretion high/low states) — is exactly the phenomenology expected of a polar. Header-UTC times drift up to ~8 min from barycentric over a season (~0.07 in phase) — harmless for a sanity fold, fatal for timing, which is why BJD is S3's job.</figcaption></figure></div>
+
+<h3>Decision</h3>
+<div class="decision"><b>The light curves are exhibited as EVIDENCE THAT
+THE PIPELINE WORKS — orbital-phase coherence and state changes are
+consistent with AN UMa&rsquo;s known behaviour — and every scientific
+claim about the system (state durations, period work, accretion
+geometry) is explicitly deferred to the CV_TimeSeries paper, which will
+consume this database, not this page.</b>  The fold uses the literature
+period P&nbsp;=&nbsp;0.0797528&nbsp;d — source
+AAVSO VSX (0.07975274 d), recorded beside the constant in
+<code>macro_phot.report_s4</code>; nothing here measures a period.</div>
+
+<h3>Consequence</h3>
+<p class="sub">The prototype closes S4&rsquo;s core loop: pixels &rarr;
+matched stars &rarr; defensible zero points &rarr; validated errors
+&rarr; a target light curve with named comparison stars.  Scaling to the
+remaining CV targets is a worklist change, not a code change.</p>
+</div></section>
+
+<footer>Generated by <code>macro_phot.report_s4</code> from
+<code>products/phot/anuma_vvpup_prototype.sqlite</code> — every number on
+this page is the result of a SQL query; none is typed by hand.  Regenerate
+with <code>pipeline/scripts/build_s4_photometry.py report</code> (full
+rebuild: init &rarr; extract &rarr; match &rarr; gaia &rarr; ensemble
+&rarr; errors &rarr; report).</footer>
+</body></html>

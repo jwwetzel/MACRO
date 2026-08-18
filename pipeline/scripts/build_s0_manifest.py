@@ -242,9 +242,41 @@ def _tie(s: str) -> tuple:
 # ---------------------------------------------------------------------------
 # Step 3 — frames table: dedup, canonical choice, eras, nights, pointing, QC
 # ---------------------------------------------------------------------------
+def load_prior_era_ids(db_path: Path) -> dict:
+    """Read the era registry a previous manifest build published, if any.
+
+    Returns ``{era_key_tuple: era_id}`` from the ``eras`` table of the
+    manifest at ``db_path``, or ``{}`` when no prior build exists (first
+    run, or the table is absent).  Keys are re-derived through
+    :func:`macro_core.manifest.era_key` from the stored components, so the
+    normalization (whitespace strip, int casts, EGAIN rounding) is byte-for-
+    byte the same one the assignment step uses — a stored key always maps
+    onto its own registry entry.
+    """
+    if not Path(db_path).exists():
+        return {}
+    try:
+        with closing(sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)) as con:
+            rows = con.execute(
+                "SELECT era_id, readoutm, naxis1, naxis2, xbinning, egain "
+                "FROM eras").fetchall()
+    except sqlite3.Error:
+        # No eras table (or unreadable DB) — behave as a first build.
+        return {}
+    return {m.era_key(r, n1, n2, xb, eg): int(eid)
+            for eid, r, n1, n2, xb, eg in rows}
+
+
 def build_frames(df: pd.DataFrame, key_of_raw: dict,
-                 display_of_key: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
+                 display_of_key: dict,
+                 prior_era_ids: dict | None = None,
+                 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Compute every derived column of the ``frames`` table.
+
+    ``prior_era_ids`` maps era keys (as built by :func:`macro_core.manifest
+    .era_key`) to the era_id a PREVIOUS manifest build published for them.
+    Passing it pins those ids forever — see the registry comment at the era
+    assignment step for why renumbering is forbidden.
 
     Returns the enriched frames DataFrame and the eras table.
     """
@@ -304,10 +336,27 @@ def build_frames(df: pd.DataFrame, key_of_raw: dict,
              in zip(ok, df["readoutm"], df["naxis1"], df["naxis2"],
                     df["xbinning"], df["egain"])]
     df["_era_key"] = pd.Series(ekeys, index=df.index, dtype=object)
-    # Order era ids by each configuration's first appearance on sky (min
-    # JD), so era_id 1 is the oldest camera configuration.
+    # Era ids are a REGISTRY, not a ranking (2026-08-18).  The first build
+    # ordered ids by each configuration's first appearance on sky, and those
+    # numbers are now published: reports, all five strategy documents, the
+    # ops request, and the s1_*/detector_params/phot_* tables all cite
+    # "era 76", "era 47", ....  Renumbering would silently re-point every
+    # one of those references at a different camera.  So: ids already issued
+    # by a previous build are PINNED via ``prior_era_ids``; only keys new to
+    # this build receive fresh ids, appended AFTER the existing maximum, in
+    # first-appearance (min JD) order among themselves.  The original
+    # oldest-camera-is-era-1 property therefore holds only within the first
+    # build's keys — a documented, deliberate trade for citation stability.
+    # (Trigger: the Calibrations/ recovery added mid-timeline configurations
+    # that would have spliced into a pure JD ordering and renumbered every
+    # era after them.)
     firsts = (df[ok].groupby("_era_key")["jd"].min().sort_values())
-    era_id_of_key = {k: i + 1 for i, k in enumerate(firsts.index)}
+    era_id_of_key = dict(prior_era_ids or {})
+    next_id = max(era_id_of_key.values(), default=0) + 1
+    for k in firsts.index:
+        if k not in era_id_of_key:
+            era_id_of_key[k] = next_id
+            next_id += 1
     # REGRESSION-CRITICAL: look keys up with dict.get, never .map(dict).
     # pandas turns a tuple-keyed dict into a MultiIndex-backed Series, and
     # any None inside a key tuple becomes a NaN level whose lookup MISSES —
@@ -566,7 +615,15 @@ def main(argv=None) -> int:
     print(f"[S0]   {n_raw:,} raw names -> {n_canon:,} canonical targets")
 
     print("[S0] building frames table (dedup, eras, nights, pointing, QC) ...")
-    frames, eras = build_frames(df, key_of_raw, display_of_key)
+    # Pin era ids already published by the previous build (registry rule —
+    # see the era-assignment comment in build_frames).  Read BEFORE the
+    # atomic swap replaces the file.
+    prior_era_ids = load_prior_era_ids(args.out)
+    if prior_era_ids:
+        print(f"[S0] era registry: pinning {len(prior_era_ids)} ids "
+              "from the previous build")
+    frames, eras = build_frames(df, key_of_raw, display_of_key,
+                                prior_era_ids=prior_era_ids)
     n_groups = frames["dup_group"].nunique()
     n_can = int((frames["is_canonical"] == 1).sum())
     print(f"[S0]   {n_groups:,} duplicate groups; {n_can:,} canonical frames; "

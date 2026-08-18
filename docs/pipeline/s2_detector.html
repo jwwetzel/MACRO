@@ -1,0 +1,285 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2 — Detector Truth</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+
+<header>
+  <h1>S2 — Detector Truth</h1>
+  <p>8 readout modes characterized (6 measured
+  ceilings) &middot; 98 PTC pairs &middot; 8
+  reduction eras reconstructed &middot; 64 rows in
+  <code>detector_params</code> &middot;
+  built 2026-08-18T07:30Z
+  (S2 v1.1 (2026-08-18),
+  commit <code>c930015</code>)
+  &middot; <a href="../index.html">back to the evidence hub</a></p>
+</header>
+
+<nav>
+  <a href="#ceiling">1 Ceiling memo</a> &middot;
+  <a href="#ptc">2 Photon transfer</a> &middot;
+  <a href="#recon">3 Master reconstruction</a> &middot;
+  <a href="#linearity">4 Linearity</a>
+</nav>
+
+
+<section id="ceiling"><h2>1&nbsp;&middot;&nbsp;The ceiling memo:
+where every mode's scale actually ends</h2>
+<h3>Question</h3>
+<p>The SN panel measured the High Gain clip at
+~3,530&ndash;3,550
+ADU; the CV team adopted 3,500 with a
+3,200 veto (external priors, quoted from the
+facility notes as documented constants).  Which number is right, is the
+detector 12-bit, and what are the ceilings of the OTHER seven modes nobody
+measured?</p>
+<h3>Evidence</h3>
+<p class="sub">1,110 science frames sampled across every readout
+mode (14,667,447,395 pixels histogrammed):</p>
+<figure><a href="figures/s2/s2_ceiling_hist.png"><img src="figures/s2/s2_ceiling_hist.png" alt=""></a><figcaption>Terminal histogram structure per mode.  A ceiling is a valley-then-mound at the very end of the occupied range (pileup); a smooth falling tail is honest headroom.</figcaption></figure>
+<figure><a href="figures/s2/s2_frame_maxes.png"><img src="figures/s2/s2_frame_maxes.png" alt=""></a><figcaption>Per-frame maxima.  High Gain frames pile at the mound; StackPro frames cluster at 16x the single-read clip; Low Gain's tight cluster failed the position-diversity test (same hot feature in every frame) and is NOT a ceiling.</figcaption></figure>
+<table class="data">
+<tr><th>mode</th><th>frames</th><th>hard max</th><th>adopted ceiling</th><th>veto</th><th>ADC bits</th><th>unused codes</th></tr>
+<tr><td>(blank 2026)</td><td>120</td><td>65,535</td><td>65,534</td><td>60,200</td><td>16</td><td>1</td></tr>
+<tr><td>1MHz High Sensitivity 16-bit</td><td>150</td><td>64,866</td><td>64,674</td><td>59,500</td><td>16</td><td>861</td></tr>
+<tr><td>5MHz High Sensitivity 16-bit</td><td>120</td><td>65,531</td><td><i>not observed to saturate</i></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>Fast</td><td>150</td><td>65,535</td><td>65,534</td><td>60,200</td><td>16</td><td>1</td></tr>
+<tr><td>High Gain</td><td>150</td><td>3,584</td><td>3,496</td><td>3,200</td><td>12</td><td>599</td></tr>
+<tr><td>High Gain StackPro</td><td>150</td><td>65,518</td><td>56,062</td><td>51,500</td><td>16</td><td>9,473</td></tr>
+<tr><td>Low Gain</td><td>120</td><td>3,546</td><td><i>not observed to saturate</i></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>Mode0</td><td>150</td><td>65,535</td><td>65,535</td><td>60,200</td><td>16</td><td>0</td></tr>
+</table>
+<p class="sub">Method notes, each one load-bearing: (1) the High Gain
+&ldquo;clip&rdquo; is not one code but a 88-ADU-wide
+pileup mound (per-pixel CMOS saturation spread), peaked at 3,496
+and reaching 3,584. Part of that width is <b>egain-epoch drift</b>: the near-ceiling frame maxima split cleanly by camera epoch (egain 1.054: 19 frames, maxima 3,526&ndash;3,584 (median 3,557); egain 1.057: 123 frames, maxima 3,262&ndash;3,546 (median 3,511)).  The SN panel's prior range 3,530&ndash;3,550 sits nearest the egain-1.054 epoch's median (3,557), while the CV team's 3,500 sits nearest the egain-1.057 epoch's median (3,511) — the two priors are consistent with having measured <i>different epochs</i>, not different parts of one mound.  The adopted 3,496 describes the dominant egain-1.057 population (123 of 142 near-ceiling frames); the veto below sits under every near-ceiling maximum of <i>both</i> epochs (lowest observed: 3,262). (2) a
+frame-maximum cluster only counts as a ceiling if its members' maxima land
+at <i>diverse</i> sensor positions (&ge;50%
+distinct) — Low Gain's candidate at 2,851 ADU repeated a
+handful of positions across 55 frames (diversity
+0.05) and was rejected, so Low Gain's ceiling is
+<i>unobserved</i> (bounded below by its hard max 3,546);
+(3) the 5&nbsp;MHz iKon mode's steep sky slope was the false positive that
+forced the two-gate detector (valley-then-mound + nothing-above).</p>
+<h3>Decision</h3>
+<div class="decision"><b>Adopted per-mode ceilings and vetoes as tabled
+above: High Gain 3,496 ADU (veto 3,200), StackPro
+56,062 (= 16.04&nbsp;&times; the single-read clip),
+Mode0/Fast/blank-2026 at the full 16-bit code 65,535 (veto
+60,200), iKon
+1&nbsp;MHz at 64,674.
+The GSENSE4040 High Gain scale is <i>12-bit-consistent</i>: the mound at
+3,496 fits in 12 bits
+(2<sup>12</sup> = 4,096) and leaves 599
+codes of the 16-bit FITS container unused — but a per-pixel mound spread
+over tens of ADU cannot distinguish a 12-bit digitization clip
+(which lands on ONE shared code, as Mode0/Fast do at 65,535) from
+per-pixel analog full-well saturation or a clamp below 4,096, so
+&ldquo;confirmed&rdquo; waits for the vendor ADC readback (October).  The
+veto rule is floor(0.92 &times; ceiling) to
+100 ADU; against the CV team's prior veto of
+3,200, the measured 3,200
+reproduces it exactly.</b></div>
+<h3>Consequence</h3>
+<p class="sub">Every downstream photometry pipeline applies the tabled veto
+for its mode; pixels above it are ceiling-biased, not data.  StackPro's
+16&times; headroom is real but its sub-exposures still clip at the
+single-read mound — a star saturated in High Gain is equally saturated
+inside every StackPro sub-frame (see &sect;2).</p>
+</section>
+<section id="ptc"><h2>2&nbsp;&middot;&nbsp;Photon transfer: read noise,
+the gain bracket, and StackPro's 16 sub-frames</h2>
+<h3>Question</h3>
+<p>Roadmap R2: the 2023-06-07 repeated darks were shot for a StackPro
+photon-transfer curve that was never computed.  What do those frames —
+plus the same night's repeated Albireo star fields — actually support?</p>
+<h3>Evidence</h3>
+<p class="sub">98 same-scene consecutive pairs &rarr;
+666 (level, variance) points:</p>
+<figure><a href="figures/s2/s2_ptc.png"><img src="figures/s2/s2_ptc.png" alt=""></a><figcaption>Left: half-difference variance vs level.  Dark pairs (circles) run BELOW the Poisson line (part of the hot-pixel population barely fluctuates), light pairs (triangles) run above it at star levels (sub-pixel scene motion inflates the difference) — the two slopes bracket the true gain.  Right: the StackPro/High-Gain ratio of bias offset and read-noise variance.</figcaption></figure>
+<table class="data">
+<tr><th>mode</th><th>pairs</th><th>1/slope (e-/ADU)</th><th>slope</th><th>intercept (ADU²)</th><th>points</th></tr>
+<tr><td>High Gain</td><td>dark</td><td>1.773</td><td>0.564</td><td>-33.8</td><td>308</td></tr>
+<tr><td>High Gain</td><td>light</td><td>0.074</td><td>13.533</td><td>-1,675.3</td><td>227</td></tr>
+<tr><td>High Gain StackPro</td><td>dark</td><td>1.592</td><td>0.628</td><td>-685.6</td><td>20</td></tr>
+<tr><td>High Gain StackPro</td><td>light</td><td>0.003</td><td>361.863</td><td>-692,866.1</td><td>111</td></tr>
+</table>
+<p class="sub">The raw fits above are recorded facts, not adopted gains:
+the dark slope is sub-Poisson-biased and the light slope motion-biased
+(both stated on the figure).  What the frames DO support cleanly:</p>
+<ul class="sub">
+<li><b>Read noise</b> — the variance floor of the shortest darks has no
+scene and only a small dark-current term (1.0% of the floor variance, measured from the 8s-vs-128s floors — negligible but not zero): High Gain
+3.93&nbsp;ADU =
+4.15&nbsp;&plusmn;&nbsp;2.30
+&nbsp;e<sup>-</sup> (value at nominal EGAIN; the electron-unit uncertainty
+spans the measured gain bracket below, NOT the tiny ADU statistical
+error); StackPro 15.59&nbsp;ADU.</li>
+<li><b>Gain bracket</b> — High Gain true gain lies between
+0.60 (sky-level light slope,
+lower bound) and 1.77
+(dark slope, upper bound) e<sup>-</sup>/ADU; the header EGAIN
+1.057 sits inside the bracket and
+is adopted as nominal.  A clean flat-field PTC is an October item.</li>
+<li><b>StackPro architecture</b> — three independent ratios against plain
+High Gain (offset_ratio=15.96) agree:
+<b>N<sub>sub</sub> = 16</b>.  A StackPro
+frame is the SUM of 16 sub-exposures: bias offset
+1,484.5 ADU
+(&asymp;16 &times; 93), read-noise
+variance &asymp;16&times; the single read, ceiling &asymp;16&times; the
+single-read clip (&sect;1).</li>
+<li><b>Amp glow</b> — High Gain: hottest corner +8.0 ADU (128s dark); a measurable but small spatial term that
+master darks remove.</li>
+</ul>
+<h3>Decision</h3>
+<div class="decision"><b>Error models use: read noise
+3.93 ADU (High Gain single read); gain =
+header EGAIN as nominal with the measured
+[0.60,
+1.77] e<sup>-</sup>/ADU bracket
+as its systematic; StackPro frames modeled as sums of 16 sub-reads
+(noise variance 16&times;, read noise 4&times; in ADU), NOT as single
+reads.</b>  The repeated darks cannot deliver a full PTC gain — that
+limit is stated here rather than papered over, and the flat-field PTC
+joins the October list.</div>
+<h3>Consequence</h3>
+<p class="sub">Every S/N estimate for StackPro data changes: the effective
+read noise per frame is 15.59 ADU,
+sixteen sub-reads' worth, and short-exposure StackPro frames are
+read-noise-limited far above where a single High Gain read would be.</p>
+</section>
+<section id="recon"><h2>3&nbsp;&middot;&nbsp;The master-reconstruction
+experiment: auditing reductions nobody can re-run</h2>
+<h3>Question</h3>
+<p>The <code>reduced/</code> tree was produced by a pipeline whose
+calibration files we mostly do not hold.  Can the raw&harr;reduced pairs
+themselves reveal — per pixel — what dark D and flat F were applied, and
+can era&nbsp;47 (whose actual masters ARE archived) grade the method?</p>
+<h3>Evidence</h3>
+<p class="sub">Per pixel, the reduction model
+<code>reduced = (raw &minus; D)/F + pedestal</code> is a straight line
+<code>raw = F&middot;(reduced &minus; ped) + D</code>; fitting it across
+106,879 linked pairs (&le;36 pairs per era, robust
+median-slope seeding + 3 clip passes at
+4.0&sigma; against astro-scrappy pixel rewrites)
+recovers D and F on a 512&sup2; central + four corner grids:</p>
+<figure><a href="figures/s2/s2_recon_stamps.png"><img src="figures/s2/s2_recon_stamps.png" alt=""></a><figcaption>Reconstructed dark (left) and flat (middle) per era; right: era-47 reconstruction minus its archived master bias+scaled-dark — the ground-truth grade.</figcaption></figure>
+<table class="data">
+<tr><th>era</th><th>mode</th><th>links</th><th>pairs fit</th><th>flat median F</th><th>dark median D (ADU)</th><th>fit RMS</th><th>pedestal</th><th>F&ndash;D corr</th><th>vs archived master</th><th>verdict</th></tr>
+<tr><td>47</td><td>1MHz High Sensitivity 16-bit</td><td>42</td><td>36</td><td>0.9998</td><td>304.8</td><td>2.34</td><td>1,000</td><td>-0.38</td><td>5.28 ADU RMS (offset 3.8)</td><td>dark subtracted, no flat (F = 1), matches archived master to 5.3 ADU RMS</td></tr>
+<tr><td>72</td><td>1MHz High Sensitivity 16-bit</td><td>16,426</td><td>36</td><td>1.0671</td><td>301.6</td><td>2.61</td><td>1,000</td><td>-0.07</td><td>2.04 ADU RMS (offset 0.8)</td><td>dark subtracted, flat applied, matches archived master to 2.0 ADU RMS</td></tr>
+<tr><td>76</td><td>Mode0</td><td>63,163</td><td>36</td><td>1.1086</td><td>302.8</td><td>0.83</td><td>1,000</td><td>0.17</td><td>&mdash;</td><td>dark subtracted, flat applied</td></tr>
+<tr><td>78</td><td>Fast</td><td>8,242</td><td>36</td><td>1.0817</td><td>172.1</td><td>0.37</td><td>0</td><td>0.23</td><td>&mdash;</td><td>dark subtracted, flat applied</td></tr>
+<tr><td>79</td><td>Fast</td><td>136</td><td>36</td><td>1.0000</td><td>0.0</td><td>0.61</td><td>0</td><td>-0.17</td><td>&mdash;</td><td>IDENTITY: both trees hold the same pixels (no relative calibration between them)</td></tr>
+<tr><td>80</td><td>Fast</td><td>17,200</td><td>36</td><td>1.0833</td><td>172.0</td><td>0.23</td><td>0</td><td>0.03</td><td>&mdash;</td><td>dark subtracted, flat applied</td></tr>
+<tr><td>81</td><td>(blank)</td><td>36</td><td>36</td><td>1.0846</td><td>685.1</td><td>2.14</td><td>0</td><td>-0.10</td><td>&mdash;</td><td>dark subtracted, flat applied</td></tr>
+<tr><td>83</td><td>(blank)</td><td>1,634</td><td>36</td><td>1.0796</td><td>172.1</td><td>0.23</td><td>0</td><td>-0.04</td><td>&mdash;</td><td>dark subtracted, flat applied</td></tr>
+</table>
+<p class="sub">Notable per-era facts, all from the table: era 47's flat
+median 0.9998
+confirms from pixels what the reduced headers claim
+(&ldquo;flat correction NOT performed&rdquo;), and its reconstructed dark
+matches the archived master to 5.28 ADU RMS
+(MAD-&sigma; 4.23) over 36 pairs.  <b>Read the
+F&ndash;D corr column before trusting per-pixel values</b>: era 47's
+near-constant sky gave the fit little level diversity, so its per-pixel F
+and D trade off against each other (correlation -0.38,
+per-pixel F scatter 9.1%) — its
+&ldquo;no flat&rdquo; verdict rests on the MEDIAN F only, and its
+5.28 ADU grade is an upper bound that includes degeneracy
+noise (era 72, better conditioned, grades at 2.04 ADU RMS);
+eras with |corr| &asymp; 0 support per-pixel readings.  <b>Era 79 —
+corrected by adversarial review</b>: F = 1.0000, D = 0,
+pedestal 0 is an IDENTITY fit — the two trees hold the <i>same pixels</i>
+to 0.61 ADU RMS (compression rounding; NOT byte-identical
+— an earlier draft overclaimed both the identity and its direction).
+What that shared content is, the manifest answers: 25,715 of era
+79's 25,715 frames — including all 137 in the
+rawimage tree — are named <code>*_calibrated</code>, and the era's
+geometry 4,787&times;3,193 is the CROPPED
+calibrated-output geometry (era 78's true Fast raws are
+4,800&times;3,211).  Era 79's rawimage tree therefore
+holds mirrored copies of <i>calibrated products</i>; the era's true raws
+are absent from the archive, and its reduced tree remains calibrated
+data.  The 2026 eras (78/80/83) crop their reduced output by
+13&ndash;18 pixels; the crop offset was measured by patch alignment
+before fitting.</p>
+<h3>Decision</h3>
+<div class="decision"><b>The experiment stands: per-pixel line fits
+recover the reduction's calibration to a few ADU RMS wherever
+&ge;8 clean pairs exist, and the era-47 control
+grades the method at 5.28 ADU RMS against ground truth
+(an upper bound — see the degeneracy note above).  Reduced-tree
+photometry is hereby AUDITED for the fitted eras with the table's
+verdicts attached.  Era 79: the 137 rawimage-tree frames are
+misfiled copies of calibrated products and must NOT be used as raw data
+(no true raws exist in the archive for that era); its reduced tree stays
+in service as calibrated data.</b>
+The reconstructed D/F stamps ship as regenerable products
+(<code>products/detector/recon/era*.npz</code>) for downstream flat/dark
+sanity checks.</div>
+<h3>Consequence</h3>
+<p class="sub">Papers using reduced-tree pixels now cite a measured
+calibration provenance instead of an assumption; eras with F &ne; 1 are
+known to be flat-fielded (and by how much, per pixel on the sampled
+grids); the 2026-era crop offset is on record for anyone aligning raw
+against reduced frames.</p>
+</section>
+<section id="linearity"><h2>4&nbsp;&middot;&nbsp;Linearity from archival
+exposure ladders</h2>
+<h3>Question</h3>
+<p>Does flux scale with exposure time — and can the 2024-05-20 Vega
+BeStar ladder (0.0001&ndash;0.1&nbsp;s) calibrate the short end?</p>
+<h3>Evidence</h3>
+<p class="sub">63 same-night same-target same-filter same-gain
+ladders surfaced from the manifest (63 fittable); residuals
+against flux = k&middot;t for the cleanest ladder per mode:</p>
+<figure><a href="figures/s2/s2_linearity.png"><img src="figures/s2/s2_linearity.png" alt=""></a><figcaption>Per-mode best ladder.  Filled points: unsaturated rungs (the linearity measurement).  Crosses: rungs whose peak sits above the saturation veto — they measure the ceiling, not linearity, and are excluded from the statistic.</figcaption></figure>
+<table class="data">
+<tr><th>mode</th><th>max |deviation| (%)</th><th>rung scatter (%)</th><th>witness ladder</th></tr>
+<tr><td>Mode0</td><td>0.34</td><td>0.30</td><td>2025-04-16|v849her|Mode0|i|0.246658 (3 rungs below the saturation veto)</td></tr>
+<tr><td>Fast</td><td>0.83</td><td>0.53</td><td>2026-04-15|vega|Fast|hrg|1 (3 rungs below the saturation veto)</td></tr>
+<tr><td>1MHz High Sensitivity 16-bit</td><td>1.39</td><td>0.94</td><td>2024-05-07|hd87737|1MHz High Sensitivity 16-bit|HaGrism|0 (3 rungs below the saturation veto)</td></tr>
+<tr><td>High Gain</td><td>4.19</td><td>2.34</td><td>2024-01-25|sn2024gy|High Gain|6|1.05697 (4 rungs below the saturation veto)</td></tr>
+<tr><td>High Gain StackPro</td><td>4.20</td><td>2.94</td><td>2023-02-09|sao12096|High Gain StackPro|6|1.05371 (5 rungs below the saturation veto)</td></tr>
+</table>
+<p class="sub">Read the table as <b>single-ladder consistency bounds</b>,
+not measured non-linearities: each mode's number comes from ONE
+(night,&nbsp;target,&nbsp;filter,&nbsp;egain) ladder, the median-rate fit
+zeroes one rung by construction (a 3-rung ladder has two informative
+rungs), and the residuals fold in sky-transparency drift — which usually
+inflates the bound but can partially cancel a real roll-off.  The rung
+scatter column is the spread of the clean rungs' residuals, the honest
+scale of each bound.</p>
+<p class="sub">Two negative findings, recorded as findings: (1) the
+<b>Vega ladder is unusable for linearity</b> — its commanded exposure
+times collapse below ~10 ms (0.0001s &rarr; 23,751,922 ADU (peak 40,942); 0.001s &rarr; 23,552,458 ADU (peak 36,739); 0.01s &rarr; 24,880,892 ADU (peak 43,186); 0.025s &rarr; 28,504,038 ADU (peak 48,601): flux is NOT monotonic in
+commanded time, i.e. the shutter/timing floor, not the detector,
+dominates); (2) modes with <b>no usable ladder</b> —
+(blank 2026), 5MHz High Sensitivity 16-bit, Low Gain — have no
+archival linearity constraint at all.  Both go on the October list
+(a dedicated dome-flat ladder per mode costs minutes).</p>
+<h3>Decision</h3>
+<div class="decision"><b>Adopted per-mode linearity bounds as tabled:
+best-witnessed modes (Mode0, Fast, iKon 1&nbsp;MHz) are linear to
+&le;1.4%
+over their witnessed ranges; the High Gain family carries a
+&le;4.2%
+bound that is sky/cloud-limited, not detector-limited — treat it as an
+upper limit, not a measured non-linearity.  Sub-10-ms commanded exposure
+times are untrustworthy on the iKon and must not be used for absolute
+photometric scaling.</b></div>
+<h3>Consequence</h3>
+<p class="sub">Exposure-time-ratio photometry (HDR stitching, ladder
+bootstraps) inherits the tabled bound as a systematic; the timing-paper
+error budget cites the sub-10-ms finding directly.</p>
+</section>
+
+<footer>Generated by <code>rlmt_diagnostics.report_s2</code> from
+<code>products/manifest/rlmt-manifest.sqlite</code> — every number on this
+page is the result of a SQL query or a documented pipeline constant; none
+is typed by hand.  Regenerate with
+<code>pipeline/scripts/run_s2_campaign.py report</code>.</footer>
+</body></html>
