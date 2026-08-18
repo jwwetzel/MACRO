@@ -8,6 +8,8 @@ starved frame reaching the solver through the QC gate).
 
 from __future__ import annotations
 
+import sqlite3
+
 import pytest
 
 from macro_core import astrom, batch
@@ -247,3 +249,56 @@ class TestEta:
                    "fast_fullframe": 2560, "ikon_backlog": 12605}
         hours = eta_seconds(backlog, PRIOR_MEDIAN_S, 10) / 3600.0
         assert 3.0 < hours < 4.5
+
+
+class TestExecuteResilient:
+    """Regression (2026-08-18): a multi-hour batch died with 24,662 frames
+    still pending because a sibling stage held the manifest write lock past
+    the connection's 120 s timeout.  Contention must be retried; real errors
+    must still surface immediately."""
+
+    def _script(self):
+        import importlib.util, sys
+        from pathlib import Path
+        p = (Path(__file__).resolve().parent.parent / "scripts"
+             / "run_s1_batch.py")
+        spec = importlib.util.spec_from_file_location("run_s1_batch", p)
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules["run_s1_batch"] = mod
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_retries_lock_errors_then_succeeds(self, monkeypatch):
+        mod = self._script()
+        monkeypatch.setattr(mod.time, "sleep", lambda *_: None)  # no real wait
+
+        class FlakyCon:
+            def __init__(self):
+                self.calls = 0
+
+            def execute(self, sql, params):
+                self.calls += 1
+                if self.calls < 3:
+                    raise sqlite3.OperationalError("database is locked")
+                return None
+
+        con = FlakyCon()
+        mod.execute_resilient(con, "UPDATE t SET a=?", [1])
+        assert con.calls == 3, "should have retried until the lock cleared"
+
+    def test_real_errors_are_not_retried(self, monkeypatch):
+        mod = self._script()
+        monkeypatch.setattr(mod.time, "sleep", lambda *_: None)
+
+        class BrokenCon:
+            def __init__(self):
+                self.calls = 0
+
+            def execute(self, sql, params):
+                self.calls += 1
+                raise sqlite3.OperationalError("no such column: nonsense")
+
+        con = BrokenCon()
+        with pytest.raises(sqlite3.OperationalError):
+            mod.execute_resilient(con, "UPDATE t SET nonsense=?", [1])
+        assert con.calls == 1, "a genuine SQL error must fail immediately"

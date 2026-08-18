@@ -70,6 +70,40 @@ PIPELINE_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PIPELINE_ROOT))
 
 from macro_core import astrom, batch                       # noqa: E402
+
+
+# How long to keep retrying a write that loses the race for the manifest's
+# write lock, and how long to wait between attempts.  The connection's own
+# ``timeout=`` already waits for the lock, but that wait is per-attempt and
+# raises OperationalError once it expires — which on 2026-08-18 killed a
+# multi-hour batch outright after some other stage held the lock past the
+# 120 s ceiling.  A long job must never die because a sibling stage was
+# briefly slow, so the write is retried with backoff and only gives up when
+# the lock has genuinely been held for many minutes.
+WRITE_RETRIES = 8
+WRITE_BACKOFF_S = 15.0
+
+
+def execute_resilient(con: sqlite3.Connection, sql: str, params) -> None:
+    """Run one write, tolerating a manifest lock held by another stage.
+
+    Retries only on SQLite's lock errors ("database is locked" / "database is
+    busy"); every other OperationalError is a real fault and propagates
+    immediately, so genuine bugs still fail loudly.
+    """
+    for attempt in range(1, WRITE_RETRIES + 1):
+        try:
+            con.execute(sql, params)
+            return
+        except sqlite3.OperationalError as exc:
+            msg = str(exc).lower()
+            if "locked" not in msg and "busy" not in msg:
+                raise                       # not contention — a real error
+            if attempt == WRITE_RETRIES:
+                raise
+            # Linear backoff: the holder is usually a bulk insert from a
+            # sibling stage, which finishes in tens of seconds, not hours.
+            time.sleep(WRITE_BACKOFF_S)
 from macro_core.batch import S1B_CODE_VERSION              # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -378,7 +412,8 @@ def cmd_run(args) -> int:
                     # touches the DB.  The WHERE guards the transition
                     # contract — only pending rows may be finished.
                     sets = ", ".join(f"{c}=?" for c in _RESULT_COLS)
-                    con.execute(
+                    execute_resilient(
+                        con,
                         f"""UPDATE s1_batch SET {sets}, finished_utc=?
                             WHERE obs_rowid=? AND status='pending'""",
                         [res.get(c) for c in _RESULT_COLS]
