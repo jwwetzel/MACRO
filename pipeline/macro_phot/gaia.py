@@ -45,13 +45,30 @@ GAIA_MATCH_TOL_ARCSEC = 2.0
 #: an ID near this bound is visibly weaker evidence than one at 1".
 TARGET_ID_TOL_ARCSEC = 4.0
 
+#: SIMBAD identifiers of the archive's target keys.  Kept beside the
+#: coordinate fallbacks so a new target needs exactly one edit, in one
+#: place, to become resolvable.
+TARGET_SIMBAD_NAME: dict[str, str] = {
+    "anuma": "AN UMa",
+    "vvpup": "VV Pup",
+    "stlmi": "ST LMi",
+    "euuma": "EU UMa",
+    "yzcnc": "YZ Cnc",
+}
+
 #: Target coordinates fallback (ICRS deg) used ONLY if SIMBAD is
-#: unreachable at build time; values from SIMBAD (2026-08-17): AN UMa
-#: 11:04:25.68 +45:03:13.9, VV Pup 08:15:06.79 -19:03:17.4.  The DB records
-#: which source (live query vs fallback) supplied the numbers.
+#: unreachable at build time.  AN UMa and VV Pup were recorded from SIMBAD
+#: on 2026-08-17; the three CV-campaign targets were recorded from SIMBAD
+#: on 2026-08-18 and agree with the earlier pair's values to better than
+#: 0.5 arcsec, which is the check that the query and the constants describe
+#: the same catalogue.  The database records which source (live query vs
+#: this fallback) supplied the numbers for every field tie.
 TARGET_COORDS_FALLBACK: dict[str, tuple[float, float]] = {
-    "anuma": (166.10700, 45.05386),
-    "vvpup": (123.77829, -19.05483),
+    "anuma": (166.10690, 45.05387),
+    "vvpup": (123.77834, -19.05493),
+    "stlmi": (166.41569, 25.10799),
+    "euuma": (177.48209, 28.75203),
+    "yzcnc": (122.73605, 28.14257),
 }
 
 
@@ -153,7 +170,7 @@ def cone_query(ra_deg: float, dec_deg: float, radius_deg: float,
 def resolve_target(target_key: str) -> tuple[float, float, str]:
     """Target ICRS coordinates: live SIMBAD if reachable, else the recorded
     fallback.  Returns (ra_deg, dec_deg, source_tag)."""
-    name = {"anuma": "AN UMa", "vvpup": "VV Pup"}.get(target_key, target_key)
+    name = TARGET_SIMBAD_NAME.get(target_key, target_key)
     try:
         from astroquery.simbad import Simbad
         tab = Simbad.query_object(name)

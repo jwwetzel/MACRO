@@ -152,6 +152,30 @@ class TestNormalizeTarget:
         assert info.pre_synonym_key == "alphalyr"
         assert "synonym" in info.rules
 
+    def test_pinwheel_galaxy_merges_into_m101(self):
+        """The observer's common name for M101, 245 catalog rows.
+
+        140 of them are canonical rawimage science on 2026-03-21/22 — the
+        deepest post-fade M101-field epoch in the archive, and invisible to
+        the SN project until this merge.  No string rule can relate a common
+        name to a Messier number, so it is a synonym-table entry; the build
+        cone-gates it (measured 0.031 deg from the natives of 'm101').
+        """
+        info = m.normalize_target("Pinwheel Galaxy")
+        assert info.key == "m101"
+        assert info.pre_synonym_key == "pinwheelgalaxy"
+        assert "synonym" in info.rules
+        assert self.key("pinwheel galaxy") == self.key("M101")
+
+    def test_sequence_digit_sn_names_merge_into_the_sn(self):
+        """'2023ixf1'/'2023ixf2': a trailing sequence counter fused to the
+        object name deleted a NAMED template epoch (2023-11-28, 64 s L)
+        from the SN working set.  Both sit within 0.05 deg of the SN."""
+        for raw in ("2023ixf1", "2023ixf2"):
+            info = m.normalize_target(raw)
+            assert info.key == "2023ixf", raw
+            assert "synonym" in info.rules, raw
+
     # --- the merges that must NOT happen ---------------------------------
     def test_distinct_dwarf_fields_stay_separate(self):
         # The spec's named regression: two different survey fields.
@@ -160,6 +184,15 @@ class TestNormalizeTarget:
     def test_sn_and_calibration_names_stay_themselves(self):
         assert self.key("2023ixf") == "2023ixf"
         assert self.key("2023ixf") != self.key("M101")
+
+    def test_sequence_digit_merge_is_explicit_not_a_digit_rule(self):
+        """The counter merge is a TABLE entry, not a "strip trailing digits"
+        rule — such a rule would need to know which stems are real target
+        keys, which this pure normalizer deliberately cannot know, and it
+        would happily eat the survey-field and HR-number names below."""
+        assert self.key("Dw1403+49") == "dw1403+49"
+        assert self.key("HR 3454") == "hr3454"
+        assert self.key("2023ixf3") == "2023ixf3"   # not in the table
 
     def test_tcrb_and_thetacrb_stay_separate(self):
         # Target and its spectrophotometric calibrator: 8 degrees apart.
@@ -307,6 +340,106 @@ class TestPointingMath:
 
 
 # ---------------------------------------------------------------------------
+# The pointing reference, and the target it used to be blind on
+# ---------------------------------------------------------------------------
+class TestPointingReference:
+    def test_prefers_plate_solved_coordinates(self):
+        # Three solved frames at dec 25.1 and two unsolved strays at 33.3:
+        # the reference must come from the solves alone.
+        ra0, dec0, basis = m.pointing_reference(
+            [214.50, 214.51, 214.52, 209.43, 222.52],
+            [25.12, 25.13, 25.14, 33.35, 33.33],
+            [1, 1, 1, None, None])
+        assert basis == m.POINTING_REF_SOLVED
+        assert dec0 == pytest.approx(25.13)
+        assert ra0 == pytest.approx(214.51)
+
+    def test_falls_back_to_header_median_when_nothing_is_solved(self):
+        """THE NGC 5548 REGRESSION, on the real shape of that target.
+
+        279 frames, ZERO plate-solved, so the old solved-only rule produced
+        no reference, no offsets and no QC flags — on precisely the target
+        whose strategy rules a whole night 'unusable, pointing-failure'.
+        The mispointed night is the mount parked and not tracking: dec
+        +33.3 while the target sits at +25.1, RA marching at the sidereal
+        rate.  A median over the frames is robust to that minority.
+        """
+        on_target_ra = [214.50] * 9
+        on_target_dec = [25.12] * 9
+        # the parked-mount night: RA marches, dec is 8 degrees off
+        bad_ra = [209.43, 213.0, 218.0, 222.52]
+        bad_dec = [33.35, 33.34, 33.34, 33.33]
+        ra0, dec0, basis = m.pointing_reference(
+            on_target_ra + bad_ra, on_target_dec + bad_dec,
+            [None] * 13)
+        assert basis == m.POINTING_REF_HEADER
+        assert dec0 == pytest.approx(25.12)
+        # …and every mispointed frame now clears the outlier threshold.
+        for ra, dec in zip(bad_ra, bad_dec):
+            off = m.angular_separation_deg(ra, dec, ra0, dec0)
+            assert off > m.POINTING_OUTLIER_DEG
+            assert "pointing_gt1deg" in m.qc_flags(
+                None, 256.0, 1.07, 2460000.5, ra, "ngc5548", off)
+
+    def test_header_reference_is_refused_when_headers_disagree(self):
+        """THE MIZAR CASE — the fallback's own failure mode, closed.
+
+        30 canonical frames: 10 with no coordinates, 10 at Mizar's true
+        position, 10 carrying a stale RA/Dec card (seen on seven other
+        targets too).  A bare median lands between the two clusters and
+        flags BOTH — including the frames that were on target.  With no
+        external truth to break the tie, the honest answer is no reference
+        at all, recorded as such.
+        """
+        real = [(201.04, 54.96)] * 10
+        stale = [(76.37, 52.84)] * 10
+        ras = [p[0] for p in real + stale] + [None] * 10
+        decs = [p[1] for p in real + stale] + [None] * 10
+        ra0, dec0, basis = m.pointing_reference(ras, decs, [None] * 30)
+        assert basis == m.POINTING_REF_UNSUPPORTED
+        assert (ra0, dec0) == (None, None)
+
+    def test_a_clear_majority_still_carries_the_reference(self):
+        # NGC 5548's real shape: 269 on target, 10 parked — the support
+        # test must NOT refuse this one.
+        ras = [214.50] * 269 + [209.43] * 10
+        decs = [25.12] * 269 + [33.35] * 10
+        ra0, dec0, basis = m.pointing_reference(ras, decs, [None] * 279)
+        assert basis == m.POINTING_REF_HEADER
+        assert dec0 == pytest.approx(25.12)
+
+    def test_support_test_does_not_touch_plate_solved_references(self):
+        # Trusted evidence keeps its original behaviour even when the
+        # solved frames themselves scatter beyond the outlier threshold.
+        ra0, dec0, basis = m.pointing_reference(
+            [10.0, 40.0, 200.0], [5.0, -5.0, 40.0], [1, 1, 1])
+        assert basis == m.POINTING_REF_SOLVED
+        assert ra0 is not None
+
+    def test_no_reference_when_too_few_coordinates(self):
+        ra0, dec0, basis = m.pointing_reference(
+            [10.0, 10.1], [5.0, 5.1], [1, 1])
+        assert (ra0, dec0, basis) == (None, None, m.POINTING_REF_NONE)
+
+    def test_missing_and_nan_coordinates_are_skipped(self):
+        nan = float("nan")
+        ra0, dec0, basis = m.pointing_reference(
+            [10.0, None, nan, 10.2, 10.1], [5.0, 5.0, nan, 5.2, 5.1],
+            [None, None, None, None, None])
+        assert basis == m.POINTING_REF_HEADER
+        assert (ra0, dec0) == pytest.approx((10.1, 5.1))
+
+    def test_solved_minority_still_wins_when_it_meets_the_minimum(self):
+        # Evidence quality beats sample size: 3 solves outrank 50 headers.
+        ra0, dec0, basis = m.pointing_reference(
+            [10.0, 10.0, 10.0] + [200.0] * 50,
+            [5.0, 5.0, 5.0] + [-40.0] * 50,
+            [1, 1, 1] + [None] * 50)
+        assert basis == m.POINTING_REF_SOLVED
+        assert (ra0, dec0) == (10.0, 5.0)
+
+
+# ---------------------------------------------------------------------------
 # QC flags
 # ---------------------------------------------------------------------------
 class TestQcFlags:
@@ -370,6 +503,73 @@ def frame_row(**over):
     )
     base.update(over)
     return base
+
+
+class TestBuildFramesPointingAudit:
+    """Regression: the pointing audit must not go blind on an unsolved target.
+
+    Bugs ship in the wiring, not just the pure layer — the pure fallback can
+    be perfect while section 3f still hands it only the plate-solved rows.
+    This runs the real ``build_frames`` on an NGC-5548-shaped fixture: many
+    on-target frames plus one parked-mount night, and NOTHING plate-solved.
+    """
+
+    def _fixture(self):
+        rows = []
+        oid = 0
+        # 9 on-target frames across three nights, no plate solves at all.
+        for night, jd0 in (("2023-03-23", 2460027.6), ("2023-03-24", 2460028.6),
+                           ("2023-03-27", 2460031.6)):
+            for k in range(3):
+                oid += 1
+                rows.append(frame_row(
+                    obs_rowid=oid, path=f"macalester/mrf/{night}/f{oid}.fts",
+                    tree="macalester", target_best="NGC 5548",
+                    jd=jd0 + 0.01 * k, pltsolvd=None,
+                    ra_deg=214.50 + 0.001 * k, dec_deg=25.12,
+                    exptime=256.0, filter="6"))
+        # The parked-mount night: dec 8 degrees off, RA marching sidereally.
+        for k, (ra, dec) in enumerate(
+                [(209.43, 33.35), (213.00, 33.34), (222.52, 33.33)]):
+            oid += 1
+            rows.append(frame_row(
+                obs_rowid=oid, path=f"macalester/mrf/2023-03-25/f{oid}.fts",
+                tree="macalester", target_best="NGC 5548",
+                jd=2460029.6 + 0.02 * k, pltsolvd=None,
+                ra_deg=ra, dec_deg=dec, exptime=256.0, filter="6"))
+        return pd.DataFrame(rows)
+
+    def _built(self):
+        return build.build_frames(self._fixture(),
+                                  {"NGC 5548": "ngc5548"},
+                                  {"ngc5548": "NGC 5548"})[0]
+
+    def test_unsolved_target_still_gets_offsets(self):
+        frames = self._built()
+        # Before the fix: 100% NULL, because no frame was plate-solved.
+        assert frames["pointing_offset_deg"].notna().all()
+        assert (frames["pointing_ref_basis"] == "header_median").all()
+
+    def test_the_parked_mount_night_is_flagged(self):
+        frames = self._built()
+        bad = frames[frames["path"].str.contains("2023-03-25")]
+        good = frames[~frames["path"].str.contains("2023-03-25")]
+        assert len(bad) == 3 and len(good) == 9
+        assert (bad["pointing_offset_deg"] > m.POINTING_OUTLIER_DEG).all()
+        assert bad["qc_flags"].str.contains("pointing_gt1deg").all()
+        # …and the on-target frames are NOT swept up with them.
+        assert (good["pointing_offset_deg"] < 0.1).all()
+        assert not good["qc_flags"].str.contains("pointing_gt1deg").any()
+
+    def test_solved_targets_keep_the_plate_solved_basis(self):
+        df = self._fixture()
+        df.loc[df.index[:9], "pltsolvd"] = 1
+        frames = build.build_frames(df, {"NGC 5548": "ngc5548"},
+                                    {"ngc5548": "NGC 5548"})[0]
+        assert (frames["pointing_ref_basis"] == "plate_solved").all()
+        # The solved subset is the on-target one, so the verdict is the same.
+        bad = frames[frames["path"].str.contains("2023-03-25")]
+        assert bad["qc_flags"].str.contains("pointing_gt1deg").all()
 
 
 class TestBuildFramesEraAssignment:

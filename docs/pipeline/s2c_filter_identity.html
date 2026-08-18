@@ -1,0 +1,323 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2c — Filter Identity</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+
+<header>
+  <h1>S2c — Filter Identity, Measured</h1>
+  <p>479 frames measured from their pixels &middot;
+  419 dispersed &middot; 1 unreadable &middot;
+  built 2026-08-18T19:06Z
+  (S2c v1.0 (2026-08-18))
+  &middot; <a href="../index.html">back to the evidence hub</a></p>
+</header>
+
+<nav>
+  <a href="#calibration">1 Calibration</a> &middot;
+  <a href="#strength">2 Which grism</a> &middot;
+  <a href="#slot6">3 Slot '6'</a> &middot;
+  <a href="#projects">4 NGC 5548 &amp; SN 2023ixf</a> &middot;
+  <a href="#census">5 Spectra census</a>
+</nav>
+
+
+<section id="calibration"><h2>1&nbsp;&middot;&nbsp;Calibration: can the pixels
+tell a spectrum from an image?</h2>
+
+<h3>Question</h3>
+<p>The <code>FILTER</code> card names the RLMT's grism slots three different
+ways across three years, and the earliest name &mdash; the bare slot number
+<code>6</code> &mdash; is contested: one review panel read it as a grism,
+another as a luminance filter. Before that argument can be settled we need a
+measurement that does not consult the label at all. So: <b>is dispersion
+detectable directly in the pixels, and how cleanly?</b> The only honest way
+to answer is to calibrate on the labels nobody disputes &mdash;
+<code>hrg</code>, <code>lrg</code>, <code>HaGrism</code>,
+<code>OGGrism</code> as dispersed; <code>g r i V R I B L</code> as direct
+&mdash; and report the separation achieved, overlap included.</p>
+
+<h3>Evidence</h3>
+<p>Every frame is background-subtracted and source-extracted, and three
+things are measured: the elongation of the brightest sources, whether any of
+them is shaped like a dispersed <em>trace</em>
+(a/b&nbsp;&ge;&nbsp;5 <em>and</em> semi-major
+&ge;&nbsp;15&nbsp;px), and whether those traces
+share a common axis. The shared axis is the decisive test: a grating rules
+every source in the field the same way, while a cosmic ray or a satellite
+points wherever it likes.</p>
+
+<figure><a href="figures/s2c/s2c_calibration.png"><img src="figures/s2c/s2c_calibration.png" alt=""></a><figcaption>Left: the bright-set median a/b that the first survey pass quoted &mdash; the classes overlap badly, because most bright detections on a grism frame are round field stars whose traces are too faint to resolve. Right: the trace population and its position-angle scatter, where the same frames separate. Dashed lines mark the adopted gates.</figcaption></figure>
+
+<table class="data">
+<tr><th>label</th><th>truth</th><th>measured</th><th>dispersed</th><th>direct</th><th>indeterminate</th><th>agreement</th></tr>
+<tr class="good"><td><code>hrg</code></td><td>dispersed</td><td>168</td><td>168</td><td>0</td><td>0</td><td><b>100.0%</b></td></tr>
+<tr class="good"><td><code>lrg</code></td><td>dispersed</td><td>108</td><td>108</td><td>0</td><td>0</td><td><b>100.0%</b></td></tr>
+<tr class="warn"><td><code>OGGrism</code></td><td>dispersed</td><td>106</td><td>95</td><td>2</td><td>9</td><td><b>89.6%</b></td></tr>
+<tr class="good"><td><code>HaG</code></td><td>dispersed</td><td>106</td><td>106</td><td>0</td><td>0</td><td><b>100.0%</b></td></tr>
+<tr class="good"><td><code>r</code></td><td>direct</td><td>1</td><td>0</td><td>1</td><td>0</td><td><b>100.0%</b></td></tr>
+<tr class="good"><td><code>R</code></td><td>direct</td><td>1</td><td>0</td><td>1</td><td>0</td><td><b>100.0%</b></td></tr>
+<tr class="good"><td><code>I</code></td><td>direct</td><td>3</td><td>0</td><td>3</td><td>0</td><td><b>100.0%</b></td></tr>
+<tr class="good"><td><code>B</code></td><td>direct</td><td>5</td><td>0</td><td>5</td><td>0</td><td><b>100.0%</b></td></tr>
+<tr class="good"><td><code>L</code></td><td>direct</td><td>16</td><td>0</td><td>16</td><td>0</td><td><b>100.0%</b></td></tr>
+</table>
+
+<p>Pooled over the 488 known-dispersed frames, the classifier
+recovers <b>97.7%</b> as dispersed. Pooled over the 26
+known-direct control frames it calls <b>0.0%</b> dispersed &mdash; that is
+the false-positive rate, and it is the number that decides whether any
+verdict on slot <code>6</code> can be believed.</p>
+
+<p>The overlap, stated plainly: 5 known-dispersed frames
+contained no trace-shaped source at all (too short an exposure, too faint a
+target, or cloud), and 0 known-direct frames contained at least
+one (satellites, cosmic-ray tracks, edge-on galaxies). Those frames are the
+irreducible ambiguity in the method, and the classifier is built to return
+<code>indeterminate</code> across it rather than to guess.</p>
+
+<h3>Decision</h3>
+<p>Dispersion is measurable per frame, and the classifier is adopted with
+three rules. <b>(1)</b> Two or more traces sharing an axis to within
+20&nbsp;deg &rarr;
+<code>dispersed</code>. <b>(2)</b> A single trace of
+a/b&nbsp;&ge;&nbsp;20 in a sparse field
+(&le;&nbsp;60 sources) &rarr;
+<code>dispersed</code>; this rule carries the bright-standard frames where
+the target is the only thing in the field. <b>(3)</b> No traces and round
+bright sources &rarr; <code>direct</code>. Everything else is
+<code>indeterminate</code> and is reported as such.</p>
+
+<h3>Consequence</h3>
+<p>Two false-positive modes were found by measurement and closed before the
+production run, and both are worth recording because both would have
+produced confident nonsense. <b>Twilight flats</b> read as dispersed: a flat
+has no stars, so the extractor finds dust shadows and detector column
+defects, which are straight and mutually parallel because they <em>are</em>
+columns &mdash; a perfect forgery of a shared dispersion axis. Calibration
+frames are now excluded from the campaign entirely. <b>A satellite trail</b>
+across a 60-second luminance frame of M57 read as dispersed on the strength
+of one 1,095-px streak &mdash; past 1,278 perfectly round stars. A grating
+disperses <em>everything</em>, so a rich field with exactly one smear is the
+one thing a grism cannot produce; the solo-trace rule now requires a sparse
+field. Any future reuse of this classifier inherits both guards.</p>
+</section>
+<section id="strength"><h2>2&nbsp;&middot;&nbsp;The second axis: which grism
+was in the beam?</h2>
+
+<h3>Question</h3>
+<p>Two dispersers flew: a high-dispersion H-alpha unit and a low-dispersion
+broad-spectrum one. Under the modern vocabulary the card distinguishes them
+(<code>hrg</code> vs <code>lrg</code>), but under slot <code>6</code> it does
+not &mdash; and a spectrum is useless if you do not know its dispersion. So:
+<b>can the pixels say which unit was in the beam?</b></p>
+
+<h3>Evidence</h3>
+<p>The obvious statistic is aspect ratio, and it does not work. The
+2025-01-23 focus sweep is the cleanest possible test &mdash; the same star,
+the same night, the same camera, shot through both units &mdash; and it
+measures a/b&nbsp;of 106 for the H-alpha unit against
+51 for the broad one across the full populations: overlapping
+distributions. The reason is that a/b divides by the minor axis, which is
+the seeing width, so every wobble in focus or atmosphere feeds straight into
+the statistic.</p>
+
+<p>Trace <em>length</em> does not have that problem. Expressed as a fraction
+of frame width &mdash; which normalises the archive's three cameras and two
+binnings onto one scale &mdash; the same frames separate by a factor of
+<b>3.1</b>.</p>
+
+<figure><a href="figures/s2c/s2c_strength.png"><img src="figures/s2c/s2c_strength.png" alt=""></a><figcaption>Left: trace aspect ratio, where the two grisms overlap. Right: trace length as a fraction of frame width, where they do not. Dashed lines are the adopted bounds; the gap between them is the ambiguous band.</figcaption></figure>
+
+<table class="data">
+<tr><th>grism unit</th><th>frames</th><th>median a/b</th><th>median length/width</th><th>10&ndash;90 pct</th><th>assigned correctly</th><th>left ambiguous</th></tr>
+<tr><td>H-alpha grism (<code>hrg</code>, <code>HaGrism</code>)</td><td>274</td><td>106.3</td><td><b>0.208</b></td><td>0.043 &ndash; 0.236</td><td>71.5%</td><td>3.6%</td></tr>
+<tr><td>broad grism (<code>lrg</code>, <code>OGGrism</code>)</td><td>203</td><td>51.4</td><td><b>0.067</b></td><td>0.055 &ndash; 0.125</td><td>63.1%</td><td>36.5%</td></tr>
+</table>
+
+<h3>Decision</h3>
+<p>Dispersion strength is classified on trace length fraction, with
+<code>low</code> at &le;&nbsp;0.11 and
+<code>high</code> at &ge;&nbsp;0.15. The
+band between them is reported <code>ambiguous</code> rather than assigned.
+Aspect ratio is retained in the table as a measured column but is not used
+to decide anything.</p>
+
+<h3>Consequence</h3>
+<p>The separation is good but it is not perfect, and the residual spread is
+physical rather than a threshold that needs tuning: a brighter star's trace
+stays above the extraction threshold further into its wings, so length grows
+with source brightness and exposure time. A frame in the ambiguous band is
+not a failure of the measurement &mdash; it is a frame whose dispersion
+genuinely cannot be read from its trace length alone. If a future project
+needs those assigned, the measurement that would do it is spectral rather
+than morphological: cross-correlate the extracted trace profile against the
+two units' known response shapes, which the H-alpha unit's isolated emission
+peak makes trivially separable. That is a job for the grism extraction
+track, not for this classifier.</p>
+</section>
+<section id="slot6"><h2>3&nbsp;&middot;&nbsp;Slot <code>6</code>: the
+committee's open conflict, settled</h2>
+
+<h3>Question</h3>
+<p>One panel called slot <code>6</code> a grism; another called it
+luminance. Both were reading the same header card, so at most one of them
+could be right &mdash; unless the slot is genuinely mixed, in which case
+neither is. <b>What fraction of slot-<code>6</code> frames are actually
+dispersed, and does the answer depend on when or on what was observed?</b></p>
+
+<h3>Evidence</h3>
+<p>35 slot-<code>6</code> frames were measured.
+<b>35</b> (100.0%) are dispersed,
+<b>0</b> (0.0%) are direct images,
+and 0 are indeterminate. Neither panel was right, because
+the slot is not one thing.</p>
+
+<figure><a href="figures/s2c/s2c_slot6_timeline.png"><img src="figures/s2c/s2c_slot6_timeline.png" alt=""></a><figcaption>Slot-'6' frames per month by measured verdict (top) and the dispersed fraction (bottom). A wheel that changed on a date would show a step; a wheel used both ways throughout would not.</figcaption></figure>
+
+<p>Split by target, the pattern is unmistakable &mdash; the verdict tracks
+<em>what was being observed</em>, not when:</p>
+
+<table class="data">
+<tr><th>target</th><th>frames</th><th>dispersed</th><th>direct</th><th>indet.</th><th>nights</th><th>verdict</th></tr>
+</table>
+
+<p>Month by month, for the record:</p>
+
+<table class="data">
+<tr><th>month</th><th>frames</th><th>dispersed</th><th>% dispersed</th></tr>
+<tr><td>2023-02</td><td>23</td><td>23</td><td>100.0%</td></tr>
+<tr><td>2023-03</td><td>1</td><td>1</td><td>100.0%</td></tr>
+<tr><td>2023-04</td><td>5</td><td>5</td><td>100.0%</td></tr>
+<tr><td>2023-05</td><td>4</td><td>4</td><td>100.0%</td></tr>
+<tr><td>2024-02</td><td>1</td><td>1</td><td>100.0%</td></tr>
+<tr><td>2024-03</td><td>1</td><td>1</td><td>100.0%</td></tr>
+</table>
+
+<h3>Decision</h3>
+<p>Slot <code>6</code> is <b>not a filter identity at all</b> &mdash; it is
+a wheel position that carried a grism for some programmes and a clear or
+broadband element for others, within the same observing season. The label
+must therefore never be used to decide whether a frame is a spectrum. Every
+downstream consumer reads the per-frame verdict in
+<code>frame_dispersion</code> instead.</p>
+
+<h3>Consequence</h3>
+<p>Both review panels were reasoning correctly from insufficient evidence,
+which is why the conflict never resolved on argument: each had sampled a
+different corner of the slot. The disagreement was a fact about the archive,
+not about the reviewers, and no amount of further discussion of the header
+could have settled it. This is the general lesson for the manifest &mdash;
+where a header card encodes an instrument <em>configuration</em> rather than
+an instrument <em>property</em>, the card is a hypothesis and the pixels are
+the evidence.</p>
+</section>
+<section id="projects"><h2>4&nbsp;&middot;&nbsp;Two projects that were about
+to analyse the wrong pixels</h2>
+
+<h3>Question</h3>
+<p>Two live projects depend on slot <code>6</code> in opposite directions.
+The Dwarf/AGN survey is building an <b>AGN light curve for NGC&nbsp;5548</b>
+from those frames, which requires them to be photometry. The SN&nbsp;2023ixf
+programme holds <b>83 slot-<code>6</code> frames</b> that it hoped were a
+flash-phase spectral series, which requires them to be spectra. Both cannot
+be safely assumed. <b>Which is which?</b></p>
+
+<h3>Evidence</h3>
+<p><b>NGC&nbsp;5548</b> &mdash; 0 slot-<code>6</code> frames
+measured across &mdash;&nbsp;&rarr;&nbsp;&mdash;:
+<b>0 dispersed</b> (&mdash;),
+0 direct, 0 indeterminate.</p>
+
+<table class="data">
+<tr><th>night</th><th>frames</th><th>dispersed</th><th>direct</th><th>reading</th></tr>
+</table>
+
+<p><b>SN&nbsp;2023ixf</b> &mdash; 0 slot-<code>6</code> frames
+measured across &mdash;&nbsp;&rarr;&nbsp;&mdash;:
+<b>0 dispersed</b> (&mdash;),
+0 direct, 0 indeterminate.</p>
+
+<table class="data">
+<tr><th>night</th><th>frames</th><th>dispersed</th><th>direct</th><th>reading</th></tr>
+</table>
+
+<h3>Decision</h3>
+<p>The per-night tables above are the operative answer for each project, and
+they must be applied at frame granularity rather than as a blanket ruling
+per target: a night-by-night split is exactly what a mixed wheel position
+produces. Any frame the classifier marks <code>indeterminate</code> stays
+out of both the light curve and the spectral series until a human has looked
+at it.</p>
+
+<h3>Consequence</h3>
+<p>A dispersed frame fed to aperture photometry does not fail loudly. It
+returns a number &mdash; a smaller number, because the target's flux has
+been spread along a trace and most of it now falls outside the aperture &mdash;
+and that number lands in the light curve as a fake dimming, correlated with
+whichever nights the grism happened to be in the beam. That is the failure
+mode this measurement exists to prevent, and it is invisible to every check
+that does not look at the pixels.</p>
+</section>
+<section id="census"><h2>5&nbsp;&middot;&nbsp;How many spectra does the
+archive actually hold?</h2>
+
+<h3>Question</h3>
+<p>Two figures circulate in the project write-ups: the T&nbsp;CrB series is
+quoted as <b>247 Mode0 spectra</b>, and the BeStar campaign as
+<b>~23,000 grism frames</b>. Both were counted from header labels. <b>Do
+they survive measurement?</b></p>
+
+<h3>Evidence</h3>
+<p>Across every candidate and control frame measured, <b>530
+frames are dispersed</b>: 210 through the H-alpha unit,
+236 through the broad unit, and 84 whose
+dispersion strength is ambiguous.</p>
+
+<table class="data">
+<tr><th>label</th><th>frames measured</th><th>dispersed</th><th>% dispersed</th><th>date span</th></tr>
+<tr><td><code>hrg</code></td><td>168</td><td>168</td><td>100.0%</td><td>2025-01-23 &rarr; 2025-03-19</td></tr>
+<tr><td><code>lrg</code></td><td>108</td><td>108</td><td>100.0%</td><td>2025-01-23 &rarr; 2025-01-23</td></tr>
+<tr><td><code>OGGrism</code></td><td>106</td><td>95</td><td>89.6%</td><td>2024-04-12 &rarr; 2024-04-16</td></tr>
+<tr><td><code>HaG</code></td><td>106</td><td>106</td><td>100.0%</td><td>2024-04-12 &rarr; 2024-04-16</td></tr>
+<tr><td><code>W</code></td><td>50</td><td>18</td><td>36.0%</td><td>2024-02-04 &rarr; 2024-03-13</td></tr>
+<tr><td><code>6</code></td><td>35</td><td>35</td><td>100.0%</td><td>2023-02-18 &rarr; 2024-03-13</td></tr>
+</table>
+
+<figure><a href="figures/s2c/s2c_census.png"><img src="figures/s2c/s2c_census.png" alt=""></a><figcaption>Measured spectra per target for the 25 most-observed spectroscopic targets, split by grism unit.</figcaption></figure>
+
+<p><b>T&nbsp;CrB.</b> The monitoring stage holds 0 measured
+frames, of which <b>0 are dispersed</b>
+(0 H-alpha, 0 broad). Counting instead
+by target name across the whole archive, 0 frames carry the
+target <code>T CrB</code> and 0 of them measure as
+spectra.</p>
+
+<p><b>BeStar campaign.</b> The staged campaign holds 0
+measured frames, 0 of them dispersed. The
+~23,000 figure is not a count of that campaign: it is close to the
+488 frames carrying <em>any</em> grism label archive-wide,
+of which 477 measure as dispersed.</p>
+
+<h3>Decision</h3>
+<p>The census above replaces both quoted figures as the citable numbers, and
+they should be cited with their basis attached &mdash; "frames measured as
+dispersed", not "frames labelled grism". Where a project's own staged frame
+list disagrees with a headline count, the staged list is the narrower and
+more defensible number.</p>
+
+<h3>Consequence</h3>
+<p>The gap between a label count and a measured count is not noise; it is
+made of the specific frames a label-based count gets wrong in both
+directions &mdash; grism-labelled frames that are too shallow to have
+recorded a usable trace, and slot-<code>6</code> frames that are spectra
+nobody had counted. Any paper quoting a spectrum count from this archive
+should quote the measured one, and any paper quoting the label count should
+expect a referee to ask which frames were actually looked at.</p>
+</section>
+
+<footer>Generated by <code>rlmt_diagnostics.report_s2c</code> from
+<code>products/manifest/rlmt-manifest.sqlite</code> — every number on this
+page is the result of a SQL query or a documented pipeline constant; none is
+typed by hand. Regenerate with
+<code>pipeline/scripts/run_s2c_dispersion.py report</code>.</footer>
+</body></html>

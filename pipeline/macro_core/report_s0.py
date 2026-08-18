@@ -788,18 +788,54 @@ def section_pointing(con) -> str:
           AND tree = 'rawimage' AND filter IN ('hrg', 'lrg')""",
              (m.POINTING_OUTLIER_DEG,))[0]
 
-    # NGC 5548: zero solved frames, so no reference position exists under
-    # the spec rule — but the header coordinates alone convict the
-    # mispointed night.  Script-emitted per-night medians:
+    # NGC 5548 has ZERO plate-solved frames, so the solved-only rule gave it
+    # no reference position, no offsets and no flags at all — on the one
+    # target whose strategy rules a whole night "unusable, pointing-failure".
+    # The header-median fallback now covers it; these are the script-emitted
+    # per-night means plus each night's worst offset under that fallback.
     n5548 = q(con, """
-        SELECT night, count(*), round(avg(ra_deg), 2), round(avg(dec_deg), 2)
+        SELECT night, count(*), round(avg(ra_deg), 2), round(avg(dec_deg), 2),
+               round(max(pointing_offset_deg), 2)
         FROM frames WHERE target_key = 'ngc5548' AND is_canonical = 1
           AND tree = 'macalester'
         GROUP BY night ORDER BY abs(avg(dec_deg) - 25.14) DESC LIMIT 3""")
     n5548_tbl = table(
-        ["night", "frames", "mean header RA (deg)", "mean header Dec (deg)"],
-        [[esc(n), fmt(c), esc(r), esc(d)] for n, c, r, d in n5548],
+        ["night", "frames", "mean header RA (deg)", "mean header Dec (deg)",
+         "worst offset (deg)"],
+        [[esc(n), fmt(c), esc(r), esc(d), esc(w) if w is not None else "&mdash;"]
+         for n, c, r, d, w in n5548],
         row_classes=["warn", None, None])
+
+    # How each target's reference position was derived.  Guarded: a manifest
+    # built before the fallback existed has no such column, and the report
+    # must degrade to a plain statement rather than crash on an old file.
+    have_basis = any(r[1] == "pointing_ref_basis"
+                     for r in q(con, "PRAGMA table_info(frames)"))
+    if have_basis:
+        basis_rows = q(con, """
+            SELECT pointing_ref_basis, count(DISTINCT target_key),
+                   count(*)
+            FROM frames WHERE is_canonical = 1 AND target_key IS NOT NULL
+            GROUP BY pointing_ref_basis ORDER BY 3 DESC""")
+        basis_tbl = table(
+            ["reference basis", "targets", "canonical frames"],
+            [[f"<code>{esc(b)}</code>", fmt(t), fmt(n)]
+             for b, t, n in basis_rows])
+        basis_note = (
+            "<p class=\"sub\">Every target's reference position records the "
+            "evidence it rests on.  <code>plate_solved</code> is the primary "
+            "rule; <code>header_median</code> is the fallback for targets "
+            f"with fewer than {m.MIN_SOLVED_FOR_REFERENCE} solves, which is "
+            "weaker evidence (it is where the mount believed it was pointing) "
+            "but robust to a minority of mispointed frames — the failure mode "
+            "being detected.  It is NOT robust when most of a target's frames "
+            "are mispointed; the column is what makes that visible.</p>"
+            + basis_tbl)
+    else:
+        basis_tbl = ""
+        basis_note = ("<p class=\"sub\">(This manifest pre-dates the "
+                      "<code>pointing_ref_basis</code> column; rebuild S0 to "
+                      "record how each reference position was derived.)</p>")
 
     return f"""
 <section id="pointing">
@@ -813,8 +849,9 @@ claims?  (The T CrB panel proved header pointings lie.)</p>
 <h3>Evidence</h3>
 <div class="grid">{_figure(src,
     f"Offsets for {fmt(n_off)} canonical frames across {fmt(n_ref)} targets "
-    f"with a reference position (median of plate-solved canonical frames, "
-    f"minimum {m.MIN_SOLVED_FOR_REFERENCE}). "
+    f"with a reference position (median of plate-solved canonical frames "
+    f"when at least {m.MIN_SOLVED_FOR_REFERENCE} exist, otherwise the median "
+    f"of the target's header coordinates). "
     f"{fmt(n_out)} frames sit beyond {m.POINTING_OUTLIER_DEG:g} deg; "
     f"{fmt(n_zero)} exact-zero offsets are clipped into the lowest bin "
     "(a log axis cannot hold zero).")}
@@ -829,25 +866,35 @@ its {fmt(anuma[1])} frames with offsets, the worst at {esc(anuma[2])}&deg;
 — a fact the CV project&rsquo;s conditional Q5 analysis needs to know.</p>
 <p class="sub">Ground-truth reproduction: the T CrB strategy reported 21 of
 247 grism pointings &gt;1&deg; off — the manifest finds
-<b>{fmt(tcrb[1])}</b> of <b>{fmt(tcrb[0])}</b>.  And NGC&nbsp;5548, with
-zero plate-solved frames, gets no reference position under the spec rule —
-yet its header coordinates alone expose the tracking-failure night the
-Dwarf panel documented:</p>
+<b>{fmt(tcrb[1])}</b> of <b>{fmt(tcrb[0])}</b>.  And NGC&nbsp;5548, whose 279
+frames contain <b>zero</b> plate solves, is why this stage has a fallback at
+all: under a solved-only rule it had no reference position, therefore no
+offsets, therefore no <code>pointing_gt1deg</code> flag could ever fire — on
+precisely the target whose strategy rules an entire night unusable.  The
+flagging machinery was alive across {fmt(n_out)} frames archive-wide and
+blind exactly where it was needed.  With the header-median fallback the
+tracking-failure night convicts itself:</p>
 {n5548_tbl}
+{basis_note}
 
 <h3>Decision</h3>
 <div class="decision"><b>Reference position = RA-wrap-aware median of a
-target&rsquo;s plate-solved canonical frames (&ge;{m.MIN_SOLVED_FOR_REFERENCE}
-solves required); every frame with coordinates gets
-<code>pointing_offset_deg</code>; offsets &gt;{m.POINTING_OUTLIER_DEG:g}&deg;
-are flagged <code>pointing_gt1deg</code> — flagged, never deleted.</b>
-Solved-WCS validation for the currently unsolvable campaigns (NGC&nbsp;5548
-has 0 solves) arrives with S1.</div>
+target&rsquo;s plate-solved canonical frames when
+&ge;{m.MIN_SOLVED_FOR_REFERENCE} solves exist, else the median of that
+target&rsquo;s header coordinates; the choice is recorded per frame in
+<code>pointing_ref_basis</code>.</b>  Every frame with coordinates gets
+<code>pointing_offset_deg</code>; offsets
+&gt;{m.POINTING_OUTLIER_DEG:g}&deg; are flagged
+<code>pointing_gt1deg</code> — flagged, never deleted.  Solved-WCS
+validation for the currently unsolvable campaigns arrives with S1; until
+then the fallback is stated as fallback, not passed off as a solve.</div>
 
 <h3>Consequence</h3>
 <p class="sub">The grism identity gate (T CrB Phase A.0) and every
-photometry stage inherit a per-frame pointing sanity column; mispointed
-frames can no longer hide inside a night&rsquo;s frame count.</p>
+photometry stage inherit a per-frame pointing sanity column <em>and</em> the
+basis behind it; mispointed frames can no longer hide inside a
+night&rsquo;s frame count, and a target with no plate solves is no longer
+silently exempt from the audit.</p>
 </div></section>"""
 
 

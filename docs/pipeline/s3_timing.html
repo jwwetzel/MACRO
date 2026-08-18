@@ -6,12 +6,12 @@
 
 <header>
   <h1>S3 &mdash; The Shared Time Axis</h1>
-  <p>198,289 header stamps audited &middot; 192,120 of
-  193,550 canonical science frames with mid-exposure BJD_TDB
+  <p>198,289 header stamps audited &middot; 191,858 of
+  193,318 canonical science frames with mid-exposure BJD_TDB
   (ephemeris <code>de440s</code>) &middot;
-  clock bounded at &lt; 519 s &middot; built 2026-08-18T15:39Z
+  absolute clock consistent with zero at the ~75 min level set by AG LMi's ephemeris &middot; built 2026-08-18T19:08Z
   (S3 v1.0 (2026-08-18),
-  commit <code>17ef904</code>)
+  commit <code>7de2b60</code>)
   &middot; <a href="../index.html">back to the evidence hub</a></p>
 </header>
 
@@ -25,8 +25,9 @@
 
 <section id="stamp">
 <div class="bhead"><h2>1 &middot; What instant does the header stamp?</h2>
-<span class="tag">JD = DATE-OBS = UTC exposure start &mdash; proven, not
-assumed</span></div>
+<span class="tag">JD = DATE-OBS = UTC exposure start &mdash; proven for
+189,401 frames, assumed for 3,917
+</span></div>
 
 <div class="stage"><h3>Question</h3>
 <p class="sub">Every MACRO paper folds its data on a period; a
@@ -39,18 +40,18 @@ which instant of the exposure do they name?</p>
 DATE-OBS for all 198,289 canonical frames carrying both cards,
 by readout family:</p>
 <table class="data">
-<tr><th>readout family</th><th>frames</th><th>median (s)</th><th>p1 (s)</th><th>p99 (s)</th><th>max |diff| (s)</th><th>&gt; 0.1 s</th></tr>
-<tr class="warn"><td>Mode0</td><td>70,720</td><td>0.000</td><td>0.000</td><td>0.000</td><td>211.220</td><td>1</td></tr>
-<tr><td>Fast</td><td>52,516</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0</td></tr>
-<tr><td>High Gain</td><td>26,456</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.001</td><td>0</td></tr>
-<tr><td>1MHz High Sensitivity 16-bit</td><td>22,582</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.002</td><td>0</td></tr>
-<tr><td>High Gain StackPro</td><td>20,429</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.001</td><td>0</td></tr>
-<tr><td>(blank)</td><td>3,896</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0</td></tr>
-<tr><td>Low Gain</td><td>822</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.001</td><td>0</td></tr>
-<tr><td>5MHz High Sensitivity 16-bit</td><td>746</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.002</td><td>0</td></tr>
-<tr><td>3MHz High Sensitivity 16-bit</td><td>90</td><td>0.000</td><td>-0.000</td><td>0.000</td><td>0.000</td><td>0</td></tr>
-<tr><td>HDR</td><td>16</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.001</td><td>0</td></tr>
-<tr><td>None</td><td>16</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0</td></tr>
+<tr><th>readout family</th><th>frames</th><th>median (s)</th><th>p1 (s)</th><th>p99 (s)</th><th>max |diff| (s)</th><th>&gt; 0.1 s</th><th>stamp resolution (s)</th></tr>
+<tr class="warn"><td>Mode0</td><td>70,720</td><td>0.000</td><td>0.000</td><td>0.000</td><td>211.220</td><td>1</td><td>0.001</td></tr>
+<tr><td>Fast</td><td>52,516</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0</td><td>0.001</td></tr>
+<tr><td>High Gain</td><td>26,456</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.001</td><td>0</td><td>0.001</td></tr>
+<tr><td>1MHz High Sensitivity 16-bit</td><td>22,582</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.002</td><td>0</td><td>0.001</td></tr>
+<tr><td>High Gain StackPro</td><td>20,429</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.001</td><td>0</td><td>0.001</td></tr>
+<tr class="warn"><td>(blank)</td><td>3,896</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0</td><td>1.000 <b>(whole seconds)</b></td></tr>
+<tr><td>Low Gain</td><td>822</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.001</td><td>0</td><td>0.001</td></tr>
+<tr><td>5MHz High Sensitivity 16-bit</td><td>746</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.002</td><td>0</td><td>0.001</td></tr>
+<tr><td>3MHz High Sensitivity 16-bit</td><td>90</td><td>0.000</td><td>-0.000</td><td>0.000</td><td>0.000</td><td>0</td><td>0.001</td></tr>
+<tr><td>HDR</td><td>16</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.001</td><td>0</td><td>0.001</td></tr>
+<tr><td>None</td><td>16</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0</td><td>0.001</td></tr>
 </table>
 <p class="sub">The two cards are the SAME instant to
 0.002&nbsp;s (their write precision) in every family, with
@@ -58,7 +59,22 @@ exactly 1 exception:
 <code>reduced/2025-11-01/mjm_M57_r_30s_2025-11-01T03-12-25.fts.fz</code> (2025-10-31),
 whose JD sits 211.2&nbsp;s from its DATE-OBS — a
 <i>reduced-tree</i> frame whose JD the reduction pipeline re-stamped, the
-S0b <code>stem_jd_drift</code> behavior; its raw parent is clean.</p>
+S0b <code>stem_jd_drift</code> behavior.</p>
+<p class="sub"><b>This comparison has a blind spot, and it is the
+important part of this section.</b>  It can only catch a re-stamp that
+moved ONE card.  When the reduction pipeline re-stamped BOTH, the copy
+stays perfectly self-consistent and passes here — while disagreeing with
+its own raw parent about when the photons arrived.  S0b already measured
+those cases: joining <code>raw_reduced_links</code> to the time axis
+finds 46 exposures whose two copies disagree by more than
+10&nbsp;s, the worst by
+4200&nbsp;s
+(<code>reduced/2025-11-02/mac_fo_aqr_g_120s_2025-11-02T02-25-45_0.fts.fz</code>).  S3
+therefore withdraws the BJD of the reduced copy in every one of them
+(<code>jd_disagrees_with_raw_parent</code>, listed in
+<code>s3_time_outliers</code>) and carries
+<code>sibling_jd_drift_s</code> on every row that has a linked sibling,
+so a re-stamped time is visible where a consumer will actually look.</p>
 <p class="sub">Second, which instant: 40 headers sampled across
 era families and years (38 carry JD-HELIO).  We recomputed
 the heliocentric correction independently (astropy, DE ephemeris, Winer
@@ -69,100 +85,183 @@ coordinates) at the exposure START and at MID-exposure:</p>
 stamp is the START and hands us an independent check of the mid-exposure
 arithmetic.  Third, the telescope-clock card TELUT (written with the rest
 of the header, after readout) sits at DATE-OBS + EXPTIME + a small
-constant: slope of TELUT&minus;DATE-OBS against EXPTIME across the sample
-= 0.901 (1.0 = header written one full exposure after the
-stamp).  3 sampled headers FAIL the mid-exposure test:</p>
+constant: slope of TELUT&minus;DATE-OBS against EXPTIME over the
+14 sampled headers whose TELUT is genuinely a second clock
+read = 0.997 (1.0 = header written one full exposure after the
+stamp).  2 further rows are EXCLUDED from that fit
+because their TELUT is byte-identical to DATE-OBS — a copy, not a clock
+read, contributing an uninformative (EXPTIME, 0) point that would pull
+the slope to 0.901 and silently credit those eras with evidence they do
+not have.  3 sampled headers FAIL the mid-exposure
+test:</p>
 <table class="data">
 <tr><th>family</th><th>year</th><th>EXPTIME (s)</th><th>resid@START (s)</th><th>resid@MID (s)</th></tr>
 <tr><td>HDR</td><td>2023</td><td>120.00</td><td>-775.95</td><td>-835.95</td></tr>
 <tr><td>HDR</td><td>2023</td><td>1024.00</td><td>-324.03</td><td>-836.01</td></tr>
 <tr><td>Mode0</td><td>2025</td><td>0.01</td><td>115.27</td><td>115.27</td></tr>
 </table>
+<p class="sub">Both probes are therefore missing for exactly the same
+frames — the 2026 <code>pyscope</code> eras, which write no JD-HELIO card
+at all and copy DATE-OBS into TELUT.  Those same frames stamp DATE-OBS at
+WHOLE-SECOND resolution (column above): a 1&nbsp;s granularity where
+every MaxIm family writes milliseconds, i.e. up to 0.5&nbsp;s of
+systematic if pyscope truncates rather than rounds.  The frames with no
+start-vs-mid evidence at all:</p>
+<table class="data">
+<tr><th>readout family</th><th>frames</th><th>eras</th><th>nights</th><th>what is missing</th></tr>
+<tr class="warn"><td>(blank)</td><td>3,901</td><td>81&ndash;83</td><td>2026-06-28 &ndash; 2026-07-02</td><td>no JD-HELIO card; TELUT is a copy of DATE-OBS</td></tr>
+<tr class="warn"><td>HDR</td><td>16</td><td>5</td><td>2023-04-17 &ndash; 2023-11-22</td><td>JD-HELIO present but broken / no discriminating exposure</td></tr>
+</table>
 
 <h3>Decision</h3>
 <div class="decision"><b>Header JD (&equiv; DATE-OBS) is the UTC exposure
-START in every era family; S3 computes mid-exposure BJD_TDB from it from
-scratch.  Header JD-HELIO is never used</b> — it is heliocentric-only
-(up to ~4 s from barycentric), UTC-scale (~69 s from TDB), computed by
-uncontrolled acquisition-software approximations, and demonstrably
-garbage in the HDR family.  The one re-stamped reduced-tree JD reinforces
-the S0 rule: timing always comes from the canonical (raw) copy.</div>
+START — proven by two independent probes for the
+189,401 frames whose readout family carries a
+discriminating JD-HELIO or TELUT card, and ASSUMED (not proven) for the
+3,917 that do not.</b>  Those rows say so on their face:
+<code>frame_times.start_evidence</code> =
+<code>unverified_no_helio_no_telut</code>.  Header JD-HELIO is never used as a
+time stamp — it is heliocentric-only (up to ~4 s from barycentric),
+UTC-scale (~69 s from TDB), computed by uncontrolled acquisition-software
+approximations, and demonstrably garbage in the HDR family.  The
+re-stamped reduced-tree copies do NOT quietly reinforce the S0 rule: they
+were on the shared axis, and this build takes them off it.</div>
 
 <h3>Consequence</h3>
 <p class="sub">The era-audit table above is the paper appendix: any
 referee asking &ldquo;how do you know your clocks?&rdquo; gets pointed at
 198,289 internal comparisons, 38 independent
 heliocentric recomputations, and the TELUT cross-check — all
-regenerable by one script.</p>
+regenerable by one script.  Two gaps are named rather than papered over,
+and both are cheap to close: a one-line citation of the pyscope source
+would settle start-vs-mid for 3,917 frames, and the
+<code>UT</code> and <code>MJD-OBS</code> cards those headers do carry are
+a second, unused probe.</p>
 </div></section>
 <section id="stackpro">
 <div class="bhead"><h2>2 &middot; StackPro: the midpoint of a 16-fold
 sum</h2>
-<span class="tag">worst case 0.12 s,
-bounded by the data</span></div>
+<span class="tag">worst case 5.67 s &mdash;
+seconds, not milliseconds</span></div>
 
 <div class="stage"><h3>Question</h3>
 <p class="sub">A StackPro frame is the on-camera SUM of
 16 sub-reads (S2's PTC result).  Header EXPTIME could
 mean the total span or the per-sub-read time, and any dead time between
 sub-reads would shift the photon-weighted midpoint.  What is the
-mid-time of 20,375 StackPro science frames, and what is the
+mid-time of 20,364 StackPro science frames, and what is the
 worst case if the contiguity assumption is wrong?</p>
 
 <h3>Evidence</h3>
+<p class="sub">The first question is settled and stays settled: EXPTIME
+is the TOTAL span, not the per-sub-read time.  If it were per-sub-read,
+back-to-back gaps would have to exceed
+16&nbsp;&times;&nbsp;EXPTIME; the smallest genuine gap
+falls BELOW that line in 13 of 15 exposure-time
+cells.  (The 2 that cannot refute it are the
+shortest exposures, where the camera's fixed per-frame overhead is larger
+than 16&nbsp;&times;&nbsp;a fraction of a second and the
+test has no power.)</p>
 <div class="grid"><figure><a href="figures/s3/s3_cadence_overheads.png"><img src="figures/s3/s3_cadence_overheads.png" alt=""></a><figcaption>Back-to-back series cadence. If EXPTIME were per-sub-read, gaps would follow the dotted 15x line; instead StackPro overheads match the plain High Gain save/slew pipeline at every exposure time.</figcaption></figure></div>
+<p class="sub">The second question — how big the dead-time ceiling is —
+turns entirely on the ESTIMATOR, and the obvious one is wrong.  Taking
+the smallest (gap&nbsp;&minus;&nbsp;EXPTIME) over
+14,716 StackPro gaps is an extreme order statistic that a
+single bad time stamp owns outright, and does: it returns
+0.24&nbsp;s, set by these pairs, in which one frame lands about a
+second from its neighbour inside a series whose own measured cadence is
+11&ndash;13&nbsp;s:</p>
 <table class="data">
-<tr><th>EXPTIME (s)</th><th>gaps measured</th><th>min overhead (s)</th><th>p5 overhead (s)</th></tr>
-<tr><td>0.125</td><td>269</td><td>0.71</td><td>10.57</td></tr>
-<tr><td>0.500</td><td>65</td><td>0.24</td><td>9.42</td></tr>
-<tr><td>1.000</td><td>233</td><td>2.71</td><td>4.02</td></tr>
-<tr><td>2.000</td><td>52</td><td>4.01</td><td>10.59</td></tr>
-<tr><td>4.000</td><td>169</td><td>13.55</td><td>24.60</td></tr>
-<tr><td>8.000</td><td>361</td><td>13.07</td><td>13.64</td></tr>
-<tr><td>16.000</td><td>1,249</td><td>12.80</td><td>14.13</td></tr>
-<tr><td>30.000</td><td>131</td><td>60.60</td><td>61.61</td></tr>
-<tr><td>32.000</td><td>4,375</td><td>15.56</td><td>16.75</td></tr>
-<tr><td>60.000</td><td>109</td><td>25.92</td><td>26.43</td></tr>
-<tr><td>64.000</td><td>6,328</td><td>13.07</td><td>16.89</td></tr>
-<tr><td>128.000</td><td>606</td><td>15.09</td><td>17.50</td></tr>
-<tr><td>256.000</td><td>839</td><td>11.79</td><td>15.07</td></tr>
-<tr><td>512.000</td><td>182</td><td>17.04</td><td>17.69</td></tr>
-<tr><td>1024.000</td><td>39</td><td>19.43</td><td>23.19</td></tr>
+<tr><th>frame</th><th>next frame</th><th>EXPTIME (s)</th><th>gap (s)</th><th>the series' own median gap (s)</th></tr>
+<tr class="warn"><td><code>iad30012.fts.fz</code></td><td><code>iad30017.fts.fz</code></td><td>0.500</td><td>0.740</td><td>12.77</td></tr>
+<tr class="warn"><td><code>cdh340f1.fts.fz</code></td><td><code>cdh340ed.fts.fz</code></td><td>0.125</td><td>0.830</td><td>11.47</td></tr>
+<tr class="warn"><td><code>cjp33783.fts.fz</code></td><td><code>cjp3377f.fts.fz</code></td><td>0.500</td><td>1.140</td><td>12.03</td></tr>
 </table>
-<p class="sub">Three independent facts pin the semantics: (1)&nbsp;across
-15,007 measured StackPro series gaps the frame's
-wall-clock span never exceeds EXPTIME + 0.24&nbsp;s
-(the minimum overhead, from the 0.5&nbsp;s series) —
-so ALL internal dead time together is &le;
-0.24&nbsp;s; (2)&nbsp;the sub-read gap is a
-fixed sensor property, independent of exposure length, so the bound from
-the shortest series applies to every StackPro frame; (3)&nbsp;MaxIm's
-own JD-HELIO on a 1024&nbsp;s StackPro frame equals
-start&nbsp;+&nbsp;EXPTIME/2 to 0.13&nbsp;s — the
-acquisition software also treats EXPTIME as the contiguous total.</p>
+<p class="sub">A camera that demonstrably needs ~12&nbsp;s per frame
+cannot deliver two exposures 0.74&nbsp;s apart.  These
+are time-stamp defects, not cadence — 45 of them in regular
+StackPro series, all listed in <code>s3_cadence_outliers</code>.  The
+same estimator returns NEGATIVE overheads (a gap SHORTER than its own
+exposure, which is impossible) in 12 cells of the
+full cadence table: proof that the raw minimum is not measuring
+anything.</p>
+<p class="sub">So the bound is taken robustly instead.  Each same-config
+run contributes its MEDIAN gap (one bad stamp cannot move a median); runs
+whose cadence is regular to
+15% interquartile spread
+(313 of them) are read as machine cycle times; and the
+smallest (median gap &minus; EXPTIME) over those is the ceiling.  The
+physical statement is exact: a camera that repeatedly delivers a frame
+every <i>median gap</i> seconds must fit exposure + internal dead time +
+readout + save inside that cycle.</p>
+<table class="data">
+<tr><th>EXPTIME (s)</th><th>gaps kept</th><th>short gaps<br>discarded</th><th>naive min<br>overhead (s)</th><th>min overhead<br>after cut (s)</th><th>regular<br>series</th><th><b>median-cadence<br>overhead (s)</b></th></tr>
+<tr class="warn"><td>0.125</td><td>260</td><td>9</td><td>0.71</td><td>10.01</td><td>4</td><td><b>11.35</b></td></tr>
+<tr class="warn"><td>0.500</td><td>63</td><td>2</td><td>0.24</td><td>8.86</td><td>4</td><td><b>11.53</b></td></tr>
+<tr><td>1.000</td><td>201</td><td>32</td><td>2.71</td><td>6.82</td><td>2</td><td><b>11.75</b></td></tr>
+<tr><td>2.000</td><td>51</td><td>1</td><td>4.01</td><td>5.67</td><td>2</td><td><b>11.94</b></td></tr>
+<tr><td>4.000</td><td>146</td><td>23</td><td>13.55</td><td>13.55</td><td>3</td><td><b>13.70</b></td></tr>
+<tr><td>8.000</td><td>352</td><td>9</td><td>13.07</td><td>13.07</td><td>4</td><td><b>13.52</b></td></tr>
+<tr><td>16.000</td><td>1,222</td><td>27</td><td>12.80</td><td>12.80</td><td>15</td><td><b>13.45</b></td></tr>
+<tr><td>30.000</td><td>131</td><td>0</td><td>60.60</td><td>60.60</td><td>1</td><td><b>63.11</b></td></tr>
+<tr><td>32.000</td><td>4,285</td><td>90</td><td>15.56</td><td>15.56</td><td>37</td><td><b>16.62</b></td></tr>
+<tr><td>60.000</td><td>109</td><td>0</td><td>25.92</td><td>25.92</td><td>4</td><td><b>26.97</b></td></tr>
+<tr><td>64.000</td><td>6,262</td><td>66</td><td>13.07</td><td>13.07</td><td>137</td><td><b>15.51</b></td></tr>
+<tr><td>128.000</td><td>597</td><td>9</td><td>15.09</td><td>15.09</td><td>25</td><td><b>15.50</b></td></tr>
+<tr><td>256.000</td><td>824</td><td>15</td><td>11.79</td><td>11.79</td><td>63</td><td><b>12.06</b></td></tr>
+<tr><td>512.000</td><td>180</td><td>2</td><td>17.04</td><td>17.04</td><td>11</td><td><b>18.00</b></td></tr>
+<tr><td>1024.000</td><td>33</td><td>6</td><td>19.43</td><td>22.55</td><td>1</td><td><b>1852.46</b></td></tr>
+</table>
+<p class="sub">Three numbers, one column apart, for the same archive:
+the naive minimum says 0.24&nbsp;s; discarding gaps below
+50% of their own series' median says
+5.67&nbsp;s, but only for that exact fraction — move it and the
+answer moves with it, which is why it is not the answer either; the
+median-cadence statistic says
+11.35&nbsp;s, from the
+0.125&nbsp;s cell.  The build re-derives that last
+number under 8 alternative
+cut settings, each moving one threshold well away from its default:
+every one returns 11.350&nbsp;s.  A bound that depends on the analyst's choice of threshold
+is not a bound; this one does not.</p>
+<p class="sub">What does NOT corroborate any of this: MaxIm's own
+JD-HELIO on a 1024&nbsp;s StackPro frame equals
+start&nbsp;+&nbsp;EXPTIME/2 to 0.13&nbsp;s.  That
+shows MaxIm <i>also assumes</i> EXPTIME is the contiguous total span; it
+constrains the software's convention, not the detector's sub-read
+contiguity, and it is not independent evidence.</p>
 
 <h3>Decision</h3>
 <div class="decision"><b>StackPro mid-time = start + EXPTIME/2, under the
 stated assumption that the 16 sub-reads are contiguous
 and span EXPTIME.  Worst case if dead time hides between sub-reads: the
 true midpoint shifts late by at most
-0.12&nbsp;s</b> (half the measured
-0.24&nbsp;s dead-time ceiling) — recorded as
+5.67&nbsp;s</b> — half the measured
+11.35&nbsp;s ceiling, recorded as
 <code>stackpro_sum_midpoint_half_exptime</code> in <code>frame_times.mid_method</code> so
-any user can query which frames carry it.</div>
+any user can query which frames carry it.  That ceiling is honest but
+WEAK: the gap it measures is dominated by readout and file save, and
+cadence cannot separate those from anything happening between sub-reads.
+It is an upper limit, not an estimate of the error.</div>
 
 <h3>Consequence</h3>
-<p class="sub">CV eclipse timing on StackPro series (AG LMi 2023, the
-1024&nbsp;s deep fields) inherits a &le;
-0.12&nbsp;s systematic — below the
-sub-second target and far below any eclipse-fit precision.  Should a
-future camera manual contradict the contiguity assumption, only this
-constant changes and one re-run repairs every product.</p>
+<p class="sub"><b>CV eclipse timing on StackPro series (AG LMi 2023, the
+1024&nbsp;s deep fields) inherits a systematic of up to
+5.67&nbsp;s, which is NOT below a
+sub-second target.</b>  A paper quoting sub-second absolute mid-times
+must either avoid the 20,364 frames carrying
+<code>stackpro_sum_midpoint_half_exptime</code>, or first close this bound with evidence
+cadence cannot supply: the camera's sub-read readout time from a manual
+or a lab measurement.  Either would collapse the ceiling by orders of
+magnitude — and only this one constant changes, after which one re-run
+repairs every product.  Relative timing WITHIN a StackPro series is
+unaffected: a fixed per-frame offset cancels in a differential
+measurement.</p>
 </div></section>
 <section id="frametimes">
 <div class="bhead"><h2>3 &middot; frame_times: BJD_TDB for every
 canonical science frame</h2>
-<span class="tag">192,120 of 193,550 frames on the shared
+<span class="tag">191,858 of 193,318 frames on the shared
 time axis</span></div>
 
 <div class="stage"><h3>Question</h3>
@@ -175,12 +274,24 @@ its own time axis.</p>
 <div class="grid"><figure><a href="figures/s3/s3_bjd_offset.png"><img src="figures/s3/s3_bjd_offset.png" alt=""></a><figcaption>The correction S3 applies: the barycentric light-travel term spans -8.3 to +8.5 minutes over the archive's sky and seasons; the TDB-UTC scale offset adds 69.182-69.186 s. Ignoring either would be fatal for eclipse timing.</figcaption></figure></div>
 <table class="data">
 <tr><th>mid_method</th><th>bjd_method</th><th>frames</th><th>meaning</th></tr>
-<tr><td><code>start_plus_half_exptime</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>171,589</td><td>start + EXPTIME/2</td></tr>
-<tr><td><code>stackpro_sum_midpoint_half_exptime</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>20,375</td><td>start + EXPTIME/2 (StackPro sum; &le; 0.12 s worst case)</td></tr>
-<tr class="warn"><td><code>start_plus_half_exptime</code></td><td><code>no_coords</code></td><td>1,425</td><td>start + EXPTIME/2</td></tr>
+<tr><td><code>start_plus_half_exptime</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>171,338</td><td>start + EXPTIME/2</td></tr>
+<tr><td><code>stackpro_sum_midpoint_half_exptime</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>20,364</td><td>start + EXPTIME/2 (StackPro sum; &le; 5.67 s worst case)</td></tr>
+<tr class="warn"><td><code>start_plus_half_exptime</code></td><td><code>no_coords</code></td><td>1,409</td><td>start + EXPTIME/2; no BJD: frame has no cataloged sky position, so there is nothing to point the light-travel correction at (the UTC mid-time is still valid)</td></tr>
 <tr><td><code>exptime_nonpos_start_used</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>156</td><td>EXPTIME &le; 0 or missing — start used</td></tr>
-<tr class="warn"><td><code>no_jd</code></td><td><code>no_jd</code></td><td>5</td><td>no header JD — no time axis possible</td></tr>
+<tr class="warn"><td><code>start_plus_half_exptime</code></td><td><code>jd_disagrees_with_raw_parent</code></td><td>46</td><td>start + EXPTIME/2; BJD WITHDRAWN: this copy's stamp disagrees with its raw parent by &gt; 10 s</td></tr>
+<tr class="warn"><td><code>no_jd</code></td><td><code>no_jd</code></td><td>5</td><td>no header JD — no time axis possible; no BJD: no header JD to convert</td></tr>
 </table>
+<p class="sub">Three exclusions and flags travel with the table, each
+counted here rather than discovered later: 232 frames
+whose headers say <code>IMAGETYP = 'Light Frame'</code> but which S0b
+catalogued as CALIBRATIONS (164 master flats, 60 raw flats, 8 master
+darks) are kept OFF the axis — a master frame is a stack, so its header
+JD is not an exposure instant at all; 3,917 rows carry
+<code>start_evidence = unverified_no_helio_no_telut</code> (section 1); and
+54,368 rows carry a <code>sibling_jd_drift_s</code> because the
+same exposure also sits on the axis as a second copy
+(27,206 raw/reduced pairs), of which 46
+disagreed badly enough to lose their BJD.</p>
 
 <h3>Decision</h3>
 <div class="decision"><b>The <code>frame_times</code> table (one row per
@@ -194,12 +305,27 @@ a row with a NULL BJD and an explanatory method — nothing silently
 falls off the axis.</div>
 
 <h3>Consequence</h3>
-<p class="sub">One stated caveat travels with the table: the correction
-points at the FRAME CENTER.  An object at a frame corner differs by up
-to ~1.3&nbsp;s (26&prime; &times; 499&nbsp;s/rad); a paper needing
-sub-second absolutes for an off-center object recomputes with
+<p class="sub"><b>Two caveats travel with the table.</b>  First, the
+correction points at the FRAME CENTER.  An object at a frame corner
+differs by up to 3.8&nbsp;s on the widest ordinary
+field (High Gain, 4096&times;4096
+px at 0.537&Prime;/px), and
+6.0&nbsp;s on the widest sampled frame of all (the
+HDR family's
+4096&times;8192&nbsp;px composite) — computed from
+each sampled header's own geometry as half-diagonal &times;
+499&nbsp;s/rad, not typed by hand.  A paper
+needing sub-second absolutes for an off-center object recomputes with
 <code>macro_core.timing.bjd_tdb_from_utc</code> at the object's own
 coordinates — every input needed is in the row.</p>
+<p class="sub">Second, and easier to trip over: this table is one row per
+canonical FILE, and 27,206 exposures appear TWICE on it — a
+raw copy and a reduced copy that S0 did not collapse into one duplicate
+group.  Selecting straight from <code>frame_times</code> therefore
+double-counts about
+14% of the archive's
+photometry.  <b>Deduplicate (drop the reduced tree, or group on the
+raw/reduced link) before building a light curve.</b></p>
 </div></section>
 <section id="clock">
 <div class="bhead"><h2>4 &middot; Clock validation: AG LMi as the
@@ -215,32 +341,70 @@ UTC.  Does an external astrophysical clock confirm the time axis?</p>
 <p class="sub">AG LMi (type EA,
 V 10.55 - 11.16) is an eclipsing binary in the
 archive with P = 1.3590176&nbsp;d, minimum epoch HJD
-2458211.194 (VSX via Vizier B/vsx/vsx, fetched live 2026-08-18).  Folding the manifest on this
-ephemeris finds four nights whose coverage reaches |phase| &lt; 0.02;
-192 frames of those plus three baseline nights were
-measured with forced-aperture differential photometry against
+2458211.194 (VSX via Vizier B/vsx/vsx, fetched live 2026-08-18).  4 nights of it were
+measured; 192 frames of those plus three baseline nights
+went through forced-aperture differential photometry against
 3 fixed comparison stars
 (176 usable points), using OUR mid-exposure HJD_UTC — the same
 convention as the VSX epoch, like against like:</p>
 <div class="grid"><figure><a href="figures/s3/s3_clock_oc.png"><img src="figures/s3/s3_clock_oc.png" alt=""></a><figcaption>AG LMi folded on the literature ephemeris using this pipeline's own time axis. The eclipse lands where the ephemeris says it should; the fitted center measures the residual offset.</figcaption></figure></div>
 <table class="data">
 <tr><th>fit</th><th>points</th><th>phase range</th><th>depth (mag)</th><th>width (phase)</th><th>O&minus;C (s)</th><th>&plusmn; (s)</th><th>|clock| bound (s)</th><th>status</th></tr>
-<tr><td>global</td><td>70</td><td>[-0.103, 0.102]</td><td>0.62</td><td>0.0225</td><td>-411</td><td>59</td><td>519</td><td>ok</td></tr>
-<tr><td>2023-03-18</td><td>19</td><td>[0.019, 0.036]</td><td>0.78</td><td>0.0300</td><td>-2231</td><td>3053</td><td>5333</td><td>ok</td></tr>
-<tr><td>2024-02-22</td><td>36</td><td>[-0.103, 0.094]</td><td>0.61</td><td>0.0250</td><td>-294</td><td>59</td><td>402</td><td>ok</td></tr>
-<tr><td>2024-02-29</td><td>10</td><td>[0.012, 0.102]</td><td>0.48</td><td>0.0200</td><td>705</td><td>440</td><td>1195</td><td>ok</td></tr>
+<tr><td>global</td><td>36</td><td>[-0.103, 0.094]</td><td>0.61</td><td>0.0250</td><td>-294</td><td>59</td><td>4517</td><td>ok</td></tr>
+<tr class="warn"><td>2023-03-18</td><td>19</td><td>[0.019, 0.036]</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>one_sided_coverage</td></tr>
+<tr><td>2024-02-22</td><td>36</td><td>[-0.103, 0.094]</td><td>0.61</td><td>0.0250</td><td>-294</td><td>59</td><td>4517</td><td>ok</td></tr>
+<tr class="warn"><td>2024-02-29</td><td>10</td><td>[0.012, 0.102]</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>one_sided_coverage</td></tr>
+<tr class="warn"><td>2024-03-01</td><td>5</td><td>[-0.085, -0.078]</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>too_few_points</td></tr>
 </table>
+<p class="sub"><b>Only 1 of those 4
+nights is a measurement.</b>  A symmetric template fitted to a one-sided
+arc converges happily and returns a confident centre that is really the
+slope of the flank it was handed — the 2023-03-18 night never reaches
+phase 0 at all, and 2024-02-29 samples only the egress side.  Their rows
+therefore carry
+<code>one_sided_coverage</code> and a NULL O&minus;C instead of
+numbers that disagree with each other by ~3,000&nbsp;s, and they are
+excluded from the global fit rather than averaged into it.  A night with
+too few points gets a <code>too_few_points</code> row for the
+same reason: so it cannot vanish from the table without a trace.</p>
+<p class="sub">Sections 1-3 compare header cards that ONE clock wrote, so
+their agreement — however tight — cannot bound that clock's drift.  The
+one genuinely independent comparison in the archive is TELUT, the
+telescope control system's UTC, against the acquisition PC's DATE-OBS.
+Sampled across every era (30 of 231 sampled
+headers carry a TELUT that is a real clock read; the rest have no TELUT
+card, or the pyscope copy of DATE-OBS):</p>
+<div class="grid"><figure><a href="figures/s3/s3_clock_drift.png"><img src="figures/s3/s3_clock_drift.png" alt=""></a><figcaption>TELUT minus the end of the exposure DATE-OBS names, per sampled header, across the baseline. The scatter is header-write latency; a diverging pair of clocks would show as a trend.</figcaption></figure></div>
+<p class="sub">Over 2024-05-25 to 2026-06-25 the residual
+TELUT&nbsp;&minus;&nbsp;(DATE-OBS&nbsp;+&nbsp;EXPTIME) has median
+2.03&nbsp;s and interquartile spread 1.09&nbsp;s,
+ranging +1.04 to +17.73&nbsp;s, with a fitted trend of
+-2.15&nbsp;s/year — smaller than the scatter it is fitted
+through, i.e. consistent with no divergence at all.  That scatter is
+dominated by variable header-write latency, so the number is an UPPER
+limit on relative drift, not a measurement of it: <b>the two clocks do
+not diverge by more than a few seconds across the baseline, and S3
+cannot say anything finer than that.</b>  The check also has a hole worth
+naming: 201 of the 231 sampled
+headers carry no usable TELUT, so the eras before 2024-05-25 are not
+covered at all.</p>
 
 <h3>Decision</h3>
-<div class="decision"><b>The eclipse arrives at O&minus;C = -411 &plusmn; 59&nbsp;s against the VSX ephemeris; the absolute observatory clock error is bounded at |&Delta;t| &lt; 519&nbsp;s (&lt; 8.7&nbsp;min).</b>  The offset itself belongs to the EPHEMERIS, not the clock: the independent Gaia DR3 eclipsing-binary period (1.3590118&nbsp;d, Gaia DR3 vari_eclipsing_binary via Vizier I/358/veb, recorded 2026-08-18) differs from the VSX period by enough to predict an O&minus;C of -763&nbsp;s at our mean epoch (cycle 1517.0), with a &plusmn;3947&nbsp;s envelope from Gaia's own period uncertainty — our measurement sits comfortably inside that envelope.  The bound is an honest ceiling set by how well this star's ephemeris is known, not a claim of NTP-level proof.</div>
+<div class="decision"><b>The eclipse arrives at O&minus;C = -294 &plusmn; 59&nbsp;s against the VSX ephemeris. The absolute observatory clock is therefore consistent with zero error at the |&Delta;t| &lt; 4517&nbsp;s (75&nbsp;min) level &mdash; a ceiling set almost entirely by how badly AG&nbsp;LMi's own ephemeris is known, not by our measurement.</b>  Of that 4517&nbsp;s, 294&nbsp;s is the measured offset, 59&nbsp;s its fit error, and 4165&nbsp;s the ephemeris term.  That last number propagates the period uncertainty from the independent Gaia DR3 eclipsing-binary solution (1.3590118&nbsp;d &plusmn;3.01e-05, Gaia DR3 vari_eclipsing_binary via Vizier I/358/veb, recorded 2026-08-18) over the 1584.0 cycles since the epoch.  Propagating VSX's QUOTED LAST DIGIT instead would give only 50&nbsp;s and a bound roughly eight times tighter &mdash; a printer's precision, not a measurement's, and this page will not quote it.  The same Gaia-vs-VSX period difference predicts an O&minus;C of -797&nbsp;s at our epoch with a &plusmn;4121&nbsp;s envelope, inside which our measurement sits comfortably: the offset belongs to the EPHEMERIS, not to the clock.  <b>What this test rules out is gross error &mdash; a wrong time zone, a missing leap second, a mis-set clock &mdash; and nothing finer.</b></div>
 
 <h3>Consequence</h3>
-<p class="sub">Every CV timing result inherits this bound as its absolute
-anchor; relative (within-archive) timing is tighter still, riding on the
-0.002&nbsp;s internal header consistency of section 1.  A
-tighter absolute bound is a one-night project for the October run: one
-modern AG LMi minimum against a same-week TESS or AAVSO epoch would
-collapse the ephemeris systematics to seconds.</p>
+<p class="sub">A CV paper should take two different numbers from this
+page.  <b>Absolute</b> mid-times are anchored only at the
+75&nbsp;minute level above — enough
+to prove no gross clock error, not enough to publish an absolute epoch.
+<b>Relative</b> (within-archive) timing is what an O&minus;C diagram
+actually rests on, and S3 bounds it at the few-second level from the
+TELUT comparison above — NOT at the 0.002&nbsp;s of section 1, which
+measures one clock against itself and is no evidence at all.  Closing
+either gap is a one-night project: one modern AG&nbsp;LMi minimum
+against a same-week TESS or AAVSO epoch collapses the ephemeris
+systematic to seconds, and a GPS- or NTP-stamped exposure sequence would
+replace the TELUT scatter with a real drift measurement.</p>
 </div></section>
 
 <footer>Generated by <code>macro_core.report_s3</code> from

@@ -6,11 +6,12 @@
 
 <header>
   <h1>S0c — Per-Project Staging Manifests</h1>
-  <p>5 projects staged &middot; 15,845 science rows
+  <p>5 projects staged &middot; 15,971 science rows
+  &middot; 3 cone candidates
   &middot; 7,890 calibration rows &middot; zero frames copied
-  &middot; built 2026-08-18T15:25Z
+  &middot; built 2026-08-18T18:54Z
   (S0c v1.0 (2026-08-18),
-  commit <code>17ef904</code>)
+  commit <code>7de2b60-dirty</code>)
   &middot; <a href="../index.html">back to the evidence hub</a></p>
 </header>
 
@@ -18,7 +19,8 @@
   <a href="#nocopy">1 The no-copy law</a> &middot;
   <a href="#staged">2 The five working sets</a> &middot;
   <a href="#calib">3 Calibration attachment</a> &middot;
-  <a href="#provenance">4 Provenance chain</a>
+  <a href="#reconcile">4 Documents vs the working set</a> &middot;
+  <a href="#provenance">5 Provenance chain</a>
 </nav>
 
 
@@ -76,22 +78,22 @@ and where is the claim written down so a reviewer can diff it?</p>
 <h3>Evidence</h3>
 <div class="grid"><figure><a href="figures/s0c/s0c_roles.png"><img src="figures/s0c/s0c_roles.png" alt=""></a><figcaption>Every staged row, by role.  Science rows are the project's published selection; calibration rows are the era-matched families that ride along.</figcaption></figure></div>
 <table class="data">
-<tr><th>project</th><th>science</th><th>targets</th><th>nights</th><th>span</th><th>eras</th><th>calib rows</th><th>working artifact</th></tr>
-<tr><td>BeStar_Grism</td><td>3,883</td><td>11</td><td>167</td><td>2024-05-19 &rarr; 2026-07-02</td><td>6</td><td>983</td><td><code>BeStar_Grism/data/stage_manifest.csv</code></td></tr>
-<tr><td>CV_TimeSeries</td><td>8,726</td><td>5</td><td>108</td><td>2024-01-26 &rarr; 2026-06-02</td><td>8</td><td>4,768</td><td><code>CV_TimeSeries/data/stage_manifest.csv</code></td></tr>
-<tr><td>DwarfGalaxy_AGN_Survey</td><td>1,196</td><td>21</td><td>54</td><td>2023-02-23 &rarr; 2024-06-04</td><td>3</td><td>171</td><td><code>DwarfGalaxy_AGN_Survey/data/stage_manifest.csv</code></td></tr>
-<tr><td>SN2023ixf_LightCurve</td><td>1,214</td><td>2</td><td>39</td><td>2023-05-04 &rarr; 2026-04-01</td><td>5</td><td>496</td><td><code>SN2023ixf_LightCurve/data/stage_manifest.csv</code></td></tr>
-<tr><td>TCrB_Monitoring</td><td>826</td><td>2</td><td>112</td><td>2023-05-09 &rarr; 2026-06-30</td><td>9</td><td>1,472</td><td><code>TCrB_Monitoring/data/stage_manifest.csv</code></td></tr>
+<tr><th>project</th><th>science</th><th>cone candidates</th><th>targets</th><th>nights</th><th>span</th><th>eras</th><th>calib rows</th><th>working artifact</th></tr>
+<tr><td>BeStar_Grism</td><td>3,883</td><td>3</td><td>11</td><td>167</td><td>2024-05-19 &rarr; 2026-07-02</td><td>6</td><td>983</td><td><code>BeStar_Grism/data/stage_manifest.csv</code></td></tr>
+<tr><td>CV_TimeSeries</td><td>8,716</td><td>0</td><td>5</td><td>108</td><td>2024-01-26 &rarr; 2026-06-02</td><td>8</td><td>4,768</td><td><code>CV_TimeSeries/data/stage_manifest.csv</code></td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>1,196</td><td>0</td><td>21</td><td>54</td><td>2023-02-23 &rarr; 2024-06-04</td><td>3</td><td>171</td><td><code>DwarfGalaxy_AGN_Survey/data/stage_manifest.csv</code></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>1,356</td><td>0</td><td>5</td><td>42</td><td>2023-05-04 &rarr; 2026-04-01</td><td>5</td><td>496</td><td><code>SN2023ixf_LightCurve/data/stage_manifest.csv</code></td></tr>
+<tr><td>TCrB_Monitoring</td><td>820</td><td>0</td><td>2</td><td>112</td><td>2023-05-09 &rarr; 2026-06-30</td><td>9</td><td>1,472</td><td><code>TCrB_Monitoring/data/stage_manifest.csv</code></td></tr>
 </table>
 <p class="sub">Each selection rule, verbatim from the data table the build
 reads (a change to any list or filter set is a one-line reviewable diff):</p>
 <table class="data">
 <tr><th>project</th><th>science selection rule (encoded as data in <code>macro_core.staging.PROJECT_SELECTIONS</code>)</th><th>source</th></tr>
-<tr><td>BeStar_Grism</td><td>Canonical error-free Light frames of the core-ten targets plus Vega (Alpha Lyr synonym-merged, era-A ladder included) in the grism filter whitelist hrg/lrg/HaGrism/OGGrism; 'lrgblue' and direct-imaging filters excluded by the whitelist.  T CrB is deliberately absent ('not this paper').</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2 inventory table + Step 0 filter whitelist; STRATEGY_CLAIMS BeStar rows.</td></tr>
-<tr><td>CV_TimeSeries</td><td>Canonical error-free Light frames of the five CVs in photometric filters only (grisms, 'empty', 'W', '6' excluded) — the strategy's canonical accounting rule, widened from rawimage-only to all canonical trees so the iKon-tree VV Pup/YZ Cnc/ST LMi frames stage too.</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3 canonical rule + §3.1 per-target table; STRATEGY_CLAIMS CV rows.</td></tr>
-<tr><td>DwarfGalaxy_AGN_Survey</td><td>Canonical error-free Light frames of NGC 5548 (slot-'6' campaign + the 2024-06-05 revisit), NGC 5238, and the 19 verified Dw survey fields, all filters.  The mispointed 2023-03-25 NGC 5548 night stays IN the manifest — its pointing flag, not its absence, is the record.</td><td>DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md §3 (19 fields verified; NGC 5548 143-frame call); STRATEGY_CLAIMS Dwarf rows (__dw_survey__ sentinel expanded to DW_FIELDS).</td></tr>
-<tr><td>SN2023ixf_LightCurve</td><td>Canonical error-free Light frames labeled 2023ixf, plus ALL canonical M101/NGC5457 field frames — the saturated first epochs (2023-05-20/21), the pre-explosion template (2023-05-05) and every post-fade template epoch carry the host's name, not the SN's.</td><td>SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md §3.1 (campaign start resolution) + §3.4 (templates); STRATEGY_CLAIMS 2023ixf row.  ngc5457 is a cone-gated S0 synonym of m101.</td></tr>
-<tr><td>TCrB_Monitoring</td><td>Canonical error-free Light frames of T CrB and the θ CrB calibrator, all filters — the 2025 grism series, the 2023–2024 imaging anchors, and the calibrator series are one working set.</td><td>TCrB_Monitoring/ANALYSIS_STRATEGY.md §3 (T CrB 471 unique rawimage light frames — 402 after global dedup — + θ CrB 403-frame grism calibrator series); STRATEGY_CLAIMS tcrb/tetcrb rows.</td></tr>
+<tr><td>BeStar_Grism</td><td>Canonical error-free Light frames of the core-ten targets plus Vega (Alpha Lyr synonym-merged, era-A ladder included) in the grism filter whitelist hrg/lrg/HaGrism/OGGrism; 'lrgblue' and direct-imaging filters excluded by the whitelist.  T CrB is deliberately absent ('not this paper').  Name-less grism frames within 0.25° of a staged target also enter the working set, as role='science_unresolved' rows Step 0 must adjudicate before any of them counts as science.</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2 inventory table + Step 0 filter whitelist and its blank-target_best cone match; STRATEGY_CLAIMS BeStar rows.</td></tr>
+<tr><td>CV_TimeSeries</td><td>Canonical error-free Light frames of the five CVs in photometric filters only (ALL FIVE grism spellings — hrg, lrg, HaGrism, OGGrism, HaG — plus 'empty', 'W', '6' excluded) — the strategy's canonical accounting rule, widened from rawimage-only to all canonical trees so the iKon-tree VV Pup/YZ Cnc/ST LMi frames stage too; the widening imported the iKon tree's filter vocabulary, which is why the exclusion set is derived from GRISM_ALL.</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3 canonical rule + §3.1 per-target table; STRATEGY_CLAIMS CV rows.</td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>Canonical error-free Light frames of NGC 5548 (slot-'6' campaign + the 2024-06-05 revisit), NGC 5238, and the 19 verified Dw survey fields, all filters.  The mispointed 2023-03-25 NGC 5548 night stays IN the manifest — its pointing flag, not its absence, is the record (S0 derives NGC 5548's reference position from header coordinates because none of its 279 frames is plate-solved, so the ~8° offset flags as pointing_gt1deg like any other).</td><td>DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md §3 (19 fields verified; NGC 5548 143-frame call); STRATEGY_CLAIMS Dwarf rows (__dw_survey__ sentinel expanded to DW_FIELDS).</td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>Canonical error-free Light frames labeled 2023ixf, plus ALL canonical M101/NGC5457/'Pinwheel Galaxy' field frames — the saturated first epochs (2023-05-20/21), the pre-explosion template (2023-05-05) and every post-fade template epoch carry the host's name, not the SN's, and two of them carry a sequence digit fused to the SN's name ('2023ixf1/2').</td><td>SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md §3.1 (campaign start resolution) + §3.4 (templates); STRATEGY_CLAIMS 2023ixf row.  ngc5457, 'pinwheel galaxy', 2023ixf1 and 2023ixf2 are cone-gated S0 synonyms (SYNONYM_TABLE).</td></tr>
+<tr><td>TCrB_Monitoring</td><td>Canonical error-free Light frames of T CrB and the θ CrB calibrator in every filter EXCEPT 'H' — the 2025 grism series, the 2023–2024 imaging anchors, and the calibrator series are one working set; the six single-epoch 2024-03-13 'H' frames are excluded from science by §3's explicit ruling (they remain visible in S0's frames table, which is where the filter-forensics table is built).</td><td>TCrB_Monitoring/ANALYSIS_STRATEGY.md §3 (T CrB 471 unique rawimage light frames — 402 after global dedup — + θ CrB 412-frame grism calibrator series; 'H' excluded from science regardless of P0-2 mapping); STRATEGY_CLAIMS tcrb/tetcrb rows.</td></tr>
 </table>
 <div class="grid"><figure><a href="figures/s0c/s0c_eras.png"><img src="figures/s0c/s0c_eras.png" alt=""></a><figcaption>Where each working set lives in camera-era space.  A project's calibration rows cover exactly the eras its science occupies.</figcaption></figure></div>
 
@@ -162,8 +164,71 @@ cost a stage a trip back to the census.</div>
 every candidate calibration frame in hand — including the masters whose
 recovery is documented in the S0b report.</p>
 </div></section>
+<section id="reconcile">
+<div class="bhead"><h2>4 &middot; Documents vs the working set</h2>
+<span class="tag">25 of 25 published numbers reconcile</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">A manuscript quotes "30 frames/band", "20 frames",
+"403 frames / 40 nights".  Where is the machinery that notices when a
+sentence in a strategy document stops matching the frames that actually
+exist?</p>
+
+<h3>Evidence</h3>
+<p class="sub">Every inventory number the five strategy documents publish,
+encoded in <code>macro_core.staging.STAGE_CLAIMS</code> next to the query
+that reproduces it, measured here against the stage tables
+(<code>role = 'science'</code> is imposed by the renderer, so no claim can
+count calibration or cone-candidate rows):</p>
+<table class="data">
+<tr><th>project</th><th>published inventory claim</th><th>doc frames</th><th>staged frames</th><th>&Delta;</th><th>doc nights</th><th>staged nights</th><th>&Delta;</th><th>source</th></tr>
+<tr><td>CV_TimeSeries</td><td>ST LMi — rawimage photometric light frames</td><td>3,150</td><td>3,150</td><td>&mdash;</td><td>39</td><td>39</td><td>&mdash;</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1</td></tr>
+<tr><td>CV_TimeSeries</td><td>YZ Cnc — rawimage photometric light frames</td><td>1,915</td><td>1,915</td><td>&mdash;</td><td>26</td><td>26</td><td>&mdash;</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1</td></tr>
+<tr><td>CV_TimeSeries</td><td>VV Pup — rawimage photometric light frames</td><td>1,277</td><td>1,277</td><td>&mdash;</td><td>28</td><td>28</td><td>&mdash;</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1</td></tr>
+<tr><td>CV_TimeSeries</td><td>EU UMa — rawimage photometric light frames</td><td>993</td><td>993</td><td>&mdash;</td><td>32</td><td>32</td><td>&mdash;</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1</td></tr>
+<tr><td>CV_TimeSeries</td><td>AN UMa — rawimage photometric light frames</td><td>1,279</td><td>1,279</td><td>&mdash;</td><td>14</td><td>14</td><td>&mdash;</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1</td></tr>
+<tr><td>TCrB_Monitoring</td><td>T CrB grism series (the paper's spine)</td><td>247</td><td>247</td><td>&mdash;</td><td>60</td><td>60</td><td>&mdash;</td><td>TCrB_Monitoring/ANALYSIS_STRATEGY.md §1/§3</td></tr>
+<tr><td>TCrB_Monitoring</td><td>θ CrB grism calibrator series</td><td>412</td><td>412</td><td>&mdash;</td><td>42</td><td>42</td><td>&mdash;</td><td>TCrB_Monitoring/ANALYSIS_STRATEGY.md §3</td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2024-05-19 deep g template stack</td><td>15</td><td>15</td><td>&mdash;</td><td>1</td><td>1</td><td>&mdash;</td><td>SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md §3.4</td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2024-05-19 deep r template stack</td><td>15</td><td>15</td><td>&mdash;</td><td>1</td><td>1</td><td>&mdash;</td><td>SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md §3.4</td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2026-03-21/22 M101-field epoch ('pinwheel galaxy')</td><td>140</td><td>140</td><td>&mdash;</td><td>2</td><td>2</td><td>&mdash;</td><td>SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md §3.4 (added 2026-08-18: the deep pre-2026-04 template epoch)</td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>NGC 5548 slot-'6' campaign (2023)</td><td>143</td><td>143</td><td>&mdash;</td><td>16</td><td>16</td><td>&mdash;</td><td>DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md §3</td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>NGC 5548 2024-06-05 grism revisit</td><td>10</td><td>10</td><td>&mdash;</td><td>1</td><td>1</td><td>&mdash;</td><td>DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md §3</td></tr>
+<tr><td>BeStar_Grism</td><td>Spica</td><td>728</td><td>728</td><td>&mdash;</td><td>29</td><td>29</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr><td>BeStar_Grism</td><td>HR 3454 (η Hya)</td><td>471</td><td>471</td><td>&mdash;</td><td>34</td><td>34</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr><td>BeStar_Grism</td><td>HR 4963 (θ Vir)</td><td>368</td><td>368</td><td>&mdash;</td><td>33</td><td>33</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr><td>BeStar_Grism</td><td>Phecda</td><td>333</td><td>333</td><td>&mdash;</td><td>40</td><td>40</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr><td>BeStar_Grism</td><td>53 Boo</td><td>330</td><td>330</td><td>&mdash;</td><td>23</td><td>23</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr><td>BeStar_Grism</td><td>69 Ori</td><td>288</td><td>288</td><td>&mdash;</td><td>51</td><td>51</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr><td>BeStar_Grism</td><td>φ Leo</td><td>261</td><td>261</td><td>&mdash;</td><td>39</td><td>39</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr><td>BeStar_Grism</td><td>λ Eri</td><td>252</td><td>252</td><td>&mdash;</td><td>47</td><td>47</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr><td>BeStar_Grism</td><td>5 Cnc</td><td>194</td><td>194</td><td>&mdash;</td><td>45</td><td>45</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr><td>BeStar_Grism</td><td>HD 70340</td><td>181</td><td>181</td><td>&mdash;</td><td>30</td><td>30</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr><td>BeStar_Grism</td><td>Vega — era-A exposure ladder (2024-05-20)</td><td>80</td><td>80</td><td>&mdash;</td><td>1</td><td>1</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr><td>BeStar_Grism</td><td>Vega — era-C standard series</td><td>367</td><td>367</td><td>&mdash;</td><td>18</td><td>18</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr><td>BeStar_Grism</td><td>Vega — era-83 tier (post-doc ingest)</td><td>30</td><td>30</td><td>&mdash;</td><td>3</td><td>3</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2 (added 2026-08-18: nights the doc's table pre-dates)</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>Each published inventory number lives next to the
+query that reproduces it, and the diff is rendered on this page.</b>  Three
+numbers failed this test at the 2026-08-18 review — the SN template stacks
+("30 frames/band"; canonical reality 15, the other 15 being reduced-tree
+copies), the NGC&nbsp;5548 revisit ("20 frames"; 10), and the &theta;&nbsp;CrB
+calibrator series ("403 / 40 nights"; 412 / 42, because two more nights
+arrived after the sentence was written).  Staging was correct in all three
+cases; only the prose drifted, and nothing made the drift visible.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Drift now surfaces here in two directions: a document
+mis-stating the archive, and an archive that grew past a document.  The
+second is the common case and the benign one — it is how the &theta;&nbsp;CrB
+series gained 9 frames and Vega gained a whole instrument tier — but a
+referee cannot tell the two apart from prose alone, and neither could
+we.</p>
+</div></section>
 <section id="provenance">
-<div class="bhead"><h2>4 &middot; The provenance chain</h2>
+<div class="bhead"><h2>5 &middot; The provenance chain</h2>
 <span class="tag">archive &rarr; manifest &rarr; stage table &rarr; CSV</span></div>
 
 <div class="stage"><h3>Question</h3>
@@ -177,20 +242,28 @@ archive — and where can each link be audited?</p>
 <tr><td>1</td><td><code>rlmt-archive/</code> (3.3&nbsp;TiB)</td><td>330,865 cataloged files</td><td><b>immutable</b> — read-only to every stage, forever</td></tr>
 <tr><td>2</td><td>S0 manifest <code>frames</code></td><td>330,865 rows &rarr; 198,294 canonical</td><td>global dedup, eras, aliases, QC — the provenance layer</td></tr>
 <tr><td>3</td><td>S0b <code>calib_frames</code></td><td>4,976 calibration frames incl. recovered masters</td><td>kind-normalized census, era-keyed</td></tr>
-<tr><td>4</td><td>S0c <code>stage_&lt;project&gt;</code> tables</td><td>23,735 rows across 5 projects</td><td>selection rules as data; atomic swap per build</td></tr>
+<tr><td>4</td><td>S0c <code>stage_&lt;project&gt;</code> tables</td><td>23,864 rows across 5 projects</td><td>selection rules as data; atomic swap per build</td></tr>
 <tr><td>5</td><td><code>&lt;Project&gt;/data/stage_manifest.csv</code></td><td>one CSV per project (same rows as link 4)</td><td>the working artifact — gitignored, regenerable, never a copy of pixels</td></tr>
 </table>
 <p class="sub">This build's outputs (build id
-<code>S0c v1.0 (2026-08-18) @ 2026-08-18T15:25Z</code>, commit
-<code>17ef904</code>):</p>
+<code>S0c v1.0 (2026-08-18) @ 2026-08-18T18:53Z</code>, commit
+<code>7de2b60-dirty</code>,
+<code>staging.py</code> sha256
+<code>9b816f4cf384</code>):</p>
 <table class="data">
-<tr><th>project</th><th>DB table</th><th>science</th><th>calib</th><th>rows</th><th>CSV (gitignored, regenerable)</th><th>farm links</th></tr>
-<tr><td>BeStar_Grism</td><td><code>stage_bestar_grism</code></td><td>3,883</td><td>983</td><td>4,866</td><td><code>BeStar_Grism/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
-<tr><td>CV_TimeSeries</td><td><code>stage_cv_timeseries</code></td><td>8,726</td><td>4,768</td><td>13,494</td><td><code>CV_TimeSeries/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
-<tr><td>DwarfGalaxy_AGN_Survey</td><td><code>stage_dwarfgalaxy_agn_survey</code></td><td>1,196</td><td>171</td><td>1,367</td><td><code>DwarfGalaxy_AGN_Survey/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
-<tr><td>SN2023ixf_LightCurve</td><td><code>stage_sn2023ixf_lightcurve</code></td><td>1,214</td><td>496</td><td>1,710</td><td><code>SN2023ixf_LightCurve/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
-<tr><td>TCrB_Monitoring</td><td><code>stage_tcrb_monitoring</code></td><td>826</td><td>1,472</td><td>2,298</td><td><code>TCrB_Monitoring/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
+<tr><th>project</th><th>DB table</th><th>science</th><th>cone</th><th>calib</th><th>rows</th><th>CSV (gitignored, regenerable)</th><th>farm links</th></tr>
+<tr><td>BeStar_Grism</td><td><code>stage_bestar_grism</code></td><td>3,883</td><td>3</td><td>983</td><td>4,869</td><td><code>BeStar_Grism/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
+<tr><td>CV_TimeSeries</td><td><code>stage_cv_timeseries</code></td><td>8,716</td><td>0</td><td>4,768</td><td>13,484</td><td><code>CV_TimeSeries/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td><code>stage_dwarfgalaxy_agn_survey</code></td><td>1,196</td><td>0</td><td>171</td><td>1,367</td><td><code>DwarfGalaxy_AGN_Survey/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td><code>stage_sn2023ixf_lightcurve</code></td><td>1,356</td><td>0</td><td>496</td><td>1,852</td><td><code>SN2023ixf_LightCurve/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
+<tr><td>TCrB_Monitoring</td><td><code>stage_tcrb_monitoring</code></td><td>820</td><td>0</td><td>1,472</td><td>2,292</td><td><code>TCrB_Monitoring/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
 </table>
+<p class="sub">The commit field carries a <code>-dirty</code> suffix when the
+build ran from a modified working tree, and the <code>staging.py</code>
+digest identifies the exact selection-rule text that emitted these rows.  The
+first S0c build recorded a bare hash of the commit <em>before</em> the one
+that introduced <code>staging.py</code>; a provenance field that cannot
+recover the code that ran is not provenance.</p>
 
 <h3>Decision</h3>
 <div class="decision"><b>Every stage row carries its whole chain:</b>

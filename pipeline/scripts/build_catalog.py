@@ -12,6 +12,12 @@ import sqlite3
 import warnings
 from concurrent.futures import ProcessPoolExecutor
 
+# Repo-local import: the pure geometry resolver (see macro_core/fitsgeom.py
+# for the full explanation of the tile-compression trap this guards against).
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                os.pardir))
+from macro_core import fitsgeom  # noqa: E402
+
 warnings.filterwarnings("ignore")
 
 ROOT = "/Volumes/OWC StudioStack HDD/DATA/ASTRO/rlmt-archive"
@@ -48,6 +54,33 @@ def parse_sex(val, is_ra):
         return None
 
 
+def merge_cards_tolerant(dest, header):
+    """Copy every readable card of ``header`` into ``dest``; count the rest.
+
+    Why not the obvious ``dest.update(header)``: the RLMT archive contains
+    ~20k files whose FWALLNAM keyword is followed by CONTINUE cards holding
+    NON-STRING values.  astropy rejects those with
+    ``VerifyError: CONTINUE cards must have string values`` — and because
+    ``Header.update`` parses cards as it walks them, ONE bad card aborts the
+    entire merge and the whole frame is lost (or, historically, silently
+    fell back to the raw BINTABLE header and acquired phantom 8x3211
+    geometry — the S0e artifact).
+
+    Copying card-by-card inside a try means a single malformed card costs
+    exactly that card, not the frame.  Returns the number skipped so the
+    caller can report how many frames needed the tolerant path.
+    """
+    n_bad = 0
+    for c in header.cards:
+        try:
+            # Touching .keyword/.value is what triggers the parse — and thus
+            # what can raise.  Both are read inside the guard deliberately.
+            dest[c.keyword] = (c.value, c.comment)
+        except Exception:
+            n_bad += 1
+    return n_bad
+
+
 def scan_one(path):
     from astropy.io import fits
     rel = os.path.relpath(path, ROOT)
@@ -60,7 +93,7 @@ def scan_one(path):
         with fits.open(path, memmap=False, ignore_missing_simple=True) as h:
             hdr = fits.Header()
             for hdu in h[:2]:
-                hdr.update(hdu.header)
+                merge_cards_tolerant(hdr, hdu.header)
         for k in STR_KEYS:
             if k in hdr:
                 row[col(k)] = str(hdr[k]).strip()
@@ -73,6 +106,24 @@ def scan_one(path):
         for k in BOOL_KEYS:
             if k in hdr:
                 row[col(k)] = int(bool(hdr[k]))
+        # ---- TRUE image geometry (the S0e fix) ---------------------------
+        # NAXIS1/NAXIS2 copied above are NOT trustworthy on their own.  In a
+        # tile-compressed file the extension is a BINTABLE whose NAXIS1 is
+        # the row length in BYTES (8) and NAXIS2 the row COUNT (3211) — the
+        # real image dimensions live in ZNAXIS1/ZNAXIS2.  astropy normally
+        # translates that for us (CompImageHDU.header reports 4800x3211),
+        # but when it cannot build a CompImageHDU the raw table header comes
+        # through instead.  resolve_geometry handles BOTH shapes from one
+        # merged header: it prefers ZNAXIS whenever the compression markers
+        # are present, and refuses to guess when the header is incoherent.
+        try:
+            row["naxis1"], row["naxis2"] = fitsgeom.resolve_geometry(hdr)
+        except fitsgeom.GeometryError as e:
+            # Geometry is load-bearing (era keys, the astrometry solvability
+            # gate), so an unresolvable header is recorded as an error rather
+            # than left holding whatever NAXIS said.
+            row["naxis1"] = row["naxis2"] = None
+            row["error"] = f"GeometryError: {e}"[:300]
         # best RA/Dec in degrees: plate solution first, else pointing
         if row.get("crval1") is not None and row.get("crval2") is not None:
             row["ra_deg"], row["dec_deg"] = row["crval1"], row["crval2"]

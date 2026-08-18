@@ -6,13 +6,15 @@ this manifest **is** the working set. Every pipeline stage reads the
 immutable archive directly through the paths below — the archive is
 read-only, always.
 
-**This file is regenerable, not precious** (`*/data/` is gitignored):
+**This file is regenerable, not precious** (`*/data/` is gitignored). Run
+this from anywhere — the path is absolute and quoted because the repo path
+contains spaces:
 
     /opt/miniconda3/envs/rlmt-checks/bin/python \
-        pipeline/scripts/build_s0c_staging.py
+        "/Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/pipeline/scripts/build_s0c_staging.py"
 
-**Selection rule (science rows).** Canonical error-free Light frames of T CrB and the θ CrB calibrator, all filters — the 2025 grism series, the 2023–2024 imaging anchors, and the calibrator series are one working set.
-Source: TCrB_Monitoring/ANALYSIS_STRATEGY.md §3 (T CrB 471 unique rawimage light frames — 402 after global dedup — + θ CrB 403-frame grism calibrator series); STRATEGY_CLAIMS tcrb/tetcrb rows.
+**Selection rule (science rows).** Canonical error-free Light frames of T CrB and the θ CrB calibrator in every filter EXCEPT 'H' — the 2025 grism series, the 2023–2024 imaging anchors, and the calibrator series are one working set; the six single-epoch 2024-03-13 'H' frames are excluded from science by §3's explicit ruling (they remain visible in S0's frames table, which is where the filter-forensics table is built).
+Source: TCrB_Monitoring/ANALYSIS_STRATEGY.md §3 (T CrB 471 unique rawimage light frames — 402 after global dedup — + θ CrB 412-frame grism calibrator series; 'H' excluded from science regardless of P0-2 mapping); STRATEGY_CLAIMS tcrb/tetcrb rows.
 
 **Calibration rows.** For every camera era the science frames touch, ALL of
 that era's calibration frames from the S0b census are included (raw frames
@@ -20,8 +22,8 @@ and recovered `Calibrations/` masters alike), `match_basis =
 'era_exact'`. Staging deliberately over-includes; each stage
 narrows by kind/exposure/filter with the S0b coverage matrix as its guide.
 
-**This build (S0c v1.0 (2026-08-18) @ 2026-08-18T15:25Z):** 826 science rows +
-1,472 calibration rows.
+**This build (S0c v1.0 (2026-08-18) @ 2026-08-18T18:53Z):** 820 science rows +
+0 cone-candidate rows + 1,472 calibration rows.
 
 ## Columns
 
@@ -29,8 +31,8 @@ narrows by kind/exposure/filter with the S0b coverage matrix as its guide.
 |---|---|
 | `path` | archive-relative POSIX path — the frame's identity |
 | `abs_path` | absolute archive path (QUOTE IT: the root has spaces) |
-| `role` | `science`, `bias`/`dark`/`flat`, or `master_*` products |
-| `match_basis` | `selection_rule` (science: the rule below) or `era_exact` (calibration: same S0 era as this project's science) |
+| `role` | `science`, `science_unresolved` (cone candidate — NOT science until a project adjudicates it), `bias`/`dark`/`flat`, or `master_*` products |
+| `match_basis` | `selection_rule` (science: the rule below), `cone_candidate` (no target name; matched by coordinates) or `era_exact` (calibration: same S0 era as this project's science) |
 | `tree` | top-level archive tree holding the canonical copy |
 | `era_id` | S0 pinned camera-era registry id |
 | `night` | local-noon-to-noon night label |

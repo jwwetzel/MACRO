@@ -6,12 +6,14 @@ this manifest **is** the working set. Every pipeline stage reads the
 immutable archive directly through the paths below — the archive is
 read-only, always.
 
-**This file is regenerable, not precious** (`*/data/` is gitignored):
+**This file is regenerable, not precious** (`*/data/` is gitignored). Run
+this from anywhere — the path is absolute and quoted because the repo path
+contains spaces:
 
     /opt/miniconda3/envs/rlmt-checks/bin/python \
-        pipeline/scripts/build_s0c_staging.py
+        "/Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/pipeline/scripts/build_s0c_staging.py"
 
-**Selection rule (science rows).** Canonical error-free Light frames of NGC 5548 (slot-'6' campaign + the 2024-06-05 revisit), NGC 5238, and the 19 verified Dw survey fields, all filters.  The mispointed 2023-03-25 NGC 5548 night stays IN the manifest — its pointing flag, not its absence, is the record.
+**Selection rule (science rows).** Canonical error-free Light frames of NGC 5548 (slot-'6' campaign + the 2024-06-05 revisit), NGC 5238, and the 19 verified Dw survey fields, all filters.  The mispointed 2023-03-25 NGC 5548 night stays IN the manifest — its pointing flag, not its absence, is the record (S0 derives NGC 5548's reference position from header coordinates because none of its 279 frames is plate-solved, so the ~8° offset flags as pointing_gt1deg like any other).
 Source: DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md §3 (19 fields verified; NGC 5548 143-frame call); STRATEGY_CLAIMS Dwarf rows (__dw_survey__ sentinel expanded to DW_FIELDS).
 
 **Calibration rows.** For every camera era the science frames touch, ALL of
@@ -20,8 +22,8 @@ and recovered `Calibrations/` masters alike), `match_basis =
 'era_exact'`. Staging deliberately over-includes; each stage
 narrows by kind/exposure/filter with the S0b coverage matrix as its guide.
 
-**This build (S0c v1.0 (2026-08-18) @ 2026-08-18T15:25Z):** 1,196 science rows +
-171 calibration rows.
+**This build (S0c v1.0 (2026-08-18) @ 2026-08-18T18:53Z):** 1,196 science rows +
+0 cone-candidate rows + 171 calibration rows.
 
 ## Columns
 
@@ -29,8 +31,8 @@ narrows by kind/exposure/filter with the S0b coverage matrix as its guide.
 |---|---|
 | `path` | archive-relative POSIX path — the frame's identity |
 | `abs_path` | absolute archive path (QUOTE IT: the root has spaces) |
-| `role` | `science`, `bias`/`dark`/`flat`, or `master_*` products |
-| `match_basis` | `selection_rule` (science: the rule below) or `era_exact` (calibration: same S0 era as this project's science) |
+| `role` | `science`, `science_unresolved` (cone candidate — NOT science until a project adjudicates it), `bias`/`dark`/`flat`, or `master_*` products |
+| `match_basis` | `selection_rule` (science: the rule below), `cone_candidate` (no target name; matched by coordinates) or `era_exact` (calibration: same S0 era as this project's science) |
 | `tree` | top-level archive tree holding the canonical copy |
 | `era_id` | S0 pinned camera-era registry id |
 | `night` | local-noon-to-noon night label |

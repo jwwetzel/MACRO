@@ -306,6 +306,24 @@ SYNONYM_TABLE: dict[str, str] = {
     "alphalyr": "vega",
     # M101 vs its NGC number (SN 2023ixf host field; frames labeled either).
     "ngc5457": "m101",
+    # M101's common name.  The observer typed 'pinwheel galaxy' on the
+    # 2026-03-21/22 nights: 245 catalog rows, 140 of them canonical rawimage
+    # science (35 each g/r/i at 30 s + 35 ha at 90 s).  No string rule can
+    # relate a common name to a Messier number, so it belongs here; the cone
+    # gate passes at 0.031 deg against the natives of 'm101' (measured
+    # 2026-08-18).  Until this merge landed, the deepest post-fade M101-field
+    # epoch in the archive was invisible to the SN project — the very
+    # material its §3.4 template plan says it lacks.
+    "pinwheelgalaxy": "m101",
+    # SN 2023ixf with a sequence counter fused to the name.  Two frames on
+    # 2023-11-28 (the strategy's first named post-fade template epoch) carry
+    # OBJECT='2023ixf1'/'2023ixf2'; both sit within 0.05 deg of the SN, and
+    # the '2023ixf1' cone gate passes at 0.023 deg (measured 2026-08-18).
+    # Listed explicitly rather than handled by a "strip a trailing digit"
+    # rule: such a rule would have to know which stems are real target keys,
+    # which is corpus knowledge this pure normalizer deliberately lacks.
+    "2023ixf1": "2023ixf",
+    "2023ixf2": "2023ixf",
 }
 
 
@@ -502,6 +520,93 @@ def median_radec(ras: Iterable[float],
         ra_list = [r + 360.0 if r < 180.0 else r for r in ra_list]
     ra_med = median(ra_list) % 360.0
     return ra_med, median(dec_list)
+
+
+#: How a target's reference position was derived.  Recorded per target so
+#: the pointing audit says which evidence it rests on instead of leaving a
+#: silent NULL behind.
+POINTING_REF_SOLVED = "plate_solved"     # median of plate-solved frames
+POINTING_REF_HEADER = "header_median"    # median of header coordinates
+POINTING_REF_UNSUPPORTED = "header_unsupported"   # headers disagree: refused
+POINTING_REF_NONE = "none"               # too few coordinates: no reference
+
+#: Fraction of a target's own frames that must lie within
+#: :data:`POINTING_OUTLIER_DEG` of a HEADER-derived reference before that
+#: reference is accepted.  See :func:`pointing_reference` for why.
+POINTING_REF_SUPPORT_FRACTION = 0.5
+
+
+def pointing_reference(ras: Iterable[Optional[float]],
+                       decs: Iterable[Optional[float]],
+                       pltsolvd: Iterable[object],
+                       min_frames: int = MIN_SOLVED_FOR_REFERENCE,
+                       ) -> tuple[Optional[float], Optional[float], str]:
+    """Reference position of ONE target, with the basis that produced it.
+
+    THE NGC 5548 LESSON (2026-08-18 review).  The original rule was "median
+    of the target's plate-solved canonical frames, if at least
+    ``MIN_SOLVED_FOR_REFERENCE`` exist".  NGC 5548 has **zero** plate-solved
+    frames out of 279, so it got no reference, so every offset was NaN, so
+    ``pointing_gt1deg`` could never fire — on precisely the target whose
+    strategy document rules an entire night "unusable, pointing-failure" and
+    whose staging rule promises that "its pointing flag, not its absence, is
+    the record".  The flagging machinery was alive (21k frames flagged
+    archive-wide) and blind exactly where it was needed.
+
+    So: prefer plate-solved coordinates, and fall back to the median of the
+    target's HEADER coordinates when too few solves exist.  The fallback is
+    weaker evidence — header RA/Dec is where the mount believed it was
+    pointing — but a median over many frames is robust to a MINORITY of
+    mispointed ones, which is the failure mode being detected: NGC 5548's
+    269 on-target rows median cleanly at Dec +25.1 and the 10 rows of the
+    parked-mount night stand out at ~8 deg.
+
+    THE SUPPORT TEST (why the fallback can also refuse).  A plain median is
+    NOT robust when a target's headers split into two clusters of similar
+    size: the median then lands between them and flags everything, including
+    the frames that were on target.  Measured on the real archive: Mizar has
+    30 canonical frames — 10 with no coordinates, 10 at its true position,
+    and 10 carrying a stale RA/Dec card also seen on Denebola, Gamma Vir and
+    five other targets.  A bare median put the reference between the two
+    clusters and flagged all 20.  So a header-derived reference is accepted
+    only when at least :data:`POINTING_REF_SUPPORT_FRACTION` of the target's
+    coordinate-bearing frames lie within :data:`POINTING_OUTLIER_DEG` of it;
+    otherwise the basis is ``header_unsupported`` and NO offsets are
+    computed — the honest answer when the headers contradict each other and
+    nothing external can say which cluster is right.  The test is applied
+    only to the fallback: plate-solved coordinates are trusted evidence and
+    keep their original, unchanged behaviour.
+
+    Returns ``(ra, dec, basis)``; ``(None, None, ...)`` when no reference is
+    established, with the basis saying which way it failed.
+    """
+    solved_ra: list[float] = []
+    solved_dec: list[float] = []
+    all_ra: list[float] = []
+    all_dec: list[float] = []
+    for ra, dec, solved in zip(ras, decs, pltsolvd):
+        # Skip missing coordinates, including NaN (which fails == itself).
+        if ra is None or dec is None or ra != ra or dec != dec:
+            continue
+        all_ra.append(float(ra))
+        all_dec.append(float(dec))
+        if solved == 1 or solved is True:
+            solved_ra.append(float(ra))
+            solved_dec.append(float(dec))
+    if len(solved_ra) >= min_frames:
+        ra0, dec0 = median_radec(solved_ra, solved_dec)
+        return ra0, dec0, POINTING_REF_SOLVED
+    if len(all_ra) >= min_frames:
+        ra0, dec0 = median_radec(all_ra, all_dec)
+        # The support test: how many of this target's own frames actually
+        # sit at the position their median claims?
+        near = sum(1 for ra, dec in zip(all_ra, all_dec)
+                   if angular_separation_deg(ra, dec, ra0, dec0)
+                   <= POINTING_OUTLIER_DEG)
+        if near >= POINTING_REF_SUPPORT_FRACTION * len(all_ra):
+            return ra0, dec0, POINTING_REF_HEADER
+        return None, None, POINTING_REF_UNSUPPORTED
+    return None, None, POINTING_REF_NONE
 
 
 # --------------------------------------------------------------------------

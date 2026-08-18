@@ -55,6 +55,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import os
 import sqlite3
 import subprocess
@@ -71,6 +72,7 @@ PIPELINE_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PIPELINE_ROOT))
 
 from macro_core import S0C_CODE_VERSION                      # noqa: E402
+from macro_core import manifest as mf                        # noqa: E402
 from macro_core import staging as stg                        # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -86,6 +88,10 @@ FRAME_COLUMNS = [
     "target_key", "canonical_target", "imagetyp", "filter", "exptime",
     "era_id", "is_canonical", "dup_group", "error", "qc_flags",
     "pointing_offset_deg",
+    # Coordinates: needed only by the cone-candidate clause (a selection with
+    # cone_radius_deg set), but loaded always so the frame loader has one
+    # shape regardless of which projects this run stages.
+    "ra_deg", "dec_deg",
 ]
 
 #: Tables this build owns (plus the five stage_<project> tables, derived
@@ -126,10 +132,30 @@ def load_calib(con: sqlite3.Connection) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # Step 2 — build one project's staging manifest
 # ---------------------------------------------------------------------------
+def reference_positions(sci: pd.DataFrame,
+                        min_frames: int = 3) -> dict[str, tuple[float, float]]:
+    """Median (RA, Dec) per staged target, from the staged science rows.
+
+    The cone clause needs a position per target and must NOT invent one: it
+    uses the positions of the frames the project already staged, so a target
+    with too few usable coordinates simply has no cone and matches nothing.
+    ``min_frames`` mirrors ``manifest.MIN_SOLVED_FOR_REFERENCE`` in spirit —
+    one or two frames are not a position.  RA-wrap-aware via S0's own
+    :func:`macro_core.manifest.median_radec`.
+    """
+    refs: dict[str, tuple[float, float]] = {}
+    have = sci[sci["ra_deg"].notna() & sci["dec_deg"].notna()
+               & sci["target_key"].notna()]
+    for key, grp in have.groupby("target_key"):
+        if len(grp) >= min_frames:
+            refs[str(key)] = mf.median_radec(grp["ra_deg"], grp["dec_deg"])
+    return refs
+
+
 def build_project_stage(sel: stg.ProjectSelection, frames: pd.DataFrame,
                         calib: pd.DataFrame, archive_root: str,
                         build_id: str) -> pd.DataFrame:
-    """Science rows + era-matched calibration rows for one project.
+    """Science + cone-candidate + era-matched calibration rows for a project.
 
     Row order is deterministic (science by night/jd/path, then calibration
     by role/era/night/path) so re-running the build on unchanged inputs
@@ -148,16 +174,42 @@ def build_project_stage(sel: stg.ProjectSelection, frames: pd.DataFrame,
     sci_rows = [stg.science_row(sel, rec, archive_root, build_id)
                 for rec in sci.to_dict("records")]
 
+    # ---- cone candidates: name-less frames pointed at a staged target ----
+    # Only runs for a selection that asked for it (BeStar_Grism).  The
+    # reference positions come from the science rows just selected, so the
+    # cone can never point somewhere the project does not already observe.
+    cone_rows: list[dict] = []
+    if sel.cone_radius_deg is not None:
+        refs = reference_positions(sci)
+        eligible = [
+            stg.is_cone_candidate(
+                sel, tk, it, err, canon, tree, flt, ra, dec, bn or "")
+            for tk, it, err, canon, tree, flt, ra, dec, bn in zip(
+                frames["target_key"], frames["imagetyp"], frames["error"],
+                frames["is_canonical"], frames["tree"], frames["filter"],
+                frames["ra_deg"], frames["dec_deg"], frames["basename"])
+        ]
+        for rec in frames[pd.Series(eligible, index=frames.index)] \
+                .to_dict("records"):
+            hit = stg.cone_match(rec["ra_deg"], rec["dec_deg"], refs,
+                                 sel.cone_radius_deg)
+            if hit is not None:
+                cone_rows.append(stg.cone_candidate_row(
+                    rec, hit[0], hit[1], archive_root, build_id))
+
     # ---- calibration: every frame of every era the science touches -------
     eras = sorted({int(e) for e in sci["era_id"].dropna().unique()})
     cal = calib[calib["era_id"].isin(eras)]
     cal_rows = [stg.calib_row(rec, archive_root, build_id)
                 for rec in cal.to_dict("records")]
 
-    out = pd.DataFrame(sci_rows + cal_rows, columns=stg.STAGE_CSV_COLUMNS)
-    # Deterministic order: science first (night, jd, path), then calibration
-    # grouped by role/era.  A stable sort on a synthetic key does both.
-    out["_sci"] = (out["role"] != "science").astype(int)
+    out = pd.DataFrame(sci_rows + cone_rows + cal_rows,
+                       columns=stg.STAGE_CSV_COLUMNS)
+    # Deterministic order: science first, then cone candidates, then
+    # calibration grouped by role/era.  A stable sort on a synthetic rank
+    # (science 0, unresolved 1, calibration 2) does all three at once.
+    rank = {stg.ROLE_SCIENCE: 0, stg.ROLE_SCIENCE_UNRESOLVED: 1}
+    out["_sci"] = [rank.get(r, 2) for r in out["role"]]
     out = out.sort_values(
         ["_sci", "role", "era_id", "night", "jd", "path"],
         na_position="last", kind="mergesort").drop(columns="_sci")
@@ -185,6 +237,7 @@ def write_stage_tables(manifest_path: Path,
         {"key": "code_version", "value": S0C_CODE_VERSION},
         {"key": "build_id", "value": build_id},
         {"key": "git_commit", "value": _git_commit()},
+        {"key": "staging_sha256_12", "value": _staging_source_hash()},
         {"key": "archive_root", "value": stg.DEFAULT_ARCHIVE_ROOT},
         {"key": "checksum_note", "value": stg.CHECKSUM_NOTE},
         {"key": "match_basis_science", "value": stg.MATCH_BASIS_SCIENCE},
@@ -230,15 +283,33 @@ def write_csv_atomic(csv_path: Path, df: pd.DataFrame) -> None:
     os.replace(tmp, csv_path)
 
 
+#: The regeneration command printed in every data/README.md.
+#:
+#: ABSOLUTE, and quoted.  The first version printed the repo-relative script
+#: path with no working-directory instruction, so a reader who ran it from
+#: the directory the README lives in got a file-not-found — the one
+#: invocation a student auditor is guaranteed to copy.  The script itself is
+#: location-independent, so only the documented command was ever broken.
+#: The quotes are load-bearing: the repo path contains spaces.
+REGEN_COMMAND = (f'/opt/miniconda3/envs/rlmt-checks/bin/python \\\n'
+                 f'        "{REPO_ROOT}/pipeline/scripts/'
+                 f'build_s0c_staging.py"')
+
+
 def readme_text(sel: stg.ProjectSelection, n_science: int, n_calib: int,
-                build_id: str) -> str:
+                build_id: str, n_cone: int = 0) -> str:
     """The data/README.md for one project — law, columns, regeneration."""
     cols = "\n".join(f"| `{c}` | " + {
         "path": "archive-relative POSIX path — the frame's identity",
         "abs_path": "absolute archive path (QUOTE IT: the root has spaces)",
-        "role": "`science`, `bias`/`dark`/`flat`, or `master_*` products",
+        "role": (f"`{stg.ROLE_SCIENCE}`, "
+                 f"`{stg.ROLE_SCIENCE_UNRESOLVED}` (cone candidate — NOT "
+                 "science until a project adjudicates it), "
+                 "`bias`/`dark`/`flat`, or `master_*` products"),
         "match_basis": (f"`{stg.MATCH_BASIS_SCIENCE}` (science: the rule "
-                        f"below) or `{stg.MATCH_BASIS_CALIB}` (calibration: "
+                        f"below), `{stg.MATCH_BASIS_CONE}` (no target name; "
+                        "matched by coordinates) or "
+                        f"`{stg.MATCH_BASIS_CALIB}` (calibration: "
                         "same S0 era as this project's science)"),
         "tree": "top-level archive tree holding the canonical copy",
         "era_id": "S0 pinned camera-era registry id",
@@ -256,6 +327,20 @@ def readme_text(sel: stg.ProjectSelection, n_science: int, n_calib: int,
         "obs_rowid": "catalog/manifest join key",
         "stage_build_id": "S0c build that emitted the row",
     }[c] + " |" for c in stg.STAGE_CSV_COLUMNS)
+    # The cone paragraph appears ONLY for a selection that enables the cone
+    # clause, so the other four READMEs never document a rule they do not run.
+    cone_note = "" if sel.cone_radius_deg is None else f"""
+
+**Cone candidates (`role = '{stg.ROLE_SCIENCE_UNRESOLVED}'`).** Frames that
+pass every other gate but carry NO target name enter the working set when
+their coordinates fall within **{sel.cone_radius_deg:g}°** of a staged
+target's reference position (the median position of that target's own staged
+science frames). They are `match_basis = '{stg.MATCH_BASIS_CONE}'`, their
+`target_key` is the CANDIDATE match and their `pointing_offset_deg` is the
+measured separation. **They are not science.** A stage that wants them must
+ask for the role by name and adjudicate them first — that adjudication is
+this project's Step 0, and it now happens inside the manifest instead of by
+querying `frames` behind S0c's back."""
     return f"""# {sel.project} — staging manifest (`stage_manifest.csv`)
 
 **THE NO-COPY LAW.** No frame is ever copied into this directory. S0 exists
@@ -264,13 +349,14 @@ this manifest **is** the working set. Every pipeline stage reads the
 immutable archive directly through the paths below — the archive is
 read-only, always.
 
-**This file is regenerable, not precious** (`*/data/` is gitignored):
+**This file is regenerable, not precious** (`*/data/` is gitignored). Run
+this from anywhere — the path is absolute and quoted because the repo path
+contains spaces:
 
-    /opt/miniconda3/envs/rlmt-checks/bin/python \\
-        pipeline/scripts/build_s0c_staging.py
+    {REGEN_COMMAND}
 
 **Selection rule (science rows).** {sel.rule}
-Source: {sel.source}
+Source: {sel.source}{cone_note}
 
 **Calibration rows.** For every camera era the science frames touch, ALL of
 that era's calibration frames from the S0b census are included (raw frames
@@ -279,7 +365,7 @@ and recovered `Calibrations/` masters alike), `match_basis =
 narrows by kind/exposure/filter with the S0b coverage matrix as its guide.
 
 **This build ({build_id}):** {n_science:,} science rows +
-{n_calib:,} calibration rows.
+{n_cone:,} cone-candidate rows + {n_calib:,} calibration rows.
 
 ## Columns
 
@@ -344,13 +430,46 @@ def build_symlink_farm(data_dir: Path, df: pd.DataFrame) -> int:
 
 
 def _git_commit() -> str:
-    """Best-effort short git hash of the repo (empty string off-repo)."""
+    """Short git hash of the repo, marked ``-dirty`` when the tree is not.
+
+    THE 17ef904 LESSON (2026-08-18 review).  The first S0c build stamped
+    ``git_commit='17ef904'`` — the commit BEFORE the one that introduced
+    ``staging.py``.  The build had run from a dirty working tree, and a bare
+    ``rev-parse HEAD`` records the last COMMIT, not the code that ran.  For a
+    product whose entire claim is that no number is hand-typed, a provenance
+    field that points at a tree without the selection rules in it is worse
+    than no field.  ``git status --porcelain`` is cheap; when it prints
+    anything, the hash is suffixed ``-dirty`` and
+    :func:`_staging_source_hash` records what actually ran.
+    """
     try:
-        return subprocess.run(
+        head = subprocess.run(
             ["git", "-C", str(REPO_ROOT), "rev-parse", "--short", "HEAD"],
             capture_output=True, text=True, check=True).stdout.strip()
     except Exception:
         return ""
+    try:
+        dirty = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "status", "--porcelain"],
+            capture_output=True, text=True, check=True).stdout.strip()
+    except Exception:
+        return head            # HEAD known, cleanliness unknown: say no more
+    return f"{head}-dirty" if dirty else head
+
+
+def _staging_source_hash() -> str:
+    """SHA-256 (first 12 hex) of the file that encodes the selection rules.
+
+    The commit hash identifies the repo; this identifies the ONE file whose
+    contents decide which frames every project gets.  Recorded next to the
+    commit so a rebuild's rows can be traced to the exact rule text that
+    produced them even when the build ran from an uncommitted tree.
+    """
+    try:
+        source = (PIPELINE_ROOT / "macro_core" / "staging.py").read_bytes()
+    except OSError:
+        return ""
+    return hashlib.sha256(source).hexdigest()[:12]
 
 
 # ---------------------------------------------------------------------------
@@ -413,14 +532,20 @@ def main(argv=None) -> int:
     for sel in selections:
         df = build_project_stage(sel, frames, calib,
                                  args.archive_root, build_id)
-        n_sci = int((df["role"] == "science").sum())
-        n_cal = len(df) - n_sci
+        # Count by role explicitly.  The old `len(df) - n_sci` idiom silently
+        # counted cone candidates as calibration the moment a third role
+        # existed — the reason SCIENCE_ROLES is a shared constant.
+        n_sci = int((df["role"] == stg.ROLE_SCIENCE).sum())
+        n_cone = int((df["role"] == stg.ROLE_SCIENCE_UNRESOLVED).sum())
+        n_cal = int((~df["role"].isin(stg.SCIENCE_ROLES)).sum())
+        assert n_sci + n_cone + n_cal == len(df), "a row escaped its role"
         stages[sel.project] = df
 
         data_dir = REPO_ROOT / sel.project / "data"
         csv_path = data_dir / "stage_manifest.csv"
         write_csv_atomic(csv_path, df)
-        write_readme(data_dir, readme_text(sel, n_sci, n_cal, build_id))
+        write_readme(data_dir,
+                     readme_text(sel, n_sci, n_cal, build_id, n_cone))
         n_links = 0
         if args.symlink_farm:
             n_links = build_symlink_farm(data_dir, df)
@@ -430,12 +555,13 @@ def main(argv=None) -> int:
             "stage_table": stg.stage_table_name(sel.project),
             "csv_path": str(csv_path.relative_to(REPO_ROOT)),
             "n_rows": len(df), "n_science": n_sci, "n_calib": n_cal,
+            "n_cone": n_cone,
             "n_eras": int(df["era_id"].dropna().nunique()),
             "n_symlinks": n_links,
             "selection_rule": sel.rule, "selection_source": sel.source,
         })
-        print(f"[S0c]   {sel.project}: {n_sci:,} science + {n_cal:,} calib "
-              f"rows -> {csv_path.relative_to(REPO_ROOT)}"
+        print(f"[S0c]   {sel.project}: {n_sci:,} science + {n_cone:,} cone "
+              f"+ {n_cal:,} calib rows -> {csv_path.relative_to(REPO_ROOT)}"
               + (f" (+{n_links:,} farm links)" if args.symlink_farm else ""))
 
     stage_files = pd.DataFrame(file_rows)
@@ -457,6 +583,10 @@ def main(argv=None) -> int:
                 stage_files = pd.concat([stage_files, keep],
                                         ignore_index=True)
     stage_files = stage_files.sort_values("project").reset_index(drop=True)
+    # A registry row carried from a build that pre-dates the cone clause has
+    # no n_cone value; it had no cone rows either, so zero is the truth.
+    if "n_cone" in stage_files:
+        stage_files["n_cone"] = stage_files["n_cone"].fillna(0).astype(int)
     print(f"[S0c] writing stage tables -> {args.manifest}")
     write_stage_tables(args.manifest, stages, stage_files, build_id)
 

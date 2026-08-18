@@ -394,16 +394,22 @@ def build_frames(df: pd.DataFrame, key_of_raw: dict,
     df.drop(columns=["_era_key"], inplace=True)
 
     # ---- 3f. pointing validation -----------------------------------------
-    # Reference position per target: median (ra_deg, dec_deg) over its
-    # plate-solved canonical frames, only when at least
-    # MIN_SOLVED_FOR_REFERENCE of them exist (spec).  RA-wrap-aware median.
+    # Reference position per target: plate-solved canonical frames when at
+    # least MIN_SOLVED_FOR_REFERENCE of them exist, otherwise the median of
+    # that target's HEADER coordinates.  The fallback exists because NGC 5548
+    # has zero plate-solved frames out of 279 and therefore had no reference,
+    # no offsets, and no pointing flags at all — see manifest.pointing_
+    # reference for the full argument.  The basis is recorded per frame so
+    # the weaker evidence is visible instead of implicit.
     refs: dict[str, tuple[float, float]] = {}
-    solved_canon = df[(df["is_canonical"] == 1) & (df["pltsolvd"] == 1)
-                      & df["ra_deg"].notna() & df["dec_deg"].notna()
-                      & df["target_key"].notna()]
-    for key, grp in solved_canon.groupby("target_key"):
-        if len(grp) >= m.MIN_SOLVED_FOR_REFERENCE:
-            refs[key] = m.median_radec(grp["ra_deg"], grp["dec_deg"])
+    basis_of_key: dict[str, str] = {}
+    canon = df[(df["is_canonical"] == 1) & df["target_key"].notna()]
+    for key, grp in canon.groupby("target_key"):
+        ra0, dec0, basis = m.pointing_reference(
+            grp["ra_deg"], grp["dec_deg"], grp["pltsolvd"])
+        basis_of_key[key] = basis
+        if ra0 is not None:
+            refs[key] = (ra0, dec0)
 
     # Offset for EVERY frame that has coordinates and a target reference —
     # canonical and duplicate alike (a duplicate's pointing is still real).
@@ -418,6 +424,10 @@ def build_frames(df: pd.DataFrame, key_of_raw: dict,
         ra0, dec0 = refs[tkey[i]]
         offsets[i] = m.angular_separation_deg(ra[i], dec[i], ra0, dec0)
     df["pointing_offset_deg"] = offsets
+    # One column, one meaning: how THIS frame's target reference was derived
+    # ('plate_solved', 'header_median', or 'none' for an unreferenced target).
+    df["pointing_ref_basis"] = [
+        basis_of_key.get(k, m.POINTING_REF_NONE) for k in tkey]
 
     # ---- 3g. QC flags ----------------------------------------------------
     df["qc_flags"] = [

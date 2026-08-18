@@ -6,13 +6,15 @@ this manifest **is** the working set. Every pipeline stage reads the
 immutable archive directly through the paths below — the archive is
 read-only, always.
 
-**This file is regenerable, not precious** (`*/data/` is gitignored):
+**This file is regenerable, not precious** (`*/data/` is gitignored). Run
+this from anywhere — the path is absolute and quoted because the repo path
+contains spaces:
 
     /opt/miniconda3/envs/rlmt-checks/bin/python \
-        pipeline/scripts/build_s0c_staging.py
+        "/Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/pipeline/scripts/build_s0c_staging.py"
 
-**Selection rule (science rows).** Canonical error-free Light frames labeled 2023ixf, plus ALL canonical M101/NGC5457 field frames — the saturated first epochs (2023-05-20/21), the pre-explosion template (2023-05-05) and every post-fade template epoch carry the host's name, not the SN's.
-Source: SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md §3.1 (campaign start resolution) + §3.4 (templates); STRATEGY_CLAIMS 2023ixf row.  ngc5457 is a cone-gated S0 synonym of m101.
+**Selection rule (science rows).** Canonical error-free Light frames labeled 2023ixf, plus ALL canonical M101/NGC5457/'Pinwheel Galaxy' field frames — the saturated first epochs (2023-05-20/21), the pre-explosion template (2023-05-05) and every post-fade template epoch carry the host's name, not the SN's, and two of them carry a sequence digit fused to the SN's name ('2023ixf1/2').
+Source: SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md §3.1 (campaign start resolution) + §3.4 (templates); STRATEGY_CLAIMS 2023ixf row.  ngc5457, 'pinwheel galaxy', 2023ixf1 and 2023ixf2 are cone-gated S0 synonyms (SYNONYM_TABLE).
 
 **Calibration rows.** For every camera era the science frames touch, ALL of
 that era's calibration frames from the S0b census are included (raw frames
@@ -20,8 +22,8 @@ and recovered `Calibrations/` masters alike), `match_basis =
 'era_exact'`. Staging deliberately over-includes; each stage
 narrows by kind/exposure/filter with the S0b coverage matrix as its guide.
 
-**This build (S0c v1.0 (2026-08-18) @ 2026-08-18T15:25Z):** 1,214 science rows +
-496 calibration rows.
+**This build (S0c v1.0 (2026-08-18) @ 2026-08-18T18:53Z):** 1,356 science rows +
+0 cone-candidate rows + 496 calibration rows.
 
 ## Columns
 
@@ -29,8 +31,8 @@ narrows by kind/exposure/filter with the S0b coverage matrix as its guide.
 |---|---|
 | `path` | archive-relative POSIX path — the frame's identity |
 | `abs_path` | absolute archive path (QUOTE IT: the root has spaces) |
-| `role` | `science`, `bias`/`dark`/`flat`, or `master_*` products |
-| `match_basis` | `selection_rule` (science: the rule below) or `era_exact` (calibration: same S0 era as this project's science) |
+| `role` | `science`, `science_unresolved` (cone candidate — NOT science until a project adjudicates it), `bias`/`dark`/`flat`, or `master_*` products |
+| `match_basis` | `selection_rule` (science: the rule below), `cone_candidate` (no target name; matched by coordinates) or `era_exact` (calibration: same S0 era as this project's science) |
 | `tree` | top-level archive tree holding the canonical copy |
 | `era_id` | S0 pinned camera-era registry id |
 | `night` | local-noon-to-noon night label |

@@ -54,6 +54,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from . import inventory as inv
+from . import manifest as mf
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -104,6 +105,45 @@ MATCH_BASIS_SCIENCE = "selection_rule"
 #: (``master_bias``/``master_dark``/``master_flat``), not by a basis change.
 MATCH_BASIS_CALIB = "era_exact"
 
+#: match_basis for a frame that carries NO target name but whose coordinates
+#: fall inside a staged target's cone (see :func:`cone_match`).  Deliberately
+#: distinct from MATCH_BASIS_SCIENCE: a coordinate match is a *candidate*
+#: identification, not the project's published selection rule.
+MATCH_BASIS_CONE = "cone_candidate"
+
+#: Role of an adjudicated science frame.
+ROLE_SCIENCE = "science"
+
+#: Role of a cone-matched, name-less frame.  It is IN the working set (so a
+#: project's Step-0 identity work happens inside the manifest instead of
+#: reaching back into ``frames`` and bypassing S0c provenance) but it is NOT
+#: ``science``: every downstream stage must opt in explicitly.
+ROLE_SCIENCE_UNRESOLVED = "science_unresolved"
+
+#: The two roles that carry a target identity.  Everything else in a stage
+#: table is calibration.  Consumers must use these tuples (or the SQL
+#: fragments below) rather than testing ``role = 'science'`` by hand — that
+#: test silently reclassified cone candidates as calibration.
+SCIENCE_ROLES: tuple[str, ...] = (ROLE_SCIENCE, ROLE_SCIENCE_UNRESOLVED)
+
+
+def _role_sql(roles: tuple[str, ...], negate: bool = False) -> str:
+    """SQL membership test over ``roles`` — generated, never hand-typed.
+
+    Role names are bare identifiers-in-quotes with no apostrophes (asserted
+    below), so the literal list is safe to interpolate into a WHERE clause.
+    """
+    assert all("'" not in r for r in roles), "role name with a quote"
+    listed = ", ".join(f"'{r}'" for r in roles)
+    return f"role {'NOT ' if negate else ''}IN ({listed})"
+
+
+#: ``role IN ('science','science_unresolved')`` — every identity-bearing row.
+SQL_SCIENCE_ROLES = _role_sql(SCIENCE_ROLES)
+
+#: ``role NOT IN (...)`` — every calibration row (raw frames and masters).
+SQL_CALIB_ROLES = _role_sql(SCIENCE_ROLES, negate=True)
+
 
 # ---------------------------------------------------------------------------
 # The five project selections — reviewable data, not code.
@@ -120,18 +160,68 @@ DW_FIELDS: tuple[str, ...] = (
     "dw1645+46", "dw1709+74", "dw1721+71", "dw1735+57",
 )
 
-#: Filters the CV strategy's canonical accounting rule EXCLUDES
-#: (CV_TimeSeries/ANALYSIS_STRATEGY.md section 3: "photometric filters only
-#: (exclude grisms, `empty`, `W`, `6`)").
-CV_EXCLUDED_FILTERS: frozenset[str] = frozenset(
-    {"hrg", "lrg", "HaGrism", "OGGrism", "empty", "W", "6"})
+#: EVERY spelling of "this frame is dispersed light" that the archive uses.
+#:
+#: THE 'HaG' LESSON (2026-08-18 review).  The archive names its grisms five
+#: different ways across three acquisition systems: ``hrg``/``lrg`` (pyscope
+#: filenames), ``HaGrism``/``OGGrism`` (MaxIm wheel labels) and ``HaG`` (the
+#: Andor/iKon tree's own label, 192 canonical rows).  A photometric selection
+#: that enumerates only four of them leaks dispersed spectra into an aperture
+#: photometry set: on 2024-04-16 the observer shot sequence-paired triples per
+#: target — ``ST LMi-0001_hires`` (FILTER='HaG', 120 s), ``…_lowres``
+#: (FILTER='OGGrism', 60 s), ``…_r`` (FILTER='r', 20 s) — and the four-name
+#: blacklist excluded the ``_lowres`` twin while staging its ``_hires`` twin
+#: as photometry.  The same stage table simultaneously carried
+#: ``HaG.flat1..5`` as role='flat', i.e. the pipeline already knew HaG was a
+#: filter needing its own flats.  ONE constant now feeds every rule below, so
+#: a sixth spelling is a one-line change in one place.
+GRISM_ALL: frozenset[str] = frozenset(
+    {"hrg", "lrg", "HaGrism", "OGGrism", "HaG"})
+
+#: Non-grism filter strings the CV strategy's canonical accounting rule also
+#: excludes: a wheel slot with no bandpass ('6'), an open position ('empty'),
+#: and the unresolved 'W' code (CV_TimeSeries/ANALYSIS_STRATEGY.md section 3:
+#: "photometric filters only (exclude grisms, `empty`, `W`, `6`)").
+CV_NON_PHOTOMETRIC_FILTERS: frozenset[str] = frozenset({"empty", "W", "6"})
+
+#: The CV exclusion set, DERIVED so it can never fall behind GRISM_ALL again.
+CV_EXCLUDED_FILTERS: frozenset[str] = GRISM_ALL | CV_NON_PHOTOMETRIC_FILTERS
 
 #: The BeStar grism filter whitelist (BeStar_Grism/ANALYSIS_STRATEGY.md
 #: Step 0: "explicit whitelist hrg/lrg/HaGrism/OGGrism; `lrgblue`
-#: logged-and-excluded").  Same set as manifest.GRISM4_FILTERS; restated
-#: here as the selection's own datum so a change to either is a visible diff.
+#: logged-and-excluded").  Same set as manifest.GRISM4_FILTERS.
+#:
+#: NOTE this is deliberately NARROWER than :data:`GRISM_ALL`: 'HaG' is a real
+#: grism spelling, but it belongs to the Andor/iKon and ``grism/`` trees and
+#: Step 0's published whitelist names four strings, not five.  Widening it
+#: would silently change a published inventory; verified harmless either way
+#: — no BeStar target has a single canonical 'HaG' frame (regression-tested
+#: against the live manifest in test_staging.py).  The tests also assert this
+#: set is a SUBSET of GRISM_ALL, so the two can only ever drift narrower.
 BESTAR_GRISM_FILTERS: frozenset[str] = frozenset(
     {"hrg", "lrg", "HaGrism", "OGGrism"})
+
+#: T CrB filters excluded from the science set.  TCrB_Monitoring/
+#: ANALYSIS_STRATEGY.md section 3 rules on this code directly: "`H` (6,
+#: presumed Halpha, all single-epoch 2024-03-13 — **excluded from science
+#: regardless of P0-2 mapping**; filter table only)".  The filter-forensics
+#: table the strategy still wants is built from S0's ``frames`` (which keeps
+#: every frame), not from the working set — staging honours the published
+#: science exclusion.
+TCRB_EXCLUDED_FILTERS: frozenset[str] = frozenset({"H"})
+
+#: Radius of the cone-candidate match for name-less frames, in degrees.
+#:
+#: Chosen, not inherited: S0's synonym gate uses 0.2° to decide whether two
+#: NAMES are the same object, which is a different question.  Here we ask
+#: whether a frame with no name at all was pointed AT a staged target, so the
+#: scale is the pointing error of a frame that is otherwise on target.  0.25°
+#: sits above the observed on-target scatter (the three matches in the live
+#: archive land at 0.026°) and far below the nearest confusion case (the
+#: 2025-01-23 focus frames sit 1.4° from λ Eri and are correctly refused).
+#: Widening it to 2° would sweep in 228 Rigel focus frames — measured, and
+#: the reason this number is small and stated here rather than guessed.
+CONE_CANDIDATE_RADIUS_DEG: float = 0.25
 
 
 @dataclass(frozen=True)
@@ -151,6 +241,19 @@ class ProjectSelection:
     filter_blacklist
         Filters explicitly excluded (CV: grisms/empty/W/6).  Applied after
         the whitelist; a blank filter never matches a blacklist entry.
+    pending_alias_targets
+        TRANSITIONAL keys only: target keys that the S0 alias fix already
+        committed to :data:`macro_core.manifest.SYNONYM_TABLE` will fold into
+        ``targets`` at the next S0 rebuild.  Listing them here keeps the
+        working set correct BEFORE that rebuild; afterwards the keys no
+        longer exist in ``frames`` and the entry is a harmless no-op.  A test
+        asserts every entry resolves through SYNONYM_TABLE into ``targets``,
+        so this list cannot drift away from the alias fix it mirrors.
+    cone_radius_deg
+        When set, name-less frames (blank ``target_key``) that pass every
+        other gate and land within this many degrees of a staged target's
+        reference position are emitted as ``science_unresolved`` rows with
+        ``match_basis='cone_candidate'``.  ``None`` disables cone matching.
     rule
         One human sentence stating the selection — printed in the README,
         the report, and nowhere restated by hand.
@@ -163,6 +266,13 @@ class ProjectSelection:
     source: str
     filter_whitelist: Optional[frozenset[str]] = None
     filter_blacklist: frozenset[str] = field(default_factory=frozenset)
+    pending_alias_targets: tuple[str, ...] = ()
+    cone_radius_deg: Optional[float] = None
+
+    @property
+    def all_target_keys(self) -> frozenset[str]:
+        """Every key gate 5 accepts: the published list + pending aliases."""
+        return frozenset(self.targets) | frozenset(self.pending_alias_targets)
 
 
 #: The five staging selections.  Target lists come from
@@ -172,13 +282,18 @@ PROJECT_SELECTIONS: tuple[ProjectSelection, ...] = (
     ProjectSelection(
         project="TCrB_Monitoring",
         targets=("tcrb", "tetcrb"),
+        filter_blacklist=TCRB_EXCLUDED_FILTERS,
         rule=("Canonical error-free Light frames of T CrB and the θ CrB "
-              "calibrator, all filters — the 2025 grism series, the "
-              "2023–2024 imaging anchors, and the calibrator series are one "
-              "working set."),
+              "calibrator in every filter EXCEPT 'H' — the 2025 grism "
+              "series, the 2023–2024 imaging anchors, and the calibrator "
+              "series are one working set; the six single-epoch 2024-03-13 "
+              "'H' frames are excluded from science by §3's explicit "
+              "ruling (they remain visible in S0's frames table, which is "
+              "where the filter-forensics table is built)."),
         source=("TCrB_Monitoring/ANALYSIS_STRATEGY.md §3 (T CrB 471 unique "
                 "rawimage light frames — 402 after global dedup — + θ CrB "
-                "403-frame grism calibrator series); STRATEGY_CLAIMS "
+                "412-frame grism calibrator series; 'H' excluded from "
+                "science regardless of P0-2 mapping); STRATEGY_CLAIMS "
                 "tcrb/tetcrb rows."),
     ),
     ProjectSelection(
@@ -186,24 +301,30 @@ PROJECT_SELECTIONS: tuple[ProjectSelection, ...] = (
         targets=("stlmi", "yzcnc", "vvpup", "euuma", "anuma"),
         filter_blacklist=CV_EXCLUDED_FILTERS,
         rule=("Canonical error-free Light frames of the five CVs in "
-              "photometric filters only (grisms, 'empty', 'W', '6' "
+              "photometric filters only (ALL FIVE grism spellings — hrg, "
+              "lrg, HaGrism, OGGrism, HaG — plus 'empty', 'W', '6' "
               "excluded) — the strategy's canonical accounting rule, "
               "widened from rawimage-only to all canonical trees so the "
-              "iKon-tree VV Pup/YZ Cnc/ST LMi frames stage too."),
+              "iKon-tree VV Pup/YZ Cnc/ST LMi frames stage too; the "
+              "widening imported the iKon tree's filter vocabulary, which "
+              "is why the exclusion set is derived from GRISM_ALL."),
         source=("CV_TimeSeries/ANALYSIS_STRATEGY.md §3 canonical rule + "
                 "§3.1 per-target table; STRATEGY_CLAIMS CV rows."),
     ),
     ProjectSelection(
         project="SN2023ixf_LightCurve",
         targets=("2023ixf", "m101"),
+        pending_alias_targets=("pinwheelgalaxy", "2023ixf1", "2023ixf2"),
         rule=("Canonical error-free Light frames labeled 2023ixf, plus ALL "
-              "canonical M101/NGC5457 field frames — the saturated first "
-              "epochs (2023-05-20/21), the pre-explosion template "
-              "(2023-05-05) and every post-fade template epoch carry the "
-              "host's name, not the SN's."),
+              "canonical M101/NGC5457/'Pinwheel Galaxy' field frames — the "
+              "saturated first epochs (2023-05-20/21), the pre-explosion "
+              "template (2023-05-05) and every post-fade template epoch "
+              "carry the host's name, not the SN's, and two of them carry a "
+              "sequence digit fused to the SN's name ('2023ixf1/2')."),
         source=("SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md §3.1 (campaign "
                 "start resolution) + §3.4 (templates); STRATEGY_CLAIMS "
-                "2023ixf row.  ngc5457 is a cone-gated S0 synonym of m101."),
+                "2023ixf row.  ngc5457, 'pinwheel galaxy', 2023ixf1 and "
+                "2023ixf2 are cone-gated S0 synonyms (SYNONYM_TABLE)."),
     ),
     ProjectSelection(
         project="BeStar_Grism",
@@ -211,13 +332,19 @@ PROJECT_SELECTIONS: tuple[ProjectSelection, ...] = (
                  "phecda", "phileo", "spica",                    # refs/short tier
                  "hr3454", "hr4963", "vega"),                    # standards
         filter_whitelist=BESTAR_GRISM_FILTERS,
+        cone_radius_deg=CONE_CANDIDATE_RADIUS_DEG,
         rule=("Canonical error-free Light frames of the core-ten targets "
               "plus Vega (Alpha Lyr synonym-merged, era-A ladder included) "
               "in the grism filter whitelist hrg/lrg/HaGrism/OGGrism; "
               "'lrgblue' and direct-imaging filters excluded by the "
-              "whitelist.  T CrB is deliberately absent ('not this paper')."),
+              "whitelist.  T CrB is deliberately absent ('not this paper').  "
+              "Name-less grism frames within "
+              f"{CONE_CANDIDATE_RADIUS_DEG:g}° of a staged target also enter "
+              "the working set, as role='science_unresolved' rows Step 0 "
+              "must adjudicate before any of them counts as science."),
         source=("BeStar_Grism/ANALYSIS_STRATEGY.md §3.2 inventory table + "
-                "Step 0 filter whitelist; STRATEGY_CLAIMS BeStar rows."),
+                "Step 0 filter whitelist and its blank-target_best cone "
+                "match; STRATEGY_CLAIMS BeStar rows."),
     ),
     ProjectSelection(
         project="DwarfGalaxy_AGN_Survey",
@@ -226,7 +353,10 @@ PROJECT_SELECTIONS: tuple[ProjectSelection, ...] = (
               "campaign + the 2024-06-05 revisit), NGC 5238, and the 19 "
               "verified Dw survey fields, all filters.  The mispointed "
               "2023-03-25 NGC 5548 night stays IN the manifest — its "
-              "pointing flag, not its absence, is the record."),
+              "pointing flag, not its absence, is the record (S0 derives "
+              "NGC 5548's reference position from header coordinates "
+              "because none of its 279 frames is plate-solved, so the "
+              "~8° offset flags as pointing_gt1deg like any other)."),
         source=("DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md §3 (19 fields "
                 "verified; NGC 5548 143-frame call); STRATEGY_CLAIMS Dwarf "
                 "rows (__dw_survey__ sentinel expanded to DW_FIELDS)."),
@@ -258,17 +388,19 @@ def stage_table_name(project: str) -> str:
     return f"stage_{slug}"
 
 
-def is_staged_science(sel: ProjectSelection,
-                      target_key: Optional[str],
-                      imagetyp: Optional[str],
-                      error: Optional[str],
-                      is_canonical: object,
-                      tree: Optional[str],
-                      filter_name: Optional[str],
-                      basename: str = "") -> bool:
-    """Does one manifest frame belong to ``sel``'s science set?
+def passes_frame_gates(sel: ProjectSelection,
+                       imagetyp: Optional[str],
+                       error: Optional[str],
+                       is_canonical: object,
+                       tree: Optional[str],
+                       filter_name: Optional[str],
+                       basename: str = "") -> bool:
+    """The target-independent gates every staged frame must pass.
 
-    The gates, in order (all must pass):
+    Split out of :func:`is_staged_science` so the cone-candidate path
+    (:func:`is_cone_candidate`) applies the SAME frame-quality and filter
+    rules — a name-less frame that would not have been science had it been
+    named must not sneak in through the coordinate door.
 
     1.  **canonical** — S0's global (basename, jd) dedup already chose the
         one true copy; everything else is a duplicate.
@@ -281,9 +413,7 @@ def is_staged_science(sel: ProjectSelection,
         :func:`macro_core.inventory.is_science` (Light frames plus the
         blank-IMAGETYP 2026 nights), with the calibration kind computed
         from the same header/basename rules.
-    5.  **the project's target list** (exact key match — the alias merging
-        already happened in S0, so one key IS the target).
-    6.  **the project's filter rule** — whitelist first (if any), then
+    5.  **the project's filter rule** — whitelist first (if any), then
         blacklist.  A blank filter passes a blacklist (nothing to match)
         but fails a whitelist (not provably a listed filter).
     """
@@ -300,16 +430,94 @@ def is_staged_science(sel: ProjectSelection,
     kind = inv.calib_kind(imagetyp, basename or "")
     if not inv.is_science(imagetyp, kind):
         return False
-    # Gate 5 — the project's target list.
-    if target_key not in sel.targets:
-        return False
-    # Gate 6 — filter whitelist / blacklist.
+    # Gate 5 — filter whitelist / blacklist.
     if sel.filter_whitelist is not None:
         if filter_name not in sel.filter_whitelist:
             return False
     if filter_name is not None and filter_name in sel.filter_blacklist:
         return False
     return True
+
+
+def is_staged_science(sel: ProjectSelection,
+                      target_key: Optional[str],
+                      imagetyp: Optional[str],
+                      error: Optional[str],
+                      is_canonical: object,
+                      tree: Optional[str],
+                      filter_name: Optional[str],
+                      basename: str = "") -> bool:
+    """Does one manifest frame belong to ``sel``'s science set?
+
+    :func:`passes_frame_gates` plus the target gate: an exact match against
+    :attr:`ProjectSelection.all_target_keys` (the published target list plus
+    any transitional pending-alias keys).  Exact, never prefix: the alias
+    merging already happened in S0, so one key IS one target, and LIKE-prefix
+    matching is the documented way frames get silently dropped.
+    """
+    if not passes_frame_gates(sel, imagetyp, error, is_canonical, tree,
+                              filter_name, basename):
+        return False
+    return target_key in sel.all_target_keys
+
+
+def _blank(value: Optional[str]) -> bool:
+    """True when a catalog string is missing or whitespace-only."""
+    return value is None or not str(value).strip()
+
+
+def is_cone_candidate(sel: ProjectSelection,
+                      target_key: Optional[str],
+                      imagetyp: Optional[str],
+                      error: Optional[str],
+                      is_canonical: object,
+                      tree: Optional[str],
+                      filter_name: Optional[str],
+                      ra_deg: Optional[float],
+                      dec_deg: Optional[float],
+                      basename: str = "") -> bool:
+    """Is this frame eligible for the cone match (before running it)?
+
+    WHY THIS EXISTS.  BeStar_Grism/ANALYSIS_STRATEGY.md §3.2 records 671
+    raw-tree grism-light rows with blank ``target_best`` and requires Step 0
+    to resolve them by coordinate.  Under an exact-target-key gate those rows
+    could never enter any stage table, so Step 0 would have had to query
+    ``frames`` directly — the provenance bypass S0c exists to prevent.  The
+    eligibility test is: same frame gates as science, NO target name at all,
+    and usable coordinates.  Whether the frame then matches is
+    :func:`cone_match`'s job.
+    """
+    if sel.cone_radius_deg is None:
+        return False
+    if not _blank(target_key):
+        return False            # named frames go through gate 5, not here
+    if ra_deg is None or dec_deg is None:
+        return False            # a cone match needs a position
+    if ra_deg != ra_deg or dec_deg != dec_deg:   # NaN != NaN
+        return False
+    return passes_frame_gates(sel, imagetyp, error, is_canonical, tree,
+                              filter_name, basename)
+
+
+def cone_match(ra_deg: float, dec_deg: float,
+               refs: dict[str, tuple[float, float]],
+               radius_deg: float) -> Optional[tuple[str, float]]:
+    """Nearest reference position within ``radius_deg``, or ``None``.
+
+    ``refs`` maps target key → (ra, dec) in degrees.  Returns
+    ``(target_key, separation_deg)`` for the SINGLE nearest match — ties are
+    impossible in practice and the nearest rule makes the outcome
+    deterministic regardless of dict order.  Separation uses S0's own
+    :func:`macro_core.manifest.angular_separation_deg`, so a cone here means
+    exactly what a cone means in the alias gate and the pointing audit.
+    """
+    best: Optional[tuple[str, float]] = None
+    for key in sorted(refs):                       # sorted = deterministic
+        ra0, dec0 = refs[key]
+        sep = mf.angular_separation_deg(ra_deg, dec_deg, ra0, dec0)
+        if sep <= radius_deg and (best is None or sep < best[1]):
+            best = (key, sep)
+    return best
 
 
 def role_of_calib(kind: str, is_master: object) -> str:
@@ -371,6 +579,44 @@ def science_row(sel: ProjectSelection, frame: dict, archive_root: str,
     }
 
 
+def cone_candidate_row(frame: dict, matched_key: str, sep_deg: float,
+                       archive_root: str, build_id: str) -> dict:
+    """Build one ``science_unresolved`` row for a cone-matched frame.
+
+    Same schema as every other row, with three deliberate differences:
+
+    * ``role`` is ``science_unresolved`` — never ``science``;
+    * ``match_basis`` is ``cone_candidate`` — never ``selection_rule``;
+    * ``target_key`` carries the CANDIDATE key and
+      ``pointing_offset_deg`` carries the measured separation from that
+      target's reference position, so Step 0 can rank and adjudicate the
+      candidates without recomputing anything.
+
+    ``canonical_target`` stays NULL: the frame has no name in the archive,
+    and inventing one is precisely the silent promotion this row prevents.
+    """
+    return {
+        "path": frame["path"],
+        "abs_path": abs_archive_path(archive_root, frame["path"]),
+        "role": ROLE_SCIENCE_UNRESOLVED,
+        "match_basis": MATCH_BASIS_CONE,
+        "tree": frame.get("tree"),
+        "era_id": frame.get("era_id"),
+        "night": frame.get("night"),
+        "jd": frame.get("jd"),
+        "filter": frame.get("filter"),
+        "exptime": frame.get("exptime"),
+        "canonical_target": None,
+        "target_key": matched_key,
+        "dup_group": frame.get("dup_group"),
+        "qc_flags": frame.get("qc_flags"),
+        "pointing_offset_deg": sep_deg,
+        "size_bytes": frame.get("size"),
+        "obs_rowid": frame.get("obs_rowid"),
+        "stage_build_id": build_id,
+    }
+
+
 def calib_row(calib: dict, archive_root: str, build_id: str) -> dict:
     """Build one calibration staging row from an S0b ``calib_frames``
     record (plus its ``size`` joined from ``frames``).
@@ -398,3 +644,162 @@ def calib_row(calib: dict, archive_root: str, build_id: str) -> dict:
         "obs_rowid": calib.get("obs_rowid"),
         "stage_build_id": build_id,
     }
+
+
+# ---------------------------------------------------------------------------
+# Published-inventory reconciliation: strategy docs vs the working set
+# ---------------------------------------------------------------------------
+#
+# WHY THIS TABLE EXISTS.  Three separate numbers in three strategy documents
+# were tree-doubled or stale at the 2026-08-18 review — "30 frames/band" for
+# the SN template stacks (canonical reality 15), "20 frames" for the NGC 5548
+# revisit (10), "403 frames / 40 nights" for the theta CrB series (412 / 42,
+# because two more nights arrived after the doc was written).  Every one of
+# them is quoted in a manuscript.  Staging was right in all three cases; the
+# prose drifted, and nothing made the drift visible.
+#
+# So each doc-published inventory number is encoded here NEXT TO the query
+# that reproduces it from the working set, and the S0c report renders the
+# diff.  A doc that drifts (or an archive that grows) now shows up as a
+# highlighted row on the evidence page instead of at referee time.
+
+@dataclass(frozen=True)
+class StageClaim:
+    """One inventory number a strategy document publishes.
+
+    Attributes
+    ----------
+    project
+        Which project's stage table the claim is measured against.
+    label
+        What the document says it is counting, in its own words.
+    claimed_frames, claimed_nights
+        The published numbers.  ``claimed_nights=None`` when the document
+        states no night count for this row.
+    where
+        A SQL WHERE fragment over that project's stage table.  The renderer
+        ALWAYS conjoins ``role = 'science'`` itself, so a claim can never
+        accidentally count calibration or cone-candidate rows.
+    source
+        Document and section the claim comes from.
+    """
+    project: str
+    label: str
+    claimed_frames: int
+    claimed_nights: Optional[int]
+    where: str
+    source: str
+
+
+def assert_safe_where(where: str) -> str:
+    """Reject a claim fragment that is not a bare read-only expression.
+
+    The fragments are repo-authored data, not user input, but they ARE
+    interpolated into SQL, so the constraint is enforced rather than trusted:
+    no statement separator, no comment marker, and no attached-statement
+    keyword.  Returns the fragment so it can be used inline.
+    """
+    lowered = where.lower()
+    assert ";" not in where, f"claim fragment with a statement separator: {where}"
+    assert "--" not in where, f"claim fragment with a comment marker: {where}"
+    for word in ("drop", "delete", "insert", "update", "attach", "pragma"):
+        assert word not in lowered.split(), \
+            f"claim fragment with the keyword {word!r}: {where}"
+    return where
+
+
+#: Every inventory number the five strategy documents publish that the stage
+#: tables can reproduce.  Values are the CORRECTED ones (the 2026-08-18 doc
+#: edits); a future drift in either direction lights up the report.
+STAGE_CLAIMS: tuple[StageClaim, ...] = (
+    # --- CV: the §3.1 per-target table, under §3's canonical rule ---------
+    # NOTE the rule excludes non-photometric filters, so these are the
+    # photometric counts (3,150 not 3,157 etc.) — the doc's own rule applied
+    # to the doc's own table, which is where three of its five rows drifted.
+    StageClaim("CV_TimeSeries", "ST LMi — rawimage photometric light frames",
+               3150, 39, "tree = 'rawimage' AND target_key = 'stlmi'",
+               "CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1"),
+    StageClaim("CV_TimeSeries", "YZ Cnc — rawimage photometric light frames",
+               1915, 26, "tree = 'rawimage' AND target_key = 'yzcnc'",
+               "CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1"),
+    StageClaim("CV_TimeSeries", "VV Pup — rawimage photometric light frames",
+               1277, 28, "tree = 'rawimage' AND target_key = 'vvpup'",
+               "CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1"),
+    StageClaim("CV_TimeSeries", "EU UMa — rawimage photometric light frames",
+               993, 32, "tree = 'rawimage' AND target_key = 'euuma'",
+               "CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1"),
+    StageClaim("CV_TimeSeries", "AN UMa — rawimage photometric light frames",
+               1279, 14, "tree = 'rawimage' AND target_key = 'anuma'",
+               "CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1"),
+    # --- T CrB: the two grism series --------------------------------------
+    StageClaim("TCrB_Monitoring", "T CrB grism series (the paper's spine)",
+               247, 60,
+               "target_key = 'tcrb' AND \"filter\" IN ('hrg', 'lrg')",
+               "TCrB_Monitoring/ANALYSIS_STRATEGY.md §1/§3"),
+    StageClaim("TCrB_Monitoring", "θ CrB grism calibrator series",
+               412, 42,
+               "target_key = 'tetcrb' AND \"filter\" IN ('hrg', 'lrg')",
+               "TCrB_Monitoring/ANALYSIS_STRATEGY.md §3"),
+    # --- SN: the primary broadband template epoch -------------------------
+    StageClaim("SN2023ixf_LightCurve", "2024-05-19 deep g template stack",
+               15, 1, "night = '2024-05-18' AND \"filter\" = 'g'",
+               "SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md §3.4"),
+    StageClaim("SN2023ixf_LightCurve", "2024-05-19 deep r template stack",
+               15, 1, "night = '2024-05-18' AND \"filter\" = 'r'",
+               "SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md §3.4"),
+    StageClaim("SN2023ixf_LightCurve",
+               "2026-03-21/22 M101-field epoch ('pinwheel galaxy')",
+               140, 2, "night IN ('2026-03-21', '2026-03-22')",
+               "SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md §3.4 "
+               "(added 2026-08-18: the deep pre-2026-04 template epoch)"),
+    # --- Dwarf: the NGC 5548 campaign and its revisit ----------------------
+    StageClaim("DwarfGalaxy_AGN_Survey", "NGC 5548 slot-'6' campaign (2023)",
+               143, 16,
+               "target_key = 'ngc5548' AND night < '2024-01-01'",
+               "DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md §3"),
+    StageClaim("DwarfGalaxy_AGN_Survey", "NGC 5548 2024-06-05 grism revisit",
+               10, 1,
+               "target_key = 'ngc5548' AND night > '2024-01-01'",
+               "DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md §3"),
+    # --- BeStar: the §3.2 per-target inventory table ----------------------
+    StageClaim("BeStar_Grism", "Spica", 728, 29, "target_key = 'spica'",
+               "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
+    StageClaim("BeStar_Grism", "HR 3454 (η Hya)", 471, 34,
+               "target_key = 'hr3454'",
+               "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
+    StageClaim("BeStar_Grism", "HR 4963 (θ Vir)", 368, 33,
+               "target_key = 'hr4963'",
+               "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
+    StageClaim("BeStar_Grism", "Phecda", 333, 40, "target_key = 'phecda'",
+               "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
+    StageClaim("BeStar_Grism", "53 Boo", 330, 23, "target_key = '53boo'",
+               "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
+    StageClaim("BeStar_Grism", "69 Ori", 288, 51, "target_key = '69ori'",
+               "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
+    StageClaim("BeStar_Grism", "φ Leo", 261, 39, "target_key = 'phileo'",
+               "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
+    StageClaim("BeStar_Grism", "λ Eri", 252, 47, "target_key = 'lameri'",
+               "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
+    StageClaim("BeStar_Grism", "5 Cnc", 194, 45, "target_key = '5cnc'",
+               "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
+    StageClaim("BeStar_Grism", "HD 70340", 181, 30,
+               "target_key = 'hd70340'",
+               "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
+    # Vega splits into three instrument tiers, and the doc's table stops at
+    # era C — the era-83 tier arrived with a later ingest.
+    StageClaim("BeStar_Grism", "Vega — era-A exposure ladder (2024-05-20)",
+               80, 1, "target_key = 'vega' AND era_id = 72",
+               "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
+    StageClaim("BeStar_Grism", "Vega — era-C standard series", 367, 18,
+               "target_key = 'vega' AND era_id IN (78, 80)",
+               "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
+    StageClaim("BeStar_Grism", "Vega — era-83 tier (post-doc ingest)",
+               30, 3, "target_key = 'vega' AND era_id = 83",
+               "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2 "
+               "(added 2026-08-18: nights the doc's table pre-dates)"),
+)
+
+
+def claims_for(project: str) -> tuple[StageClaim, ...]:
+    """Every published inventory claim measured against ``project``."""
+    return tuple(c for c in STAGE_CLAIMS if c.project == project)

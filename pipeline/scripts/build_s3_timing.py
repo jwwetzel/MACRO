@@ -17,11 +17,20 @@ astrophysical standard.  It AUGMENTS the manifest with NEW tables only
                            TELUT behavior, per-frame residuals against
                            our own heliocentric computation.
 * ``s3_cadence``         — back-to-back series cadence per readout mode x
-                           exposure time; the StackPro dead-time bound.
+                           exposure time; the StackPro dead-time bound
+                           (plus ``s3_cadence_outliers``, the pairs whose
+                           stamps are too close together to be real).
+* ``s3_clock_drift``     — TELUT (telescope clock) vs DATE-OBS
+                           (acquisition clock) sampled across every era:
+                           the archive's only RELATIVE clock check.
 * ``frame_times``        — the product: one row per canonical science
                            frame (keyed by path) with jd_utc_mid,
                            bjd_tdb, the correction terms, the coordinates
-                           used, and method identifiers.
+                           used, method identifiers, whether the
+                           start-of-exposure semantics are proven for
+                           that era, and any raw-vs-reduced stamp
+                           disagreement (plus ``s3_time_outliers``, the
+                           exposures whose BJD was withdrawn).
 * ``s3_clock_points`` / ``s3_clock_eclipses`` — AG LMi eclipse photometry
                            and the fitted O-C against the VSX ephemeris:
                            the observatory clock bound.
@@ -50,7 +59,8 @@ USAGE (a student's quick start)
         pipeline/scripts/build_s3_timing.py            # everything
     ... build_s3_timing.py --stage frame-times         # one stage only
 
-Stages: audit-scan, cadence, audit-headers, frame-times, clock, report.
+Stages: audit-scan, cadence, audit-headers, drift, frame-times, clock,
+report.
 """
 
 from __future__ import annotations
@@ -81,12 +91,22 @@ DEFAULT_MANIFEST = REPO_ROOT / "products" / "manifest" / "rlmt-manifest.sqlite"
 DEFAULT_ARCHIVE = Path("/Volumes/OWC StudioStack HDD/DATA/ASTRO/rlmt-archive")
 
 #: Which manifest rows count as "canonical science frames" for frame_times:
-#: canonical, and not classified as a calibration kind by IMAGETYP.  The
-#: NULL-imagetyp rows (3,901 — header-error files and blank-header science)
-#: are INCLUDED so that every non-calibration canonical frame has a
-#: frame_times row, even if only to record why no BJD exists for it.
+#: canonical, not classified as a calibration kind by IMAGETYP, and not a
+#: path S0b already catalogued as a calibration.  The NULL-imagetyp rows
+#: (3,901 — header-error files and blank-header science) are INCLUDED so
+#: that every non-calibration canonical frame has a frame_times row, even
+#: if only to record why no BJD exists for it.
+#:
+#: The calib_frames clause is not redundant: 853 frames whose path says
+#: dark/bias/flat carry IMAGETYP = 'Light Frame' in their headers, and 232
+#: of those are the very paths S0b catalogued in calib_frames (164 master
+#: flats, 60 raw flats, 8 master darks).  A MASTER is a stack — its header
+#: JD is not an exposure instant at all — so a BJD for it would be
+#: meaningless and indistinguishable from a real science time.  S0b's
+#: classification is the authority; IMAGETYP alone is not.
 SCIENCE_WHERE = ("is_canonical = 1 AND "
-                 "(imagetyp IS NULL OR imagetyp LIKE 'Light%')")
+                 "(imagetyp IS NULL OR imagetyp LIKE 'Light%') AND "
+                 "path NOT IN (SELECT path FROM calib_frames)")
 
 #: Frames per (readout family, calendar year) stratum read in the header
 #: audit: the longest exposure (JD-HELIO start-vs-mid discrimination needs
@@ -94,12 +114,10 @@ SCIENCE_WHERE = ("is_canonical = 1 AND "
 #: first (an arbitrary-but-deterministic "typical" pick).
 HEADER_SAMPLE_PER_STRATUM = 3
 
-#: In-series gap ceiling for the cadence stage: gaps beyond this multiple
-#: of a series' median gap are pauses (clouds, refocus), not cadence.
-CADENCE_GAP_CEILING = 3.0
-
-#: Minimum frames for a (target, night, exptime) run to count as a series.
-CADENCE_MIN_RUN = 5
+#: Frames per ERA read by the ``drift`` stage.  The relative-drift check
+#: needs the SAME comparison repeated across the whole 2023-2026 baseline,
+#: so it samples by era (the pinned registry) rather than by family/year.
+DRIFT_SAMPLE_PER_ERA = 4
 
 # ---------------------------------------------------------------------------
 # The AG LMi clock standard (stage ``clock``).
@@ -156,8 +174,12 @@ CLOCK_APER_PX = 15.0              # aperture radius (GSENSE bin1 ~0.54"/px)
 CLOCK_ANNULUS_PX = (25.0, 35.0)   # local sky annulus radii
 CLOCK_N_COMP = 10                 # ensemble size (fixed sky positions)
 CLOCK_MATCH_MAX_PX = 25.0         # WCS position sanity for forced apertures
-CLOCK_OOE_PHASE = 0.08            # |phase| beyond this = out of eclipse
-CLOCK_FIT_PHASE = 0.12            # points inside this enter the dip fit
+#: The phase cuts (out-of-eclipse baseline, fit window) and the coverage
+#: gate live in macro_core.timing, NOT here: the report re-applies the
+#: same baseline convention when it draws the folded light curve, and two
+#: copies of one policy in two modules is exactly how a figure silently
+#: stops matching the fit it illustrates.  Referenced below as
+#: tm.CLOCK_OOE_PHASE / tm.CLOCK_FIT_PHASE.
 #: S2 detector facts: High Gain clips at 3,496 ADU (12-bit); a StackPro
 #: frame is a 16x sum.  Comparison-star apertures whose peak approaches
 #: the clip are excluded from the ensemble.
@@ -246,6 +268,14 @@ def stage_audit_scan(con: sqlite3.Connection) -> None:
         WHERE is_canonical = 1 AND jd IS NOT NULL
           AND date_obs IS NOT NULL AND date_obs != ''""").fetchall()
     per_family: dict[str, list[float]] = collections.defaultdict(list)
+    #: Per family, how many DATE-OBS strings carry a fractional-seconds
+    #: field at all.  A family that writes none stamps WHOLE SECONDS, so
+    #: its time axis has a 1 s granularity (up to 0.5 s of systematic if
+    #: the writer truncates rather than rounds) — three orders of
+    #: magnitude coarser than the ~10 ms the MaxIm families deliver, and
+    #: invisible in the JD-vs-DATE-OBS comparison because BOTH cards are
+    #: written from the same coarse value.
+    per_family_frac: dict[str, int] = collections.defaultdict(int)
     outliers: list[tuple] = []
     n_unparseable = 0
     for path, night, readoutm, date_obs, jd in rows:
@@ -253,22 +283,30 @@ def stage_audit_scan(con: sqlite3.Connection) -> None:
         if jd_from_date is None:
             n_unparseable += 1
             continue
+        fam = (readoutm or "").strip() or "(blank)"
         diff_s = (jd - jd_from_date) * 86400.0
-        per_family[(readoutm or "").strip() or "(blank)"].append(diff_s)
+        per_family[fam].append(diff_s)
+        if "." in str(date_obs):
+            per_family_frac[fam] += 1
         if abs(diff_s) > 0.5:
             outliers.append((path, night, readoutm, round(diff_s, 3)))
     audit_rows = []
     for fam, diffs in sorted(per_family.items(), key=lambda kv: -len(kv[1])):
         a = np.array(diffs)
+        n_frac = per_family_frac[fam]
+        # Stated stamping resolution: 1 s when NO frame in the family
+        # writes a fraction, else the millisecond class the cards show.
+        stamp_res_s = 1.0 if n_frac == 0 else 0.001
         audit_rows.append((
             fam, len(a), float(np.median(a)), float(np.percentile(a, 1)),
             float(np.percentile(a, 99)), float(np.max(np.abs(a))),
-            int(np.sum(np.abs(a) > 0.1))))
+            int(np.sum(np.abs(a) > 0.1)), int(n_frac), float(stamp_res_s)))
     swap_table(con, "s3_dateobs_audit", """
         CREATE TABLE {table} (
             readoutm TEXT PRIMARY KEY, n_frames INTEGER, median_s REAL,
-            p1_s REAL, p99_s REAL, max_abs_s REAL, n_gt_100ms INTEGER)""",
-               audit_rows, "INSERT INTO {table} VALUES (?,?,?,?,?,?,?)")
+            p1_s REAL, p99_s REAL, max_abs_s REAL, n_gt_100ms INTEGER,
+            n_with_fractional_s INTEGER, stamp_resolution_s REAL)""",
+               audit_rows, "INSERT INTO {table} VALUES (?,?,?,?,?,?,?,?,?)")
     swap_table(con, "s3_dateobs_outliers", """
         CREATE TABLE {table} (
             path TEXT PRIMARY KEY, night TEXT, readoutm TEXT, diff_s REAL)""",
@@ -287,55 +325,168 @@ def stage_audit_scan(con: sqlite3.Connection) -> None:
 def stage_cadence(con: sqlite3.Connection) -> None:
     """Measure inter-frame gaps in continuous same-config series.
 
-    For every (target, night, exptime) run of >= CADENCE_MIN_RUN light
+    For every (target, night, exptime) run of >= tm.CADENCE_MIN_RUN light
     frames in one readout mode, the gaps between consecutive exposure
-    STARTS bound the frame's true wall-clock span: span <= gap.  The
-    minimum StackPro (gap - EXPTIME) across the archive is therefore an
-    upper bound on the total internal dead time of a StackPro frame —
-    the number that caps the mid-time policy's worst-case error.
+    STARTS bound the frame's true wall-clock span: span <= gap.
+
+    THE ESTIMATOR MATTERS MORE THAN THE DATA HERE.  A raw minimum over
+    ~15,000 StackPro gaps is an extreme order statistic that one bad time
+    stamp owns outright — and does: the three smallest overheads in the
+    archive are single frames landing < 1.2 s from a neighbour inside
+    11-13 s cadences, and the same estimator returns NEGATIVE overheads
+    (gap < EXPTIME) in several plain High Gain cells.  So this stage
+    computes, per cell, BOTH statistics:
+
+    * ``min_overhead_s`` — minimum over gaps that survive the
+      impossibly-short cut (:data:`tm.CADENCE_MIN_GAP_FRACTION` of the
+      series' own median), with ``n_short_discarded`` counting what the
+      cut removed and ``s3_cadence_outliers`` naming every discarded
+      pair, so the exclusion is auditable rather than invisible;
+    * ``raw_min_overhead_s`` — the unfiltered minimum, kept precisely so
+      the report can show what the old number was and why it is wrong;
+    * ``regular_overhead_s`` — the SMALLEST (median gap - EXPTIME) over
+      the cell's REGULAR series (see :func:`tm.series_cadence`).  This is
+      the statistic the dead-time bound is taken from: a median cannot be
+      moved by one bad stamp, and "the camera repeatedly delivers a frame
+      every median-gap seconds" is an exact physical constraint on
+      everything it does per frame, sub-read dead time included.
     """
     rows = con.execute(f"""
-        SELECT readoutm, canonical_target, night, exptime, jd FROM frames
+        SELECT readoutm, canonical_target, night, exptime, jd, path FROM frames
         WHERE {SCIENCE_WHERE} AND jd IS NOT NULL AND exptime > 0
           AND readoutm IS NOT NULL AND readoutm != ''
         ORDER BY readoutm, canonical_target, night, jd""").fetchall()
-    runs: dict[tuple, list[float]] = collections.defaultdict(list)
-    for readoutm, target, night, exptime, jd in rows:
-        runs[(readoutm, target, night, round(exptime, 3))].append(jd)
-    per_mode_exp: dict[tuple, list[float]] = collections.defaultdict(list)
-    for (readoutm, _t, _n, exptime), jds in runs.items():
-        if len(jds) < CADENCE_MIN_RUN:
+    runs: dict[tuple, list[tuple]] = collections.defaultdict(list)
+    for readoutm, target, night, exptime, jd, path in rows:
+        runs[(readoutm, target, night, round(exptime, 3))].append((jd, path))
+    # Per (mode, exptime) cell: kept gaps, discard count, and the regular
+    # series' overheads.  Outliers are collected globally.
+    kept_by_cell: dict[tuple, list[float]] = collections.defaultdict(list)
+    n_short_by_cell: dict[tuple, int] = collections.defaultdict(int)
+    raw_by_cell: dict[tuple, list[float]] = collections.defaultdict(list)
+    regular_by_cell: dict[tuple, list[float]] = collections.defaultdict(list)
+    outliers: list[tuple] = []
+    for (readoutm, target, night, exptime), members in runs.items():
+        if len(members) < tm.CADENCE_MIN_RUN:
             continue
-        gaps = np.diff(np.array(sorted(jds))) * 86400.0
-        gaps = gaps[gaps > 0]
-        if not len(gaps):
+        members = sorted(members)                 # ascending JD, path rides
+        jds = [m[0] for m in members]
+        stats = tm.series_cadence(jds, exptime)
+        if stats["median_gap_s"] is None:
             continue
-        med = np.median(gaps)
-        per_mode_exp[(readoutm, exptime)].extend(
-            gaps[gaps < CADENCE_GAP_CEILING * med])
+        cell = (readoutm, exptime)
+        kept_by_cell[cell].extend(float(g) for g in stats["kept_s"])
+        n_short_by_cell[cell] += len(stats["short_idx"])
+        # The raw (unfiltered) in-band gaps, for the "what the naive
+        # estimator would have said" column.
+        raw = np.diff(np.array(jds)) * 86400.0
+        med = stats["median_gap_s"]
+        raw_by_cell[cell].extend(
+            float(g) for g in raw
+            if 0 < g < tm.CADENCE_GAP_CEILING * med)
+        if stats["overhead_s"] is not None:
+            regular_by_cell[cell].append(float(stats["overhead_s"]))
+        for i in stats["short_idx"]:
+            # Name both frames of every impossibly-short pair: an
+            # out-of-sequence frame arriving 0.74 s after its neighbour
+            # is itself a time-stamp defect worth flagging on the axis.
+            # ``series_regular`` says how strong the evidence is: in a
+            # REGULAR series the median IS the machine cycle time, so a
+            # gap at half of it cannot be real; in a bursty series (a few
+            # snapshots an hour apart) the median is not a cadence at all
+            # and a short gap may simply be a burst.
+            gap_s = (jds[i + 1] - jds[i]) * 86400.0
+            outliers.append((members[i][1], members[i + 1][1], readoutm,
+                             exptime, night, target, float(gap_s),
+                             float(med), float(gap_s / med),
+                             int(stats["regular"])))
     out = []
-    for (readoutm, exptime), gaps in sorted(per_mode_exp.items()):
-        a = np.array(gaps)
+    for cell in sorted(set(kept_by_cell) | set(regular_by_cell)):
+        readoutm, exptime = cell
+        a = np.array(kept_by_cell[cell])
         if len(a) < 10:
             continue
-        out.append((readoutm, exptime, len(a),
+        raw_a = np.array(raw_by_cell[cell])
+        reg = regular_by_cell[cell]
+        out.append((readoutm, exptime, len(a), int(n_short_by_cell[cell]),
                     float(np.min(a) - exptime),
+                    float(np.min(raw_a) - exptime) if len(raw_a) else None,
                     float(np.percentile(a, 5) - exptime),
-                    float(np.median(a) - exptime)))
+                    float(np.median(a) - exptime),
+                    len(reg),
+                    float(min(reg)) if reg else None))
     swap_table(con, "s3_cadence", """
         CREATE TABLE {table} (
-            readoutm TEXT, exptime_s REAL, n_gaps INTEGER,
-            min_overhead_s REAL, p5_overhead_s REAL, median_overhead_s REAL,
+            readoutm TEXT, exptime_s REAL,
+            n_gaps INTEGER,              -- gaps kept as genuine cadence
+            n_short_discarded INTEGER,   -- impossibly-short, see outliers
+            min_overhead_s REAL,         -- min over KEPT gaps
+            raw_min_overhead_s REAL,     -- min with no short cut (naive)
+            p5_overhead_s REAL, median_overhead_s REAL,
+            n_regular_series INTEGER,    -- series with a machine cadence
+            regular_overhead_s REAL,     -- min (median gap - EXPTIME)
             PRIMARY KEY (readoutm, exptime_s))""",
-               out, "INSERT INTO {table} VALUES (?,?,?,?,?,?)")
+               out, "INSERT INTO {table} VALUES (?,?,?,?,?,?,?,?,?,?)")
+    swap_table(con, "s3_cadence_outliers", """
+        CREATE TABLE {table} (
+            path_a TEXT, path_b TEXT, readoutm TEXT, exptime_s REAL,
+            night TEXT, canonical_target TEXT, gap_s REAL,
+            series_median_gap_s REAL, gap_over_median REAL,
+            series_regular INTEGER,
+            PRIMARY KEY (path_a, path_b))""",
+               outliers, "INSERT OR REPLACE INTO {table} "
+                         "VALUES (?,?,?,?,?,?,?,?,?,?)")
+    # SENSITIVITY, measured rather than asserted.  A bound whose value
+    # depends on the analyst's choice of cut is not a bound; the page
+    # says so about the filtered-minimum estimator, so it owes the same
+    # test of its own.  Re-derive the StackPro ceiling with each cut
+    # moved well away from its default and record the spread.
+    sweep: list[float] = []
+    for kwargs in ({"regular_spread": 0.05}, {"regular_spread": 0.30},
+                   {"regular_min_gaps": 3}, {"regular_min_gaps": 20},
+                   {"min_gap_fraction": 0.3}, {"min_gap_fraction": 0.7},
+                   {"gap_ceiling": 2.0}, {"gap_ceiling": 5.0}):
+        alt = [s["overhead_s"]
+               for (ro, _t, _n, exp), members in runs.items()
+               if tm.is_stackpro(ro) and len(members) >= tm.CADENCE_MIN_RUN
+               for s in [tm.series_cadence(
+                   [m[0] for m in sorted(members)], exp, **kwargs)]
+               if s["overhead_s"] is not None]
+        if alt:
+            sweep.append(min(alt))
     sp = [r for r in out if tm.is_stackpro(r[0])]
-    bound = min((r[3] for r in sp), default=None)
-    write_meta(con, {"stackpro_deadtime_bound_measured_s":
-                     f"{bound:.3f}" if bound is not None else "n/a"})
-    log(f"cadence: {len(out)} (mode, exptime) cells; StackPro minimum "
-        f"overhead {bound:.3f} s (module constant "
-        f"{tm.STACKPRO_DEADTIME_BOUND_S})" if bound is not None
-        else f"cadence: {len(out)} cells; no StackPro series found")
+    bound = min((r[9] for r in sp if r[9] is not None), default=None)
+    naive = min((r[5] for r in sp if r[5] is not None), default=None)
+    filt = min((r[4] for r in sp), default=None)
+    write_meta(con, {
+        "stackpro_deadtime_bound_measured_s":
+            f"{bound:.3f}" if bound is not None else "n/a",
+        "stackpro_naive_min_overhead_s":
+            f"{naive:.3f}" if naive is not None else "n/a",
+        "stackpro_filtered_min_overhead_s":
+            f"{filt:.3f}" if filt is not None else "n/a",
+        "cadence_short_gaps_discarded": len(outliers),
+        "cadence_short_gaps_in_regular_series":
+            sum(1 for o in outliers if o[9]),
+        "stackpro_bound_sweep_n": len(sweep),
+        "stackpro_bound_sweep_min":
+            f"{min(sweep):.3f}" if sweep else "n/a",
+        "stackpro_bound_sweep_max":
+            f"{max(sweep):.3f}" if sweep else "n/a",
+    })
+    if bound is None:
+        log(f"cadence: {len(out)} cells; no regular StackPro series found")
+        return
+    log(f"cadence: {len(out)} (mode, exptime) cells; "
+        f"{len(outliers)} impossibly-short gaps discarded; StackPro "
+        f"dead-time bound {bound:.3f} s (naive min would have said "
+        f"{naive:.3f} s)")
+    # A silent drift between the measured bound and the constant the
+    # policy quotes is exactly the defect this stage exists to prevent.
+    if abs(bound - tm.STACKPRO_DEADTIME_BOUND_S) > 0.01:
+        log(f"  WARNING: macro_core.timing.STACKPRO_DEADTIME_BOUND_S = "
+            f"{tm.STACKPRO_DEADTIME_BOUND_S} does not match the measured "
+            f"{bound:.3f} s — update the constant and re-run.")
 
 
 # ---------------------------------------------------------------------------
@@ -393,9 +544,31 @@ def stage_audit_headers(con: sqlite3.Connection, archive: Path,
         jd_minus_dateobs_s REAL, jd_helio_header REAL, telut TEXT,
         telut_minus_dateobs_s REAL, ra_deg REAL, dec_deg REAL,
         helio_resid_start_s REAL, helio_resid_mid_s REAL)""")
+    # Columns added after the first build; ALTER is the cheap, safe way to
+    # extend an accumulating (non-swapped) table.  Rows written before the
+    # extension carry NULL and are re-read below.
+    have = {r[1] for r in con.execute("PRAGMA table_info(s3_header_audit)")}
+    for col, decl in (("swcreate", "TEXT"), ("naxis1", "INTEGER"),
+                      ("naxis2", "INTEGER"), ("pixscale_arcsec", "REAL"),
+                      ("pixscale_source", "TEXT"), ("corner_ltt_s", "REAL")):
+        if col not in have:
+            con.execute(f"ALTER TABLE s3_header_audit ADD COLUMN "
+                        f"{col} {decl}")
+    con.commit()
     sample = pick_header_sample(con)
+    # "Already measured" means measured WITH the current column set: a row
+    # missing the geometry columns is re-read rather than skipped.
     done = {r[0] for r in con.execute(
-        "SELECT path FROM s3_header_audit").fetchall()}
+        "SELECT path FROM s3_header_audit "
+        "WHERE corner_ltt_s IS NOT NULL OR naxis1 IS NOT NULL").fetchall()}
+    # Frames that fell out of the sample (e.g. calibration paths now
+    # excluded from SCIENCE_WHERE) must not linger as evidence.
+    keep = {s[2] for s in sample}
+    if keep:                       # an empty IN () is a SQL syntax error,
+        con.execute(               # and would also wipe a good table
+            "DELETE FROM s3_header_audit WHERE path NOT IN (%s)"
+            % ",".join("?" * len(keep)), list(keep))
+        con.commit()
     todo = [s for s in sample if s[2] not in done]
     log(f"audit-headers: {len(sample)} sampled, {len(todo)} to read")
     n_read = 0
@@ -429,12 +602,33 @@ def stage_audit_headers(con: sqlite3.Connection, archive: Path,
                                              ephemeris=ephemeris)
             resid_start = (float(jd_helio) - float(hjd_start)) * 86400.0
             resid_mid = (float(jd_helio) - float(hjd_mid)) * 86400.0
-        con.execute("INSERT OR REPLACE INTO s3_header_audit VALUES "
-                    "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        # Field geometry, for the frame-center caveat: the stored BJD
+        # points at the frame CENTER, and an object at a corner differs
+        # by up to corner_ltt_s.  Measured from each sampled header's own
+        # WCS/optics rather than hand-typed once for the whole archive.
+        scale, scale_source = tm.pixel_scale_arcsec(
+            hdr.get("NAXIS1"), hdr.get("NAXIS2"),
+            cdelt1=hdr.get("CDELT1"), cdelt2=hdr.get("CDELT2"),
+            cd1_1=hdr.get("CD1_1"), cd1_2=hdr.get("CD1_2"),
+            xpixsz=hdr.get("XPIXSZ"), focallen=hdr.get("FOCALLEN"),
+            secpix1=hdr.get("SECPIX1"))
+        corner_ltt = tm.field_corner_light_time_s(
+            hdr.get("NAXIS1"), hdr.get("NAXIS2"), scale)
+        con.execute("INSERT OR REPLACE INTO s3_header_audit "
+                    "(path, family, year, era_id, night, exptime_s, "
+                    " jd_header, date_obs, jd_minus_dateobs_s, "
+                    " jd_helio_header, telut, telut_minus_dateobs_s, "
+                    " ra_deg, dec_deg, helio_resid_start_s, "
+                    " helio_resid_mid_s, swcreate, naxis1, naxis2, "
+                    " pixscale_arcsec, pixscale_source, corner_ltt_s) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (path, family, year, era_id, night, exptime, jd_h,
                      date_obs_h, jd_minus_dateobs, jd_helio, telut,
                      telut_minus_dateobs, ra_deg, dec_deg,
-                     resid_start, resid_mid))
+                     resid_start, resid_mid,
+                     str(hdr.get("SWCREATE") or ""),
+                     hdr.get("NAXIS1"), hdr.get("NAXIS2"),
+                     scale, scale_source, corner_ltt))
         n_read += 1
         if n_read % 20 == 0:
             con.commit()
@@ -447,8 +641,211 @@ def stage_audit_headers(con: sqlite3.Connection, archive: Path,
 
 
 # ---------------------------------------------------------------------------
+# Stage: drift — TELUT vs DATE-OBS across the whole baseline (relative clock)
+# ---------------------------------------------------------------------------
+def pick_drift_sample(con: sqlite3.Connection) -> list[tuple]:
+    """Deterministic sample for the relative-drift check: up to
+    :data:`DRIFT_SAMPLE_PER_ERA` frames from EVERY era.
+
+    Sampling by era (the pinned registry) rather than by family/year is
+    the point: a drift bound needs the same comparison repeated along the
+    whole 2023-2026 baseline, not a stratified spread over configurations.
+    Within an era the frames are taken at evenly spaced ranks of the
+    path-ordered list, so the sample is reproducible and not clustered in
+    one night.
+    """
+    picks: list[tuple] = []
+    eras = con.execute(f"""
+        SELECT era_id, count(*) FROM frames
+        WHERE {SCIENCE_WHERE} AND jd IS NOT NULL AND exptime > 0
+          AND date_obs IS NOT NULL AND date_obs != ''
+        GROUP BY era_id ORDER BY era_id""").fetchall()
+    for era_id, n in eras:
+        # Evenly spaced ranks: for n frames and k picks, ranks
+        # n*(2i+1)/(2k) put the samples at the centres of k equal blocks.
+        k = min(DRIFT_SAMPLE_PER_ERA, n)
+        for i in range(k):
+            offset = (n * (2 * i + 1)) // (2 * k)
+            row = con.execute(f"""
+                SELECT path, era_id, night, exptime, jd, date_obs
+                FROM frames WHERE {SCIENCE_WHERE} AND era_id = ?
+                  AND jd IS NOT NULL AND exptime > 0
+                  AND date_obs IS NOT NULL AND date_obs != ''
+                ORDER BY path LIMIT 1 OFFSET ?""",
+                (era_id, offset)).fetchone()
+            if row is not None:
+                picks.append(row)
+    return picks
+
+
+def stage_drift(con: sqlite3.Connection, archive: Path) -> None:
+    """Sample TELUT vs DATE-OBS per era: the only two-independent-clock
+    comparison the archive offers.
+
+    DATE-OBS/JD are written by the acquisition software from the
+    acquisition PC's clock.  TELUT is the TELESCOPE control system's UTC,
+    read when the header is written — a genuinely different machine.  If
+    the two clocks drifted apart over the 2023-2026 baseline, the
+    residual
+
+        TELUT - (DATE-OBS + EXPTIME)
+
+    (i.e. what is left after the expected "header written one exposure
+    later" offset) would trend with epoch.  Its epoch-to-epoch spread is
+    therefore a REAL bound on relative clock behaviour — which the
+    internal JD-vs-DATE-OBS agreement is not, because those two cards are
+    written from the SAME clock and can only ever agree with each other.
+
+    A row counts as INFORMATIVE only when its TELUT could physically be a
+    header-write clock read: present, not the '1899-12-30' sentinel, not a
+    verbatim copy of DATE-OBS, and no EARLIER than the end of the exposure
+    it belongs to.  That last test is a validity check on the card, not a
+    fit to the answer — the header cannot be written before the exposure
+    finishes, so a TELUT that precedes the exposure end is a copy of
+    something else.  It is what disqualifies the 2026 pyscope eras, whose
+    TELUT sits 0 or exactly 1 s after DATE-OBS whether the exposure was
+    0.25 s or 90 s: it does not track EXPTIME, so it is not a clock read.
+    """
+    con.execute("""CREATE TABLE IF NOT EXISTS s3_clock_drift (
+        path TEXT PRIMARY KEY, era_id INTEGER, night TEXT,
+        jd_utc_start REAL, exptime_s REAL, date_obs TEXT, telut TEXT,
+        telut_minus_dateobs_s REAL, resid_s REAL, informative INTEGER,
+        swcreate TEXT)""")
+    sample = pick_drift_sample(con)
+    done = {r[0] for r in con.execute(
+        "SELECT path FROM s3_clock_drift").fetchall()}
+    todo = [s for s in sample if s[0] not in done]
+    log(f"drift: {len(sample)} sampled across eras, {len(todo)} to read")
+    n_read = 0
+    for path, era_id, night, exptime, jd, date_obs in todo:
+        hdr = open_header(archive, path)
+        if hdr is None:
+            continue
+        telut = str(hdr.get("TELUT") or "")
+        date_obs_h = str(hdr.get("DATE-OBS") or date_obs)
+        jd_from_date = tm.parse_date_obs(date_obs_h)
+        telut_jd = tm.parse_date_obs(telut)
+        delta = resid = None
+        informative = 0
+        if telut_jd is not None and jd_from_date is not None:
+            delta = (telut_jd - jd_from_date) * 86400.0
+            # The '1899-12-30' sentinel means "telescope clock not set".
+            if abs(delta) <= 7200.0:
+                exp_s = float(exptime or 0.0)
+                resid = delta - exp_s
+                # A TELUT byte-identical to DATE-OBS is a COPY, not a
+                # second clock read.  So is a TELUT that lands before the
+                # exposure could possibly have ended (allowing one whole
+                # second for the coarsest stamping in the archive).
+                informative = int(telut.strip() != date_obs_h.strip()
+                                  and delta >= exp_s - 1.0)
+            else:
+                delta = None
+        con.execute("INSERT OR REPLACE INTO s3_clock_drift VALUES "
+                    "(?,?,?,?,?,?,?,?,?,?,?)",
+                    (path, era_id, night, jd, exptime, date_obs_h, telut,
+                     delta, resid, informative,
+                     str(hdr.get("SWCREATE") or "")))
+        n_read += 1
+        if n_read % 25 == 0:
+            con.commit()
+            log(f"  ... {n_read}/{len(todo)} headers")
+    con.commit()
+    stats = con.execute("""
+        SELECT count(*), count(DISTINCT era_id), min(resid_s), max(resid_s)
+        FROM s3_clock_drift WHERE informative = 1
+          AND resid_s IS NOT NULL""").fetchone()
+    n_total = con.execute("SELECT count(*) FROM s3_clock_drift").fetchone()[0]
+    write_meta(con, {"drift_rows": n_total,
+                     "drift_informative_rows": stats[0],
+                     "drift_eras": stats[1],
+                     "drift_resid_min_s": stats[2],
+                     "drift_resid_max_s": stats[3]})
+    if stats[0]:
+        log(f"drift: {n_total} rows ({stats[0]} informative across "
+            f"{stats[1]} eras); TELUT-(DATE-OBS+EXPTIME) spans "
+            f"{stats[2]:+.2f} to {stats[3]:+.2f} s")
+    else:
+        log(f"drift: {n_total} rows, none informative")
+
+
+# ---------------------------------------------------------------------------
 # Stage: frame-times — mid-exposure BJD_TDB for every canonical science frame
 # ---------------------------------------------------------------------------
+def families_with_start_evidence(con: sqlite3.Connection) -> set[str]:
+    """Readout families for which convention 1 (header JD = exposure
+    START) is actually PROVEN by the header audit.
+
+    Two independent probes count as proof, and a family needs at least
+    one of them:
+
+    * a header JD-HELIO that matches our own heliocentric JD evaluated at
+      start + EXPTIME/2 (so the base stamp must be the start);
+    * a TELUT that is a genuinely different value from DATE-OBS and sits
+      one exposure later (the ephemeris-free version of the same test).
+
+    The 2026 pyscope eras satisfy NEITHER: they write no JD-HELIO card at
+    all and copy DATE-OBS verbatim into TELUT.  Returning a set (rather
+    than assuming universality) is what lets every frame_times row say on
+    its face which case it is.
+
+    Both probes are required to be DISCRIMINATING, not merely present:
+    they separate "start" from "mid" by EXPTIME/2, so a 1-millisecond
+    exposure proves nothing at all and must not be allowed to certify a
+    family.  Hence the EXPTIME >= 2 s condition (a >= 1 s separation
+    against ~0.15 s of residual noise).  This is what keeps the HDR
+    family — whose only long-exposure JD-HELIO residuals are 836 s wide —
+    out of the proven set on the strength of one 1 ms frame.
+    """
+    rows = con.execute("""
+        SELECT family,
+               sum(CASE WHEN helio_resid_mid_s IS NOT NULL
+                         AND exptime_s >= 2.0
+                         AND abs(helio_resid_mid_s) <= 1.0
+                        THEN 1 ELSE 0 END),
+               sum(CASE WHEN telut_minus_dateobs_s IS NOT NULL
+                         AND exptime_s >= 2.0
+                         AND telut_minus_dateobs_s >= exptime_s - 1.0
+                        THEN 1 ELSE 0 END)
+        FROM s3_header_audit GROUP BY family""").fetchall()
+    return {fam for fam, n_helio, n_telut in rows if (n_helio or n_telut)}
+
+
+def sibling_jd_drift(con: sqlite3.Connection, on_axis: set[str]
+                     ) -> tuple[dict[str, float], int]:
+    """Path -> |JD disagreement| (seconds) with the SAME exposure's other
+    copy, plus the number of such pairs.
+
+    Section 1's JD-vs-DATE-OBS audit can only catch a re-stamp that moved
+    ONE card; when the reduction pipeline re-stamped BOTH, the copy stays
+    internally consistent and looks perfect.  S0b already measured those
+    cases by matching raw to reduced on the file stem, so the drift is
+    known — it just never reached the time axis.  Both sides of a pair get
+    the value, so a consumer can see it on whichever row they hold.
+
+    ONLY pairs whose BOTH copies are on the axis are flagged.  Most links
+    point at a reduced copy that S0 collapsed as a duplicate (not
+    canonical, so not in ``frame_times``): there the raw row is the sole,
+    authoritative stamp and a flag on it would be pure noise.  The pairs
+    that matter are the ones where the same exposure genuinely appears
+    TWICE on the shared axis.
+    """
+    out: dict[str, float] = {}
+    n_pairs = 0
+    for raw_path, reduced_path, drift_s in con.execute(
+            "SELECT raw_path, reduced_path, jd_drift_s FROM "
+            "raw_reduced_links WHERE jd_drift_s IS NOT NULL"):
+        if raw_path not in on_axis or reduced_path not in on_axis:
+            continue
+        n_pairs += 1
+        drift = abs(float(drift_s))
+        # Keep the WORST disagreement if a path appears in several links.
+        for p in (raw_path, reduced_path):
+            if drift > out.get(p, -1.0):
+                out[p] = drift
+    return out, n_pairs
+
+
 def stage_frame_times(con: sqlite3.Connection, ephemeris: str,
                       chunk: int = 25000) -> None:
     """Compute and write the ``frame_times`` table (atomic swap).
@@ -458,30 +855,59 @@ def stage_frame_times(con: sqlite3.Connection, ephemeris: str,
     UTC mid-time but a NULL BJD with method 'no_coords' — the row count of
     this table always equals the canonical-science row count, so nothing
     silently falls off the time axis.
+
+    Two provenance columns ride along, because a time stamp that LOOKS
+    fine is the dangerous kind:
+
+    * ``start_evidence`` — whether this frame's readout family actually
+      has header evidence that JD is the exposure start;
+    * ``sibling_jd_drift_s`` — how far this exposure's OTHER copy
+      (raw vs reduced) disagrees about when it happened.  Beyond
+      :data:`tm.JD_SIBLING_DISAGREE_S` the reduced copy's BJD is
+      WITHDRAWN (NULL, method
+      :data:`tm.BJD_JD_DISAGREES`): two rows on the shared axis claiming
+      the same photons at times 70 minutes apart is not a caveat, it is a
+      defect, and the S0 rule says timing comes from the raw copy.
     """
     rows = con.execute(f"""
         SELECT path, obs_rowid, era_id, readoutm, jd, exptime,
                ra_deg, dec_deg
         FROM frames WHERE {SCIENCE_WHERE} ORDER BY path""").fetchall()
-    log(f"frame-times: {len(rows):,} canonical science frames")
-    out: list[tuple] = []
+    n_calib_excluded = con.execute("""
+        SELECT count(*) FROM frames
+        WHERE is_canonical = 1
+          AND (imagetyp IS NULL OR imagetyp LIKE 'Light%')
+          AND path IN (SELECT path FROM calib_frames)""").fetchone()[0]
+    log(f"frame-times: {len(rows):,} canonical science frames "
+        f"({n_calib_excluded:,} header-mislabelled calibrations excluded)")
+    proven = families_with_start_evidence(con)
+    drifts, n_sibling_pairs = sibling_jd_drift(con, {r[0] for r in rows})
+    # Which side of a re-stamped pair loses its BJD: the REDUCED copy.
+    reduced_paths = {r[0] for r in con.execute(
+        "SELECT reduced_path FROM raw_reduced_links")}
+    out: list[list] = []
     # First pass: the pure mid-time policy per frame.
     mids, ras, decs, computable = [], [], [], []
+    n_unverified = 0
     for i, (path, obs_rowid, era_id, readoutm, jd, exptime,
             ra_deg, dec_deg) in enumerate(rows):
         mid, method = tm.jd_utc_mid(jd, exptime, readoutm)
+        family = (readoutm or "").strip() or "(blank)"
+        evidence = (tm.START_VERIFIED if family in proven
+                    else tm.START_UNVERIFIED)
+        n_unverified += evidence == tm.START_UNVERIFIED
         out.append([path, obs_rowid, era_id, jd, exptime, mid,
                     None, None, None, ra_deg, dec_deg, method,
-                    None, tm.S3_CODE_VERSION])
+                    None, evidence, drifts.get(path), tm.S3_CODE_VERSION])
         if mid is not None and ra_deg is not None and dec_deg is not None:
             computable.append(i)
             mids.append(mid)
             ras.append(ra_deg)
             decs.append(dec_deg)
         elif mid is not None:
-            out[i][12] = "no_coords"
+            out[i][12] = tm.BJD_NO_COORDS
         else:
-            out[i][12] = "no_jd"
+            out[i][12] = tm.BJD_NO_JD
     # Second pass: vectorized BJD_TDB in chunks (astropy handles ~20k
     # frames/second; chunking just keeps peak memory flat).
     bjd_method = f"bary_{ephemeris}_winer_framecenter"
@@ -501,6 +927,16 @@ def stage_frame_times(con: sqlite3.Connection, ephemeris: str,
             out[i][12] = bjd_method
         log(f"  ... BJD for {min(start + chunk, len(computable)):,}"
             f"/{len(computable):,}")
+    # Third pass: withdraw the BJD of any REDUCED copy whose raw parent
+    # disagrees about the epoch by more than the stated threshold.
+    withdrawn: list[tuple] = []
+    for r in out:
+        drift = r[14]
+        if drift is not None and drift > tm.JD_SIBLING_DISAGREE_S \
+                and r[0] in reduced_paths and r[6] is not None:
+            withdrawn.append((r[0], r[2], r[3], float(drift), r[6]))
+            r[6] = r[7] = r[8] = None
+            r[12] = tm.BJD_JD_DISAGREES
     swap_table(con, "frame_times", """
         CREATE TABLE {table} (
             path TEXT PRIMARY KEY,
@@ -517,14 +953,31 @@ def stage_frame_times(con: sqlite3.Connection, ephemeris: str,
                                    --    off-center targets)
             mid_method TEXT,
             bjd_method TEXT,
+            start_evidence TEXT,   -- is 'JD = start' proven for this era?
+            sibling_jd_drift_s REAL, -- raw-vs-reduced stamp disagreement
             code_version TEXT)""",
                [tuple(r) for r in out],
-               "INSERT INTO {table} VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+               "INSERT INTO {table} VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+    swap_table(con, "s3_time_outliers", """
+        CREATE TABLE {table} (
+            path TEXT PRIMARY KEY, era_id INTEGER, jd_utc_start REAL,
+            sibling_jd_drift_s REAL, withdrawn_bjd_tdb REAL)""",
+               withdrawn, "INSERT INTO {table} VALUES (?,?,?,?,?)")
     n_bjd = sum(1 for r in out if r[6] is not None)
+    n_flagged = sum(1 for r in out
+                    if r[14] is not None
+                    and r[14] > tm.JD_SIBLING_DISAGREE_S)
     write_meta(con, {"frame_times_rows": len(out),
                      "frame_times_with_bjd": n_bjd,
+                     "frame_times_calib_excluded": n_calib_excluded,
+                     "frame_times_unverified_start": n_unverified,
+                     "frame_times_sibling_pairs": n_sibling_pairs,
+                     "frame_times_sibling_flagged": n_flagged,
+                     "frame_times_bjd_withdrawn": len(withdrawn),
                      "ephemeris": ephemeris})
-    log(f"frame-times: wrote {len(out):,} rows ({n_bjd:,} with BJD_TDB)")
+    log(f"frame-times: wrote {len(out):,} rows ({n_bjd:,} with BJD_TDB); "
+        f"{n_unverified:,} rows with unverified start semantics; "
+        f"{len(withdrawn)} BJDs withdrawn for raw/reduced JD disagreement")
 
 
 # ---------------------------------------------------------------------------
@@ -763,46 +1216,88 @@ def fit_clock(con: sqlite3.Connection, eph: dict) -> None:
     pts = []
     for (config, filt), members in groups.items():
         ooe = [dm for _n, _h, ph, dm, _e in members
-               if abs(ph) > CLOCK_OOE_PHASE]
+               if abs(ph) > tm.CLOCK_OOE_PHASE]
         if len(ooe) < 3:
             continue                      # no baseline -> group unusable
         base = float(np.median(ooe))
         for night, hjd, ph, dm, de in members:
             pts.append((night, config, filt, hjd, ph, dm - base, de))
-    fit_pts = [p for p in pts if abs(p[4]) <= CLOCK_FIT_PHASE]
-    phases = np.array([p[4] for p in fit_pts])
-    dmags = np.array([p[5] for p in fit_pts])
-    errs = np.array([max(p[6], 0.01) for p in fit_pts])
-    fit = tm.fit_eclipse_offset(phases, dmags, errs)
+    fit_pts = [p for p in pts if abs(p[4]) <= tm.CLOCK_FIT_PHASE]
     results: list[tuple] = []
-    # Global fit row + per-night rows where a night alone constrains it.
+    # Nights whose coverage actually brackets the eclipse: only these may
+    # enter the global fit (see the gate inside summarize).
+    good_nights: set[str] = set()
+
     def summarize(tag: str, sel_nights) -> None:
-        sel = [p for p in fit_pts if p[0] in sel_nights] \
-            if sel_nights else fit_pts
-        if len(sel) < 8:
+        """Fit one selection of points and append its row.
+
+        A row is ALWAYS appended — even when the fit is refused — so that
+        a configured night can never disappear from the table with no
+        trace, and so the report's text can be derived from the table
+        instead of from the hand-written night tuple.
+        """
+        # ``sel_nights is None`` means "every point"; an EMPTY set means
+        # "no night qualified" and must select nothing, not everything.
+        sel = fit_pts if sel_nights is None else \
+            [p for p in fit_pts if p[0] in sel_nights]
+        if len(sel) < tm.CLOCK_MIN_FIT_POINTS:
+            results.append((tag, len(sel),
+                            float(min(p[4] for p in sel)) if sel else None,
+                            float(max(p[4] for p in sel)) if sel else None,
+                            None, None, None, None, None,
+                            tm.CLOCK_STATUS_TOO_FEW))
             return
         ph_a = np.array([p[4] for p in sel])
+        # COVERAGE GATE.  A symmetric template fitted to a one-sided arc
+        # converges happily and returns a confident centre that is really
+        # the slope of the flank it was given — nothing about the
+        # eclipse's midpoint.  Demand real sampling on BOTH sides of
+        # phase zero before calling the result a measurement.
+        n_before, n_after = tm.phase_coverage(ph_a)
+        if min(n_before, n_after) < tm.CLOCK_MIN_SIDE_POINTS:
+            results.append((tag, len(sel), float(ph_a.min()),
+                            float(ph_a.max()), None, None, None, None,
+                            None, tm.CLOCK_STATUS_ONE_SIDED))
+            return
         f = tm.fit_eclipse_offset(ph_a,
                                   np.array([p[5] for p in sel]),
                                   np.array([max(p[6], 0.01) for p in sel]))
         if f["ph0"] is None:
             results.append((tag, len(sel), float(ph_a.min()),
                             float(ph_a.max()), None, None, None, None,
-                            None, "no_dip_found"))
+                            None, tm.CLOCK_STATUS_NO_DIP))
             return
         oc_s = f["ph0"] * eph["period_d"] * 86400.0
         oc_err_s = f["ph0_err"] * eph["period_d"] * 86400.0
         # Cycle count at the epoch of these points, for the drift term.
         mean_hjd = float(np.mean([p[3] for p in sel]))
         cycles = abs(mean_hjd - eph["epoch_hjd"]) / eph["period_d"]
-        eph_sys_s = EPOCH_QUANT_S + PERIOD_QUANT_D * cycles * 86400.0
+        # THE EPHEMERIS TERM.  clock_error = (O-C) - (ephemeris error), so
+        # the bound can never be tighter than how well the star's own
+        # ephemeris is known.  VSX's quoted last digit (0.5e-7 d/cycle) is
+        # a TYPOGRAPHIC precision, not a measurement uncertainty; the Gaia
+        # DR3 solution for the same star puts the real period uncertainty
+        # at 3.0e-5 d, ~600x larger.  Taking the max of the two keeps the
+        # printed bound honest instead of advertising a ceiling the
+        # ephemeris cannot support.
+        vsx_term_s = EPOCH_QUANT_S + PERIOD_QUANT_D * cycles * 86400.0
+        gaia_term_s = EPOCH_QUANT_S + \
+            GAIA_EB["period_err_d"] * cycles * 86400.0
+        eph_sys_s = max(vsx_term_s, gaia_term_s)
         bound_s = abs(oc_s) + oc_err_s + eph_sys_s
         results.append((tag, len(sel), float(ph_a.min()),
                         float(ph_a.max()), f["depth"], f["width"],
-                        oc_s, oc_err_s, bound_s, "ok"))
-    summarize("global", None)
+                        oc_s, oc_err_s, bound_s, tm.CLOCK_STATUS_OK))
+        if sel_nights:
+            good_nights.update(sel_nights)
+
+    # Per-night rows FIRST: the global fit may only use nights that
+    # passed the coverage gate.  Folding a one-sided night in with a good
+    # one does not average two measurements, it contaminates one.
     for night in CLOCK_ECLIPSE_NIGHTS:
         summarize(night, {night})
+    summarize("global", good_nights)
+    fit_pts = [p for p in fit_pts if p[0] in good_nights]
     swap_table(con, "s3_clock_eclipses", """
         CREATE TABLE {table} (
             tag TEXT PRIMARY KEY, n_points INTEGER,
@@ -829,6 +1324,15 @@ def fit_clock(con: sqlite3.Connection, eph: dict) -> None:
         "gaia_source": GAIA_EB["source"],
         "gaia_predicted_oc_s": f"{gaia_drift_s:.0f}",
         "gaia_oc_envelope_s": f"{gaia_envelope_s:.0f}",
+        # What the tight-but-wrong version of the bound would have been:
+        # kept so the report can show the difference between propagating
+        # VSX's quoted last digit and propagating a credible period error.
+        "clock_vsx_quant_term_s":
+            f"{EPOCH_QUANT_S + PERIOD_QUANT_D * cycles_all * 86400.0:.0f}",
+        "clock_eph_term_s":
+            f"{EPOCH_QUANT_S + GAIA_EB['period_err_d'] * cycles_all * 86400.0:.0f}",
+        "clock_nights_gated": ";".join(sorted(good_nights)) or "none",
+        "clock_nights_configured": ";".join(CLOCK_ECLIPSE_NIGHTS),
     })
     g = next((r for r in results if r[0] == "global"), None)
     if g and g[6] is not None:
@@ -841,8 +1345,13 @@ def fit_clock(con: sqlite3.Connection, eph: dict) -> None:
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
-STAGES = ("audit-scan", "cadence", "audit-headers", "frame-times", "clock",
-          "report")
+STAGES = ("audit-scan", "cadence", "audit-headers", "drift", "frame-times",
+          "clock", "report")
+
+#: Other MACRO stages (the S1 plate-solve batch, above all) write to this
+#: same database concurrently.  Five minutes of patience on a locked
+#: writer is cheap; a crashed build in the middle of a long night is not.
+BUSY_TIMEOUT_MS = 300_000
 
 
 def parse_args(argv=None):
@@ -878,12 +1387,16 @@ def main(argv=None) -> int:
     ephemeris = args.ephemeris or tm.resolve_ephemeris()
     log(f"ephemeris: {ephemeris}")
     with closing(sqlite3.connect(args.manifest)) as con:
+        # Wait out a concurrent writer instead of failing on it.
+        con.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
         if "audit-scan" in stages:
             stage_audit_scan(con)
         if "cadence" in stages:
             stage_cadence(con)
         if "audit-headers" in stages:
             stage_audit_headers(con, args.archive, ephemeris)
+        if "drift" in stages:
+            stage_drift(con, args.archive)
         if "frame-times" in stages:
             stage_frame_times(con, ephemeris)
         if "clock" in stages:

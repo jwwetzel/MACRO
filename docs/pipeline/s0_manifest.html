@@ -334,7 +334,7 @@ up to one extra night per observing run (see the SN row in section 7).</p>
 claims?  (The T CrB panel proved header pointings lie.)</p>
 
 <h3>Evidence</h3>
-<div class="grid"><figure><a href="figures/s0/s0_pointing_offsets.png"><img src="figures/s0/s0_pointing_offsets.png" alt=""></a><figcaption>Offsets for 148,820 canonical frames across 778 targets with a reference position (median of plate-solved canonical frames, minimum 3). 9,915 frames sit beyond 1 deg; 137 exact-zero offsets are clipped into the lowest bin (a log axis cannot hold zero).</figcaption></figure>
+<div class="grid"><figure><a href="figures/s0/s0_pointing_offsets.png"><img src="figures/s0/s0_pointing_offsets.png" alt=""></a><figcaption>Offsets for 148,820 canonical frames across 778 targets with a reference position (median of plate-solved canonical frames when at least 3 exist, otherwise the median of the target's header coordinates). 9,915 frames sit beyond 1 deg; 137 exact-zero offsets are clipped into the lowest bin (a log axis cannot hold zero).</figcaption></figure>
 </div>
 <table class="data">
 <tr><th>target</th><th>frames &gt;1&deg;</th><th>frames with offsets</th><th>worst offset (deg)</th></tr>
@@ -360,30 +360,40 @@ its 1,279 frames with offsets, the worst at 154.8&deg;
 — a fact the CV project&rsquo;s conditional Q5 analysis needs to know.</p>
 <p class="sub">Ground-truth reproduction: the T CrB strategy reported 21 of
 247 grism pointings &gt;1&deg; off — the manifest finds
-<b>21</b> of <b>247</b>.  And NGC&nbsp;5548, with
-zero plate-solved frames, gets no reference position under the spec rule —
-yet its header coordinates alone expose the tracking-failure night the
-Dwarf panel documented:</p>
+<b>21</b> of <b>247</b>.  And NGC&nbsp;5548, whose 279
+frames contain <b>zero</b> plate solves, is why this stage has a fallback at
+all: under a solved-only rule it had no reference position, therefore no
+offsets, therefore no <code>pointing_gt1deg</code> flag could ever fire — on
+precisely the target whose strategy rules an entire night unusable.  The
+flagging machinery was alive across 9,915 frames archive-wide and
+blind exactly where it was needed.  With the header-median fallback the
+tracking-failure night convicts itself:</p>
 <table class="data">
-<tr><th>night</th><th>frames</th><th>mean header RA (deg)</th><th>mean header Dec (deg)</th></tr>
-<tr class="warn"><td>2023-03-25</td><td>10</td><td>216.5</td><td>33.34</td></tr>
-<tr><td>2023-04-25</td><td>10</td><td>214.52</td><td>25.12</td></tr>
-<tr><td>2023-03-24</td><td>7</td><td>214.52</td><td>25.12</td></tr>
+<tr><th>night</th><th>frames</th><th>mean header RA (deg)</th><th>mean header Dec (deg)</th><th>worst offset (deg)</th></tr>
+<tr class="warn"><td>2023-03-25</td><td>10</td><td>216.5</td><td>33.34</td><td>&mdash;</td></tr>
+<tr><td>2023-04-25</td><td>10</td><td>214.52</td><td>25.12</td><td>&mdash;</td></tr>
+<tr><td>2023-03-24</td><td>7</td><td>214.52</td><td>25.12</td><td>&mdash;</td></tr>
 </table>
+<p class="sub">(This manifest pre-dates the <code>pointing_ref_basis</code> column; rebuild S0 to record how each reference position was derived.)</p>
 
 <h3>Decision</h3>
 <div class="decision"><b>Reference position = RA-wrap-aware median of a
-target&rsquo;s plate-solved canonical frames (&ge;3
-solves required); every frame with coordinates gets
-<code>pointing_offset_deg</code>; offsets &gt;1&deg;
-are flagged <code>pointing_gt1deg</code> — flagged, never deleted.</b>
-Solved-WCS validation for the currently unsolvable campaigns (NGC&nbsp;5548
-has 0 solves) arrives with S1.</div>
+target&rsquo;s plate-solved canonical frames when
+&ge;3 solves exist, else the median of that
+target&rsquo;s header coordinates; the choice is recorded per frame in
+<code>pointing_ref_basis</code>.</b>  Every frame with coordinates gets
+<code>pointing_offset_deg</code>; offsets
+&gt;1&deg; are flagged
+<code>pointing_gt1deg</code> — flagged, never deleted.  Solved-WCS
+validation for the currently unsolvable campaigns arrives with S1; until
+then the fallback is stated as fallback, not passed off as a solve.</div>
 
 <h3>Consequence</h3>
 <p class="sub">The grism identity gate (T CrB Phase A.0) and every
-photometry stage inherit a per-frame pointing sanity column; mispointed
-frames can no longer hide inside a night&rsquo;s frame count.</p>
+photometry stage inherit a per-frame pointing sanity column <em>and</em> the
+basis behind it; mispointed frames can no longer hide inside a
+night&rsquo;s frame count, and a target with no plate solves is no longer
+silently exempt from the audit.</p>
 </div></section>
 <section id="qc">
 <div class="bhead"><h2>6 · QC flags</h2>

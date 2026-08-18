@@ -103,12 +103,170 @@ class TestMidPolicy:
             assert mid == 2460000.25
 
     def test_stackpro_worst_case_bound(self):
-        # The policy's stated worst case: half the empirical dead-time
-        # bound, and comfortably sub-second (the S3 precision target).
+        """The policy's stated worst case is half the dead-time bound.
+
+        REGRESSION (adversarial review, 2026-08-18).  This test used to
+        assert ``< 0.5`` — enforcing a sub-second claim that came from a
+        single anomalous frame pair.  The bound is now derived robustly
+        and is SECONDS wide, so the assertion is inverted: if anyone
+        re-derives it back below a second, that is a claim which needs
+        new physical evidence (a camera manual, a lab measurement), not a
+        quieter estimator, and this test should fail until they bring it.
+        """
         assert tm.worst_case_mid_error_s("High Gain StackPro") == \
             pytest.approx(tm.STACKPRO_DEADTIME_BOUND_S / 2.0)
-        assert tm.worst_case_mid_error_s("High Gain StackPro") < 0.5
+        assert tm.worst_case_mid_error_s("High Gain StackPro") > 1.0
         assert tm.worst_case_mid_error_s("Mode0") == 0.0
+
+
+# ---------------------------------------------------------------------------
+# Cadence statistics — the StackPro dead-time bound's estimator
+# ---------------------------------------------------------------------------
+class TestSeriesCadence:
+    """Regression tests for the defect an adversarial review found in the
+    StackPro dead-time bound (2026-08-18).
+
+    The old estimator was ``min(gap) - EXPTIME`` over every back-to-back
+    StackPro pair in the archive.  Its answer, 0.24 s, came from ONE
+    frame stamped 0.74 s after its neighbour inside a series whose own
+    measured cadence was 12.77 s — an out-of-sequence time stamp, not a
+    camera that can cycle in under a second.  Each test below builds that
+    exact situation by hand and asserts the estimator no longer falls for
+    it.
+    """
+
+    @staticmethod
+    def _regular_series(cadence_s=12.77, n=12, start_jd=2460243.0):
+        """A perfectly regular run of exposure-start JDs."""
+        return [start_jd + i * cadence_s / 86400.0 for i in range(n)]
+
+    def test_one_bad_stamp_does_not_set_the_bound(self):
+        # The u vulpeculae 2023-10-26 case: a 0.5 s series cycling every
+        # 12.77 s, with one frame dropped in 0.74 s after its neighbour.
+        jds = self._regular_series()
+        jds.insert(6, jds[5] + 0.74 / 86400.0)
+        stats = tm.series_cadence(sorted(jds), 0.5)
+        # The median is untouched by the intruder ...
+        assert stats["median_gap_s"] == pytest.approx(12.77, abs=0.01)
+        # ... the intruding pair is identified and named ...
+        assert len(stats["short_idx"]) >= 1
+        # ... and the reported overhead is the machine cycle time, not
+        # the artifact.  0.24 s is what the old estimator returned here.
+        assert stats["regular"]
+        assert stats["overhead_s"] == pytest.approx(12.27, abs=0.05)
+        assert stats["overhead_s"] > 1.0
+
+    def test_naive_minimum_would_still_be_wrong(self):
+        # Documents WHY the estimator changed: on the same input, the
+        # raw order statistic is 50x tighter and physically impossible.
+        jds = self._regular_series()
+        jds.insert(6, jds[5] + 0.74 / 86400.0)
+        gaps = np.diff(np.array(sorted(jds))) * 86400.0
+        naive = float(gaps.min()) - 0.5
+        stats = tm.series_cadence(sorted(jds), 0.5)
+        assert naive == pytest.approx(0.24, abs=0.01)
+        assert naive < stats["overhead_s"] / 10.0
+
+    def test_pauses_are_not_cadence(self):
+        # A refocus/cloud pause must not be averaged in as a cycle time.
+        jds = self._regular_series(n=10)
+        jds.append(jds[-1] + 1800.0 / 86400.0)          # 30 min pause
+        jds.append(jds[-1] + 12.77 / 86400.0)
+        stats = tm.series_cadence(jds, 0.5)
+        assert stats["median_gap_s"] == pytest.approx(12.77, abs=0.01)
+        assert float(np.max(stats["kept_s"])) < 100.0
+
+    def test_ragged_run_is_not_a_machine_cadence(self):
+        # Filter changes and dithers make a run whose median is not a
+        # cycle time; it must not contribute an overhead at all.
+        jds = [2460243.0]
+        for gap in (12.0, 25.0, 11.0, 60.0, 13.0, 40.0, 12.0, 90.0):
+            jds.append(jds[-1] + gap / 86400.0)
+        stats = tm.series_cadence(jds, 1.0)
+        assert not stats["regular"]
+        assert stats["overhead_s"] is None
+
+    def test_degenerate_inputs_do_not_raise(self):
+        for jds in ([], [2460243.0], [2460243.0, 2460243.0]):
+            stats = tm.series_cadence(jds, 1.0)
+            assert stats["overhead_s"] is None
+            assert stats["short_idx"] == []
+
+
+# ---------------------------------------------------------------------------
+# Eclipse coverage gate
+# ---------------------------------------------------------------------------
+class TestPhaseCoverage:
+    """A one-sided arc must be recognizable as one.
+
+    Regression: the 2023-03-18 AG LMi night sampled phases +0.019 to
+    +0.036 — never reaching the eclipse centre — and was published as a
+    converged fit with O-C = -2,231 s.
+    """
+
+    def test_one_sided_arc(self):
+        ph = np.linspace(0.0191, 0.0357, 19)
+        n_before, n_after = tm.phase_coverage(ph)
+        assert n_before == 0 and n_after == 19
+        assert min(n_before, n_after) < tm.CLOCK_MIN_SIDE_POINTS
+
+    def test_two_sided_night_passes(self):
+        ph = np.linspace(-0.1025, 0.0942, 36)
+        n_before, n_after = tm.phase_coverage(ph)
+        assert min(n_before, n_after) >= tm.CLOCK_MIN_SIDE_POINTS
+
+    def test_width_band_ignores_the_dip_floor(self):
+        # Points inside the dip constrain depth, not symmetry: with a
+        # band they stop counting as shoulders.
+        ph = np.array([-0.001, 0.0, 0.001, 0.05, 0.06])
+        assert tm.phase_coverage(ph, width=0.01) == (0, 2)
+
+
+# ---------------------------------------------------------------------------
+# Field geometry — the frame-center caveat
+# ---------------------------------------------------------------------------
+class TestFieldGeometry:
+    def test_corner_light_time_matches_hand_computation(self):
+        """4096x4096 px at 0.5375 arcsec/px: half-diagonal 25.95', which
+        is 7.549e-3 rad, times 499.005 s/rad = 3.77 s.
+
+        REGRESSION: the page used to claim '~1.3 s (26' x 499 s/rad)' —
+        the right method with the wrong arithmetic, understating the
+        caveat a CV paper reads to decide whether it must recompute at
+        its object's own coordinates.
+        """
+        corner = tm.field_corner_light_time_s(4096, 4096, 0.5374589617834)
+        assert corner == pytest.approx(3.766, abs=0.01)
+        assert corner > 1.3
+
+    def test_corner_light_time_unknown_geometry(self):
+        assert tm.field_corner_light_time_s(None, 4096, 0.54) is None
+        assert tm.field_corner_light_time_s(4096, 4096, None) is None
+
+    def test_instrument_scale_beats_a_stale_wcs(self):
+        # rawimage/2025-02-02/mjc_PHECDA_g_0-009s...: a leftover CD matrix
+        # claims 3.08 arcsec/px on a camera whose optics say 0.449, with
+        # no PLTSOLVD card to back it.  Trusting the WCS there inflated
+        # the frame-corner caveat to 21 s.
+        scale, source = tm.pixel_scale_arcsec(
+            4788, 3194, cd1_1=0.000828832633173, cd1_2=-0.000213138780488,
+            xpixsz=7.52, focallen=3454.0)
+        assert scale == pytest.approx(0.449, abs=0.002)
+        assert source == "XPIXSZ/FOCALLEN"
+
+    def test_focallen_in_metres_is_rejected(self):
+        # The 2026 pyscope headers write FOCALLEN = 3.454 (metres), which
+        # would give 449 arcsec/px; SECPIX1 carries the real value.
+        scale, source = tm.pixel_scale_arcsec(
+            4800, 3211, xpixsz=7.52, focallen=3.454,
+            secpix1=0.44907724377533287)
+        assert scale == pytest.approx(0.449, abs=0.002)
+        assert source == "SECPIX1"
+
+    def test_zero_focallen_and_no_alternative(self):
+        scale, source = tm.pixel_scale_arcsec(4800, 3211, xpixsz=7.52,
+                                              focallen=0.0)
+        assert scale is None and source == "unknown"
 
 
 # ---------------------------------------------------------------------------
