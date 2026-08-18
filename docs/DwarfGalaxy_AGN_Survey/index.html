@@ -5,21 +5,30 @@
 </head><body>
 <header>
   <h1>Dwarf Galaxies + NGC 5548 — Chain of Evidence</h1>
-  <p>Deep Hα imaging of 13 dwarf-candidate fields; band-integrated NGC 5548 light curve (conditional).
+  <p>Deep Hα imaging of dwarf-candidate fields, plus a band-integrated NGC 5548 light curve.
      Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a>
      · <a href="../index.html">← all reports</a></p>
 </header>
-<nav><a href="#status">Status</a></nav>
+<nav><a href="#status">Readiness</a></nav>
 <section id="status">
-  <div class="bhead"><h2>Status</h2><span class="badge pending">awaiting facility gates</span></div>
+  <div class="bhead"><h2>Readiness</h2><span class="badge pending">most blocked of the five</span></div>
   <div class="stage">
-    <p class="sub">This report grows one section per analysis stage as the project executes its
-    committee strategy. Nothing appears here until there is a plot and a script behind it.</p>
-    <div class="decision"><b>Current state (2026-08-17):</b> S0 manifest and
-    <a href="../pipeline/s0b_calibration_inventory.html">S0b calibration inventory</a> are done;
-    Winer is offline for monsoon until October 2026, so the archival phases and the Cannon
-    contact run now while the gap-table flat/bias acquisitions (hardware-contingent) are queued
-    for the October re-opening.</div>
+    <h3>Gates cleared</h3>
+    <ul class="sub">
+      <li><b>Staging (S0c):</b> 1,196 science frames staged</li>
+      <li><b>Timing (S3):</b> BJD_TDB throughout</li>
+      <li><b>Calibration:</b> recovered masters cover roles this era had no raw calibrations for</li>
+    </ul>
+    <h3>Still blocking</h3>
+    <ul class="sub">
+      <li><b>NGC 5548 has zero WCS solutions — ever.</b> 153 frames, none solved; without astrometry there is no light curve</li>
+      <li><b>Filter slot '6' identity is unresolved</b> (grism vs luminance) — it decides whether the AGN section is photometry at all</li>
+      <li><b>Cannon contact</b> (configs, Hα transmission curve, W flats, field provenance) not yet made</li>
+    </ul>
+    <div class="decision"><b>Verdict:</b> do not start the AGN section until slot '6' is settled — one file-opening session decides whether that dataset survives.</div>
+    <p class="sub">Analysis sections appear here as they are executed: each states the question,
+    shows the plot that answers it, and records the decision carried forward. Nothing is
+    published here without a figure and a script behind it.</p>
   </div>
 </section>
 <footer>MACRO Consortium · numbers are script-emitted, never hand-edited.</footer>

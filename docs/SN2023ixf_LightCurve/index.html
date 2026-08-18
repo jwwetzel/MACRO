@@ -5,20 +5,30 @@
 </head><body>
 <header>
   <h1>SN 2023ixf Early Light Curve — Chain of Evidence</h1>
-  <p>gri/narrowband campaign +5.4→+50 d; saturation census; possible flash-phase grism series.
+  <p>gri/narrowband photometry +5.4→+50 d in M101, plus a possibly-unique flash-phase grism series.
      Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a>
      · <a href="../index.html">← all reports</a></p>
 </header>
-<nav><a href="#status">Status</a></nav>
+<nav><a href="#status">Readiness</a></nav>
 <section id="status">
-  <div class="bhead"><h2>Status</h2><span class="badge pending">awaiting facility gates</span></div>
+  <div class="bhead"><h2>Readiness</h2><span class="badge active">partially ready — Gate 0 outstanding</span></div>
   <div class="stage">
-    <p class="sub">This report grows one section per analysis stage as the project executes its
-    committee strategy. Nothing appears here until there is a plot and a script behind it.</p>
-    <div class="decision"><b>Current state (2026-08-17):</b> S0 manifest and
-    <a href="../pipeline/s0b_calibration_inventory.html">S0b calibration inventory</a> are done;
-    this campaign is fully archival, so it proceeds through the Winer monsoon closure unaffected
-    and needs nothing from the October 2026 re-opening.</div>
+    <h3>Gates cleared</h3>
+    <ul class="sub">
+      <li><b>Astrometry:</b> 691 of 1,054 frames carry WCS</li>
+      <li><b>Timing (S3) and staging (S0c):</b> complete (1,214 staged frames including the M101 templates)</li>
+      <li><b>Detector (S2):</b> the ~3.5 kADU High Gain clip is measured — the saturation census now has a defensible threshold</li>
+    </ul>
+    <h3>Still blocking</h3>
+    <ul class="sub">
+      <li><b>Gate 0:</b> the saturation matrix and filter forensics still have to run before any photometry is published</li>
+      <li><b>Frame quality:</b> the astrometry QC pass rejected 298 frames as blank/cloudy or defocused — a real constraint on what the light curve can claim</li>
+      <li><b>Grism triage:</b> whether the 83-frame Hα series is the flash-phase record depends on the G track</li>
+    </ul>
+    <div class="decision"><b>Verdict:</b> the broadband work can begin at Gate 0 immediately; the ApJ upside rests on the grism series.</div>
+    <p class="sub">Analysis sections appear here as they are executed: each states the question,
+    shows the plot that answers it, and records the decision carried forward. Nothing is
+    published here without a figure and a script behind it.</p>
   </div>
 </section>
 <footer>MACRO Consortium · numbers are script-emitted, never hand-edited.</footer>

@@ -5,20 +5,29 @@
 </head><body>
 <header>
   <h1>Be-Star Grism Campaign — Chain of Evidence</h1>
-  <p>Hα equivalent-width monitoring of bright Be stars at ~3-day cadence, 2024–2026, via slitless grisms.
+  <p>Hα equivalent-width monitoring of bright Be stars at ~3-day cadence, 2024–2026.
      Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/BeStar_Grism/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a>
      · <a href="../index.html">← all reports</a></p>
 </header>
-<nav><a href="#status">Status</a></nav>
+<nav><a href="#status">Readiness</a></nav>
 <section id="status">
-  <div class="bhead"><h2>Status</h2><span class="badge pending">awaiting facility gates</span></div>
+  <div class="bhead"><h2>Readiness</h2><span class="badge pending">gated on the grism track and October calibrations</span></div>
   <div class="stage">
-    <p class="sub">This report grows one section per analysis stage as the project executes its
-    committee strategy. Nothing appears here until there is a plot and a script behind it.</p>
-    <div class="decision"><b>Current state (2026-08-17):</b> S0 manifest and
-    <a href="../pipeline/s0b_calibration_inventory.html">S0b calibration inventory</a> are done;
-    Winer is offline for monsoon until October 2026, so archival extraction and Step −1/0 work
-    run now while the era-C grism calibration set arrives at the October re-opening.</div>
+    <h3>Gates cleared</h3>
+    <ul class="sub">
+      <li><b>Staging (S0c):</b> 3,883 science frames staged under the grism whitelist</li>
+      <li><b>Timing (S3):</b> BJD_TDB throughout</li>
+    </ul>
+    <h3>Still blocking</h3>
+    <ul class="sub">
+      <li><b>Grism track (G):</b> this project inherits the extraction chain being built for T CrB</li>
+      <li><b>Era-C calibrations:</b> requested for the October re-opening</li>
+      <li><b>Step −1 (BeSS emission-state check):</b> undone — it sets both the sample and the venue</li>
+    </ul>
+    <div class="decision"><b>Verdict:</b> not startable until the grism chain lands; the BeSS check is the cheapest next step and can be done during the monsoon closure.</div>
+    <p class="sub">Analysis sections appear here as they are executed: each states the question,
+    shows the plot that answers it, and records the decision carried forward. Nothing is
+    published here without a figure and a script behind it.</p>
   </div>
 </section>
 <footer>MACRO Consortium · numbers are script-emitted, never hand-edited.</footer>

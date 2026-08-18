@@ -5,22 +5,30 @@
 </head><body>
 <header>
   <h1>T CrB Pre-Eruption Monitoring — Chain of Evidence</h1>
-  <p>Recurrent nova quiescent baseline: Hα EW/profile series through the 2025 dip recovery, photometric anchors, flickering.
+  <p>Hα series through the 2025 dip recovery, photometric anchors, flickering limits — the recurrent nova's quiescent baseline.
      Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/TCrB_Monitoring/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a>
      · <a href="../index.html">← all reports</a></p>
 </header>
-<nav><a href="#status">Status</a></nav>
+<nav><a href="#status">Readiness</a></nav>
 <section id="status">
-  <div class="bhead"><h2>Status</h2><span class="badge pending">awaiting facility gates</span></div>
+  <div class="bhead"><h2>Readiness</h2><span class="badge active">unblocked on calibration; grism spine building</span></div>
   <div class="stage">
-    <p class="sub">This report grows one section per analysis stage as the project executes its
-    committee strategy. Nothing appears here until there is a plot and a script behind it.</p>
-    <div class="decision"><b>Current state (2026-08-17):</b> S0 manifest and
-    <a href="../pipeline/s0b_calibration_inventory.html">S0b calibration inventory</a> are done;
-    Winer is offline for monsoon until October 2026, so the archival Hα/photometry work runs now
-    while the restart (nightly r/B + grism pair, weekly flickering runs) and the Mode0 calibration
-    set execute at the October re-opening — eruption block pre-loaded, AAVSO/ARAS coverage
-    bridging the gap.</div>
+    <h3>Gates cleared</h3>
+    <ul class="sub">
+      <li><b>Calibration debt retired:</b> the recovered Mode0 masters (103 bias, 776 dark across 26 exposure times including three 240 s masters, 68 flats) sit under exactly this grism series</li>
+      <li><b>Timing (S3):</b> 392 of 402 frames carry mid-exposure BJD_TDB</li>
+      <li><b>Staging (S0c):</b> 826 science frames staged (T CrB + the θ CrB calibrator)</li>
+    </ul>
+    <h3>Still blocking</h3>
+    <ul class="sub">
+      <li><b>Grism track (G):</b> extraction, identity gate and wavelength solution are mid-build — this is the paper's spine</li>
+      <li><b>Observations:</b> RLMT dark on T CrB since 2025-06-24; restart requested for the October re-opening</li>
+      <li>θ CrB is itself a Be/shell star — its Hα region carries a contamination flag in every product</li>
+    </ul>
+    <div class="decision"><b>Verdict:</b> the calibration blocker that stalled this project is gone. Work begins the moment the grism extraction chain passes review.</div>
+    <p class="sub">Analysis sections appear here as they are executed: each states the question,
+    shows the plot that answers it, and records the decision carried forward. Nothing is
+    published here without a figure and a script behind it.</p>
   </div>
 </section>
 <footer>MACRO Consortium · numbers are script-emitted, never hand-edited.</footer>

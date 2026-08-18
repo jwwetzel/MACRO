@@ -5,21 +5,31 @@
 </head><body>
 <header>
   <h1>Cataclysmic-Variable Time Series — Chain of Evidence</h1>
-  <p>State-tagged, cycle-resolved light curves of ST LMi, VV Pup, EU UMa; YZ Cnc superhumps; eclipse timing.
+  <p>State-tagged, cycle-resolved light curves of ST LMi, VV Pup, EU UMa, AN UMa; YZ Cnc superhumps; eclipse timing.
      Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a>
      · <a href="../index.html">← all reports</a></p>
 </header>
-<nav><a href="#status">Status</a></nav>
+<nav><a href="#status">Readiness</a></nav>
 <section id="status">
-  <div class="bhead"><h2>Status</h2><span class="badge pending">awaiting facility gates</span></div>
+  <div class="bhead"><h2>Readiness</h2><span class="badge done">ready for production analysis</span></div>
   <div class="stage">
-    <p class="sub">This report grows one section per analysis stage as the project executes its
-    committee strategy. Nothing appears here until there is a plot and a script behind it.</p>
-    <div class="decision"><b>Current state (2026-08-17):</b> S0 manifest and
-    <a href="../pipeline/s0b_calibration_inventory.html">S0b calibration inventory</a> are done;
-    Winer is offline for monsoon until October 2026, so curation, astrometry, and archival
-    photometry run now while the extra ST LMi g/r/i season and the Mode0 calibration frames
-    arrive at the October re-opening.</div>
+    <h3>Gates cleared</h3>
+    <ul class="sub">
+      <li><b>Astrometry (S1):</b> batch solve complete — ST LMi 3,204/3,266 (98%), VV Pup 1,344/1,353 (99%), AN UMa 1,265/1,279 (99%), YZ Cnc 1,809/1,935 (94%)</li>
+      <li><b>Timing (S3):</b> mid-exposure BJD_TDB for every frame; clock bounded |Δt| &lt; 519 s</li>
+      <li><b>Photometry core (S4):</b> Honeycutt ensemble proven — synthetic zero-point pattern recovered to &lt;6 mmag; check stars held out of the fit</li>
+      <li><b>Staging (S0c):</b> 8,726 science frames + era-matched calibrations staged by reference</li>
+      <li><b>Detector (S2):</b> High Gain ceiling 3,496 ADU with a 3,200 ADU veto; StackPro = sum of 16 sub-reads</li>
+    </ul>
+    <h3>Still blocking</h3>
+    <ul class="sub">
+      <li>EU UMa's 8-pixel photometry strips (207 frames) can never be plate-solved — they need pointing+window geometry instead</li>
+      <li>The 2024-05 era seam in ST LMi still forces colour work to be split by era</li>
+    </ul>
+    <div class="decision"><b>Verdict:</b> this project's gating condition — the astrometry go/no-go — is cleared and executed. It is ready for production photometry and time-series analysis now.</div>
+    <p class="sub">Analysis sections appear here as they are executed: each states the question,
+    shows the plot that answers it, and records the decision carried forward. Nothing is
+    published here without a figure and a script behind it.</p>
   </div>
 </section>
 <footer>MACRO Consortium · numbers are script-emitted, never hand-edited.</footer>
