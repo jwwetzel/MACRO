@@ -16,14 +16,14 @@
     <h3>Gates cleared</h3>
     <ul class="sub">
       <li><b>Astrometry (S1):</b> batch solve complete — ST LMi 3,204/3,266 (98%), VV Pup 1,344/1,353 (99%), AN UMa 1,265/1,279 (99%), YZ Cnc 1,809/1,935 (94%)</li>
-      <li><b>Timing (S3):</b> mid-exposure BJD_TDB for every frame; clock bounded |Δt| &lt; 519 s</li>
+      <li><b>Timing (S3):</b> mid-exposure BJD_TDB for every frame; observatory clock bounded |Δt| &lt; 4,517 s (~75 min — the earlier 519 s figure omitted the ephemeris period uncertainty). StackPro frames carry a 5.67 s mid-time worst case, so sub-second timing must avoid those 20,364 frames.</li>
       <li><b>Photometry core (S4):</b> Honeycutt ensemble proven — synthetic zero-point pattern recovered to &lt;6 mmag; check stars held out of the fit</li>
-      <li><b>Staging (S0c):</b> 8,726 science frames + era-matched calibrations staged by reference</li>
-      <li><b>Detector (S2):</b> High Gain ceiling 3,496 ADU with a 3,200 ADU veto; StackPro = sum of 16 sub-reads</li>
+      <li><b>Staging (S0c):</b> 8,716 science frames + era-matched calibrations staged by reference (ten dispersed 'HaG' grism frames were removed after review found them staged as photometry)</li>
+      <li><b>Detector (S2):</b> High Gain ceiling 3,496 ADU, veto 3,200, StackPro = sum of 16 sub-reads — <b>but these constants currently have no database backing</b>: the S2 evidence tables were destroyed by an earlier manifest rebuild and the stage must be re-run before any paper cites them.</li>
     </ul>
     <h3>Still blocking</h3>
     <ul class="sub">
-      <li>EU UMa's 8-pixel photometry strips (207 frames) can never be plate-solved — they need pointing+window geometry instead</li>
+      <li><b>Corrected 2026-08-18:</b> EU UMa's 207 frames are NOT unsolvable 8-pixel strips — that geometry was a header-parsing artifact (a tile-compressed FITS reports its binary-table row length as NAXIS1). They are full 4800×3211 fields and are queued for re-solve, along with 18,381 others wrongly excluded on the same mistake.</li>
       <li>The 2024-05 era seam in ST LMi still forces colour work to be split by era</li>
     </ul>
     <div class="decision"><b>Verdict:</b> this project's gating condition — the astrometry go/no-go — is cleared and executed. It is ready for production photometry and time-series analysis now.</div>
