@@ -70,6 +70,7 @@ PIPELINE_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PIPELINE_ROOT))
 
 from macro_core import astrom, batch                       # noqa: E402
+from macro_core.batch import S1B_CODE_VERSION              # noqa: E402
 
 
 # How long to keep retrying a write that loses the race for the manifest's
@@ -104,7 +105,6 @@ def execute_resilient(con: sqlite3.Connection, sql: str, params) -> None:
             # Linear backoff: the holder is usually a bulk insert from a
             # sibling stage, which finishes in tens of seconds, not hours.
             time.sleep(WRITE_BACKOFF_S)
-from macro_core.batch import S1B_CODE_VERSION              # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Default locations (real paths, so the bare command Just Works).
@@ -567,6 +567,11 @@ def parse_args(argv=None) -> argparse.Namespace:
                    default=[], metavar="P1,P2",
                    help="restrict to these populations "
                         f"({','.join(batch.POPULATIONS)})")
+    e = sub.add_parser("enqueue",
+                       help="ADD newly-solvable frames without dropping the "
+                            "queue (non-destructive; use after an S0 rebuild)")
+    e.add_argument("--dry-run", action="store_true",
+                   help="report what would be added and change nothing")
     sub.add_parser("status", help="progress + ETA (read-only)")
     sub.add_parser("verify", help="cross-check rows vs sidecar files")
     args = p.parse_args(argv)
@@ -580,9 +585,81 @@ def parse_args(argv=None) -> argparse.Namespace:
     return args
 
 
+def cmd_enqueue(args) -> int:
+    """Add frames that have BECOME solvable, without touching finished work.
+
+    ``build --rebuild`` DROPs ``s1_batch``, which throws away every solved,
+    failed and skipped_qc verdict the batch has earned.  That is the right
+    behaviour when the queue design changes, and the wrong behaviour when
+    the frame universe merely GREW — which is exactly what the S0e geometry
+    repair did: 18k frames that the solvability gate rejected on phantom
+    8-pixel geometry are full fields and were never unsolvable.
+
+    So this subcommand is purely additive.  It recomputes the candidate
+    universe with the same pure gates, and INSERTs only those queue rows
+    whose ``obs_rowid`` is not already present, as ``pending``.  Rows
+    already in the table — finished or pending — are left exactly as they
+    are (``INSERT OR IGNORE`` on the primary key guarantees it).
+
+    Frames in no stratum are reported and NOT queued, same as ``build``:
+    nothing outside a measured stratum gets solved.  That report is the
+    point — after the S0e repair a large block of EU UMa frames lands in
+    that gap, and silently dropping them is how the artifact stayed
+    invisible the first time.
+    """
+    con = sqlite3.connect(args.manifest, timeout=60)
+    with closing(con):
+        con.execute("PRAGMA busy_timeout = 300000")
+        exists = con.execute(
+            "SELECT count(*) FROM sqlite_master "
+            "WHERE type='table' AND name='s1_batch'").fetchone()[0]
+        if not exists:
+            print("enqueue: no s1_batch table — run `build` first.")
+            return 1
+        rows = astrom.fetch_candidates(con)
+        queue = batch.build_queue_rows(rows)
+        # The residue: solvable frames that classify_stratum leaves unlabelled.
+        n_solvable = sum(1 for r in rows if astrom.is_solvable_candidate(r))
+        n_residue = n_solvable - len(queue)
+        have = {r[0] for r in con.execute("SELECT obs_rowid FROM s1_batch")}
+        fresh = [q for q in queue if q["obs_rowid"] not in have]
+        print(f"enqueue: {len(rows):,} candidates, {n_solvable:,} solvable, "
+              f"{len(queue):,} in a stratum, {len(have):,} already queued")
+        print(f"enqueue: {len(fresh):,} NEW frames to add")
+        if n_residue:
+            print(f"enqueue: WARNING — {n_residue:,} solvable frames are in "
+                  "NO stratum and will NOT be queued")
+        by_stratum = {}
+        for q in fresh:
+            by_stratum[q["stratum_id"]] = by_stratum.get(q["stratum_id"], 0) + 1
+        for sid, n in sorted(by_stratum.items(), key=lambda kv: -kv[1]):
+            print(f"    {sid:24s} +{n:,}")
+        if args.dry_run:
+            print("enqueue: --dry-run, nothing written")
+            return 0
+        if not fresh:
+            return 0
+        cols = ["obs_rowid", "stratum_id", "population", "priority",
+                "qc_gated", "path", "night", "target_key", "canonical_target",
+                "readoutm", "xbinning", "filter", "exptime",
+                "ra_hint_deg", "dec_hint_deg"]
+        con.executemany(
+            "INSERT OR IGNORE INTO s1_batch (%s) VALUES (%s)"
+            % (", ".join(cols), ",".join("?" * len(cols))),
+            [[q.get("ra_deg") if c == "ra_hint_deg" else
+              q.get("dec_deg") if c == "dec_hint_deg" else q.get(c)
+              for c in cols] for q in fresh])
+        con.commit()
+        total = con.execute("SELECT count(*) FROM s1_batch").fetchone()[0]
+        pend = con.execute("SELECT count(*) FROM s1_batch "
+                           "WHERE status='pending'").fetchone()[0]
+        print(f"enqueue: done — s1_batch now {total:,} rows, {pend:,} pending")
+    return 0
+
+
 def main(argv=None) -> int:
     args = parse_args(argv)
-    return {"build": cmd_build, "run": cmd_run,
+    return {"build": cmd_build, "run": cmd_run, "enqueue": cmd_enqueue,
             "status": cmd_status, "verify": cmd_verify}[args.command](args)
 
 
