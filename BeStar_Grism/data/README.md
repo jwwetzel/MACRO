@@ -33,7 +33,7 @@ and recovered `Calibrations/` masters alike), `match_basis =
 'era_exact'`. Staging deliberately over-includes; each stage
 narrows by kind/exposure/filter with the S0b coverage matrix as its guide.
 
-**This build (S0c v1.0 (2026-08-18) @ 2026-08-18T18:53Z):** 3,883 science rows +
+**This build (S0c v1.0 (2026-08-18) @ 2026-08-19T01:05Z):** 3,883 science rows +
 3 cone-candidate rows + 983 calibration rows.
 
 ## Columns

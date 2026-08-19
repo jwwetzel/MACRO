@@ -582,6 +582,20 @@ def write_manifest(out_path: Path, frames: pd.DataFrame, aliases: pd.DataFrame,
         # swap so the live path never exists in a locked-down state.
         os.chmod(tmp, 0o644)
         os.replace(tmp, out_path)          # the atomic swap
+        # The swap replaces the FILE, but SQLite's write-ahead log lives in
+        # sidecar files named after it.  If any process had the OLD manifest
+        # open in WAL mode, its -wal/-shm survive the rename and SQLite then
+        # replays that log against the NEW database — which on 2026-08-19
+        # produced "malformed database schema (reduced/2026-06-13/...)" and
+        # made a freshly built, internally perfect manifest unreadable.
+        # The log describes a database that no longer exists, so it must go
+        # with it.  (Its contents are not lost work: they belonged to the file
+        # this build just superseded.)
+        for sidecar in (Path(str(out_path) + "-wal"), Path(str(out_path) + "-shm")):
+            if sidecar.exists():
+                print(f"[S0] removing stale {sidecar.name} left by a previous "
+                      "reader/writer of the replaced manifest")
+                sidecar.unlink()
     finally:
         if tmp.exists():                   # only on failure paths
             tmp.unlink()

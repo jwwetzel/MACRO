@@ -781,8 +781,19 @@ def timing_precision_mc(times_d, period_d: float, depth_mag: float,
     ``sigma_mag`` at the supplied REAL timestamps of one cycle, then
     recovers the epoch by chi-square minimisation over a fine epoch grid
     with the template shape held fixed (the optimistic case: shape known
-    exactly).  The returned robust scatter (1.4826 x MAD) of recovered
-    minus true epoch is therefore a LOWER BOUND on what a real fit achieves.
+    exactly).  The returned scatter is the 68.3rd percentile of the
+    absolute epoch error — the one-sigma half-width, which is what an error
+    bar means — and it is a LOWER BOUND on what a real fit achieves.
+
+    Two details that matter, both consequences of coarse sampling.  (a) The
+    chi-square is PIECEWISE CONSTANT in the trial epoch: shifting the
+    template by less than one sampling interval usually changes no point's
+    membership of the eclipse, so whole plateaux of trial epochs tie.  The
+    estimator takes the CENTRE of the winning plateau, because ``argmin``
+    would take its left edge and manufacture a systematic bias.  (b) For the
+    same reason a percentile, not a MAD, measures the scatter: when more
+    than half the trials land exactly right the MAD is identically zero and
+    would report perfect timing from a sampling-limited measurement.
 
     The reason this is the decisive measurement for bright-phase timing:
     when the sampling interval is long compared with the ingress, the
@@ -796,22 +807,42 @@ def timing_precision_mc(times_d, period_d: float, depth_mag: float,
     if t.size < 6 or not np.isfinite(sigma_mag) or sigma_mag <= 0:
         return float("nan")
     span = t.max() - t.min()
-    # Epoch search grid: 1/400 of a period is far finer than any plausible
-    # answer, so grid granularity never limits the result.
-    grid = np.linspace(-0.5 * period_d, 0.5 * period_d, 401)
+    ingress_d = ingress_phase * period_d
+    dt_d = float(np.median(np.diff(np.sort(t)))) if t.size > 1 else ingress_d
+
+    def _best_offset(y, t0, grid):
+        """Offset minimising chi-square on one grid; plateau CENTRE."""
+        # Vectorized template bank: (n_grid, n_points).
+        bank = np.stack([eclipse_template(t, period_d, depth_mag, width_phase,
+                                          t0 + g, ingress_phase) for g in grid])
+        chi2 = np.sum((y[None, :] - bank) ** 2, axis=1)
+        tie = chi2 <= chi2.min() + 1e-12 * max(float(chi2.max()), 1.0)
+        return float(np.median(grid[tie]))
+
+    # Two-stage search.  Stage 1 sweeps the whole cycle at a quarter of the
+    # smaller of (sampling interval, ingress duration) — fine enough that no
+    # plateau is missed, coarse enough to be cheap.  Stage 2 refines around
+    # the winner 50x finer, so the GRID never sets the answer: without it a
+    # densely-sampled, high-S/N case returns exactly zero and would be
+    # reported as perfect timing.
+    step1 = max(min(dt_d, ingress_d) / 4.0, period_d / 20000.0)
+    grid1 = np.arange(-0.5 * period_d, 0.5 * period_d + step1, step1)
+    # Stage-2 step: fine enough to resolve the PHOTON-limited edge precision
+    # (an edge of duration ``ingress_d`` measured at relative depth
+    # sigma/depth locates to ~ingress_d * sigma/depth), capped so the refine
+    # grid never exceeds a few thousand points.
+    photon_scale = ingress_d * float(sigma_mag) / max(float(depth_mag), 1e-9)
+    step2 = max(min(step1 / 50.0, photon_scale / 5.0), 4.0 * step1 / 4000.0)
     errs = []
     for _ in range(n_trials):
         t0 = t.min() + span * float(rng.random())
         y = eclipse_template(t, period_d, depth_mag, width_phase, t0,
                              ingress_phase) + rng.normal(0, sigma_mag, t.size)
-        chi2 = np.array([
-            np.sum((y - eclipse_template(t, period_d, depth_mag, width_phase,
-                                         t0 + g, ingress_phase)) ** 2)
-            for g in grid])
-        errs.append(grid[int(np.argmin(chi2))])
-    e = np.asarray(errs)
-    mad = float(np.median(np.abs(e - np.median(e))))
-    return 1.4826 * mad * 86400.0
+        g1 = _best_offset(y, t0, grid1)
+        grid2 = np.arange(g1 - 2 * step1, g1 + 2 * step1 + step2, step2)
+        errs.append(_best_offset(y, t0, grid2))
+    e = np.abs(np.asarray(errs))
+    return float(np.percentile(e, 68.27)) * 86400.0
 
 
 def amin_analytic(sigma_mag: float, n_points: int, z: float = 18.0) -> float:

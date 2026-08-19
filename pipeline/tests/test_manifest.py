@@ -851,3 +851,54 @@ class TestSiblingTablePreservation:
             n_poison = con.execute(
                 "SELECT COUNT(*) FROM frames WHERE path='POISON'").fetchone()[0]
         assert n_poison == 0
+
+
+class TestStaleWalRemovedOnSwap:
+    """Regression (2026-08-19): the atomic swap left the previous database's
+    write-ahead log beside the new file, and SQLite replayed that log against
+    the new database — reporting 'malformed database schema' on a manifest
+    that was internally perfect.  Rebuilding must clear the sidecars."""
+
+    def _write(self, out):
+        frames, eras = build.build_frames(
+            pd.DataFrame([frame_row(obs_rowid=1,
+                                    path="rawimage/2024-01-01/a.fts",
+                                    jd=2460310.6)]),
+            {"T CrB": "tcrb"}, {"tcrb": "T CrB"})
+        aliases = pd.DataFrame([{"target_best": "T CrB", "target_key": "tcrb",
+                                 "canonical_target": "T CrB", "n_frames": 1,
+                                 "method": "identity",
+                                 "cone_check_passed": None}])
+        counts = pd.DataFrame([{"project": "T", "target_key": "tcrb",
+                                "metric": "unique_light", "claim_frames": 1,
+                                "claim_nights": 1, "manifest_frames": 1,
+                                "manifest_nights": 1, "source": "test"}])
+        build.write_manifest(out, frames, aliases, eras, counts, Path("cat.db"))
+
+    def test_rebuild_clears_stale_wal_and_database_stays_readable(self, tmp_path):
+        out = tmp_path / "rlmt-manifest.sqlite"
+        self._write(out)
+        # Simulate a sibling stage that had the manifest open in WAL mode and
+        # was STILL HOLDING IT when the rebuild ran — which is exactly what
+        # happened (several workflows shared the manifest).  The connection is
+        # deliberately left open: closing it cleanly checkpoints the WAL away,
+        # and it is the un-checkpointed sidecar that does the damage.
+        sibling = sqlite3.connect(out)
+        sibling.execute("PRAGMA journal_mode=WAL")
+        sibling.execute("CREATE TABLE sibling (x)")
+        sibling.execute("INSERT INTO sibling VALUES (1)")
+        sibling.commit()
+        assert Path(str(out) + "-wal").exists(), "fixture needs a live WAL"
+
+        try:
+            self._write(out)                  # the rebuild that used to corrupt
+        finally:
+            sibling.close()
+
+        assert not Path(str(out) + "-wal").exists(), "stale WAL survived the swap"
+        assert not Path(str(out) + "-shm").exists(), "stale SHM survived the swap"
+        with closing(sqlite3.connect(out)) as con:
+            assert con.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+            # And the rebuild's own content is readable, which is the symptom
+            # that was lost: the old failure raised on the first real query.
+            assert con.execute("SELECT count(*) FROM frames").fetchone()[0] == 1

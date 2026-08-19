@@ -9,9 +9,9 @@
   <p>5 projects staged &middot; 15,971 science rows
   &middot; 3 cone candidates
   &middot; 7,890 calibration rows &middot; zero frames copied
-  &middot; built 2026-08-18T18:54Z
+  &middot; built 2026-08-19T01:05Z
   (S0c v1.0 (2026-08-18),
-  commit <code>7de2b60-dirty</code>)
+  commit <code>d97c6d8-dirty</code>)
   &middot; <a href="../index.html">back to the evidence hub</a></p>
 </header>
 
@@ -79,11 +79,11 @@ and where is the claim written down so a reviewer can diff it?</p>
 <div class="grid"><figure><a href="figures/s0c/s0c_roles.png"><img src="figures/s0c/s0c_roles.png" alt=""></a><figcaption>Every staged row, by role.  Science rows are the project's published selection; calibration rows are the era-matched families that ride along.</figcaption></figure></div>
 <table class="data">
 <tr><th>project</th><th>science</th><th>cone candidates</th><th>targets</th><th>nights</th><th>span</th><th>eras</th><th>calib rows</th><th>working artifact</th></tr>
-<tr><td>BeStar_Grism</td><td>3,883</td><td>3</td><td>11</td><td>167</td><td>2024-05-19 &rarr; 2026-07-02</td><td>6</td><td>983</td><td><code>BeStar_Grism/data/stage_manifest.csv</code></td></tr>
-<tr><td>CV_TimeSeries</td><td>8,716</td><td>0</td><td>5</td><td>108</td><td>2024-01-26 &rarr; 2026-06-02</td><td>8</td><td>4,768</td><td><code>CV_TimeSeries/data/stage_manifest.csv</code></td></tr>
+<tr><td>BeStar_Grism</td><td>3,883</td><td>3</td><td>11</td><td>167</td><td>2024-05-19 &rarr; 2026-07-02</td><td>5</td><td>983</td><td><code>BeStar_Grism/data/stage_manifest.csv</code></td></tr>
+<tr><td>CV_TimeSeries</td><td>8,716</td><td>0</td><td>5</td><td>108</td><td>2024-01-26 &rarr; 2026-06-02</td><td>7</td><td>4,768</td><td><code>CV_TimeSeries/data/stage_manifest.csv</code></td></tr>
 <tr><td>DwarfGalaxy_AGN_Survey</td><td>1,196</td><td>0</td><td>21</td><td>54</td><td>2023-02-23 &rarr; 2024-06-04</td><td>3</td><td>171</td><td><code>DwarfGalaxy_AGN_Survey/data/stage_manifest.csv</code></td></tr>
-<tr><td>SN2023ixf_LightCurve</td><td>1,356</td><td>0</td><td>5</td><td>42</td><td>2023-05-04 &rarr; 2026-04-01</td><td>5</td><td>496</td><td><code>SN2023ixf_LightCurve/data/stage_manifest.csv</code></td></tr>
-<tr><td>TCrB_Monitoring</td><td>820</td><td>0</td><td>2</td><td>112</td><td>2023-05-09 &rarr; 2026-06-30</td><td>9</td><td>1,472</td><td><code>TCrB_Monitoring/data/stage_manifest.csv</code></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>1,356</td><td>0</td><td>2</td><td>42</td><td>2023-05-04 &rarr; 2026-04-01</td><td>5</td><td>496</td><td><code>SN2023ixf_LightCurve/data/stage_manifest.csv</code></td></tr>
+<tr><td>TCrB_Monitoring</td><td>820</td><td>0</td><td>2</td><td>112</td><td>2023-05-09 &rarr; 2026-06-30</td><td>8</td><td>1,472</td><td><code>TCrB_Monitoring/data/stage_manifest.csv</code></td></tr>
 </table>
 <p class="sub">Each selection rule, verbatim from the data table the build
 reads (a change to any list or filter set is a one-line reviewable diff):</p>
@@ -166,7 +166,7 @@ recovery is documented in the S0b report.</p>
 </div></section>
 <section id="reconcile">
 <div class="bhead"><h2>4 &middot; Documents vs the working set</h2>
-<span class="tag">25 of 25 published numbers reconcile</span></div>
+<span class="tag">24 of 25 published numbers reconcile</span></div>
 
 <div class="stage"><h3>Question</h3>
 <p class="sub">A manuscript quotes "30 frames/band", "20 frames",
@@ -206,7 +206,7 @@ count calibration or cone-candidate rows):</p>
 <tr><td>BeStar_Grism</td><td>HD 70340</td><td>181</td><td>181</td><td>&mdash;</td><td>30</td><td>30</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
 <tr><td>BeStar_Grism</td><td>Vega — era-A exposure ladder (2024-05-20)</td><td>80</td><td>80</td><td>&mdash;</td><td>1</td><td>1</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
 <tr><td>BeStar_Grism</td><td>Vega — era-C standard series</td><td>367</td><td>367</td><td>&mdash;</td><td>18</td><td>18</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
-<tr><td>BeStar_Grism</td><td>Vega — era-83 tier (post-doc ingest)</td><td>30</td><td>30</td><td>&mdash;</td><td>3</td><td>3</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2 (added 2026-08-18: nights the doc's table pre-dates)</td></tr>
+<tr class="warn"><td>BeStar_Grism</td><td>Vega — era-83 tier (post-doc ingest)</td><td>30</td><td>0</td><td><b>-30</b></td><td>3</td><td>0</td><td><b>-3</b></td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2 (added 2026-08-18: nights the doc's table pre-dates)</td></tr>
 </table>
 
 <h3>Decision</h3>
@@ -246,8 +246,8 @@ archive — and where can each link be audited?</p>
 <tr><td>5</td><td><code>&lt;Project&gt;/data/stage_manifest.csv</code></td><td>one CSV per project (same rows as link 4)</td><td>the working artifact — gitignored, regenerable, never a copy of pixels</td></tr>
 </table>
 <p class="sub">This build's outputs (build id
-<code>S0c v1.0 (2026-08-18) @ 2026-08-18T18:53Z</code>, commit
-<code>7de2b60-dirty</code>,
+<code>S0c v1.0 (2026-08-18) @ 2026-08-19T01:05Z</code>, commit
+<code>d97c6d8-dirty</code>,
 <code>staging.py</code> sha256
 <code>9b816f4cf384</code>):</p>
 <table class="data">
