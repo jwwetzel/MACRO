@@ -612,6 +612,57 @@ _reg(ResourceSpec(
          "if a rebuild moves a goal from SUPPORTED to NOT SUPPORTED, every "
          "page and plan that cites it is stale and `status` must say so.")))
 
+# ---- CV-S6 outputs (the catalogue tie) ------------------------------------
+# The stage that converts the CV light curves from an arbitrary internal
+# gauge to natural-system magnitudes on a catalogue zero point.  Everything
+# ABOVE it in this file measures; this one decides what a published
+# magnitude MEANS, so a stale tie is a page full of magnitudes on a zero
+# point that no longer exists.
+_reg(ResourceSpec(
+    key="db:cvphot:cv_cat_fetch", kind="db", name="cv_cat_fetch",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="catalogue, field_key",
+    columns=("catalogue", "field_key", "n_rows",
+             "coalesce(cache_sha256,'')"),
+    why=("WHICH catalogue rows the tie was solved against, identified by "
+         "the sha256 of the cached pull rather than by its date.  A "
+         "re-pull that returns the same bytes is not a change; a re-pull "
+         "that returns different bytes changes every zero point "
+         "downstream, and the date alone could not tell the two apart.")))
+_reg(ResourceSpec(
+    key="db:cvphot:cv_cat_astrom", kind="db", name="cv_cat_astrom",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="catalogue, target_key, era_id",
+    columns=("catalogue", "target_key", "era_id",
+             "printf('%.3f', coalesce(dra_arcsec, -999))",
+             "printf('%.3f', coalesce(ddec_arcsec, -999))",
+             "coalesce(applied, -1)"),
+    why=("The astrometric zero point measured for each block against the "
+         "catalogue, and whether it was REMOVED.  Load-bearing because it "
+         "changes which catalogue source each comparison star is matched "
+         "to: EU UMa era 78 sat 5.2 arcsec away, matched nothing, and was "
+         "published as untieable until this was measured.  A rebuild that "
+         "starts or stops applying an offset changes the tie stars, hence "
+         "the zero point, hence every absolute magnitude of that block, "
+         "while leaving the row count identical.")))
+_reg(ResourceSpec(
+    key="db:cvphot:cv_cattie", kind="db", name="cv_cattie",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="series_key, catalogue, band",
+    columns=("series_key", "catalogue", "band",
+             "printf('%.6f', coalesce(zp, -999))",
+             "printf('%.6f', coalesce(colour_term, -999))",
+             "coalesce(verdict,'')"),
+    why=("The zero point, the colour term and the verdict per block — the "
+         "three numbers that decide what a published magnitude is and "
+         "whether it may be published at all.  Hashed, not counted: a "
+         "re-solve that moves a zero point by 30 mmag leaves the row "
+         "count identical and invalidates every absolute magnitude, every "
+         "cross-survey comparison and the duty-cycle goal that depends on "
+         "them.  n_fit and the check statistics are deliberately LEFT OUT "
+         "— they are diagnostics of the same fit, and a changed fit "
+         "always moves zp or colour_term first.")))
+
 # ---- G outputs ------------------------------------------------------------
 _reg(_t(
     "table:g_extractions", "g_extractions", "obs_rowid, method",
@@ -655,6 +706,18 @@ _f("file:docs/CV_TimeSeries/cv_characterization.html",
    "CV-S5 characterization page: measured image quality, noise floor, "
    "spectral window, detectability contours, epoch precision, and the "
    "goal-by-goal verdict on ANALYSIS_STRATEGY.md.  Whole-file hash.")
+_f("file:docs/CV_TimeSeries/cv_catalogue_tie.html",
+   "docs/CV_TimeSeries/cv_catalogue_tie.html",
+   "CV-S6 catalogue-tie page: which catalogue, which stars carried the tie, "
+   "the zero point and colour term per block, the accuracy achieved on "
+   "independent check stars, the cross-catalogue systematic, and the list "
+   "of blocks left RELATIVE with the reason for each.  Whole-file hash — "
+   "every byte of a published page is the claim.")
+_f("file:pipeline/macro_phot/cattie.py", "pipeline/macro_phot/cattie.py",
+   "The catalogue-tie arithmetic: the cleanliness gate, the robust "
+   "ZP + colour-term fit, the colour-range rules and every verdict "
+   "threshold.  A change here changes what a published magnitude is, so it "
+   "is an INPUT to the tie stage and to its page.")
 _f("file:pipeline/macro_phot/characterize.py",
    "pipeline/macro_phot/characterize.py",
    "The pure characterization arithmetic: the detector constants quoted from "
@@ -978,6 +1041,38 @@ STAGES: tuple[Stage, ...] = (
              "from this product every time it is rebuilt, so a stale "
              "characterization is a stale set of verdicts."),
     Stage(
+        key="CV-S6", title="CV catalogue tie (relative magnitudes -> "
+                           "natural-system magnitudes on a standard zero "
+                           "point)",
+        code_version="CATTIE_CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_cattie.py",
+        version_symbol="CATTIE_CODE_VERSION",
+        # Reads the CV photometry product (the ensemble magnitudes it ties,
+        # and the frame census that supplies the saturation veto), plus the
+        # pure module whose constants set every veto, every tolerance and
+        # every verdict threshold.  It also reads two external catalogues,
+        # whose identity is declared as its OWN output (cv_cat_fetch) rather
+        # than as an input: they are not files in this repo, and the cached
+        # pull with its sha256 IS the reproducible record of what was read.
+        reads=("db:cvphot:cv_selection", "db:cvphot:cv_frames",
+               "file:pipeline/macro_phot/cattie.py"),
+        writes=("db:cvphot:cv_cat_fetch", "db:cvphot:cv_cat_astrom",
+                "db:cvphot:cv_cattie"),
+        meta_table="cv_cat_meta",
+        meta_version_key="cattie_code_version",
+        build_cmd=("python pipeline/scripts/run_cv_cattie.py fieldfix\n"
+                   "python pipeline/scripts/run_cv_cattie.py fetch\n"
+                   "python pipeline/scripts/run_cv_cattie.py match\n"
+                   "python pipeline/scripts/run_cv_cattie.py solve\n"
+                   "python pipeline/scripts/run_cv_cattie.py validate\n"
+                   "python pipeline/scripts/run_cv_cattie.py apply"),
+        note="Writes ONE new column on cv_lightcurve (cal_mag) beside the "
+             "untouched relative magnitude, and leaves it NULL for every "
+             "block it could not tie honestly.  `fetch` caches each "
+             "catalogue pull under products/phot/catalogue_cache/ with its "
+             "query text and sha256 and never re-pulls silently, so a "
+             "re-run is reproducible without the archive being reachable."),
+    Stage(
         key="G", title="Grism extraction + identity gate (T CrB)",
         code_version="G_CODE_VERSION",
         reads=("table:frames@grism", "table:eras", "table:calib_frames"),
@@ -1075,6 +1170,15 @@ STAGES: tuple[Stage, ...] = (
                "file:pipeline/macro_phot/characterize.py"),
         writes=("file:docs/CV_TimeSeries/cv_characterization.html",),
         build_cmd="python pipeline/scripts/run_cv_characterization.py report"),
+    Stage(
+        key="R-CV-S6", title="Report: CV catalogue-tie + calibration page",
+        code_version="CATTIE_CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_cattie.py",
+        version_symbol="CATTIE_CODE_VERSION",
+        reads=("db:cvphot:cv_cattie", "db:cvphot:cv_cat_fetch",
+               "file:pipeline/macro_phot/cattie.py"),
+        writes=("file:docs/CV_TimeSeries/cv_catalogue_tie.html",),
+        build_cmd="python pipeline/scripts/run_cv_cattie.py report"),
     # ---- human-authored artifacts, declared so they cannot hide ------------
     Stage(
         key="OPS", title="Observatory request (October shopping list)",

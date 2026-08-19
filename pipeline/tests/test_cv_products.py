@@ -336,3 +336,185 @@ class TestVerdictsRestOnTheirOwnEstimands:
         assert "misidentification rate" in num
         assert char.execute(
             "SELECT count(*) FROM ch_alias_confusion").fetchone()[0] > 0
+
+
+# ---------------------------------------------------------------------------
+# The catalogue tie (CV-S6), after the 2026-08-19 review
+#
+# These check the PRODUCT, not the arithmetic.  Every defect below was found
+# by running the stage against the real database and comparing what it
+# published against what the tables underneath it say.
+# ---------------------------------------------------------------------------
+class TestCatalogueTie:
+
+    def _skip(self, phot):
+        if not _has(phot, "cv_cattie"):
+            pytest.skip("catalogue tie not built in this checkout")
+
+    def test_the_tie_table_carries_the_columns_the_report_reads(self, phot):
+        """The report indexes ``cv_cattie`` by NAME, and the table grew two
+        columns after it first shipped.  A database built by the older code
+        must be migrated, not silently read short."""
+        self._skip(phot)
+        from macro_phot.report_cattie import TIE_COLS
+        have = {r[1] for r in phot.execute("PRAGMA table_info(cv_cattie)")}
+        for name in TIE_COLS:
+            assert name in have, f"cv_cattie is missing {name!r}"
+
+    def test_a_target_colour_exists_only_where_epochs_were_shared(self, phot):
+        """THE defect: a variable target's colour was formed by differencing
+        two campaign means, so VV Pup era 76 was published at g-r = -1.73
+        when its shared-epoch colour is +0.04.  A colour may now be quoted
+        only where enough near-simultaneous pairs exist to support it."""
+        self._skip(phot)
+        from macro_phot import cattie as ct
+        rows = phot.execute(
+            "SELECT series_key, target_colour, colour_position, "
+            "n_colour_pairs FROM cv_cattie WHERE is_primary=1").fetchall()
+        assert rows, "no primary tie rows"
+        for skey, colour, pos, npair in rows:
+            if colour is not None and math.isfinite(colour):
+                assert (npair or 0) >= ct.MIN_COLOUR_PAIRS, (
+                    f"{skey} quotes a colour from {npair} epoch pairs")
+                assert pos != "unknown", skey
+            else:
+                assert pos == "unknown", (
+                    f"{skey} has no colour but is placed as {pos!r}")
+
+    def test_an_unplaceable_target_is_charged_no_extrapolation(self, phot):
+        """'unknown' must not be quietly costed as if it were inside the
+        range: an unmeasured colour bounds nothing."""
+        self._skip(phot)
+        for skey, extrap in phot.execute(
+                "SELECT series_key, extrap_err FROM cv_cattie "
+                "WHERE is_primary=1 AND colour_position='unknown'"):
+            assert extrap is None, f"{skey} carries an extrapolation charge"
+
+    def test_every_matched_block_has_a_measured_astrometric_offset(self, phot):
+        """A block whose displacement from the catalogue was never measured
+        is indistinguishable, in the product, from one measured and found
+        clean.  Both must be rows."""
+        self._skip(phot)
+        if not _has(phot, "cv_cat_astrom"):
+            pytest.skip("astrometry census not built")
+        blocks = {(r[0], r[1]) for r in phot.execute(
+            "SELECT DISTINCT target_key, era_id FROM cv_cat_match "
+            "WHERE catalogue='refcat2'")}
+        seen = {(r[0], r[1]) for r in phot.execute(
+            "SELECT target_key, era_id FROM cv_cat_astrom "
+            "WHERE catalogue='refcat2'")}
+        assert blocks <= seen, f"unmeasured blocks: {sorted(blocks - seen)}"
+
+    def test_a_removed_offset_actually_recovered_matches(self, phot):
+        """EU UMa era 78 sat 5.2 arcsec from the catalogue, coherently, and
+        was reported untieable for 'bad astrometry'.  Any offset this stage
+        removes must be justified by the matches it brings back — a
+        correction that changed nothing was noise."""
+        self._skip(phot)
+        if not _has(phot, "cv_cat_astrom"):
+            pytest.skip("astrometry census not built")
+        rows = phot.execute(
+            "SELECT target_key, era_id, n_match_before, n_match_after, "
+            "scatter_arcsec, offset_arcsec FROM cv_cat_astrom "
+            "WHERE applied=1").fetchall()
+        for tk, era, before, after, scat, size in rows:
+            assert after > before, f"{tk} e{era}: offset changed nothing"
+            assert size > scat, f"{tk} e{era}: offset is smaller than its own scatter"
+
+    def test_no_fitted_tie_star_is_blended_in_its_own_band(self, phot):
+        """Ruling 4, checked in the band that was actually tied rather than
+        in the census currency.  46 equal-brightness close pairs survived
+        into the VV Pup fits while the veto was read in Gaia G."""
+        self._skip(phot)
+        import gzip
+        import json
+        import numpy as np
+        from macro_phot import cattie as ct
+        # VV Pup: the crowded field the defect lived in, and the only one
+        # where the two readings disagree often enough to be a test.
+        cache = (REPO_ROOT / "products" / "phot" / "catalogue_cache"
+                 / "refcat2" / "vvpup.json.gz")
+        if not cache.exists():
+            pytest.skip("catalogue cache not present in this checkout")
+        with gzip.open(cache, "rt") as fh:
+            cols = json.load(fh)["columns"]
+        cra = np.asarray(cols["ra"], dtype=float)
+        cdec = np.asarray(cols["dec"], dtype=float)
+        cosd = float(np.cos(np.radians(np.median(cdec))))
+        offenders = 0
+        for band in ("gmag", "rmag", "imag"):
+            cm = np.asarray(cols[band], dtype=float)
+            rows = phot.execute("""
+                SELECT DISTINCT m.cat_row FROM cv_cattie_star s
+                JOIN cv_cattie c ON c.series_key=s.series_key
+                 AND c.catalogue=s.catalogue AND c.band=s.band
+                JOIN cv_cat_match m ON m.catalogue=s.catalogue
+                 AND m.target_key=c.target_key AND m.era_id=c.era_id
+                 AND m.star_id=s.star_id
+                WHERE c.is_primary=1 AND s.in_fit=1
+                  AND c.target_key='vvpup' AND c.band=?""", (band,)).fetchall()
+            for (j,) in rows:
+                d = np.hypot((cra - cra[j]) * cosd, cdec - cdec[j]) * 3600.0
+                d[j] = np.inf
+                near = d < ct.BLEND_APERTURE_ARCSEC
+                if near.any() and float(np.nanmin(cm[near] - cm[j])) \
+                        < ct.BLEND_DMAG:
+                    offenders += 1
+        assert offenders == 0, (
+            f"{offenders} fitted VV Pup tie stars have a catalogue neighbour "
+            f"inside {ct.BLEND_APERTURE_ARCSEC:g}\" and within "
+            f"{ct.BLEND_DMAG:g} mag IN THE TIE BAND — the veto is being "
+            f"taken in the wrong band again")
+        # ...and the census must record that the gate was read in the tie
+        # band at all, so a silent revert cannot pass the check above by
+        # accident on a quieter build.
+        assert phot.execute(
+            "SELECT count(*) FROM cv_cattie_veto "
+            "WHERE reason='blend_aperture_tieband'").fetchone()[0] > 0
+
+    def test_the_calibrated_column_never_carries_a_colour_transformation(
+            self, phot):
+        """Ruling 1.  cal_mag must be exactly mag - ZP0 for every row of
+        every tied series; a colour term anywhere in that column would be a
+        transformation applied to blue, variable targets."""
+        self._skip(phot)
+        for skey, zp in phot.execute(
+                "SELECT series_key, zp FROM cv_cattie WHERE is_primary=1 "
+                "AND verdict LIKE 'TIED%'"):
+            worst = phot.execute(
+                "SELECT max(abs(cal_mag - (mag - ?))) FROM cv_lightcurve "
+                "WHERE series_key=? AND cal_mag IS NOT NULL", (zp, skey)
+            ).fetchone()[0]
+            if worst is not None:
+                assert worst < 1e-6, f"{skey}: cal_mag is not mag - ZP0"
+
+    def test_the_per_star_table_agrees_with_the_fit_it_describes(self, phot):
+        """A shipped bug: ``cv_cattie_star`` was upserted and never cleared,
+        so a star the gate STARTED rejecting kept its previous row — with
+        in_fit=1 — while the fit beside it had correctly dropped it.  The
+        fit was right and the table published something else, which is the
+        worse of the two failures because audits read the table."""
+        self._skip(phot)
+        for skey, cat, band, n_clean, n_fit in phot.execute(
+                "SELECT series_key, catalogue, band, n_clean, n_fit "
+                "FROM cv_cattie"):
+            rows, fitted = phot.execute(
+                "SELECT count(*), sum(in_fit) FROM cv_cattie_star "
+                "WHERE series_key=? AND catalogue=? AND band=?",
+                (skey, cat, band)).fetchone()
+            assert rows == n_clean, (
+                f"{skey}/{band}: {rows} per-star rows against n_clean="
+                f"{n_clean}")
+            assert (fitted or 0) == n_fit, (
+                f"{skey}/{band}: {fitted} rows marked in_fit against n_fit="
+                f"{n_fit}")
+
+    def test_no_orphan_tie_rows_survive_a_rerun(self, phot):
+        """Every tie row must belong to a series that is currently solved."""
+        self._skip(phot)
+        for tab in ("cv_cattie", "cv_cattie_star", "cv_cattie_veto"):
+            n = phot.execute(
+                f"""SELECT count(*) FROM {tab} WHERE series_key NOT IN
+                    (SELECT series_key FROM cv_series WHERE status='solved')"""
+            ).fetchone()[0]
+            assert n == 0, f"{tab} carries {n} orphan rows"

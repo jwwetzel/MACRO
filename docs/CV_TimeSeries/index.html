@@ -47,7 +47,7 @@ table.data td.tight{white-space:nowrap}
 
 <header>
   <h1>Cataclysmic-Variable Time Series — Plan &amp; Progress</h1>
-  <p>5 of 33 plan tasks complete (7 need redoing, 4 blocked)
+  <p>6 of 34 plan tasks complete (7 need redoing, 4 blocked)
   &middot; ApJ (AASTeX 7 skeleton in manuscripts/CV_TimeSeries/main.tex)<br>
   Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a> &middot; <a href="../index.html">&larr; all reports</a></p>
 </header>
@@ -74,11 +74,11 @@ table.data td.tight{white-space:nowrap}
 
 <section id="progress">
 <div class="bhead"><h2>Progress at a glance</h2>
-<span class="tag">5 of 33 plan tasks complete</span></div>
+<span class="tag">6 of 34 plan tasks complete</span></div>
 <div class="stage">
-<div class="bar"><span class="done" style="width:15.1515%"></span><span class="in_progress" style="width:6.0606%"></span><span class="redo_needed" style="width:21.2121%"></span><span class="blocked" style="width:12.1212%"></span><span class="pending" style="width:45.4545%"></span></div>
-<p class="legend"><b>5</b> done &middot; <b>2</b> in progress &middot; <b>7</b> redo needed &middot; <b>4</b> blocked &middot; <b>15</b> pending</p>
-<div class="stats"><div class="stat"><span class="n">5/33</span><span class="k">plan tasks complete</span></div><div class="stat"><span class="n">8,716</span><span class="k">staged science frames</span></div><div class="stat"><span class="n">108</span><span class="k">nights</span></div><div class="stat"><span class="n">5</span><span class="k">catalog target names</span></div><div class="stat"><span class="n">95%</span><span class="k">carry a WCS (8,292/8,716)</span></div><div class="stat"><span class="n">100%</span><span class="k">carry BJD_TDB (8,716/8,716)</span></div><div class="stat"><span class="n">4,768</span><span class="k">era-matched calibration rows</span></div><div class="stat"><span class="n">7</span><span class="k">camera eras spanned</span></div></div>
+<div class="bar"><span class="done" style="width:17.6471%"></span><span class="in_progress" style="width:5.8824%"></span><span class="redo_needed" style="width:20.5882%"></span><span class="blocked" style="width:11.7647%"></span><span class="pending" style="width:44.1176%"></span></div>
+<p class="legend"><b>6</b> done &middot; <b>2</b> in progress &middot; <b>7</b> redo needed &middot; <b>4</b> blocked &middot; <b>15</b> pending</p>
+<div class="stats"><div class="stat"><span class="n">6/34</span><span class="k">plan tasks complete</span></div><div class="stat"><span class="n">8,716</span><span class="k">staged science frames</span></div><div class="stat"><span class="n">108</span><span class="k">nights</span></div><div class="stat"><span class="n">5</span><span class="k">catalog target names</span></div><div class="stat"><span class="n">95%</span><span class="k">carry a WCS (8,292/8,716)</span></div><div class="stat"><span class="n">100%</span><span class="k">carry BJD_TDB (8,716/8,716)</span></div><div class="stat"><span class="n">4,768</span><span class="k">era-matched calibration rows</span></div><div class="stat"><span class="n">7</span><span class="k">camera eras spanned</span></div></div>
 <p class="sub">Every row is counted from <code>stage_cv_timeseries</code> at render time — the project's actual working set, not a number transcribed from a strategy document. Each row is one <code>canonical_target</code> STRING, which is not the same as one object.</p><table class="data">
 <tr><th>Target</th><th>Staged science frames</th><th>Nights</th><th>With WCS</th><th>With BJD_TDB</th></tr>
 <tr><td>ST LMi</td><td>3,249</td><td>41</td><td>3,204 (99%)</td><td>3,249 (100%)</td></tr>
@@ -108,7 +108,7 @@ table.data td.tight{white-space:nowrap}
 
 <section id="plan">
 <div class="bhead"><h2>The plan</h2>
-<span class="tag">33 tasks in 7 phases</span></div>
+<span class="tag">34 tasks in 7 phases</span></div>
 <div class="stage">
 <p class="sub">Every task below was read out of the project's execution
 order — derived from <a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> — and names the pipeline stage its result rests on. That
@@ -170,6 +170,7 @@ reason attached.</p>
 <tr class="warn"><td><span class="chip done">done</span></td><td><b>Production photometry: YZ Cnc</b><br><code>CV-P2-yzcnc</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §9 execution order</span></td><td>Calibrated light curves for the dense 2024 blocks, every outburst-night frame saturation-audited.</td><td><code>CV-S4</code> &mdash;</td><td><code>CV_TimeSeries/cv_characterization.html</code></td></tr>
 <tr><td><span class="chip pending">pending</span></td><td><b>Ensemble-flux-ratio cloud veto</b><br><code>CV-P2-cloud-veto</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 2 step 11</span></td><td>A primary frame-quality veto that works without zmag — which does not exist for the polar Sloan era.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
 <tr><td><span class="chip pending">pending</span></td><td><b>Second-order colour-extinction terms</b><br><code>CV-P2-extinction</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 2 step 12</span></td><td>k″·(g−r)·X solved inside the ensemble, per camera for VV Pup (X ≥ 1.57 always).</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
+<tr><td><span class="chip done">done</span></td><td><b>Tie the ensembles to ATLAS-REFCAT2</b><br><code>CV-P2-cattie</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 2 step 9</span></td><td>Zero point and colour term per (target, era, filter) solved on comparison stars, validated on held-out stars; natural-system magnitudes published, the CV itself never transformed.</td><td><code>CV-S6</code> <a href="../CV_TimeSeries/cv_catalogue_tie.html">cv_catalogue_tie.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><code>CV_TimeSeries/cv_catalogue_tie.html</code></td></tr>
 <tr><td><span class="chip pending">pending</span></td><td><b>Cross-era discipline and transformation metadata</b><br><code>CV-P2-cross-era</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 2 step 13</span></td><td>G/R/I → g/r/i coefficients ±σ published as data-release metadata; the CV itself never transformed.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
 <tr><td><span class="chip pending">pending</span></td><td><b>Faint-phase forced photometry and upper limits</b><br><code>CV-P2-faint-limits</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 2 step 14</span></td><td>Uncensored state statistics: forced photometry at the solved position, limits for non-detections.</td><td><code>CV-S4</code> &mdash;</td><td>&mdash;</td></tr>
 </table>
@@ -228,7 +229,7 @@ edited by hand.</p>
 
 <section id="evidence">
 <div class="bhead"><h2>Evidence</h2>
-<span class="tag">8 of 8 stages are not FRESH</span></div>
+<span class="tag">9 of 9 stages are not FRESH</span></div>
 <div class="stage">
 <p class="sub">The pipeline stages this project's plan rests on, each with
 the verdict <code>macro_core.provenance</code> returns right now.
@@ -244,13 +245,14 @@ database at all. A reader is never invited to trust an orphaned report.</p>
 <tr class="warn"><td><code>S2</code></td><td>Detector truth (ceiling, PTC, recon, linearity)</td><td><span class="chip v-gone">DESTROYED</span></td><td><a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-gone">DESTROYED</span></td><td>it ran and its declared output(s) are now absent from the database: detector_params, s2_ceiling_modes, s2_linearity_ladders, s2_ptc_fits, s2_recon_eras</td></tr>
 <tr class="warn"><td><code>S3</code></td><td>Timing (BJD_TDB, clock, cadence)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-stale">STALE</span></td><td>input table:eras: content changed (84 rows, digest 34e7c8d1c2cde7b6 -&gt; 92ac7bba3062f54c)</td></tr>
 <tr class="warn"><td><code>CV-S4</code></td><td>Production CV photometry (five staged targets)</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>input table:detector_params is ABSENT — the evidence this stage was built from no longer exists</td></tr>
+<tr class="warn"><td><code>CV-S6</code></td><td>CV catalogue tie (relative magnitudes -&gt; natural-system magnitudes on a standard zero point)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../CV_TimeSeries/cv_catalogue_tie.html">cv_catalogue_tie.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: CV-S4 (STALE) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
 <tr class="warn"><td><code>S4</code></td><td>Ensemble photometry (AN UMa / VV Pup prototype)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>input table:detector_params is ABSENT — the evidence this stage was built from no longer exists</td></tr>
 </table>
 <div class="unbacked"><b>Constants with no query behind them.</b> These tables are absent from the manifest right now: <code>detector_params, s1_failure_autopsy, s1_populations, s1_solve_experiment, s1_strata, s2_ceiling_modes, s2_linearity_ladders, s2_ptc_fits, s2_recon_eras</code>. Every detector number this project would otherwise quote — a saturation ceiling, a veto threshold, a StackPro sub-read count, a read noise — lived in them. Until the producing stage re-runs, those values are <b>unbacked prose</b>, not measurements.<br><br><b>No page in this plan quotes them</b> — and that is the limit of what this panel can promise. The stage reports linked above are a different matter: they were rendered while the tables still existed and still print those constants as measured values, because nothing has re-rendered them since the wipe. That is why every link to a report whose stage is not FRESH now carries its verdict beside it. Treat an orphaned report as a historical document, not a reference.</div>
 </div>
 </section>
 
-<footer>Generated 2026-08-19T03:08:15Z by
+<footer>Generated 2026-08-19T05:45:26Z by
 <code>macro_core.report_projects</code> from the plan ledger in
 <code>macro_core.project_plan</code> (PLAN v1.0 (2026-08-18)), the
 progress recorded in <code>project_plan_status</code>, and live queries

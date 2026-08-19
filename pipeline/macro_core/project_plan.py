@@ -490,6 +490,20 @@ CV_TIMESERIES = Project(
                        "k″·(g−r)·X solved inside the ensemble, per camera "
                        "for VV Pup (X ≥ 1.57 always).",
                        "CV-S4", _cv_src("§4 Phase 2 step 12"), PENDING),
+                  # Added 2026-08-19.  The ledger was derived before this
+                  # work existed, but the strategy has always carried the
+                  # goal: §4 step 9 ends "Tie the ensemble zero point to
+                  # REFCAT2 g,r,i per night -> PS1 AB system to ~0.01-0.02
+                  # mag absolute", and §5's table row "Absolute calibration"
+                  # repeats it.  Without a task, completed work had nowhere
+                  # to be recorded and the page under-reported the project.
+                  Task("CV-P2-cattie",
+                       "Tie the ensembles to ATLAS-REFCAT2",
+                       "Zero point and colour term per (target, era, filter) "
+                       "solved on comparison stars, validated on held-out "
+                       "stars; natural-system magnitudes published, the CV "
+                       "itself never transformed.",
+                       "CV-S6", _cv_src("§4 Phase 2 step 9"), PENDING),
                   Task("CV-P2-cross-era",
                        "Cross-era discipline and transformation metadata",
                        "G/R/I → g/r/i coefficients ±σ published as data-"
