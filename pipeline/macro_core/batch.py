@@ -52,6 +52,13 @@ S1_VERDICTS: dict[str, str] = {
     "cv_mode0_sloan_long":  "GO",        # 48/48, 100% [93-100]
     "cv_ikon_sloan":        "GO",        # 48/48, 100% [93-100]
     "cv_gsense_misc":       "CAUTION",   # census 25/40 = 62.5%
+    # No census was ever run on this stratum: it did not exist until the
+    # S0e geometry repair made its frames visible, so there is no measured
+    # solve rate to quote.  CAUTION is the honest placeholder — a spot check
+    # solved 3 of 3 in ~3 s at ~1.4" RMS, which is encouraging and is not a
+    # census.  It must be re-verdicted from the batch's own results once
+    # enough of these frames have finished.
+    "cv_fast_fullframe":    "CAUTION",   # NO CENSUS — see note above
     "sn_gsense_broadband":  "NO-GO",     # 22/48, 46% [33-60]
     "dwarf_gsense_deep":    "CAUTION",   # 42/48, 88% [75-94]
     "mode0_backlog_short":  "GO",        # 48/48, 100% [93-100]
@@ -70,6 +77,10 @@ PRIOR_MEDIAN_S: dict[str, float] = {
     "cv_mode0_sloan_long":  4.6,
     "cv_ikon_sloan":        1.7,
     "cv_gsense_misc":       5.0,
+    # Borrowed from fast_fullframe: same camera, same readout mode, same
+    # 4800x3211 geometry — only the target list differs.  It is a prior, and
+    # the live median replaces it after MIN_FRAMES_FOR_LIVE_MEDIAN frames.
+    "cv_fast_fullframe":    4.1,
     "sn_gsense_broadband":  5.0,
     "dwarf_gsense_deep":    6.6,
     "mode0_backlog_short":  3.9,
@@ -116,16 +127,31 @@ STRATUM_POLICY: tuple[StratumPolicy, ...] = (
     StratumPolicy("cv_mode0_sloan_long",  POP_CV, 2, False),
     StratumPolicy("cv_ikon_sloan",        POP_CV, 3, False),
     StratumPolicy("cv_gsense_misc",       POP_CV, 4, True),
+    # EU UMa's fast-readout season, recovered by the S0e geometry repair.
+    # It takes a rank INSIDE the CV band, because the mandate is that the
+    # paper-gating population lands first and these are paper-gating frames
+    # the CV project had written off entirely.  QC-gated like every other
+    # newly-characterised config: nothing is yet known about this stratum's
+    # star counts or focus quality.
+    StratumPolicy("cv_fast_fullframe",    POP_CV, 5, True),
     # -- Dwarf/AGN deep fields ------------------------------------------
-    StratumPolicy("dwarf_gsense_deep",    POP_DWARF, 5, True),
+    StratumPolicy("dwarf_gsense_deep",    POP_DWARF, 6, True),
     # -- SN 2023ixf: NO-GO as a raw batch, viable as a filtered batch ---
-    StratumPolicy("sn_gsense_broadband",  POP_SN, 6, True),
+    StratumPolicy("sn_gsense_broadband",  POP_SN, 7, True),
     # -- Facility backlog: the bulk ------------------------------------
-    StratumPolicy("mode0_backlog_short",  POP_FACILITY, 7, False),
-    StratumPolicy("mode0_backlog_long",   POP_FACILITY, 8, False),
-    StratumPolicy("ikon_backlog",         POP_FACILITY, 9, False),
-    StratumPolicy("fast_fullframe",       POP_FACILITY, 10, True),
+    StratumPolicy("mode0_backlog_short",  POP_FACILITY, 8, False),
+    StratumPolicy("mode0_backlog_long",   POP_FACILITY, 9, False),
+    StratumPolicy("ikon_backlog",         POP_FACILITY, 10, False),
+    StratumPolicy("fast_fullframe",       POP_FACILITY, 11, True),
 )
+# NOTE on renumbering.  Inserting a rank shifted every policy below it, and
+# ``s1_batch`` STORES the rank on each row — so rows queued before this
+# change carry the old numbers, and the queue would order two frames of the
+# same stratum inconsistently depending on when each was enqueued.  That is
+# why ``run_s1_batch.py enqueue`` re-syncs the stored priority, population
+# and gating of every row from this table on each run.  Those three columns
+# are derived ordering metadata, not results: re-deriving them is safe, and
+# leaving them stale is not.
 
 #: Fast lookup: stratum_id → its policy row.
 POLICY_BY_STRATUM: dict[str, StratumPolicy] = {
@@ -159,6 +185,41 @@ def allowed_transition(old: str, new: str) -> bool:
 # --------------------------------------------------------------------------
 # Queue construction (pure: candidate row dicts in, ordered queue out)
 # --------------------------------------------------------------------------
+
+def policy_drift(stored: Sequence[dict],
+                 queue: Sequence[dict]) -> list[dict]:
+    """Rows whose STORED ordering metadata disagrees with the policy table.
+
+    ``s1_batch`` records ``priority``, ``population`` and ``qc_gated`` on
+    every row at the moment it is enqueued.  Adding a stratum renumbers the
+    ranks below it, so rows queued before the change keep the old numbers and
+    rows queued after get the new ones — and then two frames of the SAME
+    stratum sort differently for no reason but their enqueue date.  The queue
+    order silently stops being a function of the policy.
+
+    This returns the rows that need re-deriving.  Only these three columns
+    are ever re-derived: they are ordering metadata, not results.  A solved
+    frame's WCS, status and timings are none of this function's business.
+
+    ``stored`` rows need keys ``obs_rowid, population, priority, qc_gated``;
+    ``queue`` is the output of :func:`build_queue_rows`.  Rows absent from
+    the queue (a stratum that no longer exists) are left alone rather than
+    guessed at.
+    """
+    by_id = {q["obs_rowid"]: q for q in queue}
+    out = []
+    for row in stored:
+        want = by_id.get(row["obs_rowid"])
+        if want is None:
+            continue
+        if (want["priority"], want["population"], bool(want["qc_gated"])) != (
+                row["priority"], row["population"], bool(row["qc_gated"])):
+            out.append({"obs_rowid": row["obs_rowid"],
+                        "priority": want["priority"],
+                        "population": want["population"],
+                        "qc_gated": want["qc_gated"]})
+    return out
+
 
 def build_queue_rows(candidates: Sequence[dict]) -> list[dict]:
     """Classify candidate frames and return the batch queue, in order.

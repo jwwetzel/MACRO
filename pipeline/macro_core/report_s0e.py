@@ -263,6 +263,14 @@ fallback read the raw table header. The scanner now merges cards
 def section_blast(cat) -> str:
     n_changed = q1(cat, "SELECT count(*) FROM geom_rescan WHERE changed = 1")
     n_control = q1(cat, "SELECT count(*) FROM geom_rescan WHERE changed = 0")
+    # The control group's evidentiary value rests entirely on these two
+    # counts matching n_control: the rows that did NOT change must be
+    # compressed files too, or they prove only the trivial case.  Rendered,
+    # not asserted — an earlier draft asserted the opposite in prose.
+    n_ctrl_comp = q1(cat, "SELECT count(*) FROM geom_rescan "
+                          "WHERE changed = 0 AND compressed = 1")
+    n_ctrl_fz = q1(cat, "SELECT count(*) FROM geom_rescan "
+                        "WHERE changed = 0 AND path LIKE '%.fz'")
     n_err = q1(cat, "SELECT count(*) FROM geom_rescan WHERE error IS NOT NULL")
     n_left = q1(cat, "SELECT count(*) FROM obs WHERE naxis1 = 8 AND naxis2 = 3211")
     src = fig_blast(cat)
@@ -310,10 +318,33 @@ re-read from the archive. The change matrix:</p>
 {matrix}
 <p class="sub"><strong>{fmt(n_changed)}</strong> rows carried phantom
 geometry and were repaired. <strong>{fmt(n_control)}</strong> rows were
-genuinely small &mdash; Andor iKon focus and guide windows, uncompressed
-&mdash; and came back byte-identical. That control group is the proof the
-repair was surgical: it was included in the re-scan on purpose.
-{fmt(n_err)} rows failed to read. {fmt(n_left)} phantom rows remain.</p>
+genuinely small &mdash; Andor iKon focus and guide windows &mdash; and came
+back byte-identical. {fmt(n_err)} rows failed to read.
+{fmt(n_left)} phantom rows remain.</p>
+
+<p class="sub"><strong>Why that control group is evidence, and not a
+tautology.</strong> Every one of those {fmt(n_control)} files is itself
+<em>tile-compressed</em> &mdash; {fmt(n_ctrl_fz)} of {fmt(n_control)} are
+<code>.fts.fz</code>, and {fmt(n_ctrl_comp)} of {fmt(n_control)} carry
+<code>ZIMAGE</code> in their headers. So each
+one presents the resolver with the identical trap: a BINTABLE
+<code>NAXIS1</code> of 8 sitting right next to the real dimensions, in the
+same container, through the same <code>Z*</code> machinery that produced the
+phantom. The difference is only in the answer &mdash; here
+<code>ZNAXIS1</code> genuinely reads 45, 56 or 57, and the frame really is a
+tiny focus window. Two small numbers in one header, and the repair had to
+tell them apart {fmt(n_control)} times out of {fmt(n_control)}.</p>
+
+<p class="sub">This paragraph is worth its length because getting it wrong
+was the near miss of this whole exercise. The first verification defined the
+control as &ldquo;the uncompressed rows&rdquo;, found <em>zero</em> of them,
+and passed &mdash; vacuously. An earlier draft of this page then repeated the
+same error in prose, describing the control as uncompressed, which would have
+left a reader auditing the repair with the trivial case in front of them and
+no idea the hard case had been tested at all. The check now asserts what the
+files actually are, and
+<code>test_genuinely_small_COMPRESSED_frame_survives</code> pins it in the
+unit suite so it cannot quietly revert.</p>
 {_figure(src, "Left: which science targets lost frames to the artifact. "
               "Right: repaired rows against the untouched control group "
               "(log scale).")}
@@ -411,7 +442,7 @@ def section_requeue(cat) -> str:
         ["stratum", "frames", "status"],
         [[f"<code>{esc(s)}</code>" if s else
           "<em>(none &mdash; classify_stratum returns NULL)</em>", fmt(c),
-          "queued by a rebuild" if s else "SILENTLY DROPPED"]
+          "queued by <code>enqueue</code>" if s else "STILL DROPPED"]
          for s, c in strat_rows],
         row_classes=[None if s else "warn" for s, _ in strat_rows])
     tgt_tbl = table(
@@ -442,24 +473,66 @@ candidate universe; the entire population was this artifact.</p>
 {strat_tbl}
 <p class="sub">Among them are all <strong>{fmt(n_euuma)}</strong> EU&nbsp;UMa
 frames &mdash; the series the CV time-series project recorded as permanently
-unsolvable. They are full 4800&nbsp;&times;&nbsp;3211 fields.</p>
+unsolvable. They are full 4800&nbsp;&times;&nbsp;3211 fields, and a spot
+check solves them in about three seconds apiece at roughly 75 matched stars
+and 1.4&Prime; RMS.</p>
 {tgt_tbl}
 
+<p class="sub"><strong>Reconciling the two counts a reader will try to
+subtract.</strong> {fmt(n_new)} frames become solvable, and
+{fmt(n_new - n_unstrat)} of them reach a stratum &mdash; but the queue takes
+{fmt(n_new - n_unstrat + 1)}, one more than that, and the residue of
+unstratified solvable frames grows by one LESS than {fmt(n_unstrat)}. The
+extra frame is <code>rawimage/2023-11-28/xek33245.fts.fz</code>. It was
+always solvable and always unstratified; its geometry did not change at all.
+What changed is its <code>target_key</code>, from <code>2023ixf2</code> to
+<code>2023ixf</code> &mdash; a target-alias correction that rode along in the
+same manifest rebuild &mdash; which let it match the SN stratum for the first
+time. Both numbers are right; they count different populations, and the
+single frame between them is not a geometry repair at all.</p>
+
 <h3>Decision</h3>
-<p class="sub">Rebuild the manifest, then rebuild the S1 queue so the batch
-picks these frames up. <strong>But {fmt(n_unstrat)} of them carry no
-stratum</strong> and a queue rebuild alone would drop them without a word:
-<code>classify_stratum</code> returns <code>NULL</code> for a CV target in an
-unplanned configuration (EU&nbsp;UMa on <code>Fast</code> readout hits
-<code>return None &nbsp;# CV frame in an unplanned config</code>) and for the
-blank-<code>READOUTM</code> era. Closing that gap changes an accepted
-experiment design, so it is raised here as a decision, not taken quietly.</p>
+<p class="sub">Rebuild the manifest, then <strong>add to</strong> the S1
+queue with <code>enqueue</code> &mdash; never <code>build --rebuild</code>,
+which DROPs <code>s1_batch</code> and destroys every solved verdict the batch
+has earned.</p>
+
+<p class="sub"><strong>The EU&nbsp;UMa frames are now queued, under a stratum
+of their own.</strong> They previously hit
+<code>return None &nbsp;# CV frame in an unplanned config</code> and would
+have been dropped in silence a second time. The fix is a new stratum id,
+<code>cv_fast_fullframe</code>, and the choice of a NEW id rather than a
+widened old one is the same law this page argues for era numbers: the
+obvious one-line alternative was to let these frames fall through to
+<code>fast_fullframe</code>, but that is a <em>facility backlog</em> stratum
+whose population is already published, and quietly filling it with
+paper-critical CV frames would have redefined a cited number instead of
+retiring it. The new stratum sits inside the CV band, so an interrupted batch
+still lands the CV astrometry first.</p>
+
+<p class="sub">The remaining <strong>{fmt(n_unstrat)}</strong> unstratified
+frames are the blank-<code>READOUTM</code> population, and they are
+deliberately left out. They are not one project: the largest blocks are
+V426&nbsp;Oph and V2400&nbsp;Oph, but the tail is deep-sky imaging
+(NGC&nbsp;6888, M12, M13, M87) across seven filters including narrowband.
+Inventing a stratum to hold a heterogeneous population would produce a solve
+rate that describes nothing. They stay in the residue until someone designs
+for them, and the count is on this page so the decision stays visible.</p>
 
 <h3>Consequence</h3>
-<p class="sub">The comment beside the <code>fast_fullframe</code> stratum
-&mdash; &ldquo;geometry gate already dropped strips&rdquo; &mdash; is now
-false and must be corrected: that stratum is where most of these frames
-belong, and its population roughly grows sevenfold.</p>
+<p class="sub">Two pieces of code asserted the artifact was real and have
+been corrected. The comment beside the <code>fast_fullframe</code> stratum
+&mdash; &ldquo;geometry gate already dropped strips&rdquo; &mdash; was
+exactly backwards: the geometry exclusion on that camera is now zero, and
+that stratum absorbed the repaired full frames, growing about sevenfold.</p>
+
+<p class="sub">Adding a stratum also renumbered every queue rank below it,
+and <code>s1_batch</code> <em>stores</em> the rank on each row &mdash; so
+rows queued before the change would have kept the old numbers and sorted
+inconsistently against rows queued after. <code>enqueue</code> now re-derives
+<code>priority</code>, <code>population</code> and <code>qc_gated</code> for
+every row from the policy table on each run. Those three are ordering
+metadata; no status, WCS or timing is touched.</p>
 </div>
 </section>"""
 

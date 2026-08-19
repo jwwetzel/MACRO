@@ -224,6 +224,10 @@ STRATA: tuple[Stratum, ...] = (
     Stratum("cv_gsense_misc", "CV polars (Sloan)",
             "CV polars on the GSENSE4040 (High Gain family) — small "
             "legacy set, mostly ST LMi"),
+    Stratum("cv_fast_fullframe", "CV polars (Sloan)",
+            "CV polars on the fast-readout camera, bin2 full frames — the "
+            "EU UMa season, invisible until the 8x3211 metadata artifact "
+            "was repaired (see docs/pipeline/s0e_geometry_fix.html)"),
     Stratum("sn_gsense_broadband", "SN 2023ixf",
             "SN 2023ixf on the GSENSE4040 (High Gain / StackPro bin1), "
             "all filters"),
@@ -287,6 +291,26 @@ def classify_stratum(row: dict) -> Optional[str]:
                 return "cv_ikon_sloan"
         if readout in GSENSE_READOUTS:
             return "cv_gsense_misc"
+        if readout == "fast":
+            # EU UMa's whole season.  This branch is NEW, and it exists
+            # because of a metadata artifact rather than a design change.
+            #
+            # These 207 frames carried a phantom 8x3211 geometry in the
+            # catalog (a tile-compressed BINTABLE's row length read as an
+            # image width), so every one of them failed the geometry gate
+            # and never reached any stratum at all.  The CV project recorded
+            # them as "permanently unsolvable".  They are nothing of the
+            # kind: the frames are ordinary 4800x3211 full frames, and a
+            # spot check solves them in ~3 s at 74 matched stars and ~1.4"
+            # RMS.
+            #
+            # Note what is NOT done here.  The fall-through below would have
+            # swept them into 'fast_fullframe', a FACILITY BACKLOG stratum,
+            # which would have quietly changed the population behind an id
+            # that is already published.  A new id costs nothing and keeps
+            # the rule this project already applies to era numbers: retire
+            # or add, never redefine a number someone may have cited.
+            return "cv_fast_fullframe"
         return None                     # CV frame in an unplanned config
     # --- SN 2023ixf -----------------------------------------------------
     if tkey == "2023ixf" and readout in GSENSE_READOUTS:
@@ -301,7 +325,15 @@ def classify_stratum(row: dict) -> Optional[str]:
             return "mode0_backlog_short"
         return "mode0_backlog_long"
     if readout == "fast":
-        return "fast_fullframe"         # geometry gate already dropped strips
+        # The comment that used to sit here said "geometry gate already
+        # dropped strips".  There were never any strips: the 8x3211 "sub-
+        # frame photometry windows" were a tile-compressed BINTABLE's row
+        # length misread as an image width, and repairing the catalog took
+        # the geometry exclusion on this camera to ZERO.  This stratum
+        # absorbed the repaired full frames and grew about sevenfold as a
+        # result.  See macro_core/fitsgeom.py and
+        # docs/pipeline/s0e_geometry_fix.html.
+        return "fast_fullframe"
     if readout in IKON_READOUTS:
         return "ikon_backlog"
     return None                         # small residue: not worth a stratum

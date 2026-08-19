@@ -112,11 +112,44 @@ def test_uncompressed_header_is_not_flagged_compressed():
     assert fg.is_compressed_header(fg.parse_card_block(UNCOMPRESSED)) is False
 
 
-def test_genuinely_small_uncompressed_frame_survives():
-    """A REAL sub-frame window must still read as small — the fix must not
-    paper over genuine window geometry (the 105x97 guider population)."""
+def test_genuinely_small_plain_image_survives():
+    """A REAL sub-frame window in a PLAIN (uncompressed) image must still
+    read as small — the fix must not paper over genuine window geometry."""
     hdr = {"NAXIS1": 105, "NAXIS2": 97}
     assert fg.resolve_geometry(hdr) == (105, 97)
+
+
+def test_genuinely_small_COMPRESSED_frame_survives():
+    """The case the real control group actually exercises, and the one that
+    must never regress.
+
+    All 91 rows the re-scan left unchanged are tile-compressed ``.fts.fz``
+    files — Andor iKon focus and guide windows.  Their headers therefore
+    carry BOTH a BINTABLE ``NAXIS1`` (a row length in bytes, small) AND a
+    genuinely small ``ZNAXIS1``, and the resolver has to tell those two
+    small numbers apart: read the wrong one and a 45x34 focus window becomes
+    an 8x34 phantom, which is the very artifact this module exists to undo.
+
+    Testing this against a plain uncompressed header instead would prove
+    only the trivial case — the same slip that once described the control
+    group as 'uncompressed' in the report prose."""
+    hdr = {"ZIMAGE": True, "ZCMPTYPE": "RICE_1",
+           "NAXIS1": 8, "NAXIS2": 34,          # the BINTABLE's own shape
+           "ZNAXIS1": 45, "ZNAXIS2": 34}       # the real image
+    assert fg.is_compressed_header(hdr) is True
+    assert fg.resolve_geometry(hdr) == (45, 34)
+
+
+def test_compressed_small_and_compressed_phantom_are_distinguished():
+    """Side by side: the SAME container and the same machinery must give a
+    small answer for a genuine window and a full-frame answer for a phantom.
+    That contrast is what makes the 91-row control group evidence at all."""
+    window = {"ZIMAGE": True, "ZCMPTYPE": "RICE_1", "NAXIS1": 8,
+              "NAXIS2": 48, "ZNAXIS1": 57, "ZNAXIS2": 48}
+    phantom = {"ZIMAGE": True, "ZCMPTYPE": "RICE_1", "NAXIS1": 8,
+               "NAXIS2": 3211, "ZNAXIS1": 4800, "ZNAXIS2": 3211}
+    assert fg.resolve_geometry(window) == (57, 48)
+    assert fg.resolve_geometry(phantom) == (4800, 3211)
 
 
 # ---------------------------------------------------------------------------

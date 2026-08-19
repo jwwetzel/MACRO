@@ -6,8 +6,8 @@
 
 <header>
   <h1>S2c — Filter Identity, Measured</h1>
-  <p>12,478 frames measured from their pixels &middot;
-  8,180 dispersed &middot; 2 unreadable &middot;
+  <p>27,536 frames measured from their pixels &middot;
+  20,130 dispersed &middot; 2 unreadable &middot;
   built 2026-08-18T19:06Z
   (S2c v1.0 (2026-08-18))
   &middot; <a href="../index.html">back to the evidence hub</a></p>
@@ -47,32 +47,77 @@ share a common axis. The shared axis is the decisive test: a grating rules
 every source in the field the same way, while a cosmic ray or a satellite
 points wherever it likes.</p>
 
-<figure><a href="figures/s2c/s2c_calibration.png"><img src="figures/s2c/s2c_calibration.png" alt=""></a><figcaption>Left: the bright-set median a/b that the first survey pass quoted &mdash; the classes overlap badly, because most bright detections on a grism frame are round field stars whose traces are too faint to resolve. Right: the trace population and its position-angle scatter, where the same frames separate. Dashed lines mark the adopted gates.</figcaption></figure>
+<figure><a href="figures/s2c/s2c_calibration.png"><img src="figures/s2c/s2c_calibration.png" alt=""></a><figcaption>Left: the bright-set median a/b the first survey pass quoted &mdash; the classes overlap badly, because most bright detections on a grism frame are round field stars whose traces are too faint to resolve. Right: among frames that reached the trace gates at all, how tightly their traces share an axis. The grism populations collapse onto zero; the control keeps a long tail out to 80 deg, which is the defocused and satellite-crossed frames the gate exists to remove. Note the control ALSO has a spike at zero &mdash; those are the trailed frames discussed under Consequence, and they are the reason the false-positive rate is not zero.</figcaption></figure>
 
 <table class="data">
 <tr><th>label</th><th>truth</th><th>measured</th><th>dispersed</th><th>direct</th><th>indeterminate</th><th>agreement</th></tr>
-<tr class="warn"><td><code>hrg</code></td><td>dispersed</td><td>1,950</td><td>1,843</td><td>44</td><td>63</td><td><b>94.5%</b></td></tr>
-<tr class="warn"><td><code>lrg</code></td><td>dispersed</td><td>1,789</td><td>1,612</td><td>47</td><td>130</td><td><b>90.1%</b></td></tr>
-<tr><td><code>HaGrism</code></td><td>dispersed</td><td>1,411</td><td>1,346</td><td>26</td><td>39</td><td><b>95.4%</b></td></tr>
-<tr class="warn"><td><code>OGGrism</code></td><td>dispersed</td><td>1,428</td><td>1,344</td><td>12</td><td>72</td><td><b>94.1%</b></td></tr>
+<tr class="warn"><td><code>hrg</code></td><td>dispersed</td><td>9,926</td><td>9,362</td><td>84</td><td>480</td><td><b>94.3%</b></td></tr>
+<tr class="warn"><td><code>lrg</code></td><td>dispersed</td><td>6,656</td><td>6,075</td><td>74</td><td>507</td><td><b>91.3%</b></td></tr>
+<tr><td><code>HaGrism</code></td><td>dispersed</td><td>1,411</td><td>1,346</td><td>20</td><td>45</td><td><b>95.4%</b></td></tr>
+<tr class="warn"><td><code>OGGrism</code></td><td>dispersed</td><td>1,428</td><td>1,343</td><td>10</td><td>75</td><td><b>94.0%</b></td></tr>
 <tr><td><code>HaG</code></td><td>dispersed</td><td>192</td><td>185</td><td>0</td><td>7</td><td><b>96.4%</b></td></tr>
-<tr class="warn"><td><code>g</code></td><td>direct</td><td>400</td><td>2</td><td>378</td><td>20</td><td><b>94.5%</b></td></tr>
-<tr><td><code>r</code></td><td>direct</td><td>400</td><td>4</td><td>380</td><td>16</td><td><b>95.0%</b></td></tr>
-<tr><td><code>i</code></td><td>direct</td><td>400</td><td>6</td><td>389</td><td>5</td><td><b>97.2%</b></td></tr>
-<tr><td><code>V</code></td><td>direct</td><td>400</td><td>1</td><td>393</td><td>6</td><td><b>98.2%</b></td></tr>
-<tr><td><code>R</code></td><td>direct</td><td>400</td><td>6</td><td>382</td><td>12</td><td><b>95.5%</b></td></tr>
-<tr class="warn"><td><code>I</code></td><td>direct</td><td>400</td><td>7</td><td>374</td><td>19</td><td><b>93.5%</b></td></tr>
-<tr><td><code>B</code></td><td>direct</td><td>399</td><td>3</td><td>388</td><td>8</td><td><b>97.2%</b></td></tr>
-<tr class="warn"><td><code>L</code></td><td>direct</td><td>400</td><td>8</td><td>370</td><td>22</td><td><b>92.5%</b></td></tr>
+<tr class="warn"><td><code>g</code></td><td>direct</td><td>400</td><td>1</td><td>375</td><td>24</td><td><b>93.8%</b></td></tr>
+<tr class="warn"><td><code>r</code></td><td>direct</td><td>400</td><td>3</td><td>375</td><td>22</td><td><b>93.8%</b></td></tr>
+<tr><td><code>i</code></td><td>direct</td><td>400</td><td>5</td><td>388</td><td>7</td><td><b>97.0%</b></td></tr>
+<tr><td><code>V</code></td><td>direct</td><td>400</td><td>0</td><td>391</td><td>9</td><td><b>97.8%</b></td></tr>
+<tr><td><code>R</code></td><td>direct</td><td>400</td><td>3</td><td>380</td><td>17</td><td><b>95.0%</b></td></tr>
+<tr class="warn"><td><code>I</code></td><td>direct</td><td>400</td><td>3</td><td>368</td><td>29</td><td><b>92.0%</b></td></tr>
+<tr><td><code>B</code></td><td>direct</td><td>399</td><td>1</td><td>387</td><td>11</td><td><b>97.0%</b></td></tr>
+<tr class="warn"><td><code>L</code></td><td>direct</td><td>400</td><td>5</td><td>365</td><td>30</td><td><b>91.2%</b></td></tr>
 </table>
 
-<p>Pooled over the 6,770 known-dispersed frames, the classifier
-recovers <b>93.5%</b> as dispersed. Pooled over the 3,199
-known-direct control frames it calls <b>1.2%</b> dispersed &mdash; that is
+<p>Pooled over the 19,613 known-dispersed frames, the classifier
+recovers <b>93.4%</b> as dispersed. Pooled over the 3,199
+known-direct control frames it calls <b>0.7%</b> dispersed &mdash; that is
 the false-positive rate, and it is the number that decides whether any
 verdict on slot <code>6</code> can be believed.</p>
 
-<p>The overlap, stated plainly: 246 known-dispersed frames
+
+<p><b>An out-of-sample check, because the number above is fitted.</b> Three
+of this classifier's constants were moved in response to specific control
+frames &mdash; the PA-scatter gate went from 20&nbsp;deg to 5 after a
+defocused <code>r</code> frame, the sparsity gate was invented after an
+<code>L</code> frame of M57, and the calibration-frame exclusion was added
+after eleven <code>B</code> frames &mdash; and every one of those frames is
+still scored in the 3,199 control totals. A rate fitted on the data it
+is quoted over is a lower bound, not an estimate, and an earlier version of
+this page presented it as the latter.</p>
+
+<p>So a second control was drawn: <b>2,215</b> frames from the same
+undisputed labels, under a different seed (20260819), explicitly
+excluding every frame already measured, and classified with every threshold
+frozen. Its false-positive rate is <b>0.9%</b>, against <b>0.7%</b>
+in-sample.</p>
+
+<table class="data">
+<tr><th>label</th><th>holdout frames</th><th>called dispersed</th><th>false-positive rate</th></tr>
+<tr><td>B</td><td>115</td><td>1</td><td>0.9%</td></tr>
+<tr><td>I</td><td>300</td><td>0</td><td>0.0%</td></tr>
+<tr><td>L</td><td>300</td><td>10</td><td>3.3%</td></tr>
+<tr><td>R</td><td>300</td><td>2</td><td>0.7%</td></tr>
+<tr><td>V</td><td>300</td><td>3</td><td>1.0%</td></tr>
+<tr><td>g</td><td>300</td><td>0</td><td>0.0%</td></tr>
+<tr><td>i</td><td>300</td><td>2</td><td>0.7%</td></tr>
+<tr><td>r</td><td>300</td><td>1</td><td>0.3%</td></tr>
+</table>
+
+<p>The holdout is <em>modestly worse</em>, and that is the honest and expected
+result: fitting three constants to individual control frames bought about
+0.20
+of a percentage point of flattery. It is a small gap because the thresholds
+were set from single diagnosed frames rather than by sweeping the
+distribution for a minimum &mdash; but it is not zero, and a page that quoted
+only the in-sample figure would be understating its own error.
+<b>0.9% is the rate to cite.</b> It is the only number here that survives
+the question &ldquo;how do you know you did not fit this?&rdquo;</p>
+
+<p>The per-label breakdown also shows where the residual error lives: it is
+concentrated in the luminance and broad filters, which is consistent with the
+mechanism named under Consequence below &mdash; those are the frames of long,
+unguided, deep exposures where the mount has the most opportunity to drift.
+</p>
+
+<p>The overlap, stated plainly: 908 known-dispersed frames
 contained no trace-shaped source at all (too short an exposure, too faint a
 target, or cloud), and 112 known-direct frames contained at least
 one (satellites, cosmic-ray tracks, edge-on galaxies). Those frames are the
@@ -81,19 +126,43 @@ irreducible ambiguity in the method, and the classifier is built to return
 
 <h3>Decision</h3>
 <p>Dispersion is measurable per frame, and the classifier is adopted with
-three rules. <b>(1)</b> Two or more traces sharing an axis to within
+four rules. <b>(1)</b> Two or more traces sharing an axis to within
 5&nbsp;deg &rarr;
-<code>dispersed</code>. <b>(2)</b> A single trace of
-a/b&nbsp;&ge;&nbsp;20 in a sparse field
-(&le;&nbsp;60 sources) &rarr;
+<code>dispersed</code>&hellip; <b>(2)</b> &hellip;<em>provided that shared
+axis is the GRATING's</em>, within
+12&nbsp;deg of PA
+0. <b>(3)</b> A single trace of
+a/b&nbsp;&ge;&nbsp;20 on that same axis, in a
+sparse field (&le;&nbsp;60 sources) &rarr;
 <code>dispersed</code>; this rule carries the bright-standard frames where
-the target is the only thing in the field. <b>(3)</b> No traces and round
-bright sources &rarr; <code>direct</code>. Everything else is
-<code>indeterminate</code> and is reported as such.</p>
+the target is the only thing in the field. <b>(4)</b> No traces, round
+bright sources, and at least 3 of them &rarr;
+<code>direct</code>. Everything else is <code>indeterminate</code> and is
+reported as such.</p>
+
+<p>Rule 2 is the one this campaign was missing, and it is worth stating why
+it is physics rather than a fitted patch. A diffraction grating is machined
+glass bolted into a filter wheel: its dispersion direction is fixed in
+<em>detector</em> coordinates, so it does not merely make parallel traces, it
+makes traces along one knowable line. The archive's own labelled grism
+frames pin that line without ambiguity &mdash; <b>18,311</b> of
+<b>18,311</b> lie within 10&nbsp;deg of PA&nbsp;0/180. The
+tolerance sits in a measured gap rather than at a round number: the furthest
+on-axis labelled spectrum is at 9.9&nbsp;deg, the nearest off-axis control
+false positive at 28.6&nbsp;deg.</p>
+
+<p>Rule 4's source floor is the mirror image, and it corrects a real
+asymmetry. <code>direct</code> is not the absence of a verdict; downstream it
+is a certificate that the frame is safe for aperture photometry. Under the
+first version of these rules a frame with ONE round detection was certified
+on a sample of one, while the dispersed side demanded two corroborating
+traces or an extreme trace plus a sparsity check. 681 labelled
+grism frames now correctly return <code>indeterminate</code> on fields too
+thin to see a spectrum in, instead of voting &ldquo;clean&rdquo;.</p>
 
 <h3>Consequence</h3>
-<p>Three false-positive modes were found by measurement. Two were closed;
-the third is real and is quoted above as the residual error rate.</p>
+<p>Four false-positive modes were found by measurement. Three were closed;
+the fourth is real and is quoted above as the residual error rate.</p>
 
 <p><b>Closed &mdash; twilight flats.</b> A flat has no stars, so the
 extractor finds dust shadows and detector column defects, which are straight
@@ -108,21 +177,54 @@ perfectly round stars. A grating disperses <em>everything</em>, so a rich
 field with exactly one smear is the one thing a grism cannot produce; the
 solo-trace rule now requires a sparse field.</p>
 
-<p><b>Open &mdash; tracking failures.</b> The remaining 37
-false positives are frames where the mount slipped. Trailed stars are long,
-thin and mutually parallel, which is not merely similar to dispersion &mdash;
-it is geometrically the same thing. They arrive in clusters, whole nights of
-one target at a time, which is the fingerprint of a mount problem rather
-than of anything optical:</p>
+<p><b>Closed &mdash; detector columns and bleed trails.</b> This was the
+largest mode, and an earlier version of this page missed it entirely by
+attributing every remaining false positive to the mount. The database says
+otherwise: a large block of them sat within a degree of PA&nbsp;90, exactly
+perpendicular to the dispersion axis of every grism frame in the archive.
+Nothing on a mount prefers that angle. Detector columns and saturated-star
+bleed trails do &mdash; they run down the readout direction, and being
+literally columns they are <em>more</em> mutually parallel than any real
+spectrum, which is precisely why a parallelism-only rule believed them. The
+grating-axis gate (rule 2) removes <b>16</b> control false
+positives and <b>33</b> slot-<code>6</code> verdicts, at a
+cost of <b>1</b> frames across the whole labelled grism
+population.</p>
+
+<p><b>Open &mdash; tracking failures on the grating axis.</b> The remaining
+21 false positives are dominated by frames where the mount
+slipped <em>and the drift happened to run along the dispersion axis</em>.
+Trailed stars are long, thin and mutually parallel, which is not merely
+similar to dispersion &mdash; it is geometrically the same thing, and no
+morphological gate in this module can separate them. They arrive in clusters,
+whole nights of one target at a time, which is the fingerprint of a mount
+problem rather than of anything optical:</p>
 
 <table class="data">
 <tr><th>target</th><th>night</th><th>false positives</th></tr>
 <tr><td>YZ Cnc</td><td>2024-05-02</td><td>4</td></tr>
-<tr><td>Kepler-685</td><td>2023-11-19</td><td>3</td></tr>
 <tr><td>1976 YX</td><td>2023-11-14</td><td>2</td></tr>
-<tr><td>Barnard 33</td><td>2023-03-25</td><td>2</td></tr>
-<tr><td>M53</td><td>2026-06-27</td><td>2</td></tr>
 </table>
+
+<p>The residue is not purely mount slips, and the page should not claim it
+is. At least one survivor is a bleed trail that happens to run
+<em>horizontally</em>: a 5-second <code>r</code> exposure of the bright star
+HIP&nbsp;97675 carrying a 1,365-px streak at PA&nbsp;0.0007&nbsp;deg, in a
+field of 48 stars whose median a/b is 1.12. A 5-second exposure cannot trail
+1,365&nbsp;px, and stars that round rule out drift; the frame is saturated
+(65,534&nbsp;ADU) and the streak is its bleed. That the bleed runs along
+rows on this sensor rather than down columns is why the axis gate cannot
+catch it.</p>
+
+<p>That case suggests a further discriminator, and it is recorded here
+<em>without</em> being adopted. A grating has no reason to align with the
+pixel grid; a bleed trail does so by construction. Measured: requiring the
+trace axis to differ from exact alignment by more than 0.01&nbsp;deg would
+remove 2 of the surviving control false positives at a cost of 4 frames in
+18,311 labelled spectra. The ratio is favourable and the
+mechanism is real &mdash; but it would be calibrated on two examples, which
+is exactly the sin this campaign has already been caught committing
+elsewhere. It waits for a population, not an anecdote.</p>
 
 <p>One discriminator was proposed and <b>measured to fail</b>, which is
 worth recording so it is not proposed again. A grism disperses bright and
@@ -130,21 +232,42 @@ faint sources differently &mdash; only the bright ones spread far enough to
 be detected as traces, so the frame's <em>median</em> elongation stays low
 while its trace elongation is high &mdash; whereas trailing smears
 everything equally. The ratio of the two should therefore separate them, and
-on slot <code>6</code> it does beautifully (median 6.39).
+on slot <code>6</code> it does beautifully (median 6.61).
 But on the labelled grism population it does not: those frames are mostly
 isolated bright standards with nothing faint to stay round, and they measure
-a median ratio of 1.41 against the trailed frames'
+a median ratio of 1.33 against the trailed frames'
 1.16 &mdash; indistinguishable, with
-54% and 63% respectively falling below 1.5.
+56% and 72% respectively falling below 1.5.
 Restricting to rich fields does not help. Adopting it as a gate would buy a
 ~1% reduction in false positives at the cost of rejecting most real
 spectra.</p>
+
+<p>A second gate was proposed on good reasoning and <b>also measured to
+fail</b>. The sparse-field requirement currently guards only the solo-trace
+branch; the argument for extending it to the multi-trace branch is that a
+grating streaks <em>every</em> bright source, so a rich field in which only
+two of ten sources are traces is weak evidence. Expressed as a floor on that
+fraction, every candidate value costs far more real spectra than it buys:</p>
+
+<table class="data">
+<tr><th>trace-fraction floor</th><th>labelled spectra lost</th><th>control false positives removed</th></tr>
+<tr><td>0.2</td><td>0</td><td>0</td></tr>
+<tr><td>0.3</td><td>148</td><td>6</td></tr>
+<tr><td>0.4</td><td>372</td><td>7</td></tr>
+<tr><td>0.5</td><td>637</td><td>7</td></tr>
+</table>
+
+<p>The reason is the same one that sank the previous discriminator: a mount
+slip streaks all ten sources too, so the frames a floor removes most eagerly
+are genuine spectra of crowded fields, while the trailed frames sail over it
+with a fraction of 1.0. The multi-trace branch is left ungated, and the
+population it carries is reported rather than hidden.</p>
 
 <p>The measurement that <em>would</em> close this gap is the per-source
 correlation between flux and trace length: under dispersion the two are
 strongly coupled, under trailing they are independent. That needs the
 per-source arrays this campaign summarises away rather than stores, so it
-belongs to a future pass. Until then, <b>1.2% of direct
+belongs to a future pass. Until then, <b>0.7% of direct
 frames are expected to be misread as dispersed</b>, and any downstream use
 should treat a lone dispersed verdict on an otherwise photometric night as a
 tracking failure rather than a discovery.</p>
@@ -161,21 +284,25 @@ not &mdash; and a spectrum is useless if you do not know its dispersion. So:
 
 <h3>Evidence</h3>
 <p>The obvious statistic is aspect ratio, and it does not work: across the
-full labelled populations the two units measure a/b of 105
-(high) against 80 (low). The reason is that a/b divides by the
+full labelled populations the two units measure a/b of 96
+(high) against 82 (low). The reason is that a/b divides by the
 minor axis, which is the seeing width, so every wobble in focus or
 atmosphere feeds straight into the statistic.</p>
 
 <p>Trace <em>length</em> is better. Expressed as a fraction of frame width
 &mdash; which normalises the archive's three cameras and two binnings onto
 one scale &mdash; the medians differ by a factor of
-<b>1.8</b>, close to the factor of two
-the optics predict. But the medians are not the story; the tails are.</p>
+<b>1.52</b>. That is the right sign and
+the right order &mdash; the H-alpha unit does disperse further &mdash; but it
+is short of the factor of two the optics predict, and the shortfall is itself
+a clue: what is measured is not the spectrum's true length but the part of it
+that clears the detection threshold. The medians are not the story anyway;
+the tails are.</p>
 
 <table class="data">
 <tr><th>grism unit</th><th>frames</th><th>median a/b</th><th>median length/width</th><th>10&ndash;90 percentile</th></tr>
-<tr><td>H-alpha grism (<code>hrg</code>, <code>HaGrism</code>)</td><td>3,374</td><td>105</td><td><b>0.126</b></td><td>0.013 &ndash; 0.209</td></tr>
-<tr><td>broad grism (<code>lrg</code>, <code>OGGrism</code>)</td><td>2,956</td><td>80</td><td><b>0.068</b></td><td>0.028 &ndash; 0.118</td></tr>
+<tr><td>H-alpha grism (<code>hrg</code>, <code>HaGrism</code>)</td><td>10,893</td><td>96</td><td><b>0.105</b></td><td>0.011 &ndash; 0.201</td></tr>
+<tr><td>broad grism (<code>lrg</code>, <code>OGGrism</code>)</td><td>7,418</td><td>82</td><td><b>0.069</b></td><td>0.023 &ndash; 0.115</td></tr>
 </table>
 
 <figure><a href="figures/s2c/s2c_strength.png"><img src="figures/s2c/s2c_strength.png" alt=""></a><figcaption>Left: trace aspect ratio &mdash; the two grisms overlap almost completely. Right: trace length as a fraction of frame width, which separates the medians but leaves broad overlapping tails. The dashed line is the adopted high-dispersion bound.</figcaption></figure>
@@ -186,29 +313,31 @@ asymmetry:</p>
 
 <table class="data">
 <tr><th>length/width cut</th><th>purity of a &ldquo;high&rdquo; call above it</th><th>recall</th><th>purity of a &ldquo;low&rdquo; call below it</th><th>recall</th></tr>
-<tr class="warn"><td>0.04</td><td><b>50.5%</b></td><td>75.6%</td><td>35.8%</td><td>15.5%</td></tr>
-<tr class="warn"><td>0.06</td><td><b>55.2%</b></td><td>69.9%</td><td>50.7%</td><td>35.3%</td></tr>
-<tr class="warn"><td>0.08</td><td><b>66.0%</b></td><td>65.4%</td><td>60.9%</td><td>61.5%</td></tr>
-<tr class="warn"><td>0.11</td><td><b>79.0%</b></td><td>54.7%</td><td>61.7%</td><td>83.4%</td></tr>
-<tr><td>0.13</td><td><b>99.2%</b></td><td>48.5%</td><td>62.9%</td><td>99.5%</td></tr>
-<tr><td>0.15</td><td><b>99.9%</b></td><td>41.2%</td><td>59.8%</td><td>100.0%</td></tr>
-<tr><td>0.17</td><td><b>100.0%</b></td><td>33.9%</td><td>57.0%</td><td>100.0%</td></tr>
+<tr class="warn"><td>0.04</td><td><b>54.9%</b></td><td>69.3%</td><td>26.7%</td><td>16.5%</td></tr>
+<tr class="warn"><td>0.06</td><td><b>59.6%</b></td><td>64.5%</td><td>40.7%</td><td>35.7%</td></tr>
+<tr class="warn"><td>0.08</td><td><b>68.7%</b></td><td>60.3%</td><td>50.6%</td><td>59.7%</td></tr>
+<tr class="warn"><td>0.11</td><td><b>79.7%</b></td><td>46.8%</td><td>51.3%</td><td>82.5%</td></tr>
+<tr><td>0.13</td><td><b>99.7%</b></td><td>40.0%</td><td>53.1%</td><td>99.8%</td></tr>
+<tr><td>0.15</td><td><b>100.0%</b></td><td>33.0%</td><td>50.4%</td><td>100.0%</td></tr>
+<tr><td>0.17</td><td><b>100.0%</b></td><td>27.2%</td><td>48.3%</td><td>100.0%</td></tr>
 </table>
 
 <p>A long trace is decisive: past 0.15
-essentially nothing but the H-alpha unit produces it. A short trace is
-worthless: no threshold pushes the purity of a &ldquo;low&rdquo; call much
-past 60%, against a base rate near 47%. The cause is visible directly in the
+essentially nothing but the H-alpha unit produces it &mdash;
+<b>100.0%</b> pure, at 33.0% recall. A short trace is
+worthless: across every threshold tried, the purity of a &ldquo;low&rdquo;
+call peaks at <b>53.1%</b> against a base rate of
+<b>40.5%</b>. The cause is visible directly in the
 data &mdash; among H-alpha frames alone, trace length falls steadily as
 exposure time rises, because long exposures are what FAINT targets get, and
 a faint trace drops below the detection threshold sooner:</p>
 
 <table class="data">
 <tr><th>exposure</th><th>H-alpha frames</th><th>median length/width</th></tr>
-<tr><td>&lt; 5 s</td><td>1</td><td>0.234</td></tr>
-<tr><td>5 &ndash; 20 s</td><td>1</td><td>0.236</td></tr>
-<tr><td>20 &ndash; 60 s</td><td>1</td><td>0.139</td></tr>
-<tr><td>&gt; 60 s</td><td>1</td><td>0.127</td></tr>
+<tr><td>&lt; 5 s</td><td>1,533</td><td>0.187</td></tr>
+<tr><td>5 &ndash; 20 s</td><td>1,355</td><td>0.165</td></tr>
+<tr><td>20 &ndash; 60 s</td><td>1,700</td><td>0.098</td></tr>
+<tr><td>&gt; 60 s</td><td>6,305</td><td>0.094</td></tr>
 </table>
 
 <h3>Decision</h3>
@@ -217,9 +346,9 @@ declines to pretend otherwise.</b> A frame is called
 <code>high</code> when its trace length fraction reaches
 0.15, and <code>ambiguous</code> otherwise.
 <b><code>low</code> is never assigned from morphology</b> &mdash; a call
-that is right 61% of the time against a 47% base rate is not knowledge, and
-recording it as if it were would quietly corrupt every downstream count of
-how many H-alpha spectra the archive holds.</p>
+that is right 53% of the time against a 41% base rate
+is not knowledge, and recording it as if it were would quietly corrupt every
+downstream count of how many H-alpha spectra the archive holds.</p>
 
 <h3>Consequence</h3>
 <p>For frames from the modern naming epochs this costs nothing: their
@@ -251,9 +380,9 @@ dispersed, and does the answer depend on when or on what was observed?</b></p>
 
 <h3>Evidence</h3>
 <p>2,208 slot-<code>6</code> frames were measured.
-<b>1,739</b> (78.8%) are dispersed,
-<b>116</b> (5.3%) are direct images,
-and 353 are indeterminate. Neither panel was right, because
+<b>1,706</b> (77.3%) are dispersed,
+<b>101</b> (4.6%) are direct images,
+and 401 are indeterminate. Neither panel was right, because
 the slot is not one thing.</p>
 
 <figure><a href="figures/s2c/s2c_slot6_timeline.png"><img src="figures/s2c/s2c_slot6_timeline.png" alt=""></a><figcaption>Slot-'6' frames per month by measured verdict (top) and the dispersed fraction (bottom). A wheel that changed on a date would show a step; a wheel used both ways throughout would not.</figcaption></figure>
@@ -264,7 +393,7 @@ the slot is not one thing.</p>
 <table class="data">
 <tr><th>target</th><th>frames</th><th>dispersed</th><th>direct</th><th>indet.</th><th>nights</th><th>verdict</th></tr>
 <tr class="warn"><td>SN2024gy</td><td>158</td><td>85</td><td>9</td><td>64</td><td>2024-01-25 &rarr; 2024-02-23</td><td><b>MIXED</b></td></tr>
-<tr class="warn"><td>NGC 5548</td><td>143</td><td>100</td><td>17</td><td>26</td><td>2023-03-23 &rarr; 2023-04-25</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>NGC 5548</td><td>143</td><td>91</td><td>17</td><td>35</td><td>2023-03-23 &rarr; 2023-04-25</td><td><b>MIXED</b></td></tr>
 <tr class="warn"><td>HD9167</td><td>97</td><td>95</td><td>0</td><td>2</td><td>2023-02-09 &rarr; 2023-12-13</td><td><b>SPECTRA</b></td></tr>
 <tr class="warn"><td>SAO12096</td><td>90</td><td>90</td><td>0</td><td>0</td><td>2023-02-09 &rarr; 2023-12-13</td><td><b>SPECTRA</b></td></tr>
 <tr class="warn"><td>2023ixf</td><td>83</td><td>61</td><td>3</td><td>19</td><td>2023-05-21 &rarr; 2023-06-23</td><td><b>MIXED</b></td></tr>
@@ -273,18 +402,18 @@ the slot is not one thing.</p>
 <tr class="warn"><td>HD242908</td><td>75</td><td>73</td><td>0</td><td>2</td><td>2023-02-09 &rarr; 2023-12-13</td><td><b>SPECTRA</b></td></tr>
 <tr class="warn"><td>NGC 5394</td><td>74</td><td>48</td><td>0</td><td>26</td><td>2023-04-06 &rarr; 2023-04-25</td><td><b>MIXED</b></td></tr>
 <tr class="warn"><td>HD35619</td><td>61</td><td>59</td><td>1</td><td>1</td><td>2023-02-09 &rarr; 2023-12-13</td><td><b>SPECTRA</b></td></tr>
-<tr class="warn"><td>NGC 4725</td><td>59</td><td>39</td><td>0</td><td>20</td><td>2023-03-23 &rarr; 2023-04-25</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>NGC 4725</td><td>59</td><td>34</td><td>0</td><td>25</td><td>2023-03-23 &rarr; 2023-04-25</td><td><b>MIXED</b></td></tr>
 <tr class="warn"><td>UX Arietis</td><td>55</td><td>53</td><td>0</td><td>2</td><td>2024-01-30 &rarr; 2024-03-10</td><td><b>SPECTRA</b></td></tr>
 <tr class="warn"><td>NGC 4670</td><td>54</td><td>44</td><td>0</td><td>10</td><td>2023-04-17 &rarr; 2023-04-25</td><td><b>SPECTRA</b></td></tr>
 <tr class="warn"><td>HD5394</td><td>54</td><td>50</td><td>0</td><td>4</td><td>2023-02-10 &rarr; 2023-03-04</td><td><b>SPECTRA</b></td></tr>
-<tr class="warn"><td>M33</td><td>38</td><td>0</td><td>17</td><td>21</td><td>2023-12-02 &rarr; 2023-12-04</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>M33</td><td>38</td><td>0</td><td>13</td><td>25</td><td>2023-12-02 &rarr; 2023-12-04</td><td><b>MIXED</b></td></tr>
 <tr class="warn"><td>SN2024any</td><td>34</td><td>27</td><td>0</td><td>7</td><td>2024-02-12 &rarr; 2024-02-23</td><td><b>MIXED</b></td></tr>
-<tr class="warn"><td>FEIGE41</td><td>34</td><td>8</td><td>16</td><td>10</td><td>2023-02-16 &rarr; 2024-03-21</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>FEIGE41</td><td>34</td><td>8</td><td>8</td><td>18</td><td>2023-02-16 &rarr; 2024-03-21</td><td><b>MIXED</b></td></tr>
 <tr class="warn"><td>Ton599</td><td>33</td><td>18</td><td>11</td><td>4</td><td>2024-02-29 &rarr; 2024-03-05</td><td><b>MIXED</b></td></tr>
-<tr class="warn"><td>HR 3454</td><td>32</td><td>17</td><td>0</td><td>15</td><td>2023-03-13 &rarr; 2023-03-28</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>HR 3454</td><td>32</td><td>14</td><td>0</td><td>18</td><td>2023-03-13 &rarr; 2023-03-28</td><td><b>MIXED</b></td></tr>
 <tr class="warn"><td>(untargeted)</td><td>31</td><td>11</td><td>1</td><td>19</td><td>2023-02-06 &rarr; 2024-03-13</td><td><b>MIXED</b></td></tr>
-<tr class="warn"><td>NGC 4151</td><td>30</td><td>19</td><td>0</td><td>11</td><td>2023-03-13 &rarr; 2023-04-17</td><td><b>MIXED</b></td></tr>
-<tr class="warn"><td>NGC 4593</td><td>29</td><td>16</td><td>0</td><td>13</td><td>2023-03-09 &rarr; 2023-04-18</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>NGC 4151</td><td>30</td><td>14</td><td>0</td><td>16</td><td>2023-03-13 &rarr; 2023-04-17</td><td><b>MIXED</b></td></tr>
+<tr class="warn"><td>NGC 4593</td><td>29</td><td>12</td><td>0</td><td>17</td><td>2023-03-09 &rarr; 2023-04-18</td><td><b>MIXED</b></td></tr>
 <tr class="warn"><td>17 Leporis</td><td>26</td><td>26</td><td>0</td><td>0</td><td>2023-02-09 &rarr; 2023-02-09</td><td><b>SPECTRA</b></td></tr>
 <tr class="warn"><td>Betelgeuse</td><td>22</td><td>22</td><td>0</td><td>0</td><td>2023-12-02 &rarr; 2023-12-02</td><td><b>SPECTRA</b></td></tr>
 <tr class="warn"><td>T UMI</td><td>21</td><td>18</td><td>2</td><td>1</td><td>2023-04-20 &rarr; 2023-07-05</td><td><b>SPECTRA</b></td></tr>
@@ -296,18 +425,18 @@ no date-based rule can rescue the label.</p>
 
 <table class="data">
 <tr><th>month</th><th>frames</th><th>dispersed</th><th>direct</th><th>indet.</th><th>% dispersed</th><th>% of decided</th></tr>
-<tr class="warn"><td>2023-02</td><td>594</td><td>548</td><td>18</td><td>28</td><td>92.3%</td><td><b>96.8%</b></td></tr>
-<tr class="warn"><td>2023-03</td><td>320</td><td>236</td><td>0</td><td>84</td><td>73.8%</td><td><b>100.0%</b></td></tr>
-<tr class="warn"><td>2023-04</td><td>268</td><td>188</td><td>24</td><td>56</td><td>70.1%</td><td><b>88.7%</b></td></tr>
-<tr class="warn"><td>2023-05</td><td>109</td><td>97</td><td>5</td><td>7</td><td>89.0%</td><td><b>95.1%</b></td></tr>
+<tr class="warn"><td>2023-02</td><td>594</td><td>548</td><td>10</td><td>36</td><td>92.3%</td><td><b>98.2%</b></td></tr>
+<tr class="warn"><td>2023-03</td><td>320</td><td>208</td><td>0</td><td>112</td><td>65.0%</td><td><b>100.0%</b></td></tr>
+<tr class="warn"><td>2023-04</td><td>268</td><td>183</td><td>24</td><td>61</td><td>68.3%</td><td><b>88.4%</b></td></tr>
+<tr class="warn"><td>2023-05</td><td>109</td><td>97</td><td>3</td><td>9</td><td>89.0%</td><td><b>97.0%</b></td></tr>
 <tr class="warn"><td>2023-06</td><td>54</td><td>30</td><td>7</td><td>17</td><td>55.6%</td><td><b>81.1%</b></td></tr>
 <tr class="warn"><td>2023-07</td><td>1</td><td>1</td><td>0</td><td>0</td><td>100.0%</td><td><b>100.0%</b></td></tr>
 <tr class="warn"><td>2023-10</td><td>112</td><td>98</td><td>8</td><td>6</td><td>87.5%</td><td><b>92.5%</b></td></tr>
 <tr class="warn"><td>2023-11</td><td>131</td><td>101</td><td>2</td><td>28</td><td>77.1%</td><td><b>98.1%</b></td></tr>
-<tr class="warn"><td>2023-12</td><td>165</td><td>125</td><td>17</td><td>23</td><td>75.8%</td><td><b>88.0%</b></td></tr>
+<tr class="warn"><td>2023-12</td><td>165</td><td>125</td><td>13</td><td>27</td><td>75.8%</td><td><b>90.6%</b></td></tr>
 <tr class="warn"><td>2024-01</td><td>115</td><td>57</td><td>7</td><td>51</td><td>49.6%</td><td><b>89.1%</b></td></tr>
 <tr class="warn"><td>2024-02</td><td>184</td><td>157</td><td>2</td><td>25</td><td>85.3%</td><td><b>98.7%</b></td></tr>
-<tr class="warn"><td>2024-03</td><td>155</td><td>101</td><td>26</td><td>28</td><td>65.2%</td><td><b>79.5%</b></td></tr>
+<tr class="warn"><td>2024-03</td><td>155</td><td>101</td><td>25</td><td>29</td><td>65.2%</td><td><b>80.2%</b></td></tr>
 </table>
 
 <h4>The same test applied to <code>W</code> &mdash; which turns out to be a
@@ -316,20 +445,20 @@ second mislabelled slot, and a different kind of one</h4>
 <p>The <code>W</code> slot was not part of the original dispute, but it is
 the other filter whose name says nothing about its optics, so it was
 measured on the same footing. Of 298 frames,
-<b>73</b> are dispersed and 158 are direct
+<b>72</b> are dispersed and 157 are direct
 &mdash; and unlike slot <code>6</code>, the split is almost perfectly
 datable:</p>
 
 <table class="data">
 <tr><th>month</th><th>frames</th><th>dispersed</th><th>direct</th><th>indet.</th><th>% dispersed</th><th>% of decided</th></tr>
 <tr><td>2023-03</td><td>7</td><td>0</td><td>6</td><td>1</td><td>0.0%</td><td><b>0.0%</b></td></tr>
-<tr><td>2023-05</td><td>43</td><td>1</td><td>37</td><td>5</td><td>2.3%</td><td><b>2.6%</b></td></tr>
+<tr><td>2023-05</td><td>43</td><td>0</td><td>37</td><td>6</td><td>0.0%</td><td><b>0.0%</b></td></tr>
 <tr><td>2023-06</td><td>4</td><td>0</td><td>3</td><td>1</td><td>0.0%</td><td><b>0.0%</b></td></tr>
 <tr><td>2023-10</td><td>25</td><td>0</td><td>24</td><td>1</td><td>0.0%</td><td><b>0.0%</b></td></tr>
 <tr><td>2023-12</td><td>66</td><td>0</td><td>64</td><td>2</td><td>0.0%</td><td><b>0.0%</b></td></tr>
 <tr><td>2024-01</td><td>1</td><td>0</td><td>1</td><td>0</td><td>0.0%</td><td><b>0.0%</b></td></tr>
 <tr class="warn"><td>2024-02</td><td>66</td><td>31</td><td>1</td><td>34</td><td>47.0%</td><td><b>96.9%</b></td></tr>
-<tr class="warn"><td>2024-03</td><td>86</td><td>41</td><td>22</td><td>23</td><td>47.7%</td><td><b>65.1%</b></td></tr>
+<tr class="warn"><td>2024-03</td><td>86</td><td>41</td><td>21</td><td>24</td><td>47.7%</td><td><b>66.1%</b></td></tr>
 </table>
 
 <p><code>W</code> is a direct filter through 2024-01 and a grism from
@@ -372,21 +501,21 @@ be safely assumed. <b>Which is which?</b></p>
 <h3>Evidence</h3>
 <p><b>NGC&nbsp;5548</b> &mdash; 143 slot-<code>6</code> frames
 measured across 2023-03-23&nbsp;&rarr;&nbsp;2023-04-25:
-<b>100 dispersed</b> (69.9%),
-17 direct, 26 indeterminate.</p>
+<b>91 dispersed</b> (63.6%),
+17 direct, 35 indeterminate.</p>
 
 <table class="data">
 <tr><th>night</th><th>frames</th><th>dispersed</th><th>direct</th><th>indet.</th><th>reading</th></tr>
 <tr class="warn"><td>2023-03-23</td><td>8</td><td>0</td><td>0</td><td>8</td><td>no verdict</td></tr>
 <tr class="warn"><td>2023-03-24</td><td>7</td><td>0</td><td>0</td><td>7</td><td>no verdict</td></tr>
-<tr class="warn"><td>2023-03-25</td><td>10</td><td>8</td><td>0</td><td>2</td><td><b>spectra</b></td></tr>
+<tr class="warn"><td>2023-03-25</td><td>10</td><td>0</td><td>0</td><td>10</td><td>no verdict</td></tr>
 <tr class="warn"><td>2023-03-27</td><td>10</td><td>10</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
 <tr class="warn"><td>2023-03-28</td><td>10</td><td>10</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
 <tr class="warn"><td>2023-03-29</td><td>10</td><td>10</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
 <tr class="warn"><td>2023-03-31</td><td>9</td><td>9</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
 <tr class="warn"><td>2023-04-01</td><td>10</td><td>10</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
 <tr class="warn"><td>2023-04-02</td><td>10</td><td>10</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
-<tr><td>2023-04-05</td><td>10</td><td>1</td><td>6</td><td>3</td><td>images</td></tr>
+<tr><td>2023-04-05</td><td>10</td><td>0</td><td>6</td><td>4</td><td>images</td></tr>
 <tr class="warn"><td>2023-04-17</td><td>7</td><td>2</td><td>0</td><td>5</td><td><b>spectra</b></td></tr>
 <tr class="warn"><td>2023-04-18</td><td>5</td><td>5</td><td>0</td><td>0</td><td><b>spectra</b></td></tr>
 <tr><td>2023-04-19</td><td>10</td><td>0</td><td>9</td><td>1</td><td>images</td></tr>
@@ -405,12 +534,14 @@ measured across 2023-05-21&nbsp;&rarr;&nbsp;2023-06-23:
 <b>61 dispersed</b> (73.5%),
 3 direct, 19 indeterminate, spread over
 13 separate nights. None of them reaches the trace length that
-would identify the H-alpha unit (0 of 61),
-so on the evidence of section&nbsp;2 the series is most likely all
-broad-spectrum grism &mdash; but that is an inference from a statistic which
-cannot assert &ldquo;low&rdquo;, and the series should be reduced with its
-dispersion treated as a free parameter to be solved from the frames
-themselves.</p>
+would identify the H-alpha unit (0 of 61).
+That is <em>not</em> evidence the series is broad-spectrum: section&nbsp;2
+shows a short trace is worthless as a discriminator, because the H-alpha unit
+makes short traces too whenever its target is faint &mdash; and a supernova
+weeks past discovery is exactly a faint target. An earlier version of this
+page read the absence of long traces as &ldquo;all broad-spectrum grism&rdquo;
+and that claim is withdrawn. The series must be reduced with its dispersion
+treated as a free parameter solved from the frames themselves.</p>
 
 <table class="data">
 <tr><th>night</th><th>frames</th><th>dispersed</th><th>direct</th><th>indet.</th><th>reading</th></tr>
@@ -433,7 +564,7 @@ themselves.</p>
 
 <h3>Decision</h3>
 <p><b>The NGC&nbsp;5548 AGN light curve does not survive as photometry.</b>
-69.9% of its slot-<code>6</code> frames are spectra, and
+63.6% of its slot-<code>6</code> frames are spectra, and
 only 17 frames across the whole 2023 campaign are direct
 images &mdash; too few, and too unevenly spaced, to carry a variability
 result. The Dwarf/AGN survey should rebuild that light curve from its other
@@ -482,48 +613,52 @@ quoted as <b>247 Mode0 spectra</b>, and the BeStar campaign as
 they survive measurement?</b></p>
 
 <h3>Evidence</h3>
-<p>Across every candidate and control frame measured, <b>8,180
-frames are dispersed</b>. Of those, 1,425 carry a trace long
-enough to identify the H-alpha unit; for the remaining 980
+<p>Across every candidate and control frame measured, <b>20,130
+frames are dispersed</b>. Of those, 3,621 carry a trace long
+enough to identify the H-alpha unit; for the remaining 16,509
 the unit cannot be named from morphology (section&nbsp;2), which is a limit
 on the instrument attribution, not on the spectrum count.</p>
 
 <table class="data">
 <tr><th>label</th><th>in archive</th><th>measured</th><th>coverage</th><th>dispersed</th><th>% of measured</th><th>date span</th></tr>
-<tr class="warn"><td><code>hrg</code></td><td>9,926</td><td>1,950</td><td>19.6%</td><td>1,843</td><td>94.5%</td><td>2024-11-08 &rarr; 2026-07-02</td></tr>
-<tr class="warn"><td><code>lrg</code></td><td>6,656</td><td>1,789</td><td>26.9%</td><td>1,612</td><td>90.1%</td><td>2024-11-08 &rarr; 2026-07-02</td></tr>
-<tr><td><code>6</code></td><td>2,208</td><td>2,208</td><td>100.0%</td><td>1,739</td><td>78.8%</td><td>2023-02-06 &rarr; 2024-03-26</td></tr>
-<tr><td><code>OGGrism</code></td><td>1,428</td><td>1,428</td><td>100.0%</td><td>1,344</td><td>94.1%</td><td>2024-04-04 &rarr; 2025-01-20</td></tr>
+<tr><td><code>hrg</code></td><td>9,926</td><td>9,926</td><td>100.0%</td><td>9,362</td><td>94.3%</td><td>2024-11-08 &rarr; 2026-07-02</td></tr>
+<tr><td><code>lrg</code></td><td>6,656</td><td>6,656</td><td>100.0%</td><td>6,075</td><td>91.3%</td><td>2024-11-08 &rarr; 2026-07-02</td></tr>
+<tr><td><code>6</code></td><td>2,208</td><td>2,208</td><td>100.0%</td><td>1,706</td><td>77.3%</td><td>2023-02-06 &rarr; 2024-03-26</td></tr>
+<tr><td><code>OGGrism</code></td><td>1,428</td><td>1,428</td><td>100.0%</td><td>1,343</td><td>94.0%</td><td>2024-04-04 &rarr; 2025-01-20</td></tr>
 <tr><td><code>HaGrism</code></td><td>1,411</td><td>1,411</td><td>100.0%</td><td>1,346</td><td>95.4%</td><td>2024-05-07 &rarr; 2025-03-20</td></tr>
-<tr class="warn"><td><code>W</code></td><td>299</td><td>298</td><td>99.7%</td><td>73</td><td>24.5%</td><td>2023-03-27 &rarr; 2024-03-25</td></tr>
+<tr class="warn"><td><code>W</code></td><td>299</td><td>298</td><td>99.7%</td><td>72</td><td>24.2%</td><td>2023-03-27 &rarr; 2024-03-25</td></tr>
 <tr><td><code>HaG</code></td><td>192</td><td>192</td><td>100.0%</td><td>185</td><td>96.4%</td><td>2024-04-04 &rarr; 2024-04-16</td></tr>
 <tr><td><code>w</code></td><td>2</td><td>2</td><td>100.0%</td><td>0</td><td>0.0%</td><td>2026-03-21 &rarr; 2026-03-21</td></tr>
 <tr><td><code>lrgblue</code></td><td>1</td><td>1</td><td>100.0%</td><td>1</td><td>100.0%</td><td>2026-03-21 &rarr; 2026-03-21</td></tr>
 </table>
 
-<p class="decision">Rows highlighted amber are not yet fully measured. The
-campaign is resumable and runs in priority order &mdash; the disputed labels
-and the control first, the undisputed <code>hrg</code>/<code>lrg</code> bulk
-last &mdash; so a partial run answers the contested questions completely
-while leaving only the census refinement outstanding. Where coverage is
-below 100%, the dispersed count is a floor, not a total, and the
-&ldquo;% of measured&rdquo; column is the quantity that generalises.</p>
+<p class="decision">Coverage is <b>complete</b>: every queued frame has been measured, so the counts in this section are totals rather than floors. The 2 frame(s) marked amber could not be opened at all &mdash; a truncated file, not an ambiguous one &mdash; and are excluded from every percentage on this page.</p>
 
 <figure><a href="figures/s2c/s2c_census.png"><img src="figures/s2c/s2c_census.png" alt=""></a><figcaption>Measured spectra per target for the 25 most-observed spectroscopic targets, split by grism unit.</figcaption></figure>
 
 <p><b>T&nbsp;CrB &mdash; the quoted 247 checks out, as a label count.</b> The
-archive holds exactly <b>247</b> T&nbsp;CrB frames carrying a
-grism card, so that figure was derived correctly from the headers. What the
+archive holds exactly <b>247</b> <em>canonical science</em>
+T&nbsp;CrB frames carrying a grism card, so that figure was derived correctly
+from the headers. (The raw <code>frames</code> table lists
+483 such rows; the difference is duplicate copies of the same
+exposures, which is why the qualifier matters.) What the
 measurement adds is that it can now be audited frame by frame instead of
-taken on trust: of the 715 T&nbsp;CrB monitoring frames this
-campaign queued, 145 are measured so far and
-<b>85</b> of those are dispersed
-(14 long enough to identify as H-alpha).</p>
+taken on trust. Of the 718 T&nbsp;CrB monitoring frames this
+campaign queued, 718 are measured and <b>581</b>
+of those are dispersed (212 long enough to identify as
+H-alpha) &mdash; so the series is substantially larger than 247 once frames
+that are spectra without a grism card are counted too.</p>
 
 <p><b>BeStar campaign &mdash; the quoted ~23,000 does not.</b> The staged
-BeStar campaign contains <b>3,886</b> frames in total, not
-23,000; 887 are measured and 825 of
-those are dispersed. The ~23,000 figure is instead close to
+BeStar campaign contains <b>4,869</b> frames in total, not
+23,000 &mdash; a real and well-populated campaign, but roughly a fifth of the
+quoted size. Of those, 3,886 carried a grism-family
+<code>FILTER</code> card and so entered this campaign's queue;
+3,886 are measured and 3,554 of those are
+dispersed. The gap between 4,869 and 3,886 is
+itself worth noting: those frames are staged as BeStar work but carry no
+grism label at all, so a label-only audit would not have found them.
+The ~23,000 figure is instead close to
 <b>22,123</b> &mdash; every frame in the archive whose filter is
 a grism name or a disputed slot, across <em>all</em> projects, of which
 19,613 carry an unambiguous grism card. It is an archive-wide

@@ -634,9 +634,31 @@ def cmd_enqueue(args) -> int:
             by_stratum[q["stratum_id"]] = by_stratum.get(q["stratum_id"], 0) + 1
         for sid, n in sorted(by_stratum.items(), key=lambda kv: -kv[1]):
             print(f"    {sid:24s} +{n:,}")
+        # Ordering metadata that has DRIFTED from the policy table.  Adding a
+        # stratum renumbers the ranks below it, and s1_batch stores the rank
+        # on every row — so without this, two frames of one stratum could
+        # carry different ranks purely because of when each was enqueued, and
+        # the queue order would stop being a function of the policy at all.
+        # Only priority / population / qc_gated are re-derived: these are
+        # ordering metadata, never results.  Status, WCS and timings are
+        # untouched.
+        stored = [{"obs_rowid": r[0], "population": r[1], "priority": r[2],
+                   "qc_gated": r[3]}
+                  for r in con.execute("SELECT obs_rowid, population, "
+                                       "priority, qc_gated FROM s1_batch")]
+        drift = [(d["priority"], d["population"], d["qc_gated"],
+                  d["obs_rowid"]) for d in batch.policy_drift(stored, queue)]
+        if drift:
+            print(f"enqueue: {len(drift):,} existing rows carry stale "
+                  "priority/population/gating — re-syncing from the policy")
         if args.dry_run:
             print("enqueue: --dry-run, nothing written")
             return 0
+        if drift:
+            con.executemany(
+                "UPDATE s1_batch SET priority = ?, population = ?, "
+                "qc_gated = ? WHERE obs_rowid = ?", drift)
+            con.commit()
         if not fresh:
             return 0
         cols = ["obs_rowid", "stratum_id", "population", "priority",

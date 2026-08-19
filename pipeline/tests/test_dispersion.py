@@ -56,11 +56,38 @@ def star_field():
     return _sources(specs)
 
 
-def trailed_field():
-    """A wind-shaken exposure: EVERY source elongated, same drift angle, but
-    only mildly — a/b of about three, and only a few pixels long."""
+def mildly_trailed_field():
+    """A wind-shaken exposure: EVERY source elongated on a common axis, but
+    only mildly — a/b of about three, and only a few pixels long.  This one
+    is genuinely below the trace gates, and is kept to pin that they work."""
     specs = [(6.0, 2.0, 33.0 + 0.4 * i, 1.0e7 / (i + 1), 500 - 15 * i)
              for i in range(10)]
+    return _sources(specs)
+
+
+def badly_trailed_field(pa: float = 2.2):
+    """A REAL mount slip, built from measured numbers rather than wishful
+    ones — the YZ Cnc 30-s i-band frames of 2024-05-02, which are labelled
+    direct imaging and which the classifier called dispersed.
+
+    This fixture exists to state an uncomfortable truth rather than hide it.
+    An earlier version of this file synthesised its "trailed" frame at a/b
+    3.0 and 6 px long, comfortably below TRACE_MIN_AB (5.0) and
+    TRACE_MIN_A_PX (15.0), and then asserted the classifier did not call it a
+    grism — a result guaranteed by arithmetic, which read as coverage while
+    testing nothing.  The archive's actual trailed frames measure a/b near 90
+    with traces 140 px long and a mutual PA scatter of 0.3 deg: they clear
+    both trace gates and the parallelism test with room to spare, and they
+    are geometrically indistinguishable from dispersion.
+
+    What separates them is WHERE they point.  A mount slip runs along the
+    drift, which has no reason to coincide with the grating axis; the default
+    PA here is the measured 2.2 deg of the real frames, which does coincide,
+    and so this fixture at its default IS still called dispersed.  That is
+    the honest state of the classifier and the test below asserts it.
+    """
+    specs = [(141.7, 1.6, pa + 0.3 * ((i % 3) - 1), 1.0e7 / (i + 1),
+              4000 - 100 * i) for i in range(10)]
     return _sources(specs)
 
 
@@ -166,18 +193,125 @@ class TestClassify:
     def test_grism_field_reads_dispersed(self):
         v = dsp.classify_frame(dsp.summarize_sources(**grism_field()))
         assert v.verdict == dsp.VERDICT_DISPERSED
-        assert "share an axis" in v.reason
+        assert "share the grating axis" in v.reason
 
     def test_star_field_reads_direct(self):
         v = dsp.classify_frame(dsp.summarize_sources(**star_field()))
         assert v.verdict == dsp.VERDICT_DIRECT
 
-    def test_trailed_field_is_not_called_a_grism(self):
-        """Wind smear elongates everything on a common axis — the shared-axis
-        test alone would be fooled.  The absolute-length and ratio gates are
-        what save it, so this frame must NOT read as dispersed."""
-        v = dsp.classify_frame(dsp.summarize_sources(**trailed_field()))
-        assert v.verdict != dsp.VERDICT_DISPERSED
+    def test_mild_trailing_is_below_the_trace_gates(self):
+        """Wind smear of a few pixels at a/b 3 does not reach TRACE_MIN_AB or
+        TRACE_MIN_A_PX, so no trace is registered at all and the frame cannot
+        be called dispersed.  This is the EASY half of trailing."""
+        s = dsp.summarize_sources(**mildly_trailed_field())
+        assert s.n_trace == 0
+        assert dsp.classify_frame(s).verdict != dsp.VERDICT_DISPERSED
+
+    def test_severe_trailing_on_the_grating_axis_is_still_a_false_positive(self):
+        """The HARD half, asserted rather than wished away.
+
+        A real mount slip (measured: a/b 90, 142 px, scatter 0.3 deg) clears
+        every morphological gate this module has.  When the drift happens to
+        run along the grating axis, nothing in the classifier can tell it
+        from a spectrum, and it IS called dispersed.  This test pins the known
+        residual error so that a future change which claims to fix trailing
+        has to change this assertion deliberately."""
+        s = dsp.summarize_sources(**badly_trailed_field(pa=2.2))
+        assert s.n_trace >= 2 and s.trace_ab > dsp.TRACE_MIN_AB
+        assert s.trace_a_px > dsp.TRACE_MIN_A_PX
+        assert s.trace_pa_scatter < dsp.TRACE_MAX_PA_SCATTER_DEG
+        assert dsp.classify_frame(s).verdict == dsp.VERDICT_DISPERSED
+
+    def test_severe_trailing_off_the_grating_axis_is_rejected(self):
+        """...but the same slip pointing anywhere else IS caught, because the
+        grating's axis is fixed in detector coordinates and a mount's is not.
+        This is the half of the trailing population the axis gate recovers."""
+        s = dsp.summarize_sources(**badly_trailed_field(pa=47.0))
+        v = dsp.classify_frame(s)
+        assert v.verdict == dsp.VERDICT_INDETERMINATE
+        assert "off the grating axis" in v.reason
+
+
+class TestGratingAxis:
+    """The gate that asks not just 'are the traces parallel?' but 'are they
+    parallel to the GRATING?' — the archive's largest false-positive source
+    was detector columns and bleed trails, which run at PA 90."""
+
+    def test_offset_is_axial_not_directional(self):
+        """PA 179 is 1 deg from an axis at 0, not 179 deg from it."""
+        assert dsp.grating_axis_offset(179.0) == pytest.approx(1.0)
+        assert dsp.grating_axis_offset(1.0) == pytest.approx(1.0)
+        assert dsp.grating_axis_offset(-1.0) == pytest.approx(1.0)
+        assert dsp.grating_axis_offset(180.0) == pytest.approx(0.0)
+
+    def test_ninety_degrees_is_the_maximum_possible_offset(self):
+        assert dsp.grating_axis_offset(90.0) == pytest.approx(90.0)
+
+    def test_missing_angle_is_none_not_zero(self):
+        """An unmeasured angle must not be silently read as 'aligned'."""
+        assert dsp.grating_axis_offset(None) is None
+        assert dsp.grating_axis_offset(float("nan")) is None
+
+    def test_detector_columns_do_not_forge_a_grism(self):
+        """The real mechanism: a field of column defects and bleed trails at
+        PA 90.  They are PERFECTLY parallel — more parallel than any real
+        spectrum — so a parallelism-only rule called them dispersed."""
+        s = dsp.summarize_sources(**_sources([
+            (523.9, 0.8, 90.0, 5.0e6, 30000),
+            (410.0, 0.9, 90.0, 4.0e6, 25000),
+            (380.0, 0.8, 89.9, 3.0e6, 22000),
+            (2.9, 2.7, 12.0, 1.0e5, 300),
+        ]))
+        assert s.trace_pa_scatter < dsp.TRACE_MAX_PA_SCATTER_DEG
+        v = dsp.classify_frame(s)
+        assert v.verdict == dsp.VERDICT_INDETERMINATE
+        assert "off the grating axis" in v.reason
+
+    def test_solo_streak_off_axis_is_rejected(self):
+        """The solo branch needs the axis test too — a single bleed trail in
+        a sparse field otherwise reads as an isolated bright standard."""
+        s = dsp.summarize_sources(**_sources([
+            (1364.7, 4.9, 90.0, 5.0e7, 60000),
+            (2.9, 2.7, 10.0, 1.0e5, 300),
+            (2.8, 2.7, 40.0, 9.0e4, 290),
+        ]))
+        v = dsp.classify_frame(s)
+        assert v.verdict == dsp.VERDICT_INDETERMINATE
+        assert "off the grating axis" in v.reason
+
+    def test_a_real_grism_frame_still_passes(self):
+        """The gate must cost the true positives essentially nothing: the
+        labelled grism populations sit at PA 0/180 by construction."""
+        v = dsp.classify_frame(dsp.summarize_sources(**grism_field()))
+        assert v.verdict == dsp.VERDICT_DISPERSED
+        assert "grating axis" in v.reason
+
+
+class TestDirectNeedsEvidence:
+    """``direct`` is a certificate that the frame is safe for aperture
+    photometry, not a shrug — so it needs a population behind it."""
+
+    def test_one_round_source_cannot_certify_direct(self):
+        """The false-negative channel: a faint spectrum that simply did not
+        register leaves one round star, and the old rule voted 'clean'."""
+        s = dsp.summarize_sources(**_sources([(2.9, 2.7, 12.0, 1.0e5, 300)]))
+        v = dsp.classify_frame(s)
+        assert v.verdict == dsp.VERDICT_INDETERMINATE
+        assert "too little evidence" in v.reason
+
+    def test_three_round_sources_are_enough(self):
+        s = dsp.summarize_sources(**_sources([
+            (2.9, 2.7, 12.0, 1.0e5, 300),
+            (2.8, 2.7, 40.0, 9.0e4, 290),
+            (3.0, 2.6, 71.0, 8.0e4, 280)]))
+        assert dsp.classify_frame(s).verdict == dsp.VERDICT_DIRECT
+
+    def test_the_dispersed_side_stays_reachable_on_one_source(self):
+        """The asymmetry is deliberate: a bright standard alone in its field
+        is a legitimate grism frame and must still be callable."""
+        s = dsp.summarize_sources(**_sources([
+            (905.0, 8.8, 1.3, 1.0e7, 163004)]))
+        assert dsp.classify_frame(s).verdict == dsp.VERDICT_DISPERSED
 
     def test_satellite_trails_at_random_angles_are_indeterminate(self):
         """Two long streaks that do NOT share an axis are not a grating."""
@@ -269,14 +403,19 @@ class TestClassify:
 # classify_strength — the second axis
 # ---------------------------------------------------------------------------
 class TestStrength:
-    def test_high_and_low_split_at_the_calibrated_bounds(self):
-        # The 2025-01-23 focus sweep's measured values, same star both ways.
-        assert dsp.classify_strength(988.0, 4788) == "high"    # frac 0.206
-        assert dsp.classify_strength(288.0, 4788) == "low"     # frac 0.060
+    def test_a_long_trace_names_the_high_dispersion_unit(self):
+        # 988 px on a 4,788-px frame = 0.206, well past the 0.15 bound.
+        assert dsp.classify_strength(988.0, 4788) == "high"
 
-    def test_overlap_band_returns_ambiguous_not_a_guess(self):
-        mid = 0.5 * (dsp.STRENGTH_LOW_MAX_FRAC + dsp.STRENGTH_HIGH_MIN_FRAC)
-        assert dsp.classify_strength(mid * 4788, 4788) == "ambiguous"
+    def test_a_short_trace_is_ambiguous_and_never_called_low(self):
+        """THE central honesty constraint of this axis.  A short trace is
+        made by BOTH grisms — the H-alpha unit on a faint target looks like
+        the broad unit on a bright one — so 'low' is never asserted.  A
+        'low' call measured only 61% pure against a 47% base rate."""
+        for a_px in (288.0, 150.0, 40.0, 1.0):
+            assert dsp.classify_strength(a_px, 4788) == "ambiguous"
+        assert "low" not in {dsp.classify_strength(a, 4788)
+                             for a in (10.0, 100.0, 300.0, 600.0)}
 
     def test_missing_measurement_is_not_a_class(self):
         assert dsp.classify_strength(None, 4788) == "n/a"
@@ -290,11 +429,13 @@ class TestStrength:
         assert (dsp.classify_strength(frac * 4096, 4096)
                 == dsp.classify_strength(frac * 4788, 4788) == "high")
 
-    def test_aspect_ratio_would_have_failed_here(self):
-        """Documents WHY length replaced a/b: on the focus sweep the two
-        grisms measured a/b 83 vs 61 — indistinguishable — while their
-        length fractions differed by a factor of 3.4."""
-        assert abs(988.0 / 4788) / abs(288.0 / 4788) > 3.0
+    def test_threshold_is_the_calibrated_one(self):
+        w = 4788
+        eps = 1e-6
+        assert dsp.classify_strength(
+            (dsp.STRENGTH_HIGH_MIN_FRAC + eps) * w, w) == "high"
+        assert dsp.classify_strength(
+            (dsp.STRENGTH_HIGH_MIN_FRAC - 0.01) * w, w) == "ambiguous"
 
     def test_direct_verdicts_carry_no_strength_class(self):
         v = dsp.classify_frame(dsp.summarize_sources(**star_field()))
@@ -352,11 +493,16 @@ class TestExtractSources:
         assert dsp.classify_frame(shape).verdict == dsp.VERDICT_DIRECT
 
     def test_synthetic_grism_field_reads_dispersed(self):
-        """Two long thin Gaussians on a common axis plus round field stars —
-        the picture a grism actually makes."""
+        """Two long thin Gaussians on the GRATING's axis plus round field
+        stars — the picture a grism actually makes.
+
+        The traces are painted at PA 0 rather than at an arbitrary angle,
+        because that is where the archive's 18,312 labelled grism frames
+        measure: the disperser is fixed in detector coordinates, so a
+        synthetic 'grism field' at 20 deg was never a grism field."""
         img = self._blank()
-        self._add_gaussian(img, 150, 100, 4000.0, 60.0, 2.5, 20.0)
-        self._add_gaussian(img, 150, 200, 3000.0, 55.0, 2.5, 20.0)
+        self._add_gaussian(img, 150, 100, 4000.0, 60.0, 2.5, 0.0)
+        self._add_gaussian(img, 150, 200, 3000.0, 55.0, 2.5, 0.0)
         for x, y in [(40, 40), (260, 60)]:
             self._add_gaussian(img, x, y, 1200.0, 3.0, 3.0)
         shape = dsp.extract_sources(img)
@@ -364,7 +510,20 @@ class TestExtractSources:
         v = dsp.classify_frame(shape)
         assert v.verdict == dsp.VERDICT_DISPERSED
         # And the measured axis must be the one we painted.
-        assert shape.trace_pa == pytest.approx(20.0, abs=6.0)
+        assert dsp.grating_axis_offset(shape.trace_pa) < 6.0
+
+    def test_synthetic_streaks_off_the_grating_axis_are_rejected(self):
+        """The same picture rotated 20 deg is NOT a grism — it is drift or a
+        pair of satellite trails, and end-to-end from pixels the classifier
+        must say so."""
+        img = self._blank()
+        self._add_gaussian(img, 150, 100, 4000.0, 60.0, 2.5, 20.0)
+        self._add_gaussian(img, 150, 200, 3000.0, 55.0, 2.5, 20.0)
+        for x, y in [(40, 40), (260, 60)]:
+            self._add_gaussian(img, x, y, 1200.0, 3.0, 3.0)
+        shape = dsp.extract_sources(img)
+        assert shape.n_trace >= 2
+        assert dsp.classify_frame(shape).verdict == dsp.VERDICT_INDETERMINATE
 
     def test_flat_frame_yields_no_measurement(self):
         """An all-constant array has no noise scale to threshold against;

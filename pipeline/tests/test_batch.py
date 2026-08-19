@@ -302,3 +302,60 @@ class TestExecuteResilient:
         with pytest.raises(sqlite3.OperationalError):
             mod.execute_resilient(con, "UPDATE t SET nonsense=?", [1])
         assert con.calls == 1, "a genuine SQL error must fail immediately"
+
+
+# ---------------------------------------------------------------------------
+# policy_drift — the stored-rank staleness the new stratum exposed
+# ---------------------------------------------------------------------------
+class TestPolicyDrift:
+    """Adding a stratum renumbers the ranks below it, and s1_batch STORES
+    the rank on every row.  Without re-syncing, two frames of one stratum
+    sort differently purely because of when each was enqueued."""
+
+    def _q(self, rid, sid):
+        p = POLICY_BY_STRATUM[sid]
+        return {"obs_rowid": rid, "stratum_id": sid,
+                "priority": p.priority, "population": p.population,
+                "qc_gated": p.qc_gated}
+
+    def test_stale_rank_is_reported_with_the_corrected_value(self):
+        queue = [self._q(1, "fast_fullframe")]
+        stored = [{"obs_rowid": 1, "population": "facility",
+                   "priority": 10, "qc_gated": True}]      # the OLD rank
+        drift = batch.policy_drift(stored, queue)
+        assert len(drift) == 1
+        assert drift[0]["obs_rowid"] == 1
+        assert drift[0]["priority"] == \
+            POLICY_BY_STRATUM["fast_fullframe"].priority
+
+    def test_rows_already_matching_are_left_alone(self):
+        queue = [self._q(7, "cv_ikon_sloan")]
+        stored = [{"obs_rowid": 7,
+                   "population": queue[0]["population"],
+                   "priority": queue[0]["priority"],
+                   "qc_gated": queue[0]["qc_gated"]}]
+        assert batch.policy_drift(stored, queue) == []
+
+    def test_rows_absent_from_the_queue_are_not_guessed_at(self):
+        """A row whose stratum no longer exists must be left untouched, not
+        assigned some arbitrary rank."""
+        assert batch.policy_drift(
+            [{"obs_rowid": 99, "population": "facility",
+              "priority": 3, "qc_gated": False}], []) == []
+
+    def test_gating_change_alone_is_enough_to_flag_a_row(self):
+        queue = [self._q(4, "cv_gsense_misc")]
+        stored = [{"obs_rowid": 4,
+                   "population": queue[0]["population"],
+                   "priority": queue[0]["priority"],
+                   "qc_gated": not queue[0]["qc_gated"]}]
+        assert len(batch.policy_drift(stored, queue)) == 1
+
+    def test_the_new_cv_stratum_outranks_the_facility_backlog(self):
+        """The mandate this renumbering exists to keep: paper-gating CV
+        frames are solved before the facility bulk, so an interrupted run
+        still lands the CV WCS."""
+        assert (POLICY_BY_STRATUM["cv_fast_fullframe"].priority
+                < POLICY_BY_STRATUM["fast_fullframe"].priority)
+        assert POLICY_BY_STRATUM["cv_fast_fullframe"].population == \
+            POLICY_BY_STRATUM["cv_ikon_sloan"].population

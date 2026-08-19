@@ -115,6 +115,27 @@ CONTROL_PER_FILTER = 400
 #: Seed for the control draw, so the campaign is reproducible.
 CONTROL_SEED = 20260818
 
+#: A SECOND, disjoint draw from the same undisputed labels — the holdout.
+#:
+#: The control sample above cannot honestly be used to quote an error rate,
+#: because the thresholds were moved in response to frames inside it: the
+#: PA-scatter gate went from 20 deg to 5 after a control ``r`` frame, the
+#: sparsity gate was invented after a control ``L`` frame of M57, and the
+#: calibration-frame exclusion was added after eleven control ``B`` frames
+#: came back "dispersed".  Every one of those frames is still scored in the
+#: control totals.  A number fitted on the same data it is quoted over is a
+#: lower bound on the error, not an estimate of it, and the first version of
+#: this campaign published it as though it were the latter.
+#:
+#: The holdout closes that hole the only way it can be closed: a fresh draw
+#: under a different seed, EXPLICITLY EXCLUDING every obs_rowid already in
+#: the table, measured once with the thresholds frozen, and never consulted
+#: while tuning.  If the holdout rate matches the control rate, the fitting
+#: cost nothing measurable; if it is worse, the control number was optimistic
+#: and the report must say by how much.  Either answer is worth having.
+HOLDOUT_SEED = 20260819
+HOLDOUT_PER_FILTER = 300
+
 #: Frames that are not observations of the sky, and must not be measured.
 #:
 #: The first smoke run learned this the hard way: eleven of eighteen
@@ -153,6 +174,9 @@ PRIORITY = {
     "hrg": 4, "lrg": 4,
 }
 CONTROL_PRIORITY = 2
+#: The holdout is measured last: it must not exist as a temptation while the
+#: thresholds are still moving.
+HOLDOUT_PRIORITY = 5
 DEFAULT_PRIORITY = 4
 
 
@@ -300,6 +324,73 @@ def cmd_build(args) -> int:
         con.commit()
         print(f"build: queued {len(cand):,} candidate + {len(ctrl):,} control "
               f"= {len(rows):,} frames")
+    return 0
+
+
+def cmd_holdout(args) -> int:
+    """Queue the out-of-sample holdout: a fresh, disjoint control draw.
+
+    Idempotent by construction — it inserts only obs_rowids that are not
+    already in ``frame_dispersion`` at all, so running it twice adds nothing
+    and can never disturb a measured row.
+    """
+    con = connect(args.manifest)
+    with closing(con):
+        con.executescript(SCHEMA)
+        have = con.execute(
+            "SELECT count(*) FROM frame_dispersion "
+            "WHERE population = 'holdout'").fetchone()[0]
+        if have and not args.rebuild:
+            print(f"holdout: already queued ({have:,} frames) — nothing to "
+                  "do.  Pass --rebuild to draw a fresh one.")
+            return 0
+        if args.rebuild:
+            con.execute("DELETE FROM frame_dispersion "
+                        "WHERE population = 'holdout'")
+
+        cols = ", ".join(_FRAME_COLS)
+        it_marks = ",".join("?" * len(NON_SCIENCE_IMAGETYP))
+        tr_marks = ",".join("?" * len(NON_SCIENCE_TREES))
+        # Identical science clause to cmd_build — the holdout must be drawn
+        # from exactly the population the control was, or it is not a
+        # holdout, it is a different experiment.
+        science = (f"is_canonical = 1 AND error IS NULL "
+                   f"AND (imagetyp IS NULL OR imagetyp NOT IN ({it_marks})) "
+                   f"AND (tree IS NULL OR tree NOT IN ({tr_marks}))")
+        science_params = (*NON_SCIENCE_IMAGETYP, *NON_SCIENCE_TREES)
+
+        rng = random.Random(HOLDOUT_SEED)
+        rows, per_filter = [], []
+        for filt in CONTROL_FILTERS:
+            pool = con.execute(
+                f"""SELECT {cols} FROM frames
+                    WHERE {science} AND filter = ?
+                      AND obs_rowid NOT IN (SELECT obs_rowid
+                                            FROM frame_dispersion)
+                    ORDER BY obs_rowid""",
+                (*science_params, filt)).fetchall()
+            take = min(HOLDOUT_PER_FILTER, len(pool))
+            drawn = rng.sample(pool, take)
+            per_filter.append((filt, len(pool), take))
+            rows.extend((*r, "holdout", HOLDOUT_PRIORITY, "pending")
+                        for r in drawn)
+
+        con.executemany(
+            f"INSERT OR IGNORE INTO frame_dispersion "
+            f"({cols}, population, priority, status) "
+            f"VALUES ({','.join('?' * (len(_FRAME_COLS) + 3))})", rows)
+        for k, v in (("holdout_built_at", utcnow()),
+                     ("holdout_seed", str(HOLDOUT_SEED)),
+                     ("holdout_per_filter", str(HOLDOUT_PER_FILTER)),
+                     ("n_holdout", str(len(rows)))):
+            con.execute("INSERT OR REPLACE INTO s2c_build_meta VALUES (?,?)",
+                        (k, v))
+        con.commit()
+        for filt, avail, take in per_filter:
+            note = "  (pool exhausted)" if take < HOLDOUT_PER_FILTER else ""
+            print(f"  {filt:<3} {take:>5} drawn of {avail:>7} unused{note}")
+        print(f"holdout: queued {len(rows):,} frames, disjoint from the "
+              f"control sample, seed {HOLDOUT_SEED}")
     return 0
 
 
@@ -542,6 +633,12 @@ def main(argv=None) -> int:
     b.add_argument("--rebuild", action="store_true",
                    help="drop all progress and requeue every frame")
     b.set_defaults(func=cmd_build)
+
+    h = sub.add_parser("holdout",
+                       help="queue a fresh, disjoint out-of-sample control")
+    h.add_argument("--rebuild", action="store_true",
+                   help="discard the existing holdout and draw a new one")
+    h.set_defaults(func=cmd_holdout)
 
     r = sub.add_parser("run", help="measure pending frames (resumable)")
     r.add_argument("--workers", type=int, default=6,

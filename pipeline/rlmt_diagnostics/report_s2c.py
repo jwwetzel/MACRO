@@ -99,36 +99,49 @@ def fig_calibration(con) -> str:
             WHERE {MEASURED} AND {where} AND median_ab IS NOT NULL"""),
             dtype=float)
 
-    groups = [("known direct (control)", f"filter IN ({DIR_IN})", MUTED, 6),
-              ("low-dispersion grism", f"filter IN ({LOW_IN})", ACCENT, 8),
-              ("high-dispersion grism", f"filter IN ({HIGH_IN})", WARN, 8)]
+    # Grism classes first, control LAST so the smaller, decisive population
+    # is never buried under 19k grism points.
+    groups = [("high-dispersion grism", f"filter IN ({HIGH_IN})", WARN),
+              ("low-dispersion grism", f"filter IN ({LOW_IN})", ACCENT),
+              ("known direct (control)",
+               f"population = 'control' AND filter IN ({DIR_IN})", "#e8eaed")]
 
     with plt.rc_context(DARK):
         fig, (axl, axr) = plt.subplots(1, 2, figsize=(11.5, 4.8))
-        for name, where, color, size in groups:
+        for name, where, color in groups:
             d = fetch(where)
             if not len(d):
                 continue
-            axl.scatter(np.clip(d[:, 0], 0.8, 400), d[:, 1], s=size,
-                        alpha=0.35, color=color, label=name, linewidths=0)
+            axl.scatter(np.clip(d[:, 0], 0.8, 400), d[:, 1], s=5,
+                        alpha=0.25, color=color, label=name, linewidths=0)
+            # Right panel: the DISTRIBUTION of the shared-axis statistic.
+            # A scatter hides it — nearly every dispersed frame sits at
+            # exactly 0, so the points collapse into an invisible line.
             t = d[d[:, 4] > 0]
             if len(t):
-                axr.scatter(np.clip(t[:, 2], 0.8, 400), t[:, 3], s=size,
-                            alpha=0.35, color=color, linewidths=0)
+                s = t[:, 3][np.isfinite(t[:, 3])]
+                axr.hist(s, bins=np.linspace(0, 90, 91), histtype="step",
+                         lw=1.6, color=color, label=name,
+                         weights=np.full(len(s), 100.0 / max(len(s), 1)))
         axl.set_xscale("log")
         axl.set_xlabel("median a/b of the 10 brightest sources")
         axl.set_ylabel("position-angle scatter of those 10 (deg)")
-        axl.set_title("The statistic that FAILS:\nbright-set median", fontsize=10)
-        axl.legend(fontsize=7, loc="upper left", framealpha=0.3)
-        axr.set_xscale("log")
-        axr.axvline(dsp.TRACE_MIN_AB, color=GOOD, lw=1.0, ls="--")
-        axr.axhline(dsp.TRACE_MAX_PA_SCATTER_DEG, color=GOOD, lw=1.0, ls="--")
-        axr.set_xlabel("trace a/b (trace sources only)")
-        axr.set_ylabel("position-angle scatter of the traces (deg)")
-        axr.set_title("The statistic that WORKS:\ntrace population + shared axis",
+        axl.set_title("The statistic that FAILS:\nbright-set median",
                       fontsize=10)
-        fig.suptitle("Calibration on labels nobody disputes — dispersed "
-                     "frames must land bottom-right", fontsize=11)
+        axl.legend(fontsize=7, loc="upper left", framealpha=0.3)
+        axr.set_yscale("log")
+        axr.axvline(dsp.TRACE_MAX_PA_SCATTER_DEG, color=GOOD, lw=1.4, ls="--")
+        axr.set_xlabel("position-angle scatter of the traces (deg)")
+        axr.set_ylabel("% of each population (log)")
+        axr.set_title("The test that DECIDES:\ndo the traces share an axis?",
+                      fontsize=10)
+        axr.legend(fontsize=7, framealpha=0.3)
+        axr.annotate("adopted gate", xy=(dsp.TRACE_MAX_PA_SCATTER_DEG, 30),
+                     xytext=(22, 45), fontsize=7, color=GOOD,
+                     arrowprops=dict(arrowstyle="->", color=GOOD, lw=0.8))
+        fig.suptitle("Calibration on labels nobody disputes — a grating "
+                     "holds every trace parallel; nothing else does",
+                     fontsize=11)
         fig.tight_layout()
         fig.savefig(FIG_DIR / "s2c_calibration.png", dpi=DPI)
         plt.close(fig)
@@ -169,11 +182,10 @@ def fig_strength(con) -> str:
         axl.set_ylabel("frames")
         axl.set_title("Aspect ratio: the two grisms OVERLAP", fontsize=10)
         axl.legend(fontsize=7, framealpha=0.3)
-        axr.axvline(dsp.STRENGTH_LOW_MAX_FRAC, color=GOOD, lw=1.1, ls="--")
-        axr.axvline(dsp.STRENGTH_HIGH_MIN_FRAC, color=GOOD, lw=1.1, ls="--")
+        axr.axvline(dsp.STRENGTH_HIGH_MIN_FRAC, color=GOOD, lw=1.2, ls="--")
         axr.set_xlabel("trace length / frame width")
-        axr.set_title("Trace length: they separate\n(dashed = adopted bounds)",
-                      fontsize=10)
+        axr.set_title("Trace length: medians differ, tails overlap\n"
+                      "(dashed = adopted 'high' bound)", fontsize=10)
         axr.legend(fontsize=7, framealpha=0.3)
         fig.tight_layout()
         fig.savefig(FIG_DIR / "s2c_strength.png", dpi=DPI)
@@ -223,21 +235,19 @@ def fig_census(con) -> str:
     """The archive's spectra, by target — who actually got observed."""
     rows = q(con, f"""
         SELECT coalesce(canonical_target, '(untargeted)') AS tgt,
-               sum(strength_class = 'high'), sum(strength_class = 'low'),
-               sum(strength_class NOT IN ('high', 'low'))
+               sum(strength_class = 'high'),
+               sum(strength_class != 'high')
         FROM frame_dispersion
         WHERE {MEASURED} AND verdict = 'dispersed'
         GROUP BY tgt ORDER BY count(*) DESC LIMIT 25""")
     tgt = [r[0] for r in rows][::-1]
     hi = np.array([r[1] or 0 for r in rows], dtype=float)[::-1]
-    lo = np.array([r[2] or 0 for r in rows], dtype=float)[::-1]
-    am = np.array([r[3] or 0 for r in rows], dtype=float)[::-1]
+    am = np.array([r[2] or 0 for r in rows], dtype=float)[::-1]
     y = np.arange(len(tgt))
     with plt.rc_context(DARK):
         fig, ax = plt.subplots(figsize=(9.5, 7.5))
-        ax.barh(y, hi, color=WARN, label="H-alpha grism")
-        ax.barh(y, lo, left=hi, color=ACCENT, label="broad grism")
-        ax.barh(y, am, left=hi + lo, color=MUTED, label="ambiguous strength")
+        ax.barh(y, hi, color=WARN, label="H-alpha grism (identified)")
+        ax.barh(y, am, left=hi, color=MUTED, label="unit not identifiable")
         ax.set_yticks(y)
         ax.set_yticklabels(tgt, fontsize=8)
         ax.set_xlabel("measured spectra (frames)")
@@ -255,14 +265,21 @@ def fig_census(con) -> str:
 def section_calibration(con) -> str:
     fig = fig_calibration(con)
 
+    # The direct labels now exist in TWO populations — the fitted control
+    # and the frozen holdout — so every in-sample statistic must say which
+    # one it means.  Pooling them would quietly fold the out-of-sample check
+    # into the number it is supposed to be checking.
+    IN_SAMPLE = "population = 'control'"
     rows = []
     for label in list(dsp.KNOWN_DISPERSED_FILTERS) + list(
             dsp.KNOWN_DIRECT_FILTERS):
+        scope = (IN_SAMPLE if label in dsp.KNOWN_DIRECT_FILTERS else "1=1")
         r = q(con, f"""SELECT count(*), sum(verdict='dispersed'),
                               sum(verdict='direct'),
                               sum(verdict='indeterminate')
                        FROM frame_dispersion
-                       WHERE {MEASURED} AND filter = ?""", (label,))[0]
+                       WHERE {MEASURED} AND {scope} AND filter = ?""",
+              (label,))[0]
         n = r[0] or 0
         if not n:
             continue
@@ -283,7 +300,8 @@ def section_calibration(con) -> str:
     kn = q(con, f"""SELECT count(*), sum(verdict='dispersed'),
                            sum(verdict='indeterminate')
                     FROM frame_dispersion
-                    WHERE {MEASURED} AND filter IN ({DIR_IN})""")[0]
+                    WHERE {MEASURED} AND {IN_SAMPLE}
+                      AND filter IN ({DIR_IN})""")[0]
     recall = pct(kd[1] or 0, kd[0])
     fpr = pct(kn[1] or 0, kn[0])
 
@@ -293,7 +311,147 @@ def section_calibration(con) -> str:
           (SELECT count(*) FROM frame_dispersion
             WHERE {MEASURED} AND filter IN ({DISP_IN}) AND n_trace = 0),
           (SELECT count(*) FROM frame_dispersion
-            WHERE {MEASURED} AND filter IN ({DIR_IN}) AND n_trace > 0)""")[0]
+            WHERE {MEASURED} AND population = 'control'
+              AND filter IN ({DIR_IN}) AND n_trace > 0)""")[0]
+
+    # Where the false positives actually come from: whole nights of them,
+    # on the same targets — the fingerprint of a tracking failure.
+    fp_nights = q(con, f"""
+        SELECT coalesce(canonical_target, '(untargeted)'), night, count(*)
+        FROM frame_dispersion
+        WHERE {MEASURED} AND population = 'control' AND verdict = 'dispersed'
+        GROUP BY 1, 2 HAVING count(*) > 1 ORDER BY count(*) DESC LIMIT 6""")
+    fprows = [[esc(t), esc(n), fmt(c)] for t, n, c in fp_nights]
+
+    # The grating-axis gate, scored: what it removed from each population.
+    # An earlier draft attributed ALL control false positives to tracking
+    # failures.  The database refused that: a large block of them sat within
+    # a degree of PA 90 — perpendicular to the dispersion axis of every
+    # grism frame in the archive — which is a detector column or a
+    # saturated-star bleed trail, and cannot be a mount.
+    OFFAXIS = "reason LIKE '%off the grating axis%'"
+    axis_cut = q(con, f"""
+        SELECT
+          (SELECT count(*) FROM frame_dispersion
+            WHERE {MEASURED} AND population = 'control'
+              AND filter IN ({DIR_IN}) AND {OFFAXIS}),
+          (SELECT count(*) FROM frame_dispersion
+            WHERE {MEASURED} AND filter IN ({DISP_IN}) AND {OFFAXIS}),
+          (SELECT count(*) FROM frame_dispersion
+            WHERE {MEASURED} AND filter = '6' AND {OFFAXIS})""")[0]
+    # How tightly the labelled grism populations pin that axis.
+    axis_tight = q(con, f"""
+        SELECT count(*), sum(CASE WHEN min(abs(trace_pa),
+                                           abs(trace_pa - 180.0)) <= 10.0
+                                  THEN 1 ELSE 0 END)
+        FROM frame_dispersion
+        WHERE {MEASURED} AND verdict = 'dispersed'
+          AND filter IN ({DISP_IN}) AND trace_pa IS NOT NULL""")[0]
+    # The false-negative channel the direct-side evidence floor closed.
+    fn_thin = q(con, f"""
+        SELECT count(*) FROM frame_dispersion
+        WHERE {MEASURED} AND filter IN ({DISP_IN})
+          AND verdict = 'indeterminate'
+          AND n_sources < {dsp.DIRECT_MIN_SOURCES}""")[0][0]
+
+    # The HOLDOUT: a second, disjoint control draw under a different seed,
+    # measured once with every threshold frozen.  This exists because the
+    # control sample above cannot honestly carry an error rate — three of
+    # this module's constants were moved in response to frames still inside
+    # it, so its rate is a lower bound, not an estimate.
+    ho = q(con, f"""SELECT count(*), sum(verdict = 'dispersed'),
+                           sum(verdict = 'direct'),
+                           sum(verdict = 'indeterminate')
+                    FROM frame_dispersion
+                    WHERE {MEASURED} AND population = 'holdout'""")[0]
+    ho_n = ho[0] or 0
+    ho_rows = [[esc(f), fmt(n), fmt(d or 0), pct(d or 0, n)]
+               for f, n, d in q(con, f"""
+                   SELECT filter, count(*), sum(verdict = 'dispersed')
+                   FROM frame_dispersion
+                   WHERE {MEASURED} AND population = 'holdout'
+                   GROUP BY 1 ORDER BY 1""")]
+    ho_seed = dict(q(con, "SELECT key, value FROM s2c_build_meta")).get(
+        "holdout_seed", "&mdash;")
+    if ho_n:
+        ho_fpr = pct(ho[1] or 0, ho_n)
+        ho_block = f"""
+<p><b>An out-of-sample check, because the number above is fitted.</b> Three
+of this classifier's constants were moved in response to specific control
+frames &mdash; the PA-scatter gate went from 20&nbsp;deg to 5 after a
+defocused <code>r</code> frame, the sparsity gate was invented after an
+<code>L</code> frame of M57, and the calibration-frame exclusion was added
+after eleven <code>B</code> frames &mdash; and every one of those frames is
+still scored in the {fmt(kn[0])} control totals. A rate fitted on the data it
+is quoted over is a lower bound, not an estimate, and an earlier version of
+this page presented it as the latter.</p>
+
+<p>So a second control was drawn: <b>{fmt(ho_n)}</b> frames from the same
+undisputed labels, under a different seed ({esc(str(ho_seed))}), explicitly
+excluding every frame already measured, and classified with every threshold
+frozen. Its false-positive rate is <b>{ho_fpr}</b>, against <b>{fpr}</b>
+in-sample.</p>
+
+{table(["label", "holdout frames", "called dispersed", "false-positive rate"],
+       ho_rows)}
+
+<p>The holdout is <em>modestly worse</em>, and that is the honest and expected
+result: fitting three constants to individual control frames bought about
+{abs(100.0*(ho[1] or 0)/max(ho_n,1) - 100.0*(kn[1] or 0)/max(kn[0],1)):.2f}
+of a percentage point of flattery. It is a small gap because the thresholds
+were set from single diagnosed frames rather than by sweeping the
+distribution for a minimum &mdash; but it is not zero, and a page that quoted
+only the in-sample figure would be understating its own error.
+<b>{ho_fpr} is the rate to cite.</b> It is the only number here that survives
+the question &ldquo;how do you know you did not fit this?&rdquo;</p>
+
+<p>The per-label breakdown also shows where the residual error lives: it is
+concentrated in the luminance and broad filters, which is consistent with the
+mechanism named under Consequence below &mdash; those are the frames of long,
+unguided, deep exposures where the mount has the most opportunity to drift.
+</p>"""
+    else:
+        ho_block = ("<p class=\"warn\">The out-of-sample holdout has been "
+                    "queued but not yet measured; every rate on this page is "
+                    "therefore in-sample and is a lower bound on the error."
+                    "</p>")
+
+    # The discriminator that was tried and REJECTED, with its numbers.
+    def _ratio_p50(where):
+        rows = q(con, f"""SELECT trace_ab * 1.0 / median_ab
+                          FROM frame_dispersion
+                          WHERE {MEASURED} AND verdict = 'dispersed'
+                            AND trace_ab IS NOT NULL AND median_ab > 0
+                            AND n_sources >= 30 AND n_bright >= 5
+                            AND {where}""")
+        v = np.array([r[0] for r in rows], dtype=float)
+        return (len(v), float(np.median(v)) if len(v) else float("nan"),
+                100.0 * float(np.mean(v < 1.5)) if len(v) else float("nan"))
+    # A SECOND discriminator was proposed and also measured to fail: extend
+    # the sparse-field requirement from the solo branch to the multi-trace
+    # branch, as a floor on the fraction of bright sources that are traces.
+    # The argument is sound ("a grating should streak most of its ten
+    # brightest") and the data still refuses it, because a mount slip streaks
+    # all ten too.  Rendered so the rejection is auditable, not asserted.
+    def _tf_cost(floor):
+        return q(con, f"""
+            SELECT
+              (SELECT count(*) FROM frame_dispersion
+                WHERE {MEASURED} AND verdict = 'dispersed'
+                  AND filter IN ({DISP_IN}) AND n_trace >= 2
+                  AND n_sources > {dsp.SOLO_MAX_SOURCES}
+                  AND trace_frac < {floor}),
+              (SELECT count(*) FROM frame_dispersion
+                WHERE {MEASURED} AND verdict = 'dispersed'
+                  AND population = 'control' AND filter IN ({DIR_IN})
+                  AND n_trace >= 2 AND n_sources > {dsp.SOLO_MAX_SOURCES}
+                  AND trace_frac < {floor})""")[0]
+    tf_rows = [[fnum(f, 1), fmt(lost), fmt(gain)]
+               for f, (lost, gain) in ((f, _tf_cost(f))
+                                       for f in (0.2, 0.3, 0.4, 0.5))]
+    r_fp = _ratio_p50("population = 'control'")
+    r_kd = _ratio_p50(f"filter IN ({DISP_IN})")
+    r_s6 = _ratio_p50("filter = '6'")
 
     return f"""
 <section id="calibration"><h2>1&nbsp;&middot;&nbsp;Calibration: can the pixels
@@ -321,12 +479,17 @@ share a common axis. The shared axis is the decisive test: a grating rules
 every source in the field the same way, while a cosmic ray or a satellite
 points wherever it likes.</p>
 
-{_figure(fig, "Left: the bright-set median a/b that the first survey pass "
-              "quoted &mdash; the classes overlap badly, because most bright "
+{_figure(fig, "Left: the bright-set median a/b the first survey pass quoted "
+              "&mdash; the classes overlap badly, because most bright "
               "detections on a grism frame are round field stars whose "
-              "traces are too faint to resolve. Right: the trace population "
-              "and its position-angle scatter, where the same frames "
-              "separate. Dashed lines mark the adopted gates.")}
+              "traces are too faint to resolve. Right: among frames that "
+              "reached the trace gates at all, how tightly their traces "
+              "share an axis. The grism populations collapse onto zero; the "
+              "control keeps a long tail out to 80 deg, which is the "
+              "defocused and satellite-crossed frames the gate exists to "
+              "remove. Note the control ALSO has a spike at zero &mdash; "
+              "those are the trailed frames discussed under Consequence, "
+              "and they are the reason the false-positive rate is not zero.")}
 
 {table(["label", "truth", "measured", "dispersed", "direct",
         "indeterminate", "agreement"],
@@ -338,6 +501,8 @@ known-direct control frames it calls <b>{fpr}</b> dispersed &mdash; that is
 the false-positive rate, and it is the number that decides whether any
 verdict on slot <code>6</code> can be believed.</p>
 
+{ho_block}
+
 <p>The overlap, stated plainly: {fmt(sep[0])} known-dispersed frames
 contained no trace-shaped source at all (too short an exposure, too faint a
 target, or cloud), and {fmt(sep[1])} known-direct frames contained at least
@@ -347,29 +512,142 @@ irreducible ambiguity in the method, and the classifier is built to return
 
 <h3>Decision</h3>
 <p>Dispersion is measurable per frame, and the classifier is adopted with
-three rules. <b>(1)</b> Two or more traces sharing an axis to within
+four rules. <b>(1)</b> Two or more traces sharing an axis to within
 {fnum(dsp.TRACE_MAX_PA_SCATTER_DEG, 0)}&nbsp;deg &rarr;
-<code>dispersed</code>. <b>(2)</b> A single trace of
-a/b&nbsp;&ge;&nbsp;{fnum(dsp.SOLO_TRACE_MIN_AB, 0)} in a sparse field
-(&le;&nbsp;{fmt(dsp.SOLO_MAX_SOURCES)} sources) &rarr;
+<code>dispersed</code>&hellip; <b>(2)</b> &hellip;<em>provided that shared
+axis is the GRATING's</em>, within
+{fnum(dsp.GRATING_PA_TOL_DEG, 0)}&nbsp;deg of PA
+{fnum(dsp.GRATING_PA_DEG, 0)}. <b>(3)</b> A single trace of
+a/b&nbsp;&ge;&nbsp;{fnum(dsp.SOLO_TRACE_MIN_AB, 0)} on that same axis, in a
+sparse field (&le;&nbsp;{fmt(dsp.SOLO_MAX_SOURCES)} sources) &rarr;
 <code>dispersed</code>; this rule carries the bright-standard frames where
-the target is the only thing in the field. <b>(3)</b> No traces and round
-bright sources &rarr; <code>direct</code>. Everything else is
-<code>indeterminate</code> and is reported as such.</p>
+the target is the only thing in the field. <b>(4)</b> No traces, round
+bright sources, and at least {fmt(dsp.DIRECT_MIN_SOURCES)} of them &rarr;
+<code>direct</code>. Everything else is <code>indeterminate</code> and is
+reported as such.</p>
+
+<p>Rule 2 is the one this campaign was missing, and it is worth stating why
+it is physics rather than a fitted patch. A diffraction grating is machined
+glass bolted into a filter wheel: its dispersion direction is fixed in
+<em>detector</em> coordinates, so it does not merely make parallel traces, it
+makes traces along one knowable line. The archive's own labelled grism
+frames pin that line without ambiguity &mdash; <b>{fmt(axis_tight[1])}</b> of
+<b>{fmt(axis_tight[0])}</b> lie within 10&nbsp;deg of PA&nbsp;0/180. The
+tolerance sits in a measured gap rather than at a round number: the furthest
+on-axis labelled spectrum is at 9.9&nbsp;deg, the nearest off-axis control
+false positive at 28.6&nbsp;deg.</p>
+
+<p>Rule 4's source floor is the mirror image, and it corrects a real
+asymmetry. <code>direct</code> is not the absence of a verdict; downstream it
+is a certificate that the frame is safe for aperture photometry. Under the
+first version of these rules a frame with ONE round detection was certified
+on a sample of one, while the dispersed side demanded two corroborating
+traces or an extreme trace plus a sparsity check. {fmt(fn_thin)} labelled
+grism frames now correctly return <code>indeterminate</code> on fields too
+thin to see a spectrum in, instead of voting &ldquo;clean&rdquo;.</p>
 
 <h3>Consequence</h3>
-<p>Two false-positive modes were found by measurement and closed before the
-production run, and both are worth recording because both would have
-produced confident nonsense. <b>Twilight flats</b> read as dispersed: a flat
-has no stars, so the extractor finds dust shadows and detector column
-defects, which are straight and mutually parallel because they <em>are</em>
-columns &mdash; a perfect forgery of a shared dispersion axis. Calibration
-frames are now excluded from the campaign entirely. <b>A satellite trail</b>
-across a 60-second luminance frame of M57 read as dispersed on the strength
-of one 1,095-px streak &mdash; past 1,278 perfectly round stars. A grating
-disperses <em>everything</em>, so a rich field with exactly one smear is the
-one thing a grism cannot produce; the solo-trace rule now requires a sparse
-field. Any future reuse of this classifier inherits both guards.</p>
+<p>Four false-positive modes were found by measurement. Three were closed;
+the fourth is real and is quoted above as the residual error rate.</p>
+
+<p><b>Closed &mdash; twilight flats.</b> A flat has no stars, so the
+extractor finds dust shadows and detector column defects, which are straight
+and mutually parallel because they <em>are</em> columns: a perfect forgery
+of a shared dispersion axis. Eleven of the first eighteen <code>B</code>
+frames measured came back "dispersed" this way. Calibration frames are now
+excluded from the campaign entirely.</p>
+
+<p><b>Closed &mdash; a satellite trail.</b> A 60-second luminance frame of
+M57 read as dispersed on the strength of one 1,095-px streak, past 1,278
+perfectly round stars. A grating disperses <em>everything</em>, so a rich
+field with exactly one smear is the one thing a grism cannot produce; the
+solo-trace rule now requires a sparse field.</p>
+
+<p><b>Closed &mdash; detector columns and bleed trails.</b> This was the
+largest mode, and an earlier version of this page missed it entirely by
+attributing every remaining false positive to the mount. The database says
+otherwise: a large block of them sat within a degree of PA&nbsp;90, exactly
+perpendicular to the dispersion axis of every grism frame in the archive.
+Nothing on a mount prefers that angle. Detector columns and saturated-star
+bleed trails do &mdash; they run down the readout direction, and being
+literally columns they are <em>more</em> mutually parallel than any real
+spectrum, which is precisely why a parallelism-only rule believed them. The
+grating-axis gate (rule 2) removes <b>{fmt(axis_cut[0])}</b> control false
+positives and <b>{fmt(axis_cut[2])}</b> slot-<code>6</code> verdicts, at a
+cost of <b>{fmt(axis_cut[1])}</b> frames across the whole labelled grism
+population.</p>
+
+<p><b>Open &mdash; tracking failures on the grating axis.</b> The remaining
+{fmt(kn[1] or 0)} false positives are dominated by frames where the mount
+slipped <em>and the drift happened to run along the dispersion axis</em>.
+Trailed stars are long, thin and mutually parallel, which is not merely
+similar to dispersion &mdash; it is geometrically the same thing, and no
+morphological gate in this module can separate them. They arrive in clusters,
+whole nights of one target at a time, which is the fingerprint of a mount
+problem rather than of anything optical:</p>
+
+{table(["target", "night", "false positives"], fprows)}
+
+<p>The residue is not purely mount slips, and the page should not claim it
+is. At least one survivor is a bleed trail that happens to run
+<em>horizontally</em>: a 5-second <code>r</code> exposure of the bright star
+HIP&nbsp;97675 carrying a 1,365-px streak at PA&nbsp;0.0007&nbsp;deg, in a
+field of 48 stars whose median a/b is 1.12. A 5-second exposure cannot trail
+1,365&nbsp;px, and stars that round rule out drift; the frame is saturated
+(65,534&nbsp;ADU) and the streak is its bleed. That the bleed runs along
+rows on this sensor rather than down columns is why the axis gate cannot
+catch it.</p>
+
+<p>That case suggests a further discriminator, and it is recorded here
+<em>without</em> being adopted. A grating has no reason to align with the
+pixel grid; a bleed trail does so by construction. Measured: requiring the
+trace axis to differ from exact alignment by more than 0.01&nbsp;deg would
+remove 2 of the surviving control false positives at a cost of 4 frames in
+{fmt(axis_tight[0])} labelled spectra. The ratio is favourable and the
+mechanism is real &mdash; but it would be calibrated on two examples, which
+is exactly the sin this campaign has already been caught committing
+elsewhere. It waits for a population, not an anecdote.</p>
+
+<p>One discriminator was proposed and <b>measured to fail</b>, which is
+worth recording so it is not proposed again. A grism disperses bright and
+faint sources differently &mdash; only the bright ones spread far enough to
+be detected as traces, so the frame's <em>median</em> elongation stays low
+while its trace elongation is high &mdash; whereas trailing smears
+everything equally. The ratio of the two should therefore separate them, and
+on slot <code>6</code> it does beautifully (median {fnum(r_s6[1], 2)}).
+But on the labelled grism population it does not: those frames are mostly
+isolated bright standards with nothing faint to stay round, and they measure
+a median ratio of {fnum(r_kd[1], 2)} against the trailed frames'
+{fnum(r_fp[1], 2)} &mdash; indistinguishable, with
+{fnum(r_kd[2], 0)}% and {fnum(r_fp[2], 0)}% respectively falling below 1.5.
+Restricting to rich fields does not help. Adopting it as a gate would buy a
+~1% reduction in false positives at the cost of rejecting most real
+spectra.</p>
+
+<p>A second gate was proposed on good reasoning and <b>also measured to
+fail</b>. The sparse-field requirement currently guards only the solo-trace
+branch; the argument for extending it to the multi-trace branch is that a
+grating streaks <em>every</em> bright source, so a rich field in which only
+two of ten sources are traces is weak evidence. Expressed as a floor on that
+fraction, every candidate value costs far more real spectra than it buys:</p>
+
+{table(["trace-fraction floor", "labelled spectra lost",
+        "control false positives removed"], tf_rows)}
+
+<p>The reason is the same one that sank the previous discriminator: a mount
+slip streaks all ten sources too, so the frames a floor removes most eagerly
+are genuine spectra of crowded fields, while the trailed frames sail over it
+with a fraction of 1.0. The multi-trace branch is left ungated, and the
+population it carries is reported rather than hidden.</p>
+
+<p>The measurement that <em>would</em> close this gap is the per-source
+correlation between flux and trace length: under dispersion the two are
+strongly coupled, under trailing they are independent. That needs the
+per-source arrays this campaign summarises away rather than stores, so it
+belongs to a future pass. Until then, <b>{pct(kn[1] or 0, kn[0])} of direct
+frames are expected to be misread as dispersed</b>, and any downstream use
+should treat a lone dispersed verdict on an otherwise photometric night as a
+tracking failure rather than a discovery.</p>
 </section>"""
 
 
@@ -396,26 +674,71 @@ def section_strength(con) -> str:
     lo = stats(f"filter IN ({LOW_IN})")
     ratio = (hi[2] / lo[2]) if (hi[2] and lo[2]) else None
 
-    # How much of each population lands in the ambiguous band?
-    def amb(where):
-        r = q(con, f"""SELECT count(*), sum(strength_class = 'ambiguous'),
-                              sum(strength_class = 'high'),
-                              sum(strength_class = 'low')
-                       FROM frame_dispersion
-                       WHERE {MEASURED} AND {where}
-                         AND verdict = 'dispersed'""")[0]
-        return r
-    ah, al = amb(f"filter IN ({HIGH_IN})"), amb(f"filter IN ({LOW_IN})")
-
     rows = [
         ["H-alpha grism (<code>hrg</code>, <code>HaGrism</code>)", fmt(hi[0]),
-         fnum(hi[1], 1), f"<b>{fnum(hi[2], 3)}</b>",
-         f"{fnum(hi[3], 3)} &ndash; {fnum(hi[4], 3)}",
-         pct(ah[2] or 0, ah[0]), pct(ah[1] or 0, ah[0])],
+         fnum(hi[1], 0), f"<b>{fnum(hi[2], 3)}</b>",
+         f"{fnum(hi[3], 3)} &ndash; {fnum(hi[4], 3)}"],
         ["broad grism (<code>lrg</code>, <code>OGGrism</code>)", fmt(lo[0]),
-         fnum(lo[1], 1), f"<b>{fnum(lo[2], 3)}</b>",
-         f"{fnum(lo[3], 3)} &ndash; {fnum(lo[4], 3)}",
-         pct(al[3] or 0, al[0]), pct(al[1] or 0, al[0])]]
+         fnum(lo[1], 0), f"<b>{fnum(lo[2], 3)}</b>",
+         f"{fnum(lo[3], 3)} &ndash; {fnum(lo[4], 3)}"]]
+
+    # The purity/recall curve — the evidence that ONLY the long tail works.
+    def _fracs(where):
+        return np.array([r[0] for r in q(con, f"""
+            SELECT trace_a_px * 1.0 / width FROM frame_dispersion
+            WHERE {MEASURED} AND verdict = 'dispersed'
+              AND trace_a_px IS NOT NULL AND width > 0 AND {where}""")],
+            dtype=float)
+    fh, fl = _fracs(f"filter IN ({HIGH_IN})"), _fracs(f"filter IN ({LOW_IN})")
+
+    prows, pcls = [], []
+    best_lo = 0.0            # the BEST a "low" call ever manages, at any cut
+    for t in (0.04, 0.06, 0.08, 0.11, 0.13, 0.15, 0.17):
+        nh_hi, nl_hi = int((fh >= t).sum()), int((fl >= t).sum())
+        nl_lo, nh_lo = int((fl <= t).sum()), int((fh <= t).sum())
+        p_hi = 100.0 * nh_hi / max(nh_hi + nl_hi, 1)
+        p_lo = 100.0 * nl_lo / max(nl_lo + nh_lo, 1)
+        best_lo = max(best_lo, p_lo)
+        prows.append([fnum(t, 2),
+                      f"<b>{p_hi:.1f}%</b>", f"{100.0*nh_hi/max(len(fh),1):.1f}%",
+                      f"{p_lo:.1f}%", f"{100.0*nl_lo/max(len(fl),1):.1f}%"])
+        pcls.append("" if p_hi >= 99 else "warn")
+    # The base rate a "low" call has to beat to be worth anything: how often
+    # the low-dispersion unit is simply the right answer.  Computed, not
+    # asserted — the sentence in the Decision section below used to carry
+    # hand-typed values (61% against 47%) that matched neither this table
+    # three paragraphs above it nor the data underneath.
+    base_lo = 100.0 * len(fl) / max(len(fh) + len(fl), 1)
+    # Recall at the ADOPTED bound, for the same reason.
+    hi_recall = 100.0 * float((fh >= dsp.STRENGTH_HIGH_MIN_FRAC).sum()) / max(len(fh), 1)
+    hi_purity = (100.0 * float((fh >= dsp.STRENGTH_HIGH_MIN_FRAC).sum())
+                 / max(float((fh >= dsp.STRENGTH_HIGH_MIN_FRAC).sum())
+                       + float((fl >= dsp.STRENGTH_HIGH_MIN_FRAC).sum()), 1.0))
+
+    # The confound, shown directly: length falls as exposure rises, because
+    # long exposures are what FAINT targets get.
+    # NOTE, and it is the reason this loop looks the way it does: the first
+    # version of this query was `SELECT count(*), trace_a_px * 1.0 / width`
+    # with no GROUP BY.  SQLite answers such a query with exactly ONE row —
+    # the aggregate, plus whatever the bare column happened to hold on the
+    # last row it scanned — so the "median" below was a single arbitrary
+    # frame's value and every count printed as 1.  All eight published
+    # numbers in this table were wrong, and the monotonic decline they were
+    # supposed to demonstrate was an accident of scan order.  Aggregate in
+    # Python over the raw column, exactly as `_fracs` above already did.
+    erows = []
+    for lo_e, hi_e, label in ((0, 5, "&lt; 5 s"), (5, 20, "5 &ndash; 20 s"),
+                              (20, 60, "20 &ndash; 60 s"),
+                              (60, 10 ** 9, "&gt; 60 s")):
+        r = q(con, f"""SELECT trace_a_px * 1.0 / width
+                       FROM frame_dispersion
+                       WHERE {MEASURED} AND verdict = 'dispersed'
+                         AND filter IN ({HIGH_IN}) AND width > 0
+                         AND trace_a_px IS NOT NULL
+                         AND exptime >= ? AND exptime < ?""", (lo_e, hi_e))
+        vals = np.array([x[0] for x in r if x[0] is not None], dtype=float)
+        if len(vals):
+            erows.append([label, fmt(len(vals)), fnum(float(np.median(vals)), 3)])
 
     return f"""
 <section id="strength"><h2>2&nbsp;&middot;&nbsp;The second axis: which grism
@@ -429,48 +752,78 @@ not &mdash; and a spectrum is useless if you do not know its dispersion. So:
 <b>can the pixels say which unit was in the beam?</b></p>
 
 <h3>Evidence</h3>
-<p>The obvious statistic is aspect ratio, and it does not work. The
-2025-01-23 focus sweep is the cleanest possible test &mdash; the same star,
-the same night, the same camera, shot through both units &mdash; and it
-measures a/b&nbsp;of {fnum(hi[1], 0)} for the H-alpha unit against
-{fnum(lo[1], 0)} for the broad one across the full populations: overlapping
-distributions. The reason is that a/b divides by the minor axis, which is
-the seeing width, so every wobble in focus or atmosphere feeds straight into
-the statistic.</p>
+<p>The obvious statistic is aspect ratio, and it does not work: across the
+full labelled populations the two units measure a/b of {fnum(hi[1], 0)}
+(high) against {fnum(lo[1], 0)} (low). The reason is that a/b divides by the
+minor axis, which is the seeing width, so every wobble in focus or
+atmosphere feeds straight into the statistic.</p>
 
-<p>Trace <em>length</em> does not have that problem. Expressed as a fraction
-of frame width &mdash; which normalises the archive's three cameras and two
-binnings onto one scale &mdash; the same frames separate by a factor of
-<b>{fnum(ratio, 1) if ratio else "&mdash;"}</b>.</p>
-
-{_figure(fig, "Left: trace aspect ratio, where the two grisms overlap. "
-              "Right: trace length as a fraction of frame width, where they "
-              "do not. Dashed lines are the adopted bounds; the gap between "
-              "them is the ambiguous band.")}
+<p>Trace <em>length</em> is better. Expressed as a fraction of frame width
+&mdash; which normalises the archive's three cameras and two binnings onto
+one scale &mdash; the medians differ by a factor of
+<b>{fnum(ratio, 2) if ratio else "&mdash;"}</b>. That is the right sign and
+the right order &mdash; the H-alpha unit does disperse further &mdash; but it
+is short of the factor of two the optics predict, and the shortfall is itself
+a clue: what is measured is not the spectrum's true length but the part of it
+that clears the detection threshold. The medians are not the story anyway;
+the tails are.</p>
 
 {table(["grism unit", "frames", "median a/b", "median length/width",
-        "10&ndash;90 pct", "assigned correctly", "left ambiguous"], rows)}
+        "10&ndash;90 percentile"], rows)}
+
+{_figure(fig, "Left: trace aspect ratio &mdash; the two grisms overlap "
+              "almost completely. Right: trace length as a fraction of "
+              "frame width, which separates the medians but leaves broad "
+              "overlapping tails. The dashed line is the adopted "
+              "high-dispersion bound.")}
+
+<p>Asking the question a classifier actually has to answer &mdash; given a
+threshold, how PURE is the resulting call? &mdash; exposes a sharp
+asymmetry:</p>
+
+{table(["length/width cut", "purity of a &ldquo;high&rdquo; call above it",
+        "recall", "purity of a &ldquo;low&rdquo; call below it", "recall"],
+       prows, pcls)}
+
+<p>A long trace is decisive: past {fnum(dsp.STRENGTH_HIGH_MIN_FRAC, 2)}
+essentially nothing but the H-alpha unit produces it &mdash;
+<b>{hi_purity:.1f}%</b> pure, at {hi_recall:.1f}% recall. A short trace is
+worthless: across every threshold tried, the purity of a &ldquo;low&rdquo;
+call peaks at <b>{best_lo:.1f}%</b> against a base rate of
+<b>{base_lo:.1f}%</b>. The cause is visible directly in the
+data &mdash; among H-alpha frames alone, trace length falls steadily as
+exposure time rises, because long exposures are what FAINT targets get, and
+a faint trace drops below the detection threshold sooner:</p>
+
+{table(["exposure", "H-alpha frames", "median length/width"], erows)}
 
 <h3>Decision</h3>
-<p>Dispersion strength is classified on trace length fraction, with
-<code>low</code> at &le;&nbsp;{fnum(dsp.STRENGTH_LOW_MAX_FRAC, 2)} and
-<code>high</code> at &ge;&nbsp;{fnum(dsp.STRENGTH_HIGH_MIN_FRAC, 2)}. The
-band between them is reported <code>ambiguous</code> rather than assigned.
-Aspect ratio is retained in the table as a measured column but is not used
-to decide anything.</p>
+<p><b>The two grisms do not separate cleanly on real data, and this report
+declines to pretend otherwise.</b> A frame is called
+<code>high</code> when its trace length fraction reaches
+{fnum(dsp.STRENGTH_HIGH_MIN_FRAC, 2)}, and <code>ambiguous</code> otherwise.
+<b><code>low</code> is never assigned from morphology</b> &mdash; a call
+that is right {best_lo:.0f}% of the time against a {base_lo:.0f}% base rate
+is not knowledge, and recording it as if it were would quietly corrupt every
+downstream count of how many H-alpha spectra the archive holds.</p>
 
 <h3>Consequence</h3>
-<p>The separation is good but it is not perfect, and the residual spread is
-physical rather than a threshold that needs tuning: a brighter star's trace
-stays above the extraction threshold further into its wings, so length grows
-with source brightness and exposure time. A frame in the ambiguous band is
-not a failure of the measurement &mdash; it is a frame whose dispersion
-genuinely cannot be read from its trace length alone. If a future project
-needs those assigned, the measurement that would do it is spectral rather
-than morphological: cross-correlate the extracted trace profile against the
-two units' known response shapes, which the H-alpha unit's isolated emission
-peak makes trivially separable. That is a job for the grism extraction
-track, not for this classifier.</p>
+<p>For frames from the modern naming epochs this costs nothing: their
+<code>hrg</code>/<code>lrg</code> cards already name the unit, and this axis
+is only a cross-check. The cost falls entirely on the slot-<code>6</code>
+era, where the card names nothing &mdash; there, roughly half the spectra
+can be assigned to the H-alpha unit and the rest must be carried as
+&ldquo;dispersed, unit unknown&rdquo; until someone measures them properly.</p>
+
+<p>Two measurements would close the gap, and neither is available from what
+this campaign stores. The first is trace length at a FIXED surface-brightness
+threshold rather than at a fixed multiple of the sky noise, which removes the
+brightness confound by construction. The second, and better, is spectral
+rather than morphological: cross-correlate the extracted trace profile
+against the two units' response shapes, which the H-alpha grism's isolated
+emission peak makes trivially separable. Both need the per-source and
+per-column arrays this campaign summarises away rather than retains, so both
+belong to the grism extraction track.</p>
 </section>"""
 
 
@@ -715,10 +1068,16 @@ frames</b> are usable photometry.</p>
 <p><b>SN&nbsp;2023ixf</b> &mdash; {fmt(sn[0])} slot-<code>6</code> frames
 measured across {esc(sn[4])}&nbsp;&rarr;&nbsp;{esc(sn[5])}:
 <b>{fmt(sn_disp)} dispersed</b> ({pct(sn_disp, sn[0])}),
-{fmt(sn[2] or 0)} direct, {fmt(sn[3] or 0)} indeterminate. Every one of the
-dispersed frames measures as the <b>broad-spectrum grism</b>
-({fmt(sn_str[1] or 0)} low-dispersion against {fmt(sn_str[0] or 0)}
-high-dispersion), spread over {fmt(sn_nights)} separate nights.</p>
+{fmt(sn[2] or 0)} direct, {fmt(sn[3] or 0)} indeterminate, spread over
+{fmt(sn_nights)} separate nights. None of them reaches the trace length that
+would identify the H-alpha unit ({fmt(sn_str[0] or 0)} of {fmt(sn_disp)}).
+That is <em>not</em> evidence the series is broad-spectrum: section&nbsp;2
+shows a short trace is worthless as a discriminator, because the H-alpha unit
+makes short traces too whenever its target is faint &mdash; and a supernova
+weeks past discovery is exactly a faint target. An earlier version of this
+page read the absence of long traces as &ldquo;all broad-spectrum grism&rdquo;
+and that claim is withdrawn. The series must be reduced with its dispersion
+treated as a free parameter solved from the frames themselves.</p>
 
 {table(["night", "frames", "dispersed", "direct", "indet.", "reading"],
        snrows, sncls)}
@@ -735,9 +1094,10 @@ it did not know it had.</p>
 <p><b>The SN&nbsp;2023ixf frames are a genuine spectral series.</b>
 {fmt(sn_disp)} dispersed frames on {fmt(sn_nights)} nights, opening
 {esc(sn_str[3])} &mdash; two days after the 2023-05-19 discovery, inside the
-flash-ionisation window &mdash; and running to {esc(sn_str[4])}. All of them
-are broad-spectrum grism, so they share one dispersion and can be reduced as
-a single homogeneous series.</p>
+flash-ionisation window &mdash; and running to {esc(sn_str[4])}. No frame in
+the series reaches the H-alpha unit's signature trace length, so it is
+plausibly homogeneous in dispersion; section&nbsp;2 explains why that
+cannot be asserted outright.</p>
 
 <p>Both answers must be applied at frame granularity rather than as a
 blanket ruling per target: a night-by-night split is exactly what a mixed
@@ -771,7 +1131,6 @@ prove what the label meant.</p>
 def section_census(con) -> str:
     fig = fig_census(con)
     tot = q(con, f"""SELECT count(*), sum(strength_class='high'),
-                            sum(strength_class='low'),
                             sum(strength_class='ambiguous')
                      FROM frame_dispersion
                      WHERE {MEASURED} AND verdict = 'dispersed'""")[0]
@@ -797,23 +1156,73 @@ def section_census(con) -> str:
     # The two quoted claims, checked.
     tcrb = q(con, f"""
         SELECT count(*), sum(fd.verdict='dispersed'),
-               sum(fd.strength_class='high'), sum(fd.strength_class='low')
+               sum(fd.strength_class='high'), sum(fd.status='pending')
         FROM frame_dispersion fd
         JOIN stage_tcrb_monitoring s USING (obs_rowid)
         WHERE fd.status = 'measured'""")[0]
+    tcrb_queued = q1(con, """
+        SELECT count(*) FROM frame_dispersion fd
+        JOIN stage_tcrb_monitoring s USING (obs_rowid)""")
+    # The label count that produced the quoted "247": T CrB frames carrying
+    # any grism card, measured or not.  Counted from frame_dispersion, whose
+    # queue is already restricted to CANONICAL science frames — so this is
+    # 247 distinct observations, not 247 rows in `frames` (which holds 483,
+    # the difference being duplicate copies of the same exposure).  The
+    # prose says "canonical science frames" for exactly that reason.
+    tcrb_label = q1(con, f"""
+        SELECT count(*) FROM frame_dispersion
+        WHERE canonical_target = 'T CrB' AND filter IN ({DISP_IN})""")
+    tcrb_raw = q1(con, f"""
+        SELECT count(*) FROM frames
+        WHERE canonical_target = 'T CrB' AND filter IN ({DISP_IN})""")
     tcrb_g = q(con, f"""
         SELECT count(*), sum(verdict='dispersed')
         FROM frame_dispersion
         WHERE {MEASURED} AND canonical_target = 'T CrB'""")[0]
-    bestar = q(con, f"""
-        SELECT count(*), sum(fd.verdict='dispersed')
+    # The CAMPAIGN's size comes from the staging table itself.  Reading it
+    # off the join to frame_dispersion instead would silently report only the
+    # subset that carried a candidate FILTER card and so entered this queue —
+    # which is the very label-versus-measurement confusion this section
+    # exists to correct.
+    bestar_staged = q1(con, "SELECT count(*) FROM stage_bestar_grism")
+    bestar = q(con, """
+        SELECT count(*), sum(fd.status = 'measured'),
+               sum(fd.verdict = 'dispersed')
         FROM frame_dispersion fd
-        JOIN stage_bestar_grism s USING (obs_rowid)
-        WHERE fd.status = 'measured'""")[0]
-    bestar_all = q(con, f"""
-        SELECT count(*), sum(verdict='dispersed')
-        FROM frame_dispersion
-        WHERE {MEASURED} AND filter IN ({DISP_IN})""")[0]
+        JOIN stage_bestar_grism s USING (obs_rowid)""")[0]
+    # Queued (= archive label count) vs measured, for every grism label.
+    grism_lbl = q(con, f"""
+        SELECT count(*), sum(status = 'measured'),
+               sum(verdict = 'dispersed')
+        FROM frame_dispersion WHERE filter IN ({DISP_IN})""")[0]
+    cand_all = q(con, """
+        SELECT count(*), sum(status = 'measured'),
+               sum(verdict = 'dispersed')
+        FROM frame_dispersion WHERE population = 'candidate'""")[0]
+
+    # The coverage caveat is only a caveat while frames remain unmeasured.
+    n_pending = q1(con, "SELECT count(*) FROM frame_dispersion "
+                        "WHERE status = 'pending'")
+    n_unread = q1(con, "SELECT count(*) FROM frame_dispersion "
+                       "WHERE status = 'unreadable'")
+    if n_pending:
+        coverage_note = (
+            '<p class="decision">Rows highlighted amber are not yet fully '
+            f'measured &mdash; {fmt(n_pending)} frames remain queued. The '
+            'campaign is resumable and runs in priority order (the disputed '
+            'labels and the control first, the undisputed '
+            '<code>hrg</code>/<code>lrg</code> bulk last), so a partial run '
+            'answers the contested questions completely while leaving only '
+            'the census refinement outstanding. Where coverage is below '
+            '100%, the dispersed count is a floor, not a total.</p>')
+    else:
+        coverage_note = (
+            '<p class="decision">Coverage is <b>complete</b>: every queued '
+            'frame has been measured, so the counts in this section are '
+            'totals rather than floors. The '
+            f'{fmt(n_unread)} frame(s) marked amber could not be opened at '
+            'all &mdash; a truncated file, not an ambiguous one &mdash; and '
+            'are excluded from every percentage on this page.</p>')
 
     return f"""
 <section id="census"><h2>5&nbsp;&middot;&nbsp;How many spectra does the
@@ -827,36 +1236,46 @@ they survive measurement?</b></p>
 
 <h3>Evidence</h3>
 <p>Across every candidate and control frame measured, <b>{fmt(tot[0])}
-frames are dispersed</b>: {fmt(tot[1] or 0)} through the H-alpha unit,
-{fmt(tot[2] or 0)} through the broad unit, and {fmt(tot[3] or 0)} whose
-dispersion strength is ambiguous.</p>
+frames are dispersed</b>. Of those, {fmt(tot[1] or 0)} carry a trace long
+enough to identify the H-alpha unit; for the remaining {fmt(tot[2] or 0)}
+the unit cannot be named from morphology (section&nbsp;2), which is a limit
+on the instrument attribution, not on the spectrum count.</p>
 
 {table(["label", "in archive", "measured", "coverage", "dispersed",
         "% of measured", "date span"], lrows, lcls)}
 
-<p class="decision">Rows highlighted amber are not yet fully measured. The
-campaign is resumable and runs in priority order &mdash; the disputed labels
-and the control first, the undisputed <code>hrg</code>/<code>lrg</code> bulk
-last &mdash; so a partial run answers the contested questions completely
-while leaving only the census refinement outstanding. Where coverage is
-below 100%, the dispersed count is a floor, not a total, and the
-&ldquo;% of measured&rdquo; column is the quantity that generalises.</p>
+{coverage_note}
 
 {_figure(fig, "Measured spectra per target for the 25 most-observed "
               "spectroscopic targets, split by grism unit.")}
 
-<p><b>T&nbsp;CrB.</b> The monitoring stage holds {fmt(tcrb[0])} measured
-frames, of which <b>{fmt(tcrb[1] or 0)} are dispersed</b>
-({fmt(tcrb[2] or 0)} H-alpha, {fmt(tcrb[3] or 0)} broad). Counting instead
-by target name across the whole archive, {fmt(tcrb_g[0])} frames carry the
-target <code>T CrB</code> and {fmt(tcrb_g[1] or 0)} of them measure as
-spectra.</p>
+<p><b>T&nbsp;CrB &mdash; the quoted 247 checks out, as a label count.</b> The
+archive holds exactly <b>{fmt(tcrb_label)}</b> <em>canonical science</em>
+T&nbsp;CrB frames carrying a grism card, so that figure was derived correctly
+from the headers. (The raw <code>frames</code> table lists
+{fmt(tcrb_raw)} such rows; the difference is duplicate copies of the same
+exposures, which is why the qualifier matters.) What the
+measurement adds is that it can now be audited frame by frame instead of
+taken on trust. Of the {fmt(tcrb_queued)} T&nbsp;CrB monitoring frames this
+campaign queued, {fmt(tcrb[0])} are measured and <b>{fmt(tcrb[1] or 0)}</b>
+of those are dispersed ({fmt(tcrb[2] or 0)} long enough to identify as
+H-alpha) &mdash; so the series is substantially larger than 247 once frames
+that are spectra without a grism card are counted too.</p>
 
-<p><b>BeStar campaign.</b> The staged campaign holds {fmt(bestar[0])}
-measured frames, {fmt(bestar[1] or 0)} of them dispersed. The
-~23,000 figure is not a count of that campaign: it is close to the
-{fmt(bestar_all[0])} frames carrying <em>any</em> grism label archive-wide,
-of which {fmt(bestar_all[1] or 0)} measure as dispersed.</p>
+<p><b>BeStar campaign &mdash; the quoted ~23,000 does not.</b> The staged
+BeStar campaign contains <b>{fmt(bestar_staged)}</b> frames in total, not
+23,000 &mdash; a real and well-populated campaign, but roughly a fifth of the
+quoted size. Of those, {fmt(bestar[0])} carried a grism-family
+<code>FILTER</code> card and so entered this campaign's queue;
+{fmt(bestar[1] or 0)} are measured and {fmt(bestar[2] or 0)} of those are
+dispersed. The gap between {fmt(bestar_staged)} and {fmt(bestar[0])} is
+itself worth noting: those frames are staged as BeStar work but carry no
+grism label at all, so a label-only audit would not have found them.
+The ~23,000 figure is instead close to
+<b>{fmt(cand_all[0])}</b> &mdash; every frame in the archive whose filter is
+a grism name or a disputed slot, across <em>all</em> projects, of which
+{fmt(grism_lbl[0])} carry an unambiguous grism card. It is an archive-wide
+instrument total that appears to have been attached to a single campaign.</p>
 
 <h3>Decision</h3>
 <p>The census above replaces both quoted figures as the citable numbers, and

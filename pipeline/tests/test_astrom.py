@@ -121,10 +121,28 @@ class TestClassify:
         strip = row(target_key="euuma", readoutm="Fast",
                     naxis1=8, naxis2=3211)
         assert classify_stratum(strip) is None
+        # ...and the point of the S0e geometry repair: the SAME frame, once
+        # its true 4800x3211 geometry is read, is a perfectly ordinary CV
+        # full frame and now reaches a stratum of its own.
+        repaired = row(target_key="euuma", readoutm="Fast",
+                       xbinning=2, naxis1=4800, naxis2=3211)
+        assert classify_stratum(repaired) == "cv_fast_fullframe"
         # A CV target on an unplanned camera config (blank readout — the
         # header-convention break eras) joins no stratum.
         odd = row(readoutm="", xbinning=2)
         assert classify_stratum(odd) is None
+
+    def test_cv_fast_frames_do_not_land_in_the_facility_backlog(self):
+        """A CV target and a facility target on the same camera must NOT
+        share a stratum.  Letting EU UMa fall through to 'fast_fullframe'
+        would have changed the population behind an already-published
+        stratum id; a new id was added instead."""
+        cv = row(target_key="euuma", readoutm="Fast", xbinning=2,
+                 naxis1=4800, naxis2=3211)
+        facility = row(target_key="somefield", readoutm="Fast", xbinning=2,
+                       naxis1=4800, naxis2=3211)
+        assert classify_stratum(cv) == "cv_fast_fullframe"
+        assert classify_stratum(facility) == "fast_fullframe"
 
     def test_every_stratum_id_is_reachable_and_declared(self):
         # The classifier and the STRATA table must agree exactly.
@@ -146,6 +164,8 @@ class TestClassify:
             classify_stratum(row(target_key="a", exptime=100)),
             classify_stratum(row(target_key="a", readoutm="Fast",
                                  naxis1=4800, naxis2=3211)),
+            classify_stratum(row(target_key="euuma", readoutm="Fast",
+                                 xbinning=2, naxis1=4800, naxis2=3211)),
             classify_stratum(row(target_key="a",
                                  readoutm="5MHz High Sensitivity 16-bit",
                                  xbinning=1, naxis1=2048, naxis2=2048)),

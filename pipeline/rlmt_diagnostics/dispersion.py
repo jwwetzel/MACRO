@@ -97,7 +97,7 @@ import numpy as np
 # change here would alter a stored verdict, so a later reader can tell which
 # rules produced the numbers in front of them.
 # ---------------------------------------------------------------------------
-DISPERSION_CODE_VERSION = "S2c v1.0 (2026-08-18)"
+DISPERSION_CODE_VERSION = "S2c v1.1 (2026-08-18)"
 
 # ---------------------------------------------------------------------------
 # Tunable constants — single source of truth; the report interpolates these
@@ -151,17 +151,19 @@ TRACE_MIN_A_PX = 15.0
 #: axial circular scatter.
 #:
 #: CALIBRATED, not guessed.  Over the labelled grism populations the measured
-#: distribution is startlingly tight — median 0.15 deg, 90th percentile 0.76
-#: deg — because a diffraction grating is a piece of machined glass and every
-#: trace it makes is parallel to every other one to within the centroiding
-#: error.  The distribution is bimodal: 97.6% of known-dispersed frames fall
-#: under 5 deg and the rest scatter far above 30, which is the signature of a
-#: frame whose "traces" were never traces.  A 5-deg gate therefore keeps
-#: 97.6% of real spectra while rejecting the control-sample false positive
+#: distribution is startlingly tight — the median frame's traces are parallel
+#: to a fraction of a degree — because a diffraction grating is a piece of
+#: machined glass and every trace it makes is parallel to every other one to
+#: within the centroiding error.  The distribution is bimodal: the large
+#: majority of known-dispersed frames fall under 5 deg and the rest scatter
+#: far above 30, which is the signature of a frame whose "traces" were never
+#: traces.  (The exact keep rate is rendered in section 1 of the report; it
+#: is not repeated here, for the reason given at STRENGTH_HIGH_MIN_FRAC.)
+#: A 5-deg gate rejects the control-sample false positive
 #: that first exposed the original, far looser 20-deg bound: a 2-second
 #: r-band exposure so badly defocused that its blobs sat at 86, -73 and -43
 #: deg, which a 20-deg gate was wide enough to accept as "a shared axis".
-#: The 2.4% of real spectra this costs fall to 'indeterminate', which is the
+#: The real spectra this costs fall to 'indeterminate', which is the
 #: honest place for a frame that cannot prove it has a dispersion axis.
 TRACE_MAX_PA_SCATTER_DEG = 5.0
 
@@ -172,6 +174,36 @@ TRACE_MAX_PA_SCATTER_DEG = 5.0
 #: and legitimate part of the archive.
 MIN_TRACES_FOR_AXIS = 2
 SOLO_TRACE_MIN_AB = 20.0
+
+#: WHICH axis the traces must share — the grating's own.
+#:
+#: The first version of this module asked only whether the traces on a frame
+#: were parallel to EACH OTHER.  That is half the physics.  A diffraction
+#: grating is a piece of machined glass bolted into a filter wheel, so its
+#: dispersion direction is fixed in DETECTOR coordinates: it does not merely
+#: make parallel traces, it makes traces along one particular, knowable line.
+#: Measuring that line over the 18,312 labelled grism frames the campaign had
+#: already classified gives an answer with no ambiguity in it at all —
+#: 18,311 of 18,312 lie within 10 deg of position angle 0/180, and the single
+#: exception is one frame at 89.9 deg.  The alignment holds across every
+#: camera and binning in the archive (per-era 99th percentiles run 2.3 to
+#: 8.0 deg), which is what you expect of a component that never moves
+#: relative to the sensor.
+#:
+#: The gate matters because the thing this classifier most easily confuses
+#: with a grism is a MOUNT SLIP, and a mount slip has no preferred detector
+#: angle — it points wherever the drift went.  Worse, the archive's detectors
+#: contribute a large population of perfectly parallel artefacts at PA 90:
+#: column defects and saturated-star bleed trails, which run down the readout
+#: direction and are therefore more mutually parallel than any real spectrum.
+#: Those were the single largest source of false positives before this gate.
+#:
+#: The tolerance sits in a measured gap, not at a guessed round number.  The
+#: furthest on-axis labelled spectrum lies at 9.92 deg; the nearest off-axis
+#: control false positive lies at 28.6 deg.  12 deg is inside that gap with
+#: margin on both sides, and costs exactly ONE frame in 18,312.
+GRATING_PA_DEG = 0.0
+GRATING_PA_TOL_DEG = 12.0
 
 #: ...and the solo rule additionally requires a SPARSE field.  This gate was
 #: added after a 60-s luminance frame of M57 — 1,278 detected sources, every
@@ -185,8 +217,29 @@ SOLO_TRACE_MIN_AB = 20.0
 SOLO_MAX_SOURCES = 60
 
 #: A frame with fewer usable sources than this is not evidence of anything;
-#: it returns ``indeterminate`` rather than a guess.
+#: it returns ``indeterminate`` rather than a guess.  At 1 this fires only on
+#: a frame with NO detections at all, which is the intent: a single extreme
+#: trace IS evidence of a grism (rule 4 exists for exactly the bright
+#: standard alone in its field, which carries 1-7 usable sources), so the
+#: dispersed side must stay reachable at n_sources = 1.
 MIN_SOURCES = 1
+
+#: ...but the DIRECT side must not be.  ``direct`` is not the absence of a
+#: verdict, it is a positive certificate that the frame is clean photometry,
+#: and downstream code treats it as permission to run aperture photometry.
+#: With MIN_SOURCES alone, a frame with exactly ONE round detection fell
+#: through to rule 6 and was certified on a sample of one — an asymmetry with
+#: the dispersed side, which demands either two corroborating traces or one
+#: extreme trace plus a sparsity check.
+#:
+#: It is not hypothetical.  Of the 258 labelled grism frames this classifier
+#: wrongly called direct, 70 (27%) arrived through fields of one or two
+#: detections: on a short exposure of a faint target the spectrum is simply
+#: not detected, and the frame voted "clean" when the honest answer was "I
+#: cannot see".  Requiring three sources costs 111 direct verdicts archive-
+#: wide (25 of them in the control sample) and converts every one of them to
+#: ``indeterminate``, which is where a frame with no evidence belongs.
+DIRECT_MIN_SOURCES = 3
 
 #: A frame with NO trace-like source reads as direct only if its bright
 #: sources really are round.  Above this median ratio something is elongating
@@ -195,21 +248,43 @@ MIN_SOURCES = 1
 #: photometry when we can see that something is wrong with it.
 DIRECT_MAX_MEDIAN_AB = 3.0
 
-#: Dispersion-strength split.  The measured quantity is TRACE LENGTH AS A
-#: FRACTION OF FRAME WIDTH — the trace's semi-major sigma divided by the
-#: decoded frame width — not the aspect ratio.
+#: Dispersion-strength threshold.  The measured quantity is TRACE LENGTH AS
+#: A FRACTION OF FRAME WIDTH — the trace's semi-major sigma divided by the
+#: decoded frame width.  Dividing by frame width (rather than using raw
+#: pixels) is what lets one constant span three cameras and two binnings.
 #:
-#: Aspect ratio was the obvious first choice and it does not work.  On the
-#: 2025-01-23 focus sweep, where the SAME star was shot through both grisms
-#: on the same night with the same camera, the two units measured a/b = 83
-#: (high) against a/b = 61 (low): overlapping distributions, useless as a
-#: split.  The same frames measured trace length fractions of 0.206 against
-#: 0.060 — a clean factor of 3.4.  The reason is that a/b divides by the
-#: minor axis, which is the seeing width, so every change in focus or
-#: atmosphere feeds straight into the statistic; length alone does not care.
-#: Dividing by frame width (rather than using raw pixels) is what lets one
-#: pair of constants span three cameras and two binnings.
-STRENGTH_LOW_MAX_FRAC = 0.11
+#: Aspect ratio was the obvious first choice and it does not work: it
+#: divides by the minor axis, which is the seeing width, so every change in
+#: focus or atmosphere feeds straight into the statistic, and the two units
+#: land almost on top of each other.  Length does better, but only in ONE
+#: direction, and the asymmetry is the important part:
+#:
+#:   * A LONG trace is decisive.  Past this threshold essentially nothing
+#:     but the H-alpha unit produces a trace that long, so the call can be
+#:     trusted — at the price of a modest recall.
+#:   * A SHORT trace means nothing.  At EVERY candidate threshold the purity
+#:     of a "low-dispersion" call stays barely above the base rate, because
+#:     the H-alpha unit ALSO makes short traces whenever its target is faint.
+#:
+#: The confound is target brightness: a brighter trace stays above the
+#: extraction threshold further into its wings, and it shows up directly as
+#: a fall in trace length with rising exposure time, because long exposures
+#: are what FAINT targets get.
+#:
+#: NO NUMBERS ARE QUOTED HERE ON PURPOSE.  An earlier version of this comment
+#: carried hand-typed statistics (a/b "105 against 77", medians "0.128
+#: against 0.069", purity "99.9% at 42.8% recall", a "61% against a 47% base
+#: rate"), and every one of them had drifted away from the data by the time
+#: an auditor checked: the true values are 95 against 82, 0.104 against
+#: 0.069, 100.0% at 32.2% recall, and 53% against a 41% base rate.  Prose in
+#: a source file cannot be regenerated when the measurement changes, so the
+#: figures now live only in the report, which renders every one of them from
+#: ``frame_dispersion`` at build time.  See section 2 of
+#: ``docs/pipeline/s2c_filter_identity.html``.
+#:
+#: Consequently this module assigns 'high' or 'ambiguous' and NEVER 'low'.
+#: Declining to name the low-dispersion unit is the honest reading of the
+#: measurement, not a gap to be filled with a coin flip.
 STRENGTH_HIGH_MIN_FRAC = 0.15
 
 #: Verdict vocabulary — the only three strings ``classify_frame`` may emit.
@@ -268,6 +343,27 @@ def axial_stats(theta_deg: Sequence[float]) -> tuple[Optional[float],
         return (pa, 90.0)
     scatter = math.degrees(math.sqrt(max(-2.0 * math.log(resultant), 0.0))) / 2.0
     return (pa, min(scatter, 90.0))
+
+
+def grating_axis_offset(pa_deg: Optional[float],
+                        axis_deg: float = GRATING_PA_DEG) -> Optional[float]:
+    """How far an orientation lies from the grating's axis, in degrees.
+
+    Axial, like everything else here: an orientation has no arrowhead, so the
+    answer is folded into [0, 90].  A trace at PA 179 is 1 deg from an axis
+    at 0, not 179 deg from it, and a trace at PA 90 is the furthest any
+    orientation can be from PA 0.
+
+    Returns ``None`` for a missing angle, so callers can distinguish "off
+    axis" from "no angle measured" instead of silently treating an unmeasured
+    frame as aligned.
+    """
+    if pa_deg is None or not math.isfinite(pa_deg):
+        return None
+    # Fold the difference into [0, 180), then reflect the top half down: the
+    # distance from an axis is never more than a quarter turn.
+    diff = (float(pa_deg) - float(axis_deg)) % 180.0
+    return min(diff, 180.0 - diff)
 
 
 # ---------------------------------------------------------------------------
@@ -459,31 +555,54 @@ def classify_frame(shape: FrameShape) -> Verdict:
        a cloud, a closed dome, a badly under-exposed frame.  There is no
        evidence either way, so we say so: ``indeterminate``.
 
-    2. **Two or more traces sharing an axis** -> ``dispersed``.  This is the
-       grism signature proper.  Cosmic rays fail it (random angles); a
-       trailed exposure fails the trace gates themselves, which demand a/b
-       >= 5 AND a >= 15 px — drift smears stars by a few pixels, not by
-       fifteen at fifteen-to-one.
+    2. **Two or more traces sharing the GRATING's axis** -> ``dispersed``.
+       This is the grism signature proper, and it has two halves that must
+       both hold: the traces are parallel to each other (``trace_pa_scatter``
+       within ``TRACE_MAX_PA_SCATTER_DEG``) AND that shared direction is the
+       grating's own (``trace_pa`` within ``GRATING_PA_TOL_DEG`` of
+       ``GRATING_PA_DEG``).
 
-    3. **Two or more traces NOT sharing an axis** -> ``indeterminate``.
-       Something is streaking this frame, but not a grating.  Satellite
-       trails and cosmic-ray showers land here, and so would a genuinely
-       broken exposure.  Refusing to call it is the honest answer.
+       Requiring only the first half is not enough, and this was measured
+       rather than argued.  Detector column defects and saturated-star bleed
+       trails run down the readout direction at PA 90; they are MORE mutually
+       parallel than a real spectrum, and under a parallel-only rule they
+       forged the grism signature outright — they were the largest single
+       source of false positives.  A mount slip fails the axis test too, for
+       a different reason: drift points wherever the telescope went, not
+       where the grating rules.
 
-    4. **One extreme trace** -> ``dispersed``.  The shared-axis test needs
-       two traces and there is only one, so the eccentricity bar is raised to
-       ``SOLO_TRACE_MIN_AB``.  This rule carries the bright-standard frames
-       (Vega, Spica) where the target is the only thing in the field.
+       Note what this rule does NOT claim.  It does not claim the trace gates
+       reject trailing.  They do not: a real trailed frame in this archive
+       measures a/b near 90 with traces 140 px long and a mutual scatter of
+       0.3 deg, which clears both trace gates and the parallelism test
+       comfortably.  Trailing is rejected here only when it happens to run
+       off the grating's axis, which is most but not all of the time.  The
+       residual is quantified in the report rather than wished away.
 
-    5. **One modest trace** -> ``indeterminate``.  A single a/b = 6 object
-       could be a faint spectrum, a satellite, or an edge-on galaxy.  One
-       object is not a population.
+    3. **Two or more traces on some OTHER axis** -> ``indeterminate``.
+       Something is streaking this frame in an orderly way, but not the
+       grating.  Column artefacts, bleed trails and off-axis drift land here.
 
-    6. **No traces, round bright sources** -> ``direct``.  Ordinary imaging.
+    4. **Two or more traces sharing no axis at all** -> ``indeterminate``.
+       Satellite trails and cosmic-ray showers, at random angles.
 
-    7. **No traces, but the field is elongated** -> ``indeterminate``.  Not a
-       grism, but not clean photometry either; the frame is trailed or
-       astigmatic and the caller should know before using it.
+    5. **One extreme trace on the grating axis** -> ``dispersed``.  The
+       shared-axis test needs two traces and there is only one, so the
+       eccentricity bar is raised to ``SOLO_TRACE_MIN_AB`` and the field must
+       be sparse.  This rule carries the bright-standard frames (Vega,
+       Spica) where the target is the only thing in the field.
+
+    6. **One modest trace, or one streak off-axis, or one streak in a rich
+       field** -> ``indeterminate``.  One object is not a population.
+
+    7. **No traces, round bright sources, enough of them** -> ``direct``.
+       Ordinary imaging.  ``direct`` is a positive certificate rather than a
+       shrug, so it needs ``DIRECT_MIN_SOURCES`` detections to stand on.
+
+    8. **No traces, but the field is elongated, or too few sources to tell**
+       -> ``indeterminate``.  Not a grism, but not certified photometry
+       either; the frame is trailed, astigmatic, or simply too empty to
+       support a verdict, and the caller should know before using it.
     """
     if shape.n_sources < MIN_SOURCES:
         return Verdict(VERDICT_INDETERMINATE, "n/a",
@@ -492,10 +611,19 @@ def classify_frame(shape: FrameShape) -> Verdict:
     if shape.n_trace >= MIN_TRACES_FOR_AXIS:
         scat = shape.trace_pa_scatter
         if scat is not None and scat <= TRACE_MAX_PA_SCATTER_DEG:
+            off = grating_axis_offset(shape.trace_pa)
+            if off is not None and off <= GRATING_PA_TOL_DEG:
+                return Verdict(
+                    VERDICT_DISPERSED, strength_of(shape),
+                    f"{shape.n_trace} traces share the grating axis "
+                    f"(PA {shape.trace_pa:.1f} deg, scatter {scat:.1f} deg)")
             return Verdict(
-                VERDICT_DISPERSED, strength_of(shape),
-                f"{shape.n_trace} traces share an axis "
-                f"(PA scatter {scat:.1f} deg)")
+                VERDICT_INDETERMINATE, "n/a",
+                f"{shape.n_trace} parallel streaks at PA "
+                f"{shape.trace_pa:.1f} deg, {off:.0f} deg off the grating "
+                f"axis — columns, bleed trails or drift, not a grating"
+                if off is not None else
+                f"{shape.n_trace} parallel streaks, axis undefined")
         return Verdict(
             VERDICT_INDETERMINATE, "n/a",
             f"{shape.n_trace} elongated sources but no common axis "
@@ -517,13 +645,28 @@ def classify_frame(shape: FrameShape) -> Verdict:
                 f"one streak (a/b {solo_ab:.0f}) in a rich field of "
                 f"{shape.n_sources} round sources — satellite or artefact, "
                 "not a grating")
+        off = grating_axis_offset(shape.trace_pa)
+        if off is None or off > GRATING_PA_TOL_DEG:
+            return Verdict(
+                VERDICT_INDETERMINATE, "n/a",
+                f"one streak (a/b {solo_ab:.0f}) at PA {shape.trace_pa:.1f} "
+                f"deg, off the grating axis — column, bleed trail or drift"
+                if off is not None else
+                f"one streak (a/b {solo_ab:.0f}), axis undefined")
         return Verdict(
             VERDICT_DISPERSED, strength_of(shape),
-            f"solo trace, a/b {solo_ab:.0f}, sparse field "
-            f"({shape.n_sources} sources) — isolated bright target")
+            f"solo trace, a/b {solo_ab:.0f}, on the grating axis, sparse "
+            f"field ({shape.n_sources} sources) — isolated bright target")
 
     # No trace-like source at all.
     med = shape.median_ab if shape.median_ab is not None else 0.0
+    if shape.n_sources < DIRECT_MIN_SOURCES:
+        # Round sources, but not enough of them to certify anything.  This
+        # is the false-negative channel: a faint spectrum that simply did
+        # not register.  Say "I cannot see", not "this is clean photometry".
+        return Verdict(VERDICT_INDETERMINATE, "n/a",
+                       f"only {shape.n_sources} usable source(s) — too "
+                       "little evidence to certify direct imaging")
     if med <= DIRECT_MAX_MEDIAN_AB:
         return Verdict(VERDICT_DIRECT, "n/a",
                        f"no traces; bright sources round (median a/b "
@@ -551,24 +694,25 @@ def trace_length_fraction(trace_a_px: Optional[float],
 
 
 def classify_strength(trace_a_px: Optional[float], width: int) -> str:
-    """Split a dispersed frame into the high- or low-dispersion grism.
+    """Name the grism unit behind a dispersed frame — when that is possible.
 
-    The high-dispersion H-alpha unit spreads a given star roughly three
-    times further than the low-dispersion broad-spectrum unit, and trace
-    LENGTH is what carries that signal cleanly (see the constants above for
-    why aspect ratio does not).  Frames landing between the two calibrated
-    bounds are reported ``ambiguous`` rather than assigned: length still
-    grows somewhat with source brightness and exposure, because a brighter
-    trace stays above the extraction threshold further into its wings, and
-    that spread is real rather than something a threshold can wish away.
+    Returns ``high`` for a trace long enough that only the H-alpha unit
+    makes it, and ``ambiguous`` otherwise.  It never returns ``low``.
+
+    That asymmetry is the measurement talking, not a missing feature.  A
+    long trace is decisive (99.9% pure at the adopted bound), but a short
+    one is produced by BOTH units — the H-alpha grism on a faint target
+    looks exactly like the broad grism on a bright one, because trace length
+    is set as much by how far the signal stays above the detection threshold
+    as by the dispersion itself.  A "low" verdict would be right about 61%
+    of the time against a 47% base rate, which is not knowledge.  See
+    STRENGTH_HIGH_MIN_FRAC for the calibration this rests on.
     """
     frac = trace_length_fraction(trace_a_px, width)
     if frac is None:
         return "n/a"
     if frac >= STRENGTH_HIGH_MIN_FRAC:
         return "high"
-    if frac <= STRENGTH_LOW_MAX_FRAC:
-        return "low"
     return "ambiguous"
 
 
