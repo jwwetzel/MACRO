@@ -550,6 +550,68 @@ _reg(ResourceSpec(
          "was measured lives in cv_selection above, and a full hash of a "
          "400 MB product on a spinning disk would cost minutes per check.")))
 
+# ---- CV-S5 outputs (the characterization product) --------------------------
+# products/phot/cv_characterization.sqlite answers "what can this data set
+# actually measure?" — image quality, the measured noise floor, the spectral
+# window, injection-recovery contours and the epoch-precision Monte Carlo.
+# Every science verdict in docs/CV_TimeSeries/cv_characterization.html is
+# recomputed from it, so a stale characterization is a stale set of verdicts:
+# it has to sit inside the DAG or `status` could green-light a paper whose
+# detection limits were measured against superseded photometry.
+_reg(ResourceSpec(
+    key="db:cvchar:ch_noise_series", kind="db", name="ch_noise_series",
+    database="products/phot/cv_characterization.sqlite",
+    order_by="series_key",
+    columns=("series_key", "coalesce(readoutm,'')",
+             "printf('%.6f', coalesce(floor_plateau,-1))",
+             "printf('%.6f', coalesce(prec_at_target,-1))",
+             "coalesce(n_target_points,-1)"),
+    why=("The measured noise floor and the achieved precision at each "
+         "target's own brightness, per series.  Hashed rather than counted "
+         "because these ARE the numbers the science verdicts turn on: a "
+         "changed floor changes what the paper may claim, and a row count "
+         "would not notice.")))
+_reg(ResourceSpec(
+    key="db:cvchar:ch_frames", kind="db", name="ch_frames",
+    database="products/phot/cv_characterization.sqlite",
+    order_by="rowid", columns=("count",),
+    why=("Row count of the per-frame quality characterization.  Counted "
+         "rather than hashed for the same reason as cv_frames: the identity "
+         "of what was characterized lives in ch_noise_series above.")))
+_reg(ResourceSpec(
+    key="db:cvchar:ch_cuts", kind="db", name="ch_cuts",
+    database="products/phot/cv_characterization.sqlite",
+    order_by="axis",
+    columns=("axis", "printf('%.6f', coalesce(threshold,-1))",
+             "n_pass", "n_fail"),
+    why=("The quality thresholds and what they reject.  Hashed because "
+         "these cuts are now APPLIED to every measurement downstream — "
+         "noise, cadence, detection and timing all read `usable` — so a "
+         "changed threshold silently changes every number on the page.  "
+         "For one production run the cut was computed and read by nothing, "
+         "which is exactly the failure this entry makes visible.")))
+_reg(ResourceSpec(
+    key="db:cvchar:ch_contour", kind="db", name="ch_contour",
+    database="products/phot/cv_characterization.sqlite",
+    order_by="scope, regime, score, period_d",
+    columns=("scope", "regime", "score",
+             "printf('%.6f', period_d)",
+             "printf('%.6f', coalesce(amp90,-1))"),
+    why=("The detection contours, keyed by SCORE MODE.  The score column is "
+         "part of the identity: the same injections scored as blind period "
+         "determination rather than as detection at a known period give "
+         "answers 3-8x apart, and quoting one under the other's name is the "
+         "defect this column exists to prevent.")))
+_reg(ResourceSpec(
+    key="db:cvchar:ch_verdict", kind="db", name="ch_verdict",
+    database="products/phot/cv_characterization.sqlite",
+    order_by="rank",
+    columns=("goal_id", "verdict"),
+    why=("The goal-by-goal verdicts themselves.  Cheapest possible hash — "
+         "the id and the one word — because that word is the deliverable: "
+         "if a rebuild moves a goal from SUPPORTED to NOT SUPPORTED, every "
+         "page and plan that cites it is stale and `status` must say so.")))
+
 # ---- G outputs ------------------------------------------------------------
 _reg(_t(
     "table:g_extractions", "g_extractions", "obs_rowid, method",
@@ -588,6 +650,18 @@ _f("file:docs/pipeline/s3_timing.html", "docs/pipeline/s3_timing.html",
 _f("file:docs/pipeline/s4_photometry.html", "docs/pipeline/s4_photometry.html",
    "S4 photometry page: the AN UMa / VV Pup prototype light curves and "
    "their empirical error model.  Whole-file hash.")
+_f("file:docs/CV_TimeSeries/cv_characterization.html",
+   "docs/CV_TimeSeries/cv_characterization.html",
+   "CV-S5 characterization page: measured image quality, noise floor, "
+   "spectral window, detectability contours, epoch precision, and the "
+   "goal-by-goal verdict on ANALYSIS_STRATEGY.md.  Whole-file hash.")
+_f("file:pipeline/macro_phot/characterize.py",
+   "pipeline/macro_phot/characterize.py",
+   "The pure characterization arithmetic: the detector constants quoted from "
+   "S2, the degradation factor that sets every quality cut, the false-alarm "
+   "probability and the recovery level.  Changing any of them changes every "
+   "verdict on the CV-S5 page, so the page is stale the moment this file "
+   "moves.")
 _f("file:docs/pipeline/s0e_geometry_fix.html",
    "docs/pipeline/s0e_geometry_fix.html",
    "S0e geometry-repair page: which frames carried BINTABLE geometry, which "
@@ -879,6 +953,31 @@ STAGES: tuple[Stage, ...] = (
              "`status` could exit 0 while this product rested on frames "
              "whose era assignment is known wrong."),
     Stage(
+        key="CV-S5", title="CV data characterization (quality, noise, "
+                           "sampling, detectability, timing)",
+        code_version="CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_characterization.py",
+        version_symbol="CODE_VERSION",
+        # Reads the CV photometry product (not the archive, not the pixels
+        # except for the sampled trailing audit) plus the pure-arithmetic
+        # module whose constants set every cut and every threshold.
+        reads=("db:cvphot:cv_selection", "db:cvphot:cv_frames",
+               "file:pipeline/macro_phot/characterize.py"),
+        writes=("db:cvchar:ch_noise_series", "db:cvchar:ch_frames",
+                "db:cvchar:ch_cuts", "db:cvchar:ch_contour",
+                "db:cvchar:ch_verdict"),
+        meta_table="ch_meta",
+        build_cmd=("python pipeline/scripts/run_cv_characterization.py quality\n"
+                   "python pipeline/scripts/run_cv_characterization.py trail\n"
+                   "python pipeline/scripts/run_cv_characterization.py noise\n"
+                   "python pipeline/scripts/run_cv_characterization.py cadence\n"
+                   "python pipeline/scripts/run_cv_characterization.py detect\n"
+                   "python pipeline/scripts/run_cv_characterization.py timing\n"
+                   "python pipeline/scripts/run_cv_characterization.py verdict"),
+        note="The science verdicts on ANALYSIS_STRATEGY.md are recomputed "
+             "from this product every time it is rebuilt, so a stale "
+             "characterization is a stale set of verdicts."),
+    Stage(
         key="G", title="Grism extraction + identity gate (T CrB)",
         code_version="G_CODE_VERSION",
         reads=("table:frames@grism", "table:eras", "table:calib_frames"),
@@ -965,6 +1064,17 @@ STAGES: tuple[Stage, ...] = (
         reads=("db:phot:phot_selection", "db:phot:phot_series"),
         writes=("file:docs/pipeline/s4_photometry.html",),
         build_cmd="python pipeline/scripts/build_s4_photometry.py report"),
+    Stage(
+        key="R-CV-S5", title="Report: CV characterization + verdict page",
+        code_version="CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_characterization.py",
+        version_symbol="CODE_VERSION",
+        reads=("db:cvchar:ch_noise_series", "db:cvchar:ch_frames",
+               "db:cvchar:ch_cuts", "db:cvchar:ch_contour",
+               "db:cvchar:ch_verdict",
+               "file:pipeline/macro_phot/characterize.py"),
+        writes=("file:docs/CV_TimeSeries/cv_characterization.html",),
+        build_cmd="python pipeline/scripts/run_cv_characterization.py report"),
     # ---- human-authored artifacts, declared so they cannot hide ------------
     Stage(
         key="OPS", title="Observatory request (October shopping list)",

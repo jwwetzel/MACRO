@@ -282,13 +282,15 @@ def test_allan_slope_needs_three_rungs():
 def test_red_noise_factor_is_one_for_white():
     tau = np.array([60.0, 120.0, 240.0, 480.0])
     adev = 0.01 / np.sqrt(tau / 60.0)
-    assert ch.red_noise_factor(tau, adev, 480.0) == pytest.approx(1.0, rel=1e-9)
+    factor, tau_used = ch.red_noise_factor(tau, adev, 480.0)
+    assert factor == pytest.approx(1.0, rel=1e-9)
+    assert tau_used == pytest.approx(480.0)
 
 
 def test_red_noise_factor_exceeds_one_when_averaging_stalls():
     tau = np.array([60.0, 120.0, 240.0, 480.0])
     adev = np.array([0.01, 0.01, 0.01, 0.01])       # never averages down
-    assert ch.red_noise_factor(tau, adev, 480.0) == pytest.approx(
+    assert ch.red_noise_factor(tau, adev, 480.0)[0] == pytest.approx(
         math.sqrt(8.0), rel=1e-9)
 
 
@@ -525,3 +527,398 @@ def test_amin_analytic_matches_the_strategy_formula():
 
 def test_amin_analytic_guards_empty_series():
     assert np.isnan(ch.amin_analytic(0.03, 0))
+
+
+# ==========================================================================
+# Additions made when the production build exposed the failure modes below
+# ==========================================================================
+
+def test_fit_noise_floor_is_not_dragged_by_the_faint_end():
+    """The regression that this test locks down: an UNWEIGHTED fit in
+    variance is dominated by the faintest stars, whose variance is 100x the
+    bright end's, and returns their photon noise as a 'floor'.  Build a
+    cloud whose true floor is 8 mmag but whose faint end reaches 300 mmag,
+    and demand the fit still find 8."""
+    pred = np.logspace(-3, np.log10(0.3), 200)
+    rms = np.sqrt(pred ** 2 + 0.008 ** 2)
+    floor, k, _ = ch.fit_noise_floor(np.arange(200.0), rms, pred)
+    assert floor == pytest.approx(0.008, rel=0.02)
+    assert k == pytest.approx(1.0, rel=0.02)
+
+
+def test_noise_plateau_finds_the_flat_bottom():
+    """Model-free floor: the smallest well-populated magnitude bin median."""
+    mag = np.concatenate([np.full(20, 15.2), np.full(20, 18.2),
+                          np.full(20, 21.2)])
+    rms = np.concatenate([np.full(20, 0.012), np.full(20, 0.030),
+                          np.full(20, 0.200)])
+    floor, at_mag, n = ch.noise_plateau(mag, rms)
+    assert floor == pytest.approx(0.012)
+    assert at_mag == pytest.approx(15.25, abs=0.3)
+    assert n == 20
+
+
+def test_noise_plateau_ignores_sparse_bins():
+    """A two-star bin cannot define the floor of a series."""
+    mag = np.concatenate([np.full(2, 14.2), np.full(20, 18.2)])
+    rms = np.concatenate([np.full(2, 0.001), np.full(20, 0.030)])
+    floor, _, n = ch.noise_plateau(mag, rms, min_stars=5)
+    assert floor == pytest.approx(0.030)
+    assert n == 20
+
+
+def test_noise_plateau_empty():
+    assert np.isnan(ch.noise_plateau([], [])[0])
+
+
+def test_degradation_threshold_run_length_rejects_a_lone_spike():
+    """One noisy bin must not set an archive-wide cut (it did, in the first
+    version of this build: a lone 1.4x bin threw away 69% of the frames)."""
+    centers = np.arange(1.0, 9.0)
+    med = np.array([1.0, 1.0, 1.6, 1.0, 1.0, 1.0, 1.0, 1.0])
+    cnt = np.full(8, 50)
+    thr, base = ch.degradation_threshold(centers, med, cnt, baseline=1.0)
+    assert math.isinf(thr)
+    assert base == pytest.approx(1.0)
+
+
+def test_degradation_threshold_run_length_accepts_a_sustained_rise():
+    centers = np.arange(1.0, 9.0)
+    med = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.6, 1.7])
+    thr, _ = ch.degradation_threshold(centers, med, np.full(8, 50), baseline=1.0)
+    assert thr == pytest.approx(7.0)
+
+
+def test_degradation_threshold_supplied_baseline_beats_the_minimum_bin():
+    """With an explicit baseline the walk starts at bin 0, so a rise before
+    the minimum bin is not skipped."""
+    centers = np.array([1.0, 2.0, 3.0, 4.0])
+    med = np.array([2.0, 2.0, 0.5, 0.5])
+    thr, base = ch.degradation_threshold(centers, med, np.full(4, 50),
+                                         baseline=1.0)
+    assert base == pytest.approx(1.0)
+    assert thr == pytest.approx(1.0)
+
+
+def test_timing_precision_uses_a_supplied_noise_pool():
+    """A pool of REAL residuals must be used in place of the Gaussian draw:
+    feeding an all-zero pool has to give a far better answer than feeding
+    noisy Gaussians of the same nominal sigma."""
+    period = 113.9 / 1440.0
+    t = np.arange(0, period, 120.0 / 86400.0)
+    quiet = ch.timing_precision_mc(t, period, 1.0, 0.05, n_trials=60,
+                                   ingress_phase=0.02,
+                                   noise_pool=[np.zeros(t.size)] * 3)
+    loud = ch.timing_precision_mc(t, period, 1.0, 0.05, n_trials=60,
+                                  ingress_phase=0.02)
+    assert quiet < loud
+
+
+def test_timing_precision_penalises_a_mismatched_template():
+    """Fitting with the wrong edge sharpness and depth must cost precision -
+    the difference between the optimistic bound and the realistic case."""
+    period = 113.9 / 1440.0
+    t = np.arange(0, period, 220.0 / 86400.0)
+    right = ch.timing_precision_mc(t, period, 1.0, 0.03, width_phase=0.45,
+                                   ingress_phase=0.05, n_trials=150)
+    wrong = ch.timing_precision_mc(t, period, 1.0, 0.03, width_phase=0.45,
+                                   ingress_phase=0.05, n_trials=150,
+                                   fit_ingress_phase=0.01,
+                                   fit_depth_mag=1.2)
+    assert wrong > right
+
+
+def test_timing_precision_ignores_a_wrong_length_pool():
+    """A residual vector that does not match the timestamp vector is not a
+    noise realization for these timestamps and must be dropped, not
+    broadcast."""
+    period = 113.9 / 1440.0
+    t = np.arange(0, period, 120.0 / 86400.0)
+    out = ch.timing_precision_mc(t, period, 1.0, 0.02, n_trials=30,
+                                 noise_pool=[np.zeros(t.size + 5)])
+    assert np.isfinite(out) and out > 0
+
+
+# ==========================================================================
+# 6 - the adversarial-review regressions (2026-08-19)
+#
+# Each test below protects a specific published number that was wrong.  The
+# comment names the number, so a future reader can see what was at stake
+# rather than only what is asserted.
+# ==========================================================================
+
+class TestScoreModesAreDifferentQuestions:
+    """A single-night contour scored on period tolerance is not a detection
+    limit.  VV Pup's richest night cleared the threshold in 40 trials of 40
+    at 300 mmag and was scored recovered in 25, and "never reached even at
+    300 mmag" was published as a detection limit."""
+
+    def _night(self, n=68, dt_s=200.0):
+        # One real-ish night: 68 points at 200 s = 3.8 h, ~1.6 cycles of a
+        # 100 min period, which is VV Pup's actual situation.
+        return np.arange(n) * dt_s / 86400.0
+
+    def test_the_acceptance_window_is_narrower_than_the_peak(self):
+        """The arithmetic that makes 'period' scoring impossible on one
+        night: 1% of f_orb against the 1/T frequency resolution."""
+        t = self._night()
+        period_d = 100.4 / 1440.0
+        f_orb = 1.0 / period_d
+        window_cd = ch.PERIOD_TOL_FRAC * f_orb          # acceptance half-width
+        resolution_cd = 1.0 / (t.max() - t.min())       # peak half-width
+        assert resolution_cd / window_cd > 20
+
+    def _correlated_pool(self, t, seed=7):
+        """Four random-walk residual series.
+
+        White noise will NOT reproduce this defect: with white noise on a
+        regular grid a high-amplitude peak's frequency is determined far
+        better than 1/T and both score modes succeed.  The archive's
+        check-star residuals are red (section 2 measures it), and it is red
+        noise that makes the peak position wander across an acceptance
+        window narrower than the peak.
+        """
+        rng = np.random.default_rng(seed)
+        pool = [np.cumsum(rng.normal(0, 0.006, t.size)) for _ in range(4)]
+        return [p - p.mean() for p in pool]
+
+    def test_known_score_detects_what_period_score_misses(self):
+        """Same injections, same noise: scoring at the known frequency
+        recovers signals that period-scoring throws away.
+
+        This is the published defect in one assertion.  At 300 mmag - the
+        amplitude at which VV Pup's night was reported as "never reached" -
+        the signal is detected in every trial; it is the FREQUENCY that
+        cannot be pinned down from 1.6 cycles.
+        """
+        t = self._night()
+        period_d = 100.4 / 1440.0
+        freqs = np.arange(2.0, 40.0, 0.002)
+        pool = self._correlated_pool(t)
+        thr_p = ch.detection_threshold(t, pool, freqs, 100, 0.01,
+                                       np.random.default_rng(1))
+        thr_k = ch.detection_threshold(t, pool, freqs, 100, 0.01,
+                                       np.random.default_rng(1),
+                                       at_freq_cd=1.0 / period_d)
+        got_p = ch.recovery_fraction(t, pool, freqs, period_d, 0.30, thr_p,
+                                     40, rng=np.random.default_rng(2),
+                                     score="period")
+        got_k = ch.recovery_fraction(t, pool, freqs, period_d, 0.30, thr_k,
+                                     40, rng=np.random.default_rng(2),
+                                     score="known")
+        assert got_k == pytest.approx(1.0)
+        assert got_p < 0.95
+        # And well below the contour level, so 'period' scoring would report
+        # this amplitude as NOT recovered while the signal is plainly there.
+        got_p_low = ch.recovery_fraction(t, pool, freqs, period_d, 0.10,
+                                         thr_p, 40,
+                                         rng=np.random.default_rng(2),
+                                         score="period")
+        got_k_low = ch.recovery_fraction(t, pool, freqs, period_d, 0.10,
+                                         thr_k, 40,
+                                         rng=np.random.default_rng(2),
+                                         score="known")
+        assert got_p_low < ch.RECOVERY_LEVEL < got_k_low
+
+    def test_the_known_threshold_is_lower_than_the_max_threshold(self):
+        """A known period buys back the look-elsewhere penalty.  Charging it
+        anyway is what made the known-period limits 3-8x too pessimistic."""
+        rng = np.random.default_rng(11)
+        t = self._night()
+        freqs = np.arange(2.0, 40.0, 0.002)
+        pool = [rng.normal(0, 0.02, t.size) for _ in range(4)]
+        thr_p = ch.detection_threshold(t, pool, freqs, 80, 0.01,
+                                       np.random.default_rng(3))
+        thr_k = ch.detection_threshold(t, pool, freqs, 80, 0.01,
+                                       np.random.default_rng(3),
+                                       at_freq_cd=14.3)
+        assert thr_k < thr_p
+
+    def test_an_unknown_score_mode_is_refused(self):
+        with pytest.raises(ValueError):
+            ch.recovery_fraction([1.0] * 10, [np.zeros(10)], [1.0], 0.1,
+                                 0.01, 0.5, score="whatever")
+
+
+class TestPeakClassification:
+    def test_the_truth_the_alias_and_neither(self):
+        f_orb = 1.0 / (113.9 / 1440.0)          # ST LMi, 12.64 c/d
+        assert ch.classify_peak(f_orb, f_orb) == "true"
+        assert ch.classify_peak(f_orb + 1.0, f_orb) == "alias"
+        assert ch.classify_peak(f_orb - 2.0, f_orb) == "alias"
+        assert ch.classify_peak(f_orb + 0.4, f_orb) == "other"
+
+    def test_negative_aliases_fold_back(self):
+        """A periodogram cannot tell +f from -f, so f - k c/d below zero is
+        still a confusable frequency at its absolute value."""
+        assert ch.classify_peak(1.5, 1.5, f_alias_cd=3.0) == "true"
+        assert ch.classify_peak(1.5, 1.5, f_alias_cd=3.0, max_order=1) == "true"
+        # f_true = 2, alias spacing 3 -> |2 - 3| = 1 is a real alias.
+        assert ch.classify_peak(1.0, 2.0, f_alias_cd=3.0) == "alias"
+
+
+class TestRedNoiseLabelling:
+    """81 of 92 ladders never reached P_orb, and every one of them stored its
+    factor in a column called red_factor_porb."""
+
+    def test_the_tau_actually_used_is_returned(self):
+        tau = np.array([60.0, 120.0, 240.0])
+        adev = 0.01 / np.sqrt(tau / 60.0)
+        factor, tau_used = ch.red_noise_factor(tau, adev, 6800.0)
+        # The ladder stops at 240 s; the target is 6,800 s (a 113 min orbit).
+        assert tau_used == pytest.approx(240.0)
+        assert tau_used < 6800.0
+        assert factor == pytest.approx(1.0, rel=1e-9)
+
+    def test_a_ladder_entirely_above_the_target_answers_nan(self):
+        factor, tau_used = ch.red_noise_factor([500.0, 1000.0],
+                                               [0.01, 0.008], 100.0)
+        assert math.isnan(factor) and math.isnan(tau_used)
+
+    def test_the_white_null_is_not_minus_one_half(self):
+        """THE comparison that was wrong: a 4-6 rung ladder's estimator does
+        not have expectation -0.50, so -0.38 is not evidence against white
+        noise on its own."""
+        from macro_phot import errors as er
+        null = ch.white_noise_allan_null(120, 200.0, 6800.0,
+                                         er.allan_deviation, n_real=120,
+                                         rng=np.random.default_rng(5))
+        assert null["n"] > 100
+        # The estimator's own median sits well below -0.50 ...
+        assert null["slope_p50"] < -0.50
+        # ... and its 5-95 band is wide enough to contain -0.38 comfortably.
+        assert null["slope_p05"] < -0.38 < null["slope_p95"]
+
+    def test_the_white_null_red_factor_is_not_one(self):
+        """A short ladder returns a red-noise factor above 1 on pure white
+        noise often enough that '1.5x worse than white' needs the null."""
+        from macro_phot import errors as er
+        null = ch.white_noise_allan_null(120, 200.0, 6800.0,
+                                         er.allan_deviation, n_real=120,
+                                         rng=np.random.default_rng(6))
+        assert null["red_p95"] > 1.2
+
+
+class TestPooledTailBinning:
+    """Airmass: the bins from X = 2.45 to 2.65 all exceed the degradation
+    factor, all three hold fewer than 15 frames, and the page reported that
+    airmass never degrades the check stars over the observed range."""
+
+    def _axis(self, n_tail=20):
+        # 200 good frames below 2.4, then a degraded tail spread so thinly
+        # across the top of the axis that no single bin can carry it - the
+        # real airmass situation, where 36 frames sit in ten bins.
+        x = np.concatenate([np.linspace(1.0, 2.3, 200),
+                            np.linspace(2.45, 2.95, n_tail)])
+        y = np.concatenate([np.full(200, 1.0), np.full(n_tail, 1.6)])
+        return x, y, np.arange(1.0, 3.01, 0.1)
+
+    def test_the_thin_tail_is_pooled_into_one_testable_bin(self):
+        x, y, edges = self._axis()
+        c, m, n = ch.binned_median_pooled_tail(x, y, edges, min_count=15)
+        assert n[-1] == 20                   # the whole tail, in one bin
+        assert m[-1] == pytest.approx(1.6)
+        # And the pooled bin is placed at its LOWER EDGE, not its mean x:
+        # it is a threshold candidate, and the threshold is where the
+        # demonstrable-quality region ends.
+        assert c[-1] < np.mean(x[x >= c[-1]])
+
+    def test_plain_binning_discards_that_tail_entirely(self):
+        x, y, edges = self._axis()
+        _c, _m, n = ch.binned_median(x, y, edges)
+        thin = n[(n > 0) & (n < 15)]
+        assert thin.size >= 4               # every tail bin is under-populated
+
+    def test_the_pooled_tail_can_set_a_threshold_alone(self):
+        """A well-populated FINAL bin has no neighbour to confirm it, so
+        requiring a run of two silently turns 'the axis ends here' into 'no
+        effect'."""
+        x, y, edges = self._axis()
+        c, m, n = ch.binned_median_pooled_tail(x, y, edges, min_count=15)
+        thr, _base = ch.degradation_threshold(c, m, n, baseline=1.0)
+        assert math.isfinite(thr)
+        assert thr == pytest.approx(2.4, abs=0.11)
+
+    def test_a_tail_too_thin_even_pooled_stays_untestable(self):
+        """Honesty in the other direction: if pooling still cannot reach the
+        count rule, the answer is 'no threshold' - which the report must
+        render as 'not testable above here', never as 'no effect'."""
+        x, y, edges = self._axis(n_tail=5)
+        c, m, n = ch.binned_median_pooled_tail(x, y, edges, min_count=15)
+        thr, _base = ch.degradation_threshold(c, m, n, baseline=1.0)
+        assert math.isinf(thr)
+
+    def test_an_interior_spike_still_needs_a_run(self):
+        """The run rule is not abandoned — only the terminal bin is exempt."""
+        centers = np.arange(1.0, 6.0)
+        med = np.array([1.0, 1.0, 1.9, 1.0, 1.0])
+        thr, _ = ch.degradation_threshold(centers, med, np.full(5, 50),
+                                          baseline=1.0)
+        assert math.isinf(thr)
+
+
+class TestColourPointError:
+    """Q1 was graded on single-band precision.  A colour point costs at least
+    sqrt(2) of that, and here the non-simultaneity term dominates."""
+
+    def test_simultaneous_colour_is_root_two_worse(self):
+        got = ch.colour_point_sigma(0.03, 0.03, rate_mag_per_s=0.0, dt_s=0.0)
+        assert got == pytest.approx(0.03 * math.sqrt(2))
+
+    def test_the_offset_term_can_dominate(self):
+        """ST LMi 2025-02-27: median g-to-i offset 75 s, p90 sweep rate
+        1.01 mmag/s -> 76 mmag from the offset alone, against ~30 mmag of
+        photometry."""
+        got = ch.colour_point_sigma(0.029, 0.030, rate_mag_per_s=0.00101,
+                                    dt_s=75.0)
+        assert got > 0.075
+        assert got > 1.7 * ch.colour_point_sigma(0.029, 0.030, 0.0, 0.0)
+
+    def test_nearest_time_offsets_finds_the_closer_neighbour(self):
+        a = np.array([0.0, 1.0])
+        b = np.array([-0.4, 0.9])
+        got = ch.nearest_time_offsets(a, b)
+        assert got[0] == pytest.approx(0.4 * 86400.0)
+        assert got[1] == pytest.approx(0.1 * 86400.0)
+
+    def test_rate_of_change_is_per_second(self):
+        # 0.1 mag over 100 s.
+        t = np.array([0.0, 100.0, 200.0]) / 86400.0
+        m = np.array([0.0, 0.1, 0.2])
+        got = ch.rate_of_change_mag_per_s(t, m)
+        assert np.allclose(got, 1e-3)
+
+
+class TestDutyCycleUncertainty:
+    """Q4's deciding number was per-point precision against the state
+    separation, which measures whether ONE night can be classified."""
+
+    def test_thirteen_nights_cannot_beat_fourteen_points(self):
+        # AN UMa: 13 usable nights.
+        assert ch.duty_cycle_sigma(13) == pytest.approx(0.1387, abs=1e-3)
+
+    def test_more_nights_help_as_root_n(self):
+        assert (ch.duty_cycle_sigma(13) / ch.duty_cycle_sigma(52)
+                == pytest.approx(2.0, rel=1e-6))
+
+    def test_no_epochs_is_not_a_measurement(self):
+        assert math.isnan(ch.duty_cycle_sigma(0))
+
+
+class TestContourUncertainty:
+    """A90 was printed to 0.1 mmag from 50 trials per cell."""
+
+    def test_the_band_brackets_the_point_estimate(self):
+        amps = np.array([0.002, 0.005, 0.01, 0.02, 0.05])
+        fracs = np.array([0.0, 0.1, 0.5, 0.92, 1.0])
+        a90 = ch.recovery_contour(amps, fracs)
+        lo, hi = ch.contour_uncertainty(amps, fracs, n_trials=50,
+                                        rng=np.random.default_rng(4))
+        assert lo <= a90 <= hi
+        # 50 trials cannot support 0.1 mmag: the band is a real fraction of
+        # the value.
+        assert (hi - lo) / a90 > 0.05
+
+    def test_a_grid_that_never_reaches_the_level_answers_nan(self):
+        lo, hi = ch.contour_uncertainty([0.01, 0.02], [0.1, 0.2], 50)
+        assert math.isnan(lo) and math.isnan(hi)

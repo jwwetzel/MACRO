@@ -1256,12 +1256,43 @@ def test_pages_count_target_names_not_targets():
                 assert "not the same as one object" in html
 
 
-def test_alias_splinters_are_named_on_the_page():
-    """The SN page carries two one-frame alias fragments of the supernova."""
+def test_alias_splinters_were_merged_not_merely_reported():
+    """The two one-frame alias fragments of the supernova are gone.
+
+    This test used to assert the opposite — that the page names
+    ``2023ixf1``/``2023ixf2`` under an "Unmerged alias candidates" card.  It
+    did, until the alias merge landed: ``macro_core.manifest`` now maps both
+    raw names onto ``2023ixf``, the staged rows carry the merged key, and the
+    card correctly disappears because there is nothing left to warn about.
+    The assertion was left behind pointing at the retired state, where it
+    failed on every run and masked any real regression in this page.
+
+    What is worth protecting is the merge itself and the generator that would
+    still speak up if a splinter reappeared, so both are asserted here.
+    """
+    from macro_core import manifest as mf
+    from macro_core import report_projects as rp
+
+    # 1. The merge is recorded where the normalizer can act on it.
+    assert mf.normalize_target("2023ixf1").key == "2023ixf"
+    assert mf.normalize_target("2023ixf2").key == "2023ixf"
+
+    # 2. The page therefore carries no splinter card.  It still NAMES the
+    #    fragments, in the prose that records the merge — which is the right
+    #    place for them: an audit trail of what was folded in, not a standing
+    #    warning about something still broken.
     page = REPO_ROOT / "docs" / "SN2023ixf_LightCurve" / "index.html"
     html = page.read_text()
-    assert "Unmerged alias candidates" in html
-    assert "2023ixf1" in html and "2023ixf2" in html
+    assert "Unmerged alias candidates" not in html
+    assert "2023ixf1/2 post-fade frames folded into the working set" in html
+
+    # 3. But the warning is still live: hand the generator a splinter and it
+    #    names it.  Without this the merge could silently regress.
+    note = rp._alias_note([("2023ixf", 1056, 30, 1000, 1056),
+                           ("2023ixf1", 1, 1, 1, 1)])
+    assert "Unmerged alias candidates" in note
+    assert "2023ixf1" in note
+    assert rp._alias_note([("2023ixf", 1056, 30, 1000, 1056)]) == ""
 
 
 def test_a_claim_resting_on_a_filter_shows_that_filters_measurement():

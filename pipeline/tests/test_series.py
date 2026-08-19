@@ -198,9 +198,10 @@ class TestPlateScaleResolution:
 
 
 class TestGeometry:
-    def test_readout_strip_is_refused(self):
-        # EU UMa era 80: 8 x 3,211 pixel strips against a ~9 px aperture
-        # radius.  The aperture is wider than the image.
+    def test_a_frame_narrower_than_its_aperture_is_refused(self):
+        # The rule itself, on an image genuinely too narrow to hold a 9 px
+        # aperture radius.  NOTE: this is no longer EU UMa's era 80 — see
+        # TestImplausibleGeometry for why that story was retired.
         ok, why = sr.geometry_verdict(8, 3211, 8.91)
         assert not ok
         assert "8 px" in why or "short axis 8" in why
@@ -208,6 +209,44 @@ class TestGeometry:
     def test_normal_frame_passes(self):
         ok, _ = sr.geometry_verdict(4788, 3194, 8.91)
         assert ok
+
+    def test_the_real_era_80_frames_pass(self):
+        # THE regression.  EU UMa era 80 was excluded wholesale on a
+        # recorded geometry of 8 x 3,211, which is the BINTABLE row length
+        # of a tile-compressed header, not an image.  The files hold
+        # 4,787 x 3,193 reduced pixels and are perfectly photometrable.
+        ok, _ = sr.geometry_verdict(4787, 3193, 8.91)
+        assert ok
+
+
+class TestImplausibleGeometry:
+    """The test that stops a header artifact reaching geometry_verdict.
+
+    Every one of these numbers is what the campaign actually recorded, and
+    believing them cost 207 EU UMa frames until the files were opened.
+    """
+
+    def test_the_bintable_row_length_is_flagged(self):
+        assert sr.geometry_is_implausible(8, 3211)
+
+    def test_a_real_frame_is_not_flagged(self):
+        assert not sr.geometry_is_implausible(4787, 3193)
+        assert not sr.geometry_is_implausible(4800, 3211)
+        # The iKon, the smallest real detector in this archive.
+        assert not sr.geometry_is_implausible(2048, 2048)
+
+    def test_missing_is_implausible_not_small(self):
+        # "Unknown" and "8" both mean the same thing to the caller: go back
+        # to the pixels.  Returning False here would leave a NULL geometry
+        # unresolved for ever.
+        assert sr.geometry_is_implausible(None, 3193)
+        assert sr.geometry_is_implausible(4787, None)
+        assert sr.geometry_is_implausible(float("nan"), 3193)
+
+    def test_the_threshold_is_the_stated_one(self):
+        n = sr.MIN_PLAUSIBLE_AXIS_PX
+        assert sr.geometry_is_implausible(n - 1, 4000)
+        assert not sr.geometry_is_implausible(n, 4000)
 
     def test_unknown_dimensions_refuse_rather_than_assume(self):
         assert not sr.geometry_verdict(None, 3194, 8.91)[0]
@@ -589,3 +628,99 @@ class TestChanceGate:
     def test_degenerate_inputs_fail_closed(self):
         assert not sr.matches_beat_chance(100, 400, 1839, 2.0, 0.0)
         assert not sr.matches_beat_chance(100, 400, 1839, 0.0, self.AREA)
+
+
+# ---------------------------------------------------------------------------
+# The applied saturation veto, and how near the ceiling a target got
+# ---------------------------------------------------------------------------
+class TestAppliedVeto:
+    """The threshold the pixels were actually tested against.
+
+    Era 7 is High Gain: the S2 mode veto is 3,200 ADU on RAW pixels, and
+    every frame has a master dark of median 95 or 96 ADU subtracted before
+    anything is measured.  The number that decides a saturation flag is
+    therefore 3,104-3,105, and for a whole production run the database
+    recorded 3,200 instead — which left 10,371 stored flags irreproducible
+    from the product they were stored in.
+    """
+
+    def test_the_dark_median_comes_off_the_threshold(self):
+        assert sr.applied_veto_adu(3200.0, 96.0) == pytest.approx(3104.0)
+        assert sr.applied_veto_adu(3200.0, 95.0) == pytest.approx(3105.0)
+
+    def test_server_reduced_frames_are_unshifted(self):
+        # Their veto was already mapped through the reduction; there is no
+        # local dark to subtract and subtracting one would double-count.
+        assert sr.applied_veto_adu(55030.9, None) == pytest.approx(55030.9)
+
+    def test_no_measured_ceiling_stays_no_ceiling(self):
+        # None in, None out: a mode S2 never saw saturate must not acquire
+        # a threshold by arithmetic.
+        assert sr.applied_veto_adu(None, 96.0) is None
+
+    def test_the_flags_follow_the_applied_threshold(self):
+        # A detection at 3,150 ADU is BELOW the raw threshold and ABOVE the
+        # applied one.  This is the disagreement, in one assertion.
+        peak = np.array([3150.0 - 20.0])       # sep reports bkg-subtracted
+        raw = sr.saturated_mask(peak, 20.0, 3200.0)
+        applied = sr.saturated_mask(peak, 20.0, sr.applied_veto_adu(3200.0, 96.0))
+        assert not raw[0]
+        assert applied[0]
+
+
+class TestNearVeto:
+    """A hard clip is not where a detector stops being linear.
+
+    YZ Cnc's era-7 target peaks at 3,066 ADU against an applied veto of
+    3,104 — 98.8% of it — and `n_target_saturated` reads 0 for that series.
+    Reporting only the binary flag says "saturation never touched the
+    targets" about the exact block that carries the superhump amplitude.
+    """
+
+    VETO = 3104.0
+
+    def test_points_just_under_the_ceiling_are_counted(self):
+        levels = [3066.5, 2800.0, 1000.0]      # 0.988, 0.902, 0.322 of veto
+        got = sr.near_veto_counts(levels, self.VETO, fractions=(0.85, 0.90))
+        assert got[0.90] == 2
+        assert got[0.85] == 2
+
+    def test_a_comfortable_series_counts_zero(self):
+        got = sr.near_veto_counts([1000.0, 1500.0], self.VETO)
+        assert set(got.values()) == {0}
+
+    def test_no_veto_returns_no_counts_not_zero_counts(self):
+        # "No ceiling was measured for this mode" must not render as
+        # "nothing was near the ceiling".
+        assert sr.near_veto_counts([3066.5], None) == {}
+        assert sr.near_veto_counts([3066.5], 0.0) == {}
+
+    def test_non_finite_levels_are_ignored(self):
+        got = sr.near_veto_counts([np.nan, 3066.5], self.VETO)
+        assert got[0.90] == 1
+
+
+class TestTargetSeriesVerdict:
+    """Whether a series actually delivers a target light curve.
+
+    stlmi|e47|y was recorded as solved, check-validated, with 10 "target
+    points" — all ten of which were NULL magnitudes, and with no target row
+    in cv_stars at all.  Every summary of the run presented a y-band light
+    curve that does not exist.
+    """
+
+    def test_rows_without_magnitudes_are_not_a_measurement(self):
+        assert sr.target_series_verdict(10, 0) == "undetected"
+
+    def test_a_full_series_is_measured(self):
+        assert sr.target_series_verdict(431, 431) == "measured"
+
+    def test_a_handful_of_magnitudes_is_sparse_not_measured(self):
+        # euuma|e76|i: 208 rows, 24 finite magnitudes.  It has SOME
+        # photometry, which is why it is not 'undetected' — but 24 points
+        # is not a light curve and must not be counted as 208.
+        assert sr.target_series_verdict(208, 24) == "measured"
+        assert sr.target_series_verdict(30, 5) == "sparse"
+
+    def test_no_target_at_all(self):
+        assert sr.target_series_verdict(0, 0) == "undetected"

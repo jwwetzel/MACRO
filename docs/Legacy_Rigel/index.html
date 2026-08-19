@@ -125,7 +125,7 @@ reason attached.</p>
 <tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
 <tr><td><span class="chip pending">pending</span></td><td><b>Commission a committee strategy</b><br><code>RIG-L2-strategy</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §What the first scan shows</span></td><td>An ANALYSIS_STRATEGY.md for this archive — or a recorded decision not to write one.</td><td><code>STRAT</code> &mdash;</td><td>&mdash;</td></tr>
 <tr><td><span class="chip pending">pending</span></td><td><b>Sixth-project go/no-go</b><br><code>RIG-L2-gonogo</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §What the first scan shows</span></td><td>A decision, with the census as its evidence, on whether the legacy archive carries a paper.</td><td><code>STRAT</code> &mdash;</td><td>&mdash;</td></tr>
-<tr><td><span class="chip pending">pending</span></td><td><b>Publish the census on this page</b><br><code>RIG-L2-page</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §Multi-archive keying (stage S0d)</span></td><td>This page's science section, replacing the ingest status it currently carries.</td><td><code>WEB</code> <a href="../BeStar_Grism/index.html">index.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Publish the census on this page</b><br><code>RIG-L2-page</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/pipeline/macro_core/project_plan.py">pipeline/macro_core/project_plan.py</a> §Multi-archive keying (stage S0d)</span></td><td>This page's science section, replacing the ingest status it currently carries.</td><td><code>WEB</code> <a href="../BeStar_Grism/index.html">index.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td></tr>
 </table>
 </div>
 </div>
@@ -169,13 +169,13 @@ database at all. A reader is never invited to trust an orphaned report.</p>
 <tr class="warn"><td><code>S0</code></td><td>Manifest (dedup, aliases, eras, pointing)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-stale">STALE</span></td><td>input stat:rlmt-catalog: changed after this stage ran — S0e changed 2026-08-18T19:38:06Z, after this stage ran 2026-08-18T15:03:50.623928+00:00</td></tr>
 <tr class="warn"><td><code>S0b</code></td><td>Calibration inventory (links, coverage, gaps)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s0b_calibration_inventory.html">s0b_calibration_inventory.html</a> <span class="chip v-stale">STALE</span></td><td>input table:eras: content changed (84 rows, digest 34e7c8d1c2cde7b6 -&gt; 92ac7bba3062f54c)</td></tr>
 <tr class="warn"><td><code>STRAT</code></td><td>Five ANALYSIS_STRATEGY.md documents + ROADMAP</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>input table:frame_dispersion: changed after this stage ran — S2c changed 2026-08-18T19:06:48+00:00, after this stage ran 2026-08-18T18:47:50Z</td></tr>
-<tr class="warn"><td><code>WEB</code></td><td>Public project pages (docs/*/index.html)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../BeStar_Grism/index.html">index.html</a> <span class="chip v-stale">STALE</span></td><td>input table:project_counts: content changed (18 rows, digest 4f4f4805ed14f6cf -&gt; b97b903559297fe3)</td></tr>
+<tr class="warn"><td><code>WEB</code></td><td>Public project pages (docs/*/index.html)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../BeStar_Grism/index.html">index.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE), S0c (STALE) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
 </table>
 
 </div>
 </section>
 
-<footer>Generated 2026-08-19T01:07:54Z by
+<footer>Generated 2026-08-19T03:08:15Z by
 <code>macro_core.report_projects</code> from the plan ledger in
 <code>macro_core.project_plan</code> (PLAN v1.0 (2026-08-18)), the
 progress recorded in <code>project_plan_status</code>, and live queries

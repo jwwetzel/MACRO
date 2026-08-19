@@ -29,11 +29,18 @@ on plain values, so a student auditor can read them without a telescope and
     astroalign's triangles — faster and immune to triangle starvation —
     but only if the resulting match is credible (:func:`wcs_match_ok`),
     otherwise the astroalign ladder still runs.
-4.  **Is the series photometrable at all?**  EU UMa's era-80 frames are
-    8-pixel-wide readout STRIPS.  A 4-arcsec aperture is ~9 pixels across:
-    the aperture is wider than the image.  :func:`geometry_verdict` says
-    so once, in one place, instead of leaving 207 mysterious extraction
-    failures in a log.
+4.  **Is the series photometrable at all?**  An image can be too small to
+    hold one aperture plus its sky annulus, and :func:`geometry_verdict`
+    says so once, in one place, instead of leaving mysterious extraction
+    failures in a log.  It is judged against RESOLVED pixel dimensions
+    only.  RETIRED PREMISE, recorded because the campaign nearly acted on
+    it: EU UMa's era-80 frames were believed to be 8-pixel-wide readout
+    STRIPS narrower than a 4-arcsec aperture, and all 207 were excluded on
+    that basis.  They are nothing of the kind — the files hold 4,800 x
+    3,211 raw / 4,787 x 3,193 reduced images, and the 8 is the BINTABLE
+    ROW LENGTH of a tile-compressed header that the S0 scan copied without
+    translating.  ``macro_core.fitsgeom`` exists to translate it, and
+    geometry is now judged only against dimensions that resolver returns.
 
 Nothing in this module does I/O, and nothing here imports anything heavier
 than numpy — the same house standard as ``macro_phot.photometry``.
@@ -156,6 +163,61 @@ def veto_in_reduced_adu(veto_raw: Optional[float], flat_med: float,
         return None
     return (float(veto_raw) - float(dark_med)) / float(flat_med) \
         + float(pedestal)
+
+
+def applied_veto_adu(veto_adu_raw: Optional[float],
+                     dark_median_adu: Optional[float]) -> Optional[float]:
+    """The veto level that actually applies to the pixels being measured.
+
+    A locally-calibrated frame has had its master dark SUBTRACTED before
+    anything is measured, so a threshold defined on raw pixels sits that
+    much too high on the calibrated ones.  (The flat is median-normalised
+    and shifts no levels, which is why it does not appear here.)  Server-
+    reduced frames pass ``dark_median_adu=None``: their veto was already
+    mapped through the reduction by :func:`veto_in_reduced_adu`.
+
+    This one line used to live inline in the extraction worker, and the
+    number it produced was never written down — the database recorded the
+    RAW veto while the saturation flags had been computed with this one.
+    9,377 era-7 detections could not be reproduced from the product as a
+    result.  A derived threshold that decides a published statistic has to
+    be a named function with a column of its own.
+    """
+    if veto_adu_raw is None:
+        return None
+    if dark_median_adu is None:
+        return float(veto_adu_raw)
+    return float(veto_adu_raw) - float(dark_median_adu)
+
+
+#: A recorded image dimension below this many pixels cannot be a real
+#: science image from any camera in this archive (the smallest is 1,024 px
+#: on its short axis), so it is a header artifact — almost always the
+#: BINTABLE row length of a tile-compressed frame, which is 8 on EU UMa's
+#: era 80.  Frames flagged here get their geometry re-resolved from the
+#: file rather than trusted, because the alternative is what already
+#: happened once: 207 good frames excluded as "8-pixel readout strips".
+MIN_PLAUSIBLE_AXIS_PX = 64
+
+
+def geometry_is_implausible(naxis1: Optional[float],
+                            naxis2: Optional[float],
+                            min_axis: int = MIN_PLAUSIBLE_AXIS_PX) -> bool:
+    """True when a recorded (naxis1, naxis2) cannot describe a real image.
+
+    Deliberately NOT a photometry decision — :func:`geometry_verdict` makes
+    those.  This is a provenance test on the NUMBER: it asks whether the
+    dimension is worth believing at all, so a caller knows when to go back
+    to the pixels.  Missing values count as implausible, because "unknown"
+    and "8" both mean the same thing here: go and look.
+    """
+    if naxis1 is None or naxis2 is None:
+        return True
+    try:
+        short = min(float(naxis1), float(naxis2))
+    except (TypeError, ValueError):
+        return True
+    return not math.isfinite(short) or short < float(min_axis)
 
 
 def saturated_mask(peak_adu: np.ndarray, background_adu: float,
@@ -314,12 +376,15 @@ def geometry_verdict(naxis1: Optional[float], naxis2: Optional[float],
                      aper_px: Optional[float]) -> tuple[bool, str]:
     """Is a frame of this shape photometrable with this aperture?
 
-    Returns ``(ok, reason)``.  The rule exists for EU UMa's era 80, whose
-    frames are 8 x 3,211 readout STRIPS: at the era's 0.45 arcsec/pixel a
-    4-arcsec aperture radius is ~9 pixels, so the aperture is wider than
-    the entire image and every "measurement" would be the strip's own
-    edge.  Saying that once, here, converts 207 inexplicable extraction
-    failures into one stated exclusion with a number attached.
+    Returns ``(ok, reason)``.  The rule guards one thing only: an image
+    whose SHORT axis cannot hold a photometric aperture plus its sky
+    annulus, where every "measurement" would really be the image's own
+    edge.  ``naxis1``/``naxis2`` must be RESOLVED dimensions — what
+    ``macro_core.fitsgeom`` returns for the frame's real pixels — never a
+    raw NAXIS card copied out of a tile-compressed header, where NAXIS1 is
+    the BINTABLE row length in bytes and has nothing to do with the image.
+    Feeding this function that number is how the campaign came within one
+    commit of throwing away 207 perfectly good EU UMa frames.
     """
     if naxis1 is None or naxis2 is None:
         return False, "image dimensions unknown"
@@ -555,6 +620,65 @@ def series_admission(n_matched_frames: int,
             f"only {n_matched_frames} matched frame(s) < {min_frames}: too "
             f"few for a comparison-star stability iteration")
     return True, f"{n_matched_frames} matched frames"
+
+
+#: A target with fewer than this many finite magnitudes is not a light
+#: curve.  12 matches MIN_SERIES_FRAMES: a series admitted on 12 frames
+#: whose target was measured on all of them is the smallest thing this
+#: campaign is willing to call a measurement.
+MIN_TARGET_POINTS = 12
+
+#: Fractions of the APPLIED saturation veto at which a target measurement
+#: is counted as "near the ceiling".  A hard clip is not where a detector
+#: stops being linear — response rolls over below it — so a binary
+#: saturated/not flag can read 0 while the brightest points of the series
+#: are being quietly compressed.  0.90 and 0.85 bracket the region where
+#: that matters; both are reported so a reader can see the shape of the
+#: approach rather than one threshold's verdict.
+NEAR_VETO_FRACTIONS = (0.85, 0.90)
+
+
+def target_series_verdict(n_rows: int, n_measured: int,
+                          min_points: int = MIN_TARGET_POINTS) -> str:
+    """One word on whether this series delivers a target light curve.
+
+    ``n_rows`` is how many light-curve rows the target has; ``n_measured``
+    how many of them carry a finite magnitude.  The two differ whenever a
+    frame got no ensemble zero point or the target's flux was non-positive,
+    and the difference is not cosmetic: ``stlmi|e47|y`` was recorded as
+    ``solved`` with a ``validated`` check verdict and 10 "target points",
+    every one of which was NULL — the series has no y-band light curve at
+    all, while every summary of the run presented one.
+
+    Returns ``'measured'`` (a usable target light curve), ``'sparse'``
+    (some magnitudes, too few to be one), or ``'undetected'`` (no finite
+    magnitude anywhere, or no target row at all).
+    """
+    if n_rows <= 0 or n_measured <= 0:
+        return "undetected"
+    return "measured" if n_measured >= min_points else "sparse"
+
+
+def near_veto_counts(level_adu, veto_applied: Optional[float],
+                     fractions: Sequence[float] = NEAR_VETO_FRACTIONS
+                     ) -> dict[float, int]:
+    """How many measurements sit within a stated fraction of the ceiling.
+
+    ``level_adu`` is each measurement's peak PLUS its frame background —
+    the same quantity :func:`saturated_mask` compares, i.e. the level on
+    the image as digitized — and ``veto_applied`` is the threshold that was
+    actually used (see :func:`applied_veto_adu`), never the raw one.
+    Returns ``{fraction: count}``, empty when there is no veto to measure
+    against, because "no ceiling was measured for this mode" must not
+    render as "nothing was near the ceiling".
+    """
+    if veto_applied is None or not math.isfinite(float(veto_applied)) \
+            or float(veto_applied) <= 0:
+        return {}
+    lv = np.asarray(level_adu, dtype=float)
+    lv = lv[np.isfinite(lv)]
+    return {float(f): int((lv >= float(f) * float(veto_applied)).sum())
+            for f in fractions}
 
 
 def check_star_verdict(n_check: int, min_check: int = MIN_CHECK_STARS

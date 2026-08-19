@@ -120,6 +120,7 @@ from macro_phot import gaia as gg                             # noqa: E402
 from macro_phot import photometry as ph                       # noqa: E402
 from macro_phot import register as reg                        # noqa: E402
 from macro_phot import series as sr                           # noqa: E402
+from macro_core import fitsgeom as fg                         # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Default locations (real paths, so the bare commands Just Work)
@@ -132,7 +133,11 @@ DEFAULT_WCS_ROOT = REPO_ROOT / "products" / "astrom" / "wcs"
 DEFAULT_RECON_DIR = REPO_ROOT / "products" / "detector" / "recon"
 
 #: The campaign's code version, recorded into cv_build_meta.
-CV_CODE_VERSION = "CV-S4 v1.0 (2026-08-18)"
+#: Bumped by the 2026-08-19 adversarial-review repairs: init no longer
+#: overwrites extraction's veto and recipe, geometry is re-resolved
+#: through fitsgeom rather than trusted from the staged scan, and the
+#: per-series target columns count measurements instead of rows.
+CV_CODE_VERSION = "CV-S4 v1.1 (2026-08-19, audit repairs)"
 
 #: Concurrency ceiling.  The machine is simultaneously running a 10-worker
 #: S1 batch solve and a large rclone transfer; this build stays a polite
@@ -285,6 +290,49 @@ def _recon_transform(recon_dir: Path, era_id: int) -> tuple | None:
         return None
 
 
+def topup_frame_columns(con: sqlite3.Connection) -> None:
+    """Add every cv_frames column later stages expect.  Idempotent.
+
+    This is the ONE place the evolving part of the schema is declared.  It
+    lives outside cmd_init so that ``audit`` — which repairs a database
+    built by an earlier version of this script — can call it too without
+    re-running the worklist build.  Adding a column is the only schema
+    change allowed: re-creating the table would throw away measurements
+    that are still perfectly good.
+    """
+    for ddl in ("ALTER TABLE cv_frames ADD COLUMN n_nonfinite INTEGER",
+                "ALTER TABLE cv_frames ADD COLUMN scale_basis TEXT",
+                # The veto that EXTRACTION actually compared pixels against,
+                # written only by extract and never touched here.  veto_adu
+                # above is init's decision column (the mode's S2 threshold in
+                # the units of the chosen provenance); on a locally-calibrated
+                # frame the master dark's median is subtracted from it before
+                # any pixel is tested, and that difference is what the
+                # saturation flags in cv_detections were made with.  Keeping
+                # only the raw number made 9,377 era-7 flags unreproducible
+                # from the product.
+                "ALTER TABLE cv_frames ADD COLUMN veto_applied_adu REAL",
+                # Median of the master dark subtracted from the raw veto, in
+                # ADU — the term that turns one column into the other, stored
+                # so the arithmetic is auditable without re-opening the dark.
+                "ALTER TABLE cv_frames ADD COLUMN dark_median_adu REAL",
+                # Days between this frame and the master calibration chosen
+                # for it.  Era 7 — the block carrying the timing science — is
+                # flat-fielded with masters 100-150 days old, which is the
+                # first-named suspect for the instrumental noise floor and
+                # appeared nowhere in the product.
+                "ALTER TABLE cv_frames ADD COLUMN flat_age_days REAL",
+                "ALTER TABLE cv_frames ADD COLUMN dark_age_days REAL",
+                # Where naxis1/naxis2 came from: 'manifest' when the staged
+                # scan's numbers were plausible, 'resolved' when they had to
+                # be re-read from the file through macro_core.fitsgeom.
+                "ALTER TABLE cv_frames ADD COLUMN geom_basis TEXT"):
+        try:
+            con.execute(ddl)
+        except sqlite3.OperationalError:
+            pass          # column already present — the normal case
+
+
 def _staged_masters(mcon: sqlite3.Connection) -> dict:
     """Every staged master calibration, grouped by (era, kind).
 
@@ -308,8 +356,9 @@ def _staged_masters(mcon: sqlite3.Connection) -> dict:
 
 def _pick_frame_masters(masters: dict, era: int, filt: str | None,
                         jd: float | None, exptime: float | None
-                        ) -> tuple[str | None, str | None]:
-    """The master dark and flat that serve ONE science frame.
+                        ) -> tuple[str | None, str | None,
+                                   float | None, float | None]:
+    """The master dark and flat that serve ONE science frame, and their ages.
 
     The dark must match the science exposure time (no scaling — these
     masters include the bias, and scaling a bias-inclusive dark corrupts
@@ -318,6 +367,14 @@ def _pick_frame_masters(masters: dict, era: int, filt: str | None,
     quietly folding them together would flat-field with the wrong band.
     Ties in either list are broken by nearest observation date, then by
     path, so the choice is reproducible.
+
+    Returns ``(dark_path, flat_path, dark_age_days, flat_age_days)``.  The
+    ages are ``|science JD - master JD|`` and they are returned because
+    they are evidence, not trivia: ST LMi and YZ Cnc era 7 are flat-fielded
+    with masters 100-150 days old (there is no closer High Gain G/R/I flat
+    in the archive — this is not a selection bug), and flat-field residual
+    is the leading suspect for the instrumental noise floor those series
+    sit on.  A suspicion with no column is a suspicion nobody can test.
     """
     darks = [(c[0], c[1]) for c in masters.get((era, "dark"), [])
              if sr.dark_exptime_matches(c[3], exptime)]
@@ -325,7 +382,42 @@ def _pick_frame_masters(masters: dict, era: int, filt: str | None,
              if filt is not None and c[2] == filt]
     d = sr.pick_master(darks, jd)
     f = sr.pick_master(flats, jd)
-    return (d[1] if d else None), (f[1] if f else None)
+
+    def age(chosen):
+        if not chosen or chosen[0] is None or jd is None:
+            return None
+        return abs(float(jd) - float(chosen[0]))
+
+    return ((d[1] if d else None), (f[1] if f else None), age(d), age(f))
+
+
+def _resolved_geometry(path: Path, cache: dict) -> tuple:
+    """``(naxis1, naxis2)`` read from a file's own header, memoised.
+
+    Used only where the manifest's recorded geometry is implausible
+    (:func:`macro_phot.series.geometry_is_implausible`).  The scan that
+    filled those columns copied NAXIS1/NAXIS2 straight out of tile-
+    compressed headers, where NAXIS1 is the BINTABLE row length in bytes —
+    8 on EU UMa's era 80 — and ``macro_core.fitsgeom`` is the translator
+    that exists for exactly this.  Failures return ``(None, None)``: an
+    unreadable header is an unknown geometry, not a small one.
+    """
+    key = str(path)
+    if key in cache:
+        return cache[key]
+    out = (None, None)
+    try:
+        from astropy.io import fits
+        with fits.open(path, memmap=False) as hdul:
+            for hdu in hdul:
+                nx, ny = fg.resolve_geometry_or_none(hdu.header)
+                if nx and ny:
+                    out = (int(nx), int(ny))
+                    break
+    except Exception:                                   # noqa: BLE001
+        out = (None, None)
+    cache[key] = out
+    return out
 
 
 def cmd_init(args) -> None:
@@ -377,16 +469,7 @@ def cmd_init(args) -> None:
         PRIMARY KEY (frame_id, det_id))""")
     con.execute("""CREATE INDEX IF NOT EXISTS idx_det_star
                    ON cv_detections (star_id)""")
-    # Idempotent schema top-up so init stays the ONE place the schema is
-    # declared: a database created by an earlier run of this script has no
-    # n_nonfinite column, and re-creating the table would throw away
-    # measurements that are still perfectly good.
-    for ddl in ("ALTER TABLE cv_frames ADD COLUMN n_nonfinite INTEGER",
-                "ALTER TABLE cv_frames ADD COLUMN scale_basis TEXT"):
-        try:
-            con.execute(ddl)
-        except sqlite3.OperationalError:
-            pass          # column already present — the normal case
+    topup_frame_columns(con)
 
     # ---- era facts: readout mode (for the veto) and the S2 reduction map
     eras = {int(r[0]): r[1] for r in
@@ -449,6 +532,8 @@ def cmd_init(args) -> None:
                 f"extraction time when a master dark is applied)"))
 
     n_new = 0
+    n_regeom = 0
+    geom_cache: dict = {}
     ledger: dict = {}
     con.execute("BEGIN")
     for (fid, tk, era, filt, night, jd, expt, raw_path, qcf, poff,
@@ -460,17 +545,37 @@ def cmd_init(args) -> None:
 
         # Which file's pixels this frame contributes, and the local recipe.
         mdark = mflat = None
+        dark_age = flat_age = None
         recipe = None
         if prov == "server_reduced":
             pixel_path = red_path
         else:
             pixel_path = raw_path
             if prov == "local_master":
-                mdark, mflat = _pick_frame_masters(masters, era, filt, jd,
-                                                   expt)
+                mdark, mflat, dark_age, flat_age = _pick_frame_masters(
+                    masters, era, filt, jd, expt)
                 recipe = ("dark+flat" if (mdark and mflat) else
                           "dark_only" if mdark else
                           "flat_only" if mflat else "none")
+
+        # ---- geometry: believe the staged scan only when it is believable.
+        # The scan copied NAXIS1/NAXIS2 out of tile-compressed headers
+        # without translating them, so EU UMa's era 80 reads 8 x 3,211 for
+        # images that are really 4,800 x 3,211.  Nothing downstream acted on
+        # that (extraction resolves geometry from the pixels), but the
+        # PRODUCT still asserted it, which is the same defect one layer up.
+        geom_basis = "manifest"
+        if sr.geometry_is_implausible(nax1, nax2):
+            src = pixel_path or raw_path
+            if src:
+                r1, r2 = _resolved_geometry(args.archive / src, geom_cache)
+                if r1 and r2:
+                    nax1, nax2, geom_basis = r1, r2, "resolved"
+                    n_regeom += 1
+                else:
+                    geom_basis = "unresolvable"
+            else:
+                geom_basis = "unresolvable"
 
         # Admission checks that need no pixels: geometry and provenance.
         scale = None
@@ -503,24 +608,43 @@ def cmd_init(args) -> None:
              bjd_tdb, jd_header, exptime, airmass, readoutm, provenance,
              pixel_path, raw_path, master_dark, master_flat, calib_recipe,
              veto_adu, veto_basis, qc_flags, pointing_offset_deg,
-             naxis1, naxis2, status, exclude_reason)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+             naxis1, naxis2, geom_basis, dark_age_days, flat_age_days,
+             status, exclude_reason)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (fid, skey, tk, era, filt, night, bjd, jd, expt, airmass,
              eras.get(era), prov, pixel_path, raw_path, mdark, mflat, recipe,
              veto, veto_basis, qcf, poff,
              int(nax1) if nax1 else None, int(nax2) if nax2 else None,
+             geom_basis, fnum(dark_age), fnum(flat_age),
              status, reason))
         n_new += cur.rowcount
         if cur.rowcount == 0:
             # Resumed build: refresh the DECISION columns (they may have
             # improved upstream) without touching measurement columns or
             # the status of already-processed frames.
+            #
+            # calib_recipe and veto_adu are NOT in this list any more.  They
+            # were, and a late re-run of init therefore overwrote what
+            # extraction had measured: every server-reduced frame's recipe
+            # became NULL, and every locally-calibrated frame's veto reverted
+            # from the value the saturation flags were made with (3,104 ADU)
+            # to the raw mode threshold (3,200).  A stage may refresh its own
+            # decisions; it may not overwrite a later stage's measurements.
+            # The one exception is a frame still 'pending', which no later
+            # stage has touched yet.
             con.execute("""UPDATE cv_frames SET bjd_tdb=?, provenance=?,
-                pixel_path=?, master_dark=?, master_flat=?, calib_recipe=?,
-                veto_adu=?, veto_basis=?, qc_flags=?, series_key=?
+                pixel_path=?, master_dark=?, master_flat=?,
+                veto_basis=?, qc_flags=?, series_key=?,
+                naxis1=?, naxis2=?, geom_basis=?,
+                dark_age_days=?, flat_age_days=?
                 WHERE frame_id=?""",
-                (bjd, prov, pixel_path, mdark, mflat, recipe, veto,
-                 veto_basis, qcf, skey, fid))
+                (bjd, prov, pixel_path, mdark, mflat,
+                 veto_basis, qcf, skey,
+                 int(nax1) if nax1 else None, int(nax2) if nax2 else None,
+                 geom_basis, fnum(dark_age), fnum(flat_age), fid))
+            con.execute("""UPDATE cv_frames SET calib_recipe=?, veto_adu=?
+                           WHERE frame_id=? AND status='pending'""",
+                        (recipe, veto, fid))
         led = ledger.setdefault(skey, {"staged": 0, "excluded": 0})
         led["staged"] += 1
         if status == "excluded":
@@ -546,6 +670,10 @@ def cmd_init(args) -> None:
                        "WHERE status='pending'").fetchone()[0]
     print(f"init: worklist holds {total} frames ({n_new} new); "
           f"{pend} pending, {total - pend} excluded up front", flush=True)
+    if n_regeom:
+        print(f"init: re-resolved geometry from the pixels for {n_regeom} "
+              f"frames whose staged NAXIS was a compressed-header artifact",
+              flush=True)
     for skey, tk, era, filt, mode, prov, why, ns, nx in series_rows:
         if nx:
             print(f"  {skey:22s} {prov:15s} {nx}/{ns} excluded at init",
@@ -571,18 +699,23 @@ def _extract_one(job: dict) -> dict:
         data, meta = ext.read_reduced(Path(job["pixel_path"]))
         recipe = "server_reduced"
         veto = job["veto_adu"]
+        dark_med = None
         if job["provenance"] != "server_reduced":
             dark = (cal.read_master(Path(job["master_dark"]))
                     if job.get("master_dark") else None)
             flat = (cal.read_master(Path(job["master_flat"]))
                     if job.get("master_flat") else None)
             data, recipe = cal.apply_masters(data, dark, flat)
-            if dark is not None and veto is not None:
+            if dark is not None:
                 # The veto is a level on the RAW pixels; the pixels being
                 # measured have had the dark removed, so the threshold
                 # moves with them.  (The flat is median-normalized, so it
-                # does not shift levels.)
-                veto = float(veto) - float(np.median(dark))
+                # does not shift levels.)  Both the shift and the shifted
+                # threshold are returned, because the saturation flags below
+                # are made with the latter and a product that cannot
+                # reproduce its own flags is not a product.
+                dark_med = float(np.median(dark))
+                veto = sr.applied_veto_adu(veto, dark_med)
         scale, scale_basis = sr.resolve_plate_scale(meta)
         aper = ph.aperture_radius_px(scale)
         if aper is None:
@@ -614,7 +747,9 @@ def _extract_one(job: dict) -> dict:
             stats = dict(stats, n_detected=int(keep.sum()))
         out.update(ok=True, recipe=recipe, plate_scale=scale,
                    scale_basis=scale_basis, aper_px=aper,
-                   veto_used=veto, stats=stats, dets=dets,
+                   veto_used=veto, dark_median=dark_med,
+                   naxis1=meta.get("naxis1"), naxis2=meta.get("naxis2"),
+                   stats=stats, dets=dets,
                    saturated=sat.astype(int),
                    n_saturated=int(sat.sum()), n_nonfinite=n_bad)
     except Exception as e:
@@ -672,12 +807,23 @@ def cmd_extract(args) -> None:
             s, d = res["stats"], res["dets"]
             con.execute("""UPDATE cv_frames SET status='extracted',
                 calib_recipe=?, plate_scale=?, scale_basis=?, aper_px=?,
-                veto_adu=?, n_detected=?, n_saturated=?, n_nonfinite=?,
+                veto_applied_adu=?, dark_median_adu=?,
+                naxis1=coalesce(?, naxis1), naxis2=coalesce(?, naxis2),
+                geom_basis='resolved',
+                n_detected=?, n_saturated=?, n_nonfinite=?,
                 bkg_adu=?, bkg_rms=?, fwhm_px=?
                 WHERE frame_id=?""",
                 (res["recipe"], fnum(res["plate_scale"]), res["scale_basis"],
                  fnum(res["aper_px"]),
-                 fnum(res["veto_used"]), s["n_detected"], res["n_saturated"],
+                 # veto_applied_adu, NOT veto_adu.  init owns the mode's S2
+                 # threshold; extraction owns the level it actually compared
+                 # pixels against, and on any frame that had a master dark
+                 # subtracted the two are different numbers.  Writing the
+                 # second one over the first is what made the saturation
+                 # statistics unreproducible from the product.
+                 fnum(res["veto_used"]), fnum(res.get("dark_median")),
+                 res.get("naxis1"), res.get("naxis2"),
+                 s["n_detected"], res["n_saturated"],
                  res["n_nonfinite"],
                  fnum(s["bkg_adu"]), fnum(s["bkg_rms"]), fnum(s["fwhm_px"]),
                  fid))
@@ -1356,6 +1502,66 @@ def _series_matrix(con, skey: str):
             np.array([f[2] for f in frames], dtype=float), mag, sig)
 
 
+#: The per-series registry, declared once so ``ensemble`` (which rebuilds it
+#: from a fresh solve) and ``audit`` (which rebuilds it from the stored light
+#: curves) can never disagree about its shape.
+#:
+#: n_target_points changed meaning in the 2026-08-19 audit: it is now the
+#: number of FINITE target magnitudes, and n_target_rows keeps the old row
+#: count beside it.  Anything reading the old column as a coverage statistic
+#: was reading a number up to 8.7x too large.
+CV_SERIES_DDL = """CREATE TABLE {t} (series_key TEXT PRIMARY KEY,
+    target_key TEXT, era_id INTEGER, filter TEXT, provenance TEXT,
+    n_staged INTEGER, n_frames_used INTEGER, match_rate REAL,
+    n_saturated_dets INTEGER,
+    n_target_points INTEGER,          -- finite magnitudes
+    n_target_rows INTEGER,            -- light-curve rows, finite or not
+    n_target_saturated INTEGER,       -- at or above the applied veto
+    n_target_near_veto_085 INTEGER,   -- within 15% of it
+    n_target_near_veto_090 INTEGER,   -- within 10% of it
+    n_comp INTEGER, n_check INTEGER,
+    n_dropped_unstable INTEGER, comp_passes INTEGER,
+    ens_niter INTEGER,
+    ens_converged INTEGER, comp_rms_median REAL,
+    check_rms_median REAL, chi2_inflation REAL, zp_std REAL,
+    target_star_id INTEGER, check_verdict TEXT, target_verdict TEXT,
+    status TEXT, note TEXT)"""
+
+
+def _near_veto_target(con, series_key: str, target_sid) -> dict:
+    """How many TARGET measurements came close to the saturation ceiling.
+
+    ``n_target_saturated`` is zero in every series of this campaign, and on
+    its own that reads as "saturation never touched the targets".  It does
+    not mean that.  A CCD's response departs from linear well BELOW its hard
+    digitization clip, and on High Gain the whole scale ends at 3,496 ADU
+    with an applied veto near 3,104: YZ Cnc's era-7 target reaches 3,066 ADU,
+    98.8% of the threshold, on the very block that carries the superhump
+    amplitude and the O-C edge shape.  A few percent of compressed peaks
+    biases both.
+
+    Counts detections of the target star at or above each of
+    :data:`macro_phot.series.NEAR_VETO_FRACTIONS` times the veto that was
+    actually applied to that frame (``veto_applied_adu``, falling back to
+    ``veto_adu`` for frames extracted before that column existed), comparing
+    peak PLUS background exactly as :func:`series.saturated_mask` does.
+    Returns ``{fraction: count}``, empty when the series has no target.
+    """
+    if target_sid is None:
+        return {}
+    rows = con.execute("""
+        SELECT d.peak + coalesce(f.bkg_adu, 0.0),
+               coalesce(f.veto_applied_adu, f.veto_adu)
+        FROM cv_detections d JOIN cv_frames f USING(frame_id)
+        WHERE f.series_key = ? AND d.star_id = ?
+          AND d.peak IS NOT NULL""", (series_key, target_sid)).fetchall()
+    out = {f: 0 for f in sr.NEAR_VETO_FRACTIONS}
+    for level, veto in rows:
+        for f, n in sr.near_veto_counts([level], veto).items():
+            out[f] += n
+    return out
+
+
 def cmd_ensemble(args) -> None:
     """Solve the Honeycutt ensemble of every (target, era, filter) series."""
     con = connect(args.db)
@@ -1383,9 +1589,10 @@ def cmd_ensemble(args) -> None:
         prov = prov[0] if prov else None
         if not admitted:
             series_rows.append((skey, tk, era, filt, prov, n_staged,
-                                len(fids), fnum(rate), n_sat or 0, 0, 0,
+                                len(fids), fnum(rate), n_sat or 0, 0, 0, 0,
+                                None, None,
                                 0, 0, 0, None, 0, 0, None, None, None, None,
-                                None, None, "not_solved", why))
+                                None, None, "undetected", "not_solved", why))
             print(f"  {skey:24s} NOT SOLVED — {why}", flush=True)
             continue
 
@@ -1465,11 +1672,24 @@ def cmd_ensemble(args) -> None:
         # The campaign's contract is that a saturated target measurement is
         # flagged, never silently fitted; this is the number that lets the
         # next analyst see at a glance whether that mattered here.
-        n_tgt = n_tgt_sat = 0
+        #
+        # THREE counts, not one, because the old single count answered a
+        # question nobody asked.  n_tgt_rows is how many light-curve rows the
+        # target has; n_tgt is how many of them carry a finite MAGNITUDE, and
+        # those differ by up to a factor of 8.7 (euuma|e76|i: 208 rows, 24
+        # measurements) because a frame with no ensemble zero point still
+        # produces a row.  n_tgt_sat is the binary saturation flag, which is
+        # zero everywhere and says less than it appears to: a detector rolls
+        # over below its hard clip, so `_near_veto_target` below counts the
+        # points that got CLOSE to it as well.
+        n_tgt_rows = n_tgt = n_tgt_sat = 0
         for row in lc_rows:
             if row[0] == skey and row[2] == "target":
-                n_tgt += 1
+                n_tgt_rows += 1
+                n_tgt += 1 if row[8] is not None else 0
                 n_tgt_sat += int(row[9])
+        near = _near_veto_target(con, skey, target_sid)
+        tgt_verdict = sr.target_series_verdict(n_tgt_rows, n_tgt)
 
         # ---- per-series diagnostics
         chk = np.flatnonzero(roles == "check")
@@ -1478,11 +1698,13 @@ def cmd_ensemble(args) -> None:
         zp_ok = sol.zp[np.isfinite(sol.zp)]
         series_rows.append((
             skey, tk, era, filt, prov, n_staged, len(fids), fnum(rate),
-            n_sat or 0, n_tgt, n_tgt_sat,
+            n_sat or 0, n_tgt, n_tgt_rows, n_tgt_sat,
+            near.get(0.85), near.get(0.90),
             n_comp, n_check, n_drop, sel.n_passes, sol.n_iter,
             int(sol.converged), fnum(sel.comp_rms_median), chk_rms,
             fnum(infl), fnum(np.std(zp_ok)) if zp_ok.size else None,
-            target_sid, sr.check_star_verdict(n_check), "solved", why))
+            target_sid, sr.check_star_verdict(n_check), tgt_verdict,
+            "solved", why))
         print(f"  {skey:24s} n={len(fids):5d} rate={rate or float('nan'):.2f} "
               f"comps={n_comp:3d} checks={n_check} dropped={n_drop:3d} "
               f"passes={sel.n_passes} "
@@ -1504,19 +1726,7 @@ def cmd_ensemble(args) -> None:
                frame_id INTEGER, bjd_tdb REAL, inst_mag REAL,
                inst_mag_err REAL, zp REAL, mag REAL, saturated INTEGER)""",
             lc_rows)
-    swap_in(con, "cv_series",
-            """CREATE TABLE {t} (series_key TEXT PRIMARY KEY,
-               target_key TEXT, era_id INTEGER, filter TEXT, provenance TEXT,
-               n_staged INTEGER, n_frames_used INTEGER, match_rate REAL,
-               n_saturated_dets INTEGER,
-               n_target_points INTEGER, n_target_saturated INTEGER,
-               n_comp INTEGER, n_check INTEGER,
-               n_dropped_unstable INTEGER, comp_passes INTEGER,
-               ens_niter INTEGER,
-               ens_converged INTEGER, comp_rms_median REAL,
-               check_rms_median REAL, chi2_inflation REAL, zp_std REAL,
-               target_star_id INTEGER, check_verdict TEXT,
-               status TEXT, note TEXT)""", series_rows)
+    swap_in(con, "cv_series", CV_SERIES_DDL, series_rows)
     con.execute("""CREATE INDEX IF NOT EXISTS idx_lc_series
                    ON cv_lightcurve (series_key, star_id, bjd_tdb)""")
     con.commit()
@@ -1608,6 +1818,261 @@ def cmd_errors(args) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Stage: audit
+# ---------------------------------------------------------------------------
+def cmd_audit(args) -> None:
+    """Re-derive the columns a later ``init`` overwrote, and prove it.
+
+    This stage measures NOTHING new.  Every number it writes is a pure
+    function of rows already in the product or of a master calibration file
+    that has not changed, which is why the whole production run does not
+    have to be repeated to make the product self-consistent again.  Four
+    repairs, each with its own verification:
+
+    1.  ``veto_applied_adu`` / ``dark_median_adu`` — the threshold extraction
+        actually compared pixels against.  Recomputed as
+        ``veto_adu - median(master dark)`` and then VERIFIED by re-deriving
+        every saturation flag in ``cv_detections`` from it: if the
+        reconstruction reproduces the stored flags and the raw threshold
+        does not, the recomputed number is demonstrably the one that was
+        used.  (It does: 9,377 era-7 flags disagree with the raw threshold
+        and none disagree with this one.)
+    2.  ``naxis1``/``naxis2`` — re-resolved through ``macro_core.fitsgeom``
+        wherever the staged scan recorded something no image can be.  This
+        is what still asserted, in the product, that EU UMa's era-80 frames
+        were 8 pixels wide after the campaign had retired that story.
+    3.  ``dark_age_days`` / ``flat_age_days`` — how stale the chosen master
+        calibration was for each frame.
+    4.  ``cv_series`` — rebuilt from the stored light curves, so
+        ``n_target_points`` counts measurements rather than rows, the target
+        gets a verdict of its own, and the near-ceiling counts exist.
+
+    Idempotent; safe to re-run.
+    """
+    con = connect(args.db)
+    mcon = connect_manifest(args.manifest)
+    try:
+        topup_frame_columns(con)
+        con.commit()
+        _audit_veto(con)
+        _audit_recipe(con)
+        _audit_geometry(con, args.archive)
+        _audit_calib_age(con, mcon)
+        _audit_series(con)
+        meta_write(con)
+    finally:
+        con.close()
+        mcon.close()
+
+
+def _audit_veto(con) -> None:
+    """Recompute the applied saturation veto, then verify it against flags."""
+    rows = con.execute("""
+        SELECT frame_id, provenance, veto_adu, master_dark
+        FROM cv_frames WHERE veto_applied_adu IS NULL""").fetchall()
+    dark_med: dict = {}
+    upd = []
+    for fid, prov, veto, mdark in rows:
+        med = None
+        if prov != "server_reduced" and mdark:
+            if mdark not in dark_med:
+                try:
+                    dark_med[mdark] = float(np.median(
+                        cal.read_master(Path(mdark))))
+                except Exception as exc:               # noqa: BLE001
+                    print(f"  audit: cannot read master dark {mdark}: {exc}",
+                          flush=True)
+                    dark_med[mdark] = None
+            med = dark_med[mdark]
+        upd.append((fnum(sr.applied_veto_adu(veto, med)), fnum(med), fid))
+    if upd:
+        con.execute("BEGIN")
+        con.executemany("""UPDATE cv_frames
+                           SET veto_applied_adu=?, dark_median_adu=?
+                           WHERE frame_id=?""", upd)
+        con.commit()
+    print(f"audit/veto: {len(upd)} frames given an applied veto "
+          f"({len([d for d in dark_med.values() if d is not None])} master "
+          f"darks read)", flush=True)
+
+    # ---- the verification.  Re-derive every saturation flag from each
+    # candidate threshold and count how many disagree with what is stored.
+    # This is what turns "the recomputed number is plausible" into "the
+    # recomputed number is the one the flags were made with".
+    for label, col in (("applied (recomputed)", "f.veto_applied_adu"),
+                       ("raw (as previously stored)", "f.veto_adu")):
+        n_bad = con.execute(f"""
+            SELECT count(*) FROM cv_detections d JOIN cv_frames f
+              USING(frame_id)
+            WHERE f.provenance <> 'server_reduced' AND d.peak IS NOT NULL
+              AND {col} IS NOT NULL
+              AND d.saturated <> (CASE WHEN d.peak + coalesce(f.bkg_adu, 0.0)
+                                       >= {col} THEN 1 ELSE 0 END)"""
+        ).fetchone()[0]
+        print(f"  verify: {n_bad:>7d} stored flags disagree with the "
+              f"{label} threshold", flush=True)
+
+
+def _audit_recipe(con) -> None:
+    """Restore the calibration recipe the same late `init` blanked.
+
+    Extraction records what it actually did to the pixels; for a
+    server-reduced frame that is the single word ``'server_reduced'``.  The
+    resumed-build UPDATE in ``cmd_init`` wrote its own planned recipe over
+    it, which for server-reduced frames is None — so 5,298 frames ended up
+    claiming no calibration history at all.  ``provenance`` remained
+    authoritative, which is why this never corrupted a measurement, but a
+    column that silently means nothing is a trap for the next reader.
+
+    Recoverable exactly, and only for frames extraction actually reached:
+    a frame still 'pending' or 'excluded' never had a recipe to lose.
+    """
+    n = con.execute(
+        "UPDATE cv_frames SET calib_recipe='server_reduced' "
+        "WHERE provenance='server_reduced' AND calib_recipe IS NULL "
+        "AND status NOT IN ('pending', 'excluded')").rowcount
+    con.commit()
+    # scale_basis is NOT recoverable the same way: it records WHICH header
+    # cards yielded the plate scale (optics vs CD matrix vs CDELT), and that
+    # is a property of each file's header rather than of anything stored
+    # here.  Frames extracted before the column existed keep NULL, and the
+    # count is printed rather than quietly ignored.
+    n_scale = con.execute("SELECT count(*) FROM cv_frames WHERE "
+                          "status='matched' AND scale_basis IS NULL"
+                          ).fetchone()[0]
+    print(f"audit/recipe: {n} server-reduced recipes restored; "
+          f"{n_scale} matched frames still carry no scale_basis "
+          f"(extracted before that column existed — recoverable only by "
+          f"re-reading their headers, and plate_scale itself is stored)",
+          flush=True)
+
+
+def _audit_geometry(con, archive: Path) -> None:
+    """Re-resolve any recorded geometry that cannot describe a real image."""
+    rows = con.execute("""SELECT frame_id, naxis1, naxis2,
+                                 coalesce(pixel_path, raw_path)
+                          FROM cv_frames""").fetchall()
+    cache: dict = {}
+    upd = []
+    for fid, nx, ny, path in rows:
+        if not sr.geometry_is_implausible(nx, ny):
+            continue
+        if not path:
+            upd.append((None, None, "unresolvable", fid))
+            continue
+        r1, r2 = _resolved_geometry(archive / path, cache)
+        upd.append((r1, r2, "resolved" if r1 else "unresolvable", fid))
+    if upd:
+        con.execute("BEGIN")
+        con.executemany("""UPDATE cv_frames SET naxis1=coalesce(?, naxis1),
+                           naxis2=coalesce(?, naxis2), geom_basis=?
+                           WHERE frame_id=?""", upd)
+        con.commit()
+    con.execute("""UPDATE cv_frames SET geom_basis='manifest'
+                   WHERE geom_basis IS NULL""")
+    con.commit()
+    n_ok = sum(1 for u in upd if u[0])
+    print(f"audit/geometry: {len(upd)} implausible geometries found, "
+          f"{n_ok} re-resolved from the pixels", flush=True)
+
+
+def _audit_calib_age(con, mcon) -> None:
+    """Record how old each frame's master calibration was, in days.
+
+    The science epoch used is BJD_TDB where it exists.  That is a barycentric
+    TDB instant and the master's is a plain header JD, but the two scales
+    differ by at most 8 minutes and this column is quoted in DAYS: no
+    conclusion drawn from a 100-day flat age survives or falls on 0.006 d.
+    """
+    jd_of = {r[0]: r[1] for r in mcon.execute(
+        "SELECT abs_path, jd FROM stage_cv_timeseries "
+        "WHERE role IN ('master_dark', 'master_flat')") if r[1] is not None}
+    rows = con.execute("""SELECT frame_id, coalesce(bjd_tdb, jd_header),
+                                 master_dark, master_flat FROM cv_frames
+                          WHERE master_dark IS NOT NULL
+                             OR master_flat IS NOT NULL""").fetchall()
+
+    def age(sci, master):
+        mj = jd_of.get(master) if master else None
+        return None if (sci is None or mj is None) else abs(float(sci) - float(mj))
+
+    upd = [(fnum(age(sci, md)), fnum(age(sci, mf)), fid)
+           for fid, sci, md, mf in rows]
+    if upd:
+        con.execute("BEGIN")
+        con.executemany("""UPDATE cv_frames SET dark_age_days=?,
+                           flat_age_days=? WHERE frame_id=?""", upd)
+        con.commit()
+    worst = con.execute("""SELECT series_key, max(flat_age_days)
+                           FROM cv_frames WHERE status='matched'
+                           GROUP BY series_key
+                           ORDER BY 2 DESC LIMIT 3""").fetchall()
+    print(f"audit/calib-age: {len(upd)} frames dated; oldest flats: "
+          + ", ".join(f"{s} {a:.0f} d" for s, a in worst if a is not None),
+          flush=True)
+
+
+def _audit_series(con) -> None:
+    """Rebuild cv_series' target columns from the stored light curves.
+
+    The solve is not repeated: every column touched here is an aggregate of
+    rows the solve already wrote, so recomputing them is exact rather than
+    approximate.  What changes is what they MEAN — ``n_target_points`` now
+    counts finite magnitudes instead of rows, and a series whose target was
+    never actually measured says so instead of reporting ten NULLs as ten
+    points.
+    """
+    rows = con.execute("SELECT * FROM cv_series").fetchall()
+    cols = [d[0] for d in con.execute("SELECT * FROM cv_series LIMIT 1").description]
+    out = []
+    for r in rows:
+        d = dict(zip(cols, r))
+        skey = d["series_key"]
+        n_rows, n_meas, n_sat = con.execute("""
+            SELECT count(*), sum(mag IS NOT NULL), sum(coalesce(saturated,0))
+            FROM cv_lightcurve WHERE series_key=? AND role='target'""",
+            (skey,)).fetchone()
+        n_rows = int(n_rows or 0)
+        n_meas = int(n_meas or 0)
+        # A target_star_id with no cv_stars row is not a target: stlmi|e47|y
+        # carried id 105, ten NULL magnitudes and a 'validated' verdict.
+        has_star = con.execute(
+            "SELECT count(*) FROM cv_stars WHERE series_key=? AND role='target'",
+            (skey,)).fetchone()[0]
+        near = _near_veto_target(con, skey, d["target_star_id"]
+                                 if has_star else None)
+        verdict = sr.target_series_verdict(n_rows, n_meas)
+        note = d["note"]
+        if d["status"] == "solved" and verdict != "measured":
+            note = (f"{note}; " if note else "") + (
+                f"target {verdict}: {n_meas} finite magnitudes in "
+                f"{n_rows} light-curve rows")
+        out.append((skey, d["target_key"], d["era_id"], d["filter"],
+                    d["provenance"], d["n_staged"], d["n_frames_used"],
+                    d["match_rate"], d["n_saturated_dets"],
+                    n_meas, n_rows, int(n_sat or 0),
+                    near.get(0.85), near.get(0.90),
+                    d["n_comp"], d["n_check"], d["n_dropped_unstable"],
+                    d["comp_passes"], d["ens_niter"], d["ens_converged"],
+                    d["comp_rms_median"], d["check_rms_median"],
+                    d["chi2_inflation"], d["zp_std"], d["target_star_id"],
+                    d["check_verdict"], verdict, d["status"], note))
+    swap_in(con, "cv_series", CV_SERIES_DDL, out)
+    con.commit()
+    print("audit/series: rebuilt", flush=True)
+    for r in con.execute("""SELECT series_key, status, target_verdict,
+                                   n_target_points, n_target_rows,
+                                   n_target_near_veto_090
+                            FROM cv_series
+                            WHERE status='solved' AND
+                                  (target_verdict <> 'measured'
+                                   OR coalesce(n_target_near_veto_090,0) > 0)
+                            ORDER BY 1"""):
+        print(f"  {r[0]:16s} {r[2]:11s} measured={r[3]:5d}/{r[4]:<5d} "
+              f"near-veto(0.90)={r[5]}", flush=True)
+
+
+# ---------------------------------------------------------------------------
 # Stage: status
 # ---------------------------------------------------------------------------
 def cmd_status(args) -> None:
@@ -1672,12 +2137,12 @@ def main() -> None:
                     help="also query Gaia for star identities on eras whose "
                          "reference is already plate-solved (optional; the "
                          "tie itself does not need it)")
-    for name in ("ensemble", "errors", "status"):
+    for name in ("ensemble", "errors", "audit", "status"):
         sub.add_parser(name)
     args = p.parse_args()
     {"init": cmd_init, "extract": cmd_extract, "match": cmd_match,
      "field": cmd_field, "ensemble": cmd_ensemble, "errors": cmd_errors,
-     "status": cmd_status}[args.cmd](args)
+     "audit": cmd_audit, "status": cmd_status}[args.cmd](args)
 
 
 if __name__ == "__main__":
