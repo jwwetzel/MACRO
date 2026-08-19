@@ -790,13 +790,28 @@ STAGE_CLAIMS: tuple[StageClaim, ...] = (
     StageClaim("BeStar_Grism", "Vega — era-A exposure ladder (2024-05-20)",
                80, 1, "target_key = 'vega' AND era_id = 72",
                "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
+    # Era 80 is the other retired phantom (see the note below); its frames are
+    # now in era 78.  The id is kept in the IN-clause deliberately: it costs
+    # nothing, and it keeps this claim reconciling against an older manifest
+    # rebuilt before the geometry repair, which is what makes the 367/18 count
+    # evidence that nothing was gained or lost in the re-keying.
     StageClaim("BeStar_Grism", "Vega — era-C standard series", 367, 18,
                "target_key = 'vega' AND era_id IN (78, 80)",
                "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2"),
-    StageClaim("BeStar_Grism", "Vega — era-83 tier (post-doc ingest)",
-               30, 3, "target_key = 'vega' AND era_id = 83",
+    # Repointed 2026-08-19 from era 83 to era 81.  Era 83 was one of the two
+    # PHANTOM eras minted by the compressed-FITS geometry artifact: its frames
+    # were recorded as 8x3211 when they are really 4800x3211, which keyed them
+    # to a configuration that does not exist.  With the geometry repaired they
+    # key to era 81, which already owned that true configuration — so the
+    # frames moved and era 83 kept its (fictitious) definition with zero
+    # members.  The claim follows the frames, not the retired id; the count is
+    # unchanged at 30/3, which is the check that this is a re-keying and not a
+    # loss.  Retired phantom ids are never reused.
+    StageClaim("BeStar_Grism", "Vega — 2026 blank-readout tier (post-doc ingest)",
+               30, 3, "target_key = 'vega' AND era_id = 81",
                "BeStar_Grism/ANALYSIS_STRATEGY.md §3.2 "
-               "(added 2026-08-18: nights the doc's table pre-dates)"),
+               "(added 2026-08-18: nights the doc's table pre-dates; "
+               "era 83 -> 81 after the S0e geometry repair)"),
 )
 
 
