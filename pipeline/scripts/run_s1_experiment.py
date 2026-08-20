@@ -84,6 +84,30 @@ THUMB_DIR = PRODUCTS_DIR / "thumbs"
 GSENSE_HIGHGAIN_SAT_ADU = 3500.0
 DEFAULT_SAT_ADU = 65000.0
 
+#: SQLite lock patience, in milliseconds — the project-wide standard (see
+#: rescan_geometry.py, build_s3_timing.py, run_s1_batch.py).  This stage
+#: does NOT own the database: the S1b production batch commits into
+#: ``s1_batch`` in bursts while this experiment runs, and ``design``'s
+#: table swap is a single exclusive transaction that would otherwise die
+#: on the driver's 5-second default the moment the batch happened to be
+#: committing.  Five minutes of patience costs nothing; losing a design
+#: swap (or a solved batch of frames) costs a re-run.
+BUSY_TIMEOUT_MS = 300_000
+
+
+def connect(path, read_only: bool = False) -> sqlite3.Connection:
+    """Open the manifest with this project's standard lock patience.
+
+    ``timeout`` (a driver-level sleep-and-retry) and ``busy_timeout`` (the
+    SQLite-level equivalent) are set to the same value: some code paths
+    inside the driver consult one, some the other, and a mismatch is how a
+    connection ends up patient in theory and impatient in practice.
+    """
+    uri = f"file:{path}?mode=ro" if read_only else f"file:{path}"
+    con = sqlite3.connect(uri, uri=True, timeout=BUSY_TIMEOUT_MS / 1000)
+    con.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
+    return con
+
 
 def saturation_adu_for(readoutm) -> float:
     """ADU level treated as 'saturated' in the autopsy statistics."""
@@ -104,7 +128,7 @@ fetch_candidates = astrom.fetch_candidates
 # design — build strata, sample, write the s1 design tables
 # ---------------------------------------------------------------------------
 def cmd_design(args) -> int:
-    con = sqlite3.connect(args.manifest)
+    con = connect(args.manifest)
     with closing(con):
         rows = fetch_candidates(con)
         # Census of the exclusions: the report must show what astrometry
@@ -163,7 +187,21 @@ def cmd_design(args) -> int:
         # Atomic swap: build every s1 table under a _tmp name, then swap
         # inside one transaction — the same idempotence contract as S0b.
         cur = con.cursor()
-        cur.execute("BEGIN")
+        # IMMEDIATE, not a plain BEGIN, and the distinction is not cosmetic
+        # when another stage is writing this database.  A plain (deferred)
+        # BEGIN takes a READ snapshot on its first statement — here the
+        # DROP TABLE IF EXISTS sweep, which reads the schema — and only
+        # asks for the write lock later, at the first CREATE.  In WAL mode
+        # SQLite refuses that upgrade *immediately* with SQLITE_BUSY if any
+        # other connection has committed since the snapshot was taken:
+        # waiting could deadlock two upgraders, so the busy handler is
+        # never consulted and ``busy_timeout`` buys nothing.  That is
+        # exactly what happened on the first re-run attempt against the
+        # live S1b batch — "database is locked" in under a second, despite
+        # five minutes of configured patience.  BEGIN IMMEDIATE asks for
+        # the write lock up front, where the busy handler DOES apply, so
+        # the swap simply waits its turn behind the batch's commits.
+        cur.execute("BEGIN IMMEDIATE")
         for t in ("s1_strata", "s1_populations", "s1_solve_experiment",
                   "s1_failure_autopsy", "s1_build_meta"):
             cur.execute(f"DROP TABLE IF EXISTS {t}_s1_tmp")
@@ -182,9 +220,18 @@ def cmd_design(args) -> int:
               "FILTER names a grism — slitless spectra, never solvable"),
              ("excluded_calib_vocab_filter", n_vocab,
               "FILTER = 'dark'/'bias'/'flat' header glitch (S0b)"),
+             # The note describes the GATE, not a shape anyone has seen.
+             # It used to end "(8x3211 strips)", naming the phantom
+             # geometry as though it were a real readout mode; the S0e
+             # repair showed that signature was a tile-compressed
+             # BINTABLE's row length misread as an image width, and this
+             # count went to zero.  The gate stays (a genuinely narrow
+             # sub-frame would still be unsolvable) — only the claim about
+             # what has been seen through it goes.
              ("excluded_window_geometry", n_window,
-              f"either axis < {astrom.MIN_SOLVABLE_NAXIS} px — high-speed "
-              "photometry windows (8×3211 strips), no sky for quads"),
+              f"either axis < {astrom.MIN_SOLVABLE_NAXIS} px — too little "
+              "sky for quad matching (see docs/pipeline/s0e_geometry_fix"
+              ".html: the 8x3211 signature was a metadata artifact)"),
              ("solvable_candidates", len(candidates),
               "frames the solver can be pointed at"),
              ("candidates_unstratified", n_residue,
@@ -266,7 +313,7 @@ def _solve_task(row: dict, archive_root: Path, config: str,
 def cmd_run(args) -> int:
     t_start = time.monotonic()
     scratch_root = Path(tempfile.mkdtemp(prefix="s1_batch_"))
-    con = sqlite3.connect(args.manifest, timeout=60)
+    con = connect(args.manifest)
     n_done = 0
     try:
         while time.monotonic() - t_start < args.batch_seconds:
@@ -321,7 +368,7 @@ def cmd_autopsy(args) -> int:
     import numpy as np
     from astropy.io import fits
     THUMB_DIR.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(args.manifest, timeout=60)
+    con = connect(args.manifest)
     with closing(con):
         # EVERY failure is autopsied — no per-stratum cap.  (v1.0 capped
         # at 8 per stratum, which left 25 of 58 failures undiagnosed in
@@ -387,7 +434,7 @@ def cmd_autopsy(args) -> int:
 # status / report
 # ---------------------------------------------------------------------------
 def cmd_status(args) -> int:
-    con = sqlite3.connect(f"file:{args.manifest}?mode=ro", uri=True)
+    con = connect(args.manifest, read_only=True)
     with closing(con):
         for sid, tot, pend, ok, bad, badsol, tmo, err, med in con.execute("""
             SELECT stratum_id, count(*),

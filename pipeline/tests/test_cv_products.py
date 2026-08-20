@@ -368,9 +368,16 @@ class TestCatalogueTie:
         only where enough near-simultaneous pairs exist to support it."""
         self._skip(phot)
         from macro_phot import cattie as ct
+        # UNTIED blocks are excluded deliberately.  'unknown' means "a fit
+        # exists here but the target's colour could not be measured"; an
+        # UNTIED block has no fit at all, so every column including the
+        # position is NULL.  Collapsing the two would throw away the more
+        # informative distinction — and the case is real: when the retired
+        # era 80 merged into era 78, EU UMa's combined series lost its tie.
         rows = phot.execute(
             "SELECT series_key, target_colour, colour_position, "
-            "n_colour_pairs FROM cv_cattie WHERE is_primary=1").fetchall()
+            "n_colour_pairs FROM cv_cattie "
+            "WHERE is_primary=1 AND verdict != 'UNTIED'").fetchall()
         assert rows, "no primary tie rows"
         for skey, colour, pos, npair in rows:
             if colour is not None and math.isfinite(colour):

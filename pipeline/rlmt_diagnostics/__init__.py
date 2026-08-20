@@ -50,4 +50,11 @@ off).  Report renderer: ``rlmt_diagnostics.report_s2`` →
 # ceiling epochs recorded, detector_params uncertainties populated (incl.
 # gain-bracket systematic on read_noise_e), 12-bit claim demoted to
 # "consistent", dark-shot floor term quantified.
-S2_CODE_VERSION = "S2 v1.1 (2026-08-18)"
+# v1.2: re-run after the S0e geometry repair, with the three products the CV
+# project depends on made first-class: the empirical per-mode noise model
+# (rlmt_diagnostics.noise + the `noise` subcommand — measured
+# counts-vs-variance, no gain and no Poisson law assumed), round-robin
+# ladder scheduling so EVERY readout mode is tried for linearity instead of
+# the two richest taking all twelve slots, and blank-2026 ladders keyed on
+# the canonical mode label so they can join their saturation veto.
+S2_CODE_VERSION = "S2 v1.2 (2026-08-19)"

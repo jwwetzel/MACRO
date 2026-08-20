@@ -215,7 +215,19 @@ def swap_table(con: sqlite3.Connection, name: str, create_sql: str,
     # for the INSERTs), then swap in one atomic transaction: a crash can
     # leave a stale __new table behind, never a half-replaced real one.
     con.commit()
-    con.execute("BEGIN")
+    # IMMEDIATE, not a bare BEGIN.  A deferred transaction takes its READ
+    # snapshot on the first statement and only asks for the write lock
+    # later; in WAL mode SQLite refuses that upgrade instantly with
+    # SQLITE_BUSY — no busy handler, so ``busy_timeout`` above buys
+    # nothing — if any other connection committed in between.  With the
+    # S1 plate-solve batch committing into this same database in bursts,
+    # that is not a rare race: it is the normal case.  Asking for the
+    # write lock up front puts the wait where the busy handler can serve
+    # it.  (The bare BEGIN survived until now only because the first
+    # statement below is a DROP of an EXISTING table, i.e. already a
+    # write; on the very first build, when there is nothing to drop, the
+    # old form would have raced.)
+    con.execute("BEGIN IMMEDIATE")
     con.execute(f"DROP TABLE IF EXISTS {name}")
     con.execute(f"ALTER TABLE {tmp} RENAME TO {name}")
     con.commit()

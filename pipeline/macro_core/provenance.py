@@ -377,9 +377,18 @@ _reg(_t(
 # ---- S1 outputs (experiment + batch) --------------------------------------
 _reg(_t(
     "table:s1_solve_experiment", "s1_solve_experiment", "obs_rowid",
-    ["obs_rowid", "stratum_id", "coalesce(status,'')", "coalesce(fail_kind,'')"],
+    ["obs_rowid", "stratum_id", "coalesce(status,'')"],
     "Per-frame solve outcomes behind the stratum verdicts.  LEFT OUT: "
-    "solve_time_s and log tails (wall-clock noise)."))
+    "solve_time_s and log tails (wall-clock noise).  NOT fail_kind: that "
+    "column belongs to s1_batch, not here.  The BATCH collapses every "
+    "failure to status='failed' and keeps the detail in fail_kind, so its "
+    "fingerprint needs both columns; the EXPERIMENT never collapses "
+    "anything — 'unsolved', 'timeout', 'error' and 'bad_solve' are "
+    "distinct values of status itself, so status alone carries the whole "
+    "outcome.  This spec was written while the table was destroyed and "
+    "could not be executed against it; the first re-run after the tables "
+    "were restored raised 'no such column: fail_kind' and took the whole "
+    "status command down with it."))
 _reg(_t(
     "table:s1_strata", "s1_strata", "stratum_id",
     ["stratum_id"],
@@ -427,6 +436,14 @@ _reg(_t(
     ["ladder_id", "mode", "n_rungs", "n_frames",
      "round(coalesce(max_abs_resid_pct,-1),4)"],
     "Linearity residuals per archival exposure ladder.  DESTROYED."))
+_reg(_t(
+    "table:s2_noise_curve", "s2_noise_curve", "mode, bin_index",
+    ["mode", "bin_index", "round(coalesce(level_adu,-1),4)",
+     "round(coalesce(var_adu2,-1),4)", "n_pairs"],
+    "The empirical counts-vs-variance table per readout mode — the error "
+    "model the CV time series interpolates instead of evaluating a Poisson "
+    "formula.  Added in S2 v1.2; never existed before the geometry-repair "
+    "re-run, so it has nothing to lose to the swap."))
 _reg(_t(
     "table:detector_params", "detector_params", "era_group, quantity",
     ["era_group", "quantity", "round(coalesce(value,-1),6)",
@@ -663,6 +680,71 @@ _reg(ResourceSpec(
          "— they are diagnostics of the same fit, and a changed fit "
          "always moves zp or colour_term first.")))
 
+# ---- CV-S7 outputs (the external survey record) ----------------------------
+# The one stage in this pipeline whose inputs are OUTSIDE the repo and
+# outside the observatory: AAVSO, ZTF and ASAS-SN.  It is declared here
+# because a science BRANCH rests on it — CV-P3-yzcnc-superhump is a
+# superhump analysis or a flickering analysis depending on what these
+# tables say, and a branch decision that could go stale in silence is the
+# worst kind of stale thing in this repo.
+_reg(ResourceSpec(
+    key="db:cvphot:cv_ext_fetch", kind="db", name="cv_ext_fetch",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="target, source",
+    columns=("target", "source", "n_rows", "ok",
+             "coalesce(cache_sha256,'')"),
+    why=("WHICH external bytes the branch decision was made from, "
+         "identified by the sha256 of each cached response rather than by "
+         "its pull date.  A re-pull returning identical bytes is not a "
+         "change; a re-pull returning different bytes (AAVSO validators "
+         "revise submitted observations, and observers withdraw them) can "
+         "move a nightly median across a state boundary while the row "
+         "count barely twitches.  `ok` is included so a source going from "
+         "UNREACHABLE to reached is itself a change to the evidence.")))
+_reg(ResourceSpec(
+    key="db:cvphot:cv_external", kind="db", name="cv_external",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="target, source",
+    columns=("target", "source", "n_points",
+             "printf('%.4f', coalesce(mjd_min, -1))",
+             "printf('%.4f', coalesce(mjd_max, -1))",
+             "coalesce(bands,'')"),
+    why=("The per-target survey coverage table CV-P0-survey-context "
+         "delivers: span, cadence and bands per source.  Hashed rather "
+         "than counted because the SPAN is the claim — 'AAVSO covers "
+         "EU UMa only to 2020' is a statement the paper makes about what "
+         "the external record can and cannot constrain.")))
+_reg(ResourceSpec(
+    key="db:cvphot:cv_ext_verdict", kind="db", name="cv_ext_verdict",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="target, local_night",
+    columns=("target", "local_night", "utc_night", "n_frames",
+             "coalesce(is_dense,-1)", "coalesce(state,'')",
+             "printf('%.4f', coalesce(amp, -999))", "coalesce(basis,'')",
+             "coalesce(episode,'')"),
+    why=("THE deliverable of CV-P0-aavso-yzcnc: one accretion-state tag "
+         "per RLMT night, with the basis that carried it.  Every column "
+         "here is load-bearing — the state decides the branch, and `basis` "
+         "records whether independent observers, our own resubmitted "
+         "photometry, or a bracket argument stands behind it.  A rebuild "
+         "that flips one night from QUIESCENT to OUTBURST, or one basis "
+         "from 'independent' to 'own', changes what the paper may claim "
+         "while leaving the row count untouched.")))
+_reg(ResourceSpec(
+    key="db:cvphot:cv_ext_episode", kind="db", name="cv_ext_episode",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="target, source, start_night",
+    columns=("target", "source", "start_night", "peak_night",
+             "printf('%.4f', coalesce(peak_amp, -999))",
+             "printf('%.2f', coalesce(plateau_d, -1))", "coalesce(kind,'')"),
+    why=("The outburst episodes and their grades.  The superoutburst "
+         "boundaries are what our dense runs are tested against, so a "
+         "moved boundary is a moved verdict; plateau_d is included "
+         "because it, not the excursion length, is what grades an "
+         "episode.")))
+# (the two FILE resources this stage reads and writes are declared with the
+#  other published artifacts below, where _f is in scope)
+
 # ---- G outputs ------------------------------------------------------------
 _reg(_t(
     "table:g_extractions", "g_extractions", "obs_rowid, method",
@@ -713,6 +795,19 @@ _f("file:docs/CV_TimeSeries/cv_catalogue_tie.html",
    "independent check stars, the cross-catalogue systematic, and the list "
    "of blocks left RELATIVE with the reason for each.  Whole-file hash — "
    "every byte of a published page is the claim.")
+_f("file:docs/CV_TimeSeries/cv_external_context.html",
+   "docs/CV_TimeSeries/cv_external_context.html",
+   "CV-S7 external-context page: the YZ Cnc state timeline with our nights "
+   "overlaid, the per-target survey coverage, the branch decision and the "
+   "explicit statement of what the external record cannot do.  Whole-file "
+   "hash — every byte of a published page is the claim.")
+_f("file:pipeline/macro_phot/external.py", "pipeline/macro_phot/external.py",
+   "The external-record arithmetic: the amplitude ladder, the plateau rule "
+   "that separates a superoutburst from a normal outburst, the independence "
+   "test that keeps our own resubmitted photometry out of the evidence, and "
+   "the branch rule itself.  Changing any constant in it changes which "
+   "branch the YZ Cnc analysis takes, so it is an INPUT to the stage and to "
+   "its page.")
 _f("file:pipeline/macro_phot/cattie.py", "pipeline/macro_phot/cattie.py",
    "The catalogue-tie arithmetic: the cleanliness gate, the robust "
    "ZP + colour-term fit, the colour-range rules and every verdict "
@@ -921,16 +1016,25 @@ STAGES: tuple[Stage, ...] = (
                "table:raw_reduced_links"),
         writes=("table:s2_ceiling_modes", "table:s2_ptc_fits",
                 "table:s2_recon_eras", "table:s2_linearity_ladders",
-                "table:detector_params"),
-        # One invocation runs ONE sub-stage; the five declared output tables
-        # need five of them (plus `ceilpos`, which backfills the ceiling
+                "table:s2_noise_curve", "table:detector_params"),
+        # One invocation runs ONE sub-stage; the six declared output tables
+        # need six of them (plus `ceilpos`, which backfills the ceiling
         # cluster's position evidence).  Each is resumable and skips
         # finished work, so re-invoking until it reports nothing pending is
         # the intended usage.  The bare script exits 2: `stage` is a
         # required positional.
+        #
+        # ORDER MATTERS in one place: `ptc`, `noise` and `reconstruct` read
+        # the per-mode ceiling to cap their level axis, and only `params`
+        # writes it.  A cold rebuild therefore runs ceiling -> params ->
+        # (ptc, noise, reconstruct, linearity) -> params, the second params
+        # pass distilling everything.  Re-running params is free: it
+        # rebuilds its tables from scratch every time.
         build_cmd=("python pipeline/scripts/run_s2_campaign.py ceiling\n"
                    "python pipeline/scripts/run_s2_campaign.py ceilpos\n"
+                   "python pipeline/scripts/run_s2_campaign.py params\n"
                    "python pipeline/scripts/run_s2_campaign.py ptc\n"
+                   "python pipeline/scripts/run_s2_campaign.py noise\n"
                    "python pipeline/scripts/run_s2_campaign.py reconstruct\n"
                    "python pipeline/scripts/run_s2_campaign.py linearity\n"
                    "python pipeline/scripts/run_s2_campaign.py params"),
@@ -1073,6 +1177,46 @@ STAGES: tuple[Stage, ...] = (
              "query text and sha256 and never re-pulls silently, so a "
              "re-run is reproducible without the archive being reachable."),
     Stage(
+        key="CV-S7", title="External survey record + YZ Cnc accretion-state "
+                           "branch decision",
+        code_version="EXTERNAL_CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_external.py",
+        version_symbol="EXTERNAL_CODE_VERSION",
+        # Reads the canonical per-target frame view (it is OUR nights that
+        # get a state tag, and the frame counts that decide which runs are
+        # dense), plus the pure module whose constants set the amplitude
+        # ladder, the plateau rule and the branch rule.  The external
+        # archives are NOT declared as inputs: they are not files in this
+        # repo, and the cached pull with its sha256 — cv_ext_fetch, which
+        # this stage WRITES — is the reproducible record of what was read.
+        reads=("db:cvphot:cv_frames",
+               "file:pipeline/macro_phot/external.py"),
+        writes=("db:cvphot:cv_ext_fetch", "db:cvphot:cv_external",
+                "db:cvphot:cv_ext_episode", "db:cvphot:cv_ext_verdict"),
+        meta_table="cv_ext_meta",
+        meta_version_key="external_code_version",
+        build_cmd=("python pipeline/scripts/run_cv_external.py fetch\n"
+                   "python pipeline/scripts/run_cv_external.py classify"),
+        note="Answers CV-P0-aavso-yzcnc and CV-P0-survey-context.  `fetch` "
+             "caches every response under products/external/ with its query "
+             "text, pull date and sha256 and never re-pulls silently, so "
+             "`classify` is fully offline and repeatable.  The accretion "
+             "state that CV-P3-yzcnc-superhump branches on is computed from "
+             "INDEPENDENT observers only; RLMT photometry resubmitted to "
+             "AAVSO under observer code MALW is tagged at parse time and "
+             "excluded from the ladder, because a branch decision taken "
+             "from our own data wearing AAVSO's coat would be circular."),
+    Stage(
+        key="R-CV-S7", title="Report: CV external-context + branch page",
+        code_version="EXTERNAL_CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_external.py",
+        version_symbol="EXTERNAL_CODE_VERSION",
+        reads=("db:cvphot:cv_ext_fetch", "db:cvphot:cv_external",
+               "db:cvphot:cv_ext_episode", "db:cvphot:cv_ext_verdict",
+               "file:pipeline/macro_phot/external.py"),
+        writes=("file:docs/CV_TimeSeries/cv_external_context.html",),
+        build_cmd="python pipeline/scripts/run_cv_external.py report"),
+    Stage(
         key="G", title="Grism extraction + identity gate (T CrB)",
         code_version="G_CODE_VERSION",
         reads=("table:frames@grism", "table:eras", "table:calib_frames"),
@@ -1135,7 +1279,7 @@ STAGES: tuple[Stage, ...] = (
         code_version="S2_CODE_VERSION",
         reads=("table:s2_ceiling_modes", "table:s2_ptc_fits",
                "table:s2_recon_eras", "table:s2_linearity_ladders",
-               "table:detector_params"),
+               "table:s2_noise_curve", "table:detector_params"),
         writes=("file:docs/pipeline/s2_detector.html",),
         build_cmd="python pipeline/scripts/run_s2_campaign.py report"),
     Stage(

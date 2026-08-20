@@ -632,14 +632,22 @@ def cmd_init(args) -> None:
             # decisions; it may not overwrite a later stage's measurements.
             # The one exception is a frame still 'pending', which no later
             # stage has touched yet.
+            # era_id is refreshed alongside series_key and veto_basis, all
+            # three being S0's decision rather than this stage's.  Leaving it
+            # out was a real defect: the 2026-08-19 geometry repair retired the
+            # phantom eras 80 and 83, and 207 EU UMa frames kept an era_id of
+            # 80 — an id that now owns no frames at all — while their
+            # series_key and veto_basis silently re-derived to era 78 on the
+            # next init.  A row claiming two different eras is worse than a row
+            # that is merely out of date.
             con.execute("""UPDATE cv_frames SET bjd_tdb=?, provenance=?,
                 pixel_path=?, master_dark=?, master_flat=?,
-                veto_basis=?, qc_flags=?, series_key=?,
+                veto_basis=?, qc_flags=?, series_key=?, era_id=?,
                 naxis1=?, naxis2=?, geom_basis=?,
                 dark_age_days=?, flat_age_days=?
                 WHERE frame_id=?""",
                 (bjd, prov, pixel_path, mdark, mflat,
-                 veto_basis, qcf, skey,
+                 veto_basis, qcf, skey, int(era) if era is not None else None,
                  int(nax1) if nax1 else None, int(nax2) if nax2 else None,
                  geom_basis, fnum(dark_age), fnum(flat_age), fid))
             con.execute("""UPDATE cv_frames SET calib_recipe=?, veto_adu=?

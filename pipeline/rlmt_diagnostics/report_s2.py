@@ -26,6 +26,7 @@ import numpy as np               # noqa: E402
 
 from . import ceiling as ceilmod  # noqa: E402  (constants for interpolation)
 from . import linearity as linmod  # noqa: E402
+from . import noise as noisemod   # noqa: E402
 from . import ptc as ptcmod       # noqa: E402
 from . import reconstruct as recmod  # noqa: E402
 
@@ -109,8 +110,16 @@ def fig_frame_maxes(con) -> str:
         ax.set_xscale("log")
         ax.set_yticks(range(len(modes)), modes, fontsize=8)
         ax.set_xlabel("frame maximum (ADU, log)")
-        ax.set_title("Per-frame maxima: adopted ceilings in green "
-                     "(StackPro clusters at 16x the single-read clip)")
+        # The StackPro/High-Gain ceiling ratio is measured, so the caption
+        # states the measured value rather than the expected integer.
+        sp = q1(con, "SELECT clip_adu FROM s2_ceiling_modes "
+                     "WHERE mode = 'High Gain StackPro'")
+        hg = q1(con, "SELECT clip_adu FROM s2_ceiling_modes "
+                     "WHERE mode = 'High Gain'")
+        ratio_txt = (f"StackPro clusters at {sp / hg:.1f}x the single-read "
+                     "clip" if (sp and hg) else
+                     "StackPro's cluster has no single-read clip to compare")
+        ax.set_title(f"Per-frame maxima: adopted ceilings in green ({ratio_txt})")
         fig.tight_layout()
         fig.savefig(FIG_DIR / "s2_frame_maxes.png", dpi=DPI)
         plt.close(fig)
@@ -171,8 +180,11 @@ def fig_ptc(con) -> str:
                              ha="center", va="bottom", fontsize=8,
                              color=GOOD)
         ax2.set_xticks(xpos, labels)
-        ax2.set_title("StackPro = 16 summed sub-frames:\noffset and RN "
-                      "variance both x16")
+        nsub = q1(con, "SELECT value FROM detector_params WHERE era_group = "
+                       "'High Gain StackPro' AND quantity = 'nsub'")
+        n_txt = f"{nsub:.0f}" if nsub else "?"
+        ax2.set_title(f"StackPro = {n_txt} summed sub-frames:\noffset and RN "
+                      f"variance both x{n_txt}")
         ax2.legend(fontsize=7)
         fig.tight_layout()
         fig.savefig(FIG_DIR / "s2_ptc.png", dpi=DPI)
@@ -238,6 +250,53 @@ def fig_recon(con) -> str:
         fig.savefig(FIG_DIR / "s2_recon_stamps.png", dpi=DPI)
         plt.close(fig)
     return "figures/s2/s2_recon_stamps.png"
+
+
+def fig_noise(con) -> str:
+    """The measured counts-vs-variance curve of every mode, floors marked."""
+    modes = [r[0] for r in q(con, "SELECT DISTINCT mode FROM s2_noise_curve "
+                                  "ORDER BY mode")]
+    floors = {r[0]: r[1] for r in q(con, """
+        SELECT era_group, value FROM detector_params
+        WHERE quantity = 'noise_floor_adu'""")}
+    cross = {r[0]: r[1] for r in q(con, """
+        SELECT era_group, value FROM detector_params
+        WHERE quantity = 'noise_crossover_adu'""")}
+    palette = [ACCENT, WARN, GOOD, "#d38ce0", "#e0a56c", "#8fb8e8", "#c9c06a",
+               "#e08c8c"]
+    with plt.rc_context(DARK):
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.6, 4.1))
+        for mode, color in zip(modes, palette):
+            rows = q(con, """SELECT level_adu, var_adu2, var_mad_adu2,
+                                    sigma_adu FROM s2_noise_curve
+                             WHERE mode = ? ORDER BY level_adu""", (mode,))
+            lv = np.array([r[0] for r in rows])
+            var = np.array([r[1] for r in rows])
+            mad = np.array([r[2] for r in rows])
+            sig = np.array([r[3] for r in rows])
+            ax1.errorbar(lv, var, yerr=mad, fmt="o-", ms=3.5, lw=1.0,
+                         color=color, capsize=2, elinewidth=0.7, label=mode)
+            if mode in floors:
+                ax1.axhline(floors[mode] ** 2, color=color, lw=0.6, ls=":")
+            if mode in cross and cross[mode]:
+                ax1.axvline(cross[mode], color=color, lw=0.6, ls="--")
+            # Right panel: the number an error model actually multiplies by.
+            ax2.plot(lv, sig, "o-", ms=3.5, lw=1.0, color=color, label=mode)
+        ax1.set_xscale("log"), ax1.set_yscale("log")
+        ax1.set_xlabel("measured level (ADU, log)")
+        ax1.set_ylabel("measured variance (ADU$^2$, log)")
+        ax1.set_title("Counts vs variance, measured per mode\n"
+                      "(dotted = floor, dashed = 2x-floor crossover)",
+                      fontsize=9)
+        ax1.legend(fontsize=5.5, loc="upper left")
+        ax2.set_xscale("log"), ax2.set_yscale("log")
+        ax2.set_xlabel("measured level (ADU, log)")
+        ax2.set_ylabel("pixel $\\sigma$ (ADU, log)")
+        ax2.set_title("The same table as an error bar", fontsize=9)
+        fig.tight_layout()
+        fig.savefig(FIG_DIR / "s2_noise.png", dpi=DPI)
+        plt.close(fig)
+    return "figures/s2/s2_noise.png"
 
 
 def fig_linearity(con) -> str:
@@ -387,7 +446,8 @@ mode ({fmt(n_px)} pixels histogrammed):</p>
          "valley-then-mound at the very end of the occupied range "
          "(pileup); a smooth falling tail is honest headroom.")}
 {_figure(src2, "Per-frame maxima.  High Gain frames pile at the mound; "
-         "StackPro frames cluster at 16x the single-read clip; Low Gain's "
+         "StackPro frames cluster at a multiple of the single-read clip "
+         "(the measured ratio is on the panel); Low Gain's "
          "tight cluster failed the position-diversity test (same hot "
          "feature in every frame) and is NOT a ceiling.")}
 {tbl}
@@ -425,7 +485,7 @@ veto rule is floor({ceilmod.VETO_FRACTION} &times; ceiling) to
 <h3>Consequence</h3>
 <p class="sub">Every downstream photometry pipeline applies the tabled veto
 for its mode; pixels above it are ceiling-biased, not data.  StackPro's
-16&times; headroom is real but its sub-exposures still clip at the
+{fnum(sp_ratio, 1)}&times; headroom is real but its sub-exposures still clip at the
 single-read mound — a star saturated in High Gain is equally saturated
 inside every StackPro sub-frame (see &sect;2).</p>
 </section>"""
@@ -457,6 +517,15 @@ def section_ptc(con) -> str:
         return fnum(p.get((mode, qty), (None,))[0], nd)
     nsub_prov = q1(con, "SELECT provenance FROM detector_params WHERE "
                         "era_group = 'High Gain StackPro' AND quantity = 'nsub'")
+    # N_sub appears five more times in the prose below.  It is MEASURED, so
+    # every one of those mentions is interpolated from the same query — a
+    # re-run that moved it must not leave "16" written in the sentences
+    # around the number that changed.
+    nsub = p.get(("High Gain StackPro", "nsub"), (None,))[0]
+    nsub_i = f"{nsub:.0f}" if nsub else "?"
+    # A sum of N sub-reads multiplies the read-noise VARIANCE by N, so the
+    # read noise in ADU grows by sqrt(N): derived here, never typed.
+    nsub_rn = f"{nsub ** 0.5:.0f}" if nsub else "?"
     glow = q(con, """SELECT era_group, quantity, value, provenance
                      FROM detector_params WHERE quantity LIKE 'amp_glow%'""")
     glow_txt = "; ".join(
@@ -509,11 +578,11 @@ is adopted as nominal.  A clean flat-field PTC is an October item.</li>
 <li><b>StackPro architecture</b> — three independent ratios against plain
 High Gain ({esc(nsub_prov.split(';')[0] if nsub_prov else '')}) agree:
 <b>N<sub>sub</sub> = {v("High Gain StackPro", "nsub", 0)}</b>.  A StackPro
-frame is the SUM of 16 sub-exposures: bias offset
+frame is the SUM of {nsub_i} sub-exposures: bias offset
 {v("High Gain StackPro", "bias_offset_adu", 1)} ADU
-(&asymp;16 &times; {v("High Gain", "bias_offset_adu", 0)}), read-noise
-variance &asymp;16&times; the single read, ceiling &asymp;16&times; the
-single-read clip (&sect;1).</li>
+(&asymp;{nsub_i} &times; {v("High Gain", "bias_offset_adu", 0)}), read-noise
+variance &asymp;{nsub_i}&times; the single read, ceiling
+&asymp;{nsub_i}&times; the single-read clip (&sect;1).</li>
 <li><b>Amp glow</b> — {glow_txt}; a measurable but small spatial term that
 master darks remove.</li>
 </ul>
@@ -523,15 +592,15 @@ master darks remove.</li>
 header EGAIN as nominal with the measured
 [{v("High Gain", "gain_lower_bound_e_per_adu")},
 {v("High Gain", "gain_upper_bound_e_per_adu")}] e<sup>-</sup>/ADU bracket
-as its systematic; StackPro frames modeled as sums of 16 sub-reads
-(noise variance 16&times;, read noise 4&times; in ADU), NOT as single
-reads.</b>  The repeated darks cannot deliver a full PTC gain — that
+as its systematic; StackPro frames modeled as sums of {nsub_i} sub-reads
+(noise variance {nsub_i}&times;, read noise {nsub_rn}&times; in ADU), NOT as
+single reads.</b>  The repeated darks cannot deliver a full PTC gain — that
 limit is stated here rather than papered over, and the flat-field PTC
 joins the October list.</div>
 <h3>Consequence</h3>
 <p class="sub">Every S/N estimate for StackPro data changes: the effective
 read noise per frame is {v("High Gain StackPro", "read_noise_adu")} ADU,
-sixteen sub-reads' worth, and short-exposure StackPro frames are
+{nsub_i} sub-reads' worth, and short-exposure StackPro frames are
 read-noise-limited far above where a single High Gain read would be.</p>
 </section>"""
 
@@ -577,6 +646,26 @@ def section_recon(con) -> str:
                       "AND tree = 'rawimage'")
     g79 = q(con, "SELECT naxis1, naxis2 FROM eras WHERE era_id = 79")[0]
     g78 = q(con, "SELECT naxis1, naxis2 FROM eras WHERE era_id = 78")[0]
+    # The crop the reduction applies, MEASURED per era (s2_recon_eras
+    # crop_dy/crop_dx) rather than asserted in prose — the earlier draft
+    # named eras 78/80/83 and a "13-18 pixel" range by hand, and the S0e
+    # geometry repair then merged two of those eras out of existence.
+    crop_rows = q(con, """SELECT era_id, crop_dy, crop_dx, n_pairs_cropped
+                          FROM s2_recon_eras WHERE crop_dy IS NOT NULL
+                          ORDER BY era_id""")
+    if crop_rows:
+        cvals = [v for r in crop_rows for v in (r[1], r[2])]
+        era_list = ", ".join(str(r[0]) for r in crop_rows)
+        per_era = "; ".join(
+            "era {}: {} rows &times; {} cols over {} pairs".format(*r)
+            for r in crop_rows)
+        crop_txt = (
+            f"Eras {era_list} crop their reduced output relative to the raw "
+            f"frame by {min(cvals)}&ndash;{max(cvals)} pixels ({per_era}); "
+            "the crop offset was measured by patch alignment before fitting.")
+    else:
+        crop_txt = ("No era in the experiment crops its reduced output: "
+                    "every fitted pair shared its raw frame's geometry.")
     return f"""
 <section id="recon"><h2>3&nbsp;&middot;&nbsp;The master-reconstruction
 experiment: auditing reductions nobody can re-run</h2>
@@ -623,9 +712,7 @@ calibrated-output geometry (era 78's true Fast raws are
 {fmt(g78[0])}&times;{fmt(g78[1])}).  Era 79's rawimage tree therefore
 holds mirrored copies of <i>calibrated products</i>; the era's true raws
 are absent from the archive, and its reduced tree remains calibrated
-data.  The 2026 eras (78/80/83) crop their reduced output by
-13&ndash;18 pixels; the crop offset was measured by patch alignment
-before fitting.</p>
+data.  {crop_txt}</p>
 <h3>Decision</h3>
 <div class="decision"><b>The experiment stands: per-pixel line fits
 recover the reduction's calibration to a few ADU RMS wherever
@@ -646,6 +733,102 @@ calibration provenance instead of an assumption; eras with F &ne; 1 are
 known to be flat-fielded (and by how much, per pixel on the sampled
 grids); the 2026-era crop offset is on record for anyone aligning raw
 against reduced frames.</p>
+</section>"""
+
+
+def section_noise(con) -> str:
+    src = fig_noise(con)
+    n_pairs = q1(con, "SELECT count(*) FROM s2_noise_pairs WHERE n_points > 0")
+    n_pts = q1(con, "SELECT count(*) FROM s2_noise_points")
+    n_modes = q1(con, "SELECT count(DISTINCT mode) FROM s2_noise_curve")
+    n_scenes = q1(con, "SELECT count(DISTINCT night || '|' || target_key) "
+                       "FROM s2_noise_pairs WHERE n_points > 0")
+    rows = q(con, """
+        SELECT c.mode, count(*) AS bins, min(c.level_adu), max(c.level_adu),
+               sum(c.n_pairs), sum(c.n_points),
+               (SELECT value FROM detector_params p
+                 WHERE p.era_group = c.mode AND p.quantity = 'noise_floor_adu'),
+               (SELECT value FROM detector_params p
+                 WHERE p.era_group = c.mode
+                   AND p.quantity = 'noise_crossover_adu'),
+               (SELECT value FROM detector_params p
+                 WHERE p.era_group = c.mode
+                   AND p.quantity = 'noise_curve_logslope')
+        FROM s2_noise_curve c GROUP BY c.mode ORDER BY c.mode""")
+    tbl = table(
+        ["mode", "level span measured (ADU)", "bins", "points",
+         "floor &sigma; (ADU)", "2&times;-floor crossover (ADU)",
+         "log-log slope"],
+        [[esc(m), f"{lo:,.0f}&ndash;{hi:,.0f}", fmt(b), fmt(np_),
+          fnum(fl, 2), (fnum(cr, 0) if cr is not None
+                        else "<i>not witnessed</i>"), fnum(sl, 2)]
+         for m, b, lo, hi, _pr, np_, fl, cr, sl in rows])
+    # Modes with a measured ceiling but no measured curve: named, not hidden.
+    missing = [r[0] for r in q(con, """
+        SELECT mode FROM s2_ceiling_modes
+        WHERE mode NOT IN (SELECT DISTINCT mode FROM s2_noise_curve)
+        ORDER BY mode""")]
+    # The steepest curve is the one whose bright end is most motion-inflated:
+    # name it rather than letting a reader assume every curve is equally pure.
+    steep = max(((r[0], r[8]) for r in rows if r[8] is not None),
+                key=lambda t: t[1], default=None)
+    return f"""
+<section id="noise"><h2>5&nbsp;&middot;&nbsp;The empirical noise model:
+what a pixel actually does, per mode</h2>
+<h3>Question</h3>
+<p>&sect;2's photon transfer needed one very special night, and that night
+was shot entirely in <code>High&nbsp;Gain</code>.  The CV time-series
+project puts an error bar on every point it measures, in every mode it ever
+observed in — so it needs the question answered without that night and
+without a gain: <i>at a measured level of L&nbsp;ADU, how much does a pixel
+of this mode actually fluctuate?</i></p>
+<h3>Evidence</h3>
+<p class="sub">{fmt(n_pairs)} same-scene consecutive science pairs
+across {fmt(n_scenes)} distinct (night, target) scenes &rarr;
+{fmt(n_pts)} (level, variance) measurements &mdash; level bins backed by
+fewer than {noisemod.MIN_PAIRS_PER_BIN} independent pairs are discarded
+rather than published thin &mdash; distilled into
+{fmt(n_modes)} per-mode curves.  No gain, no Poisson law, no formula
+enters anywhere: the pixels are binned on level and their
+half-difference variance is recorded.</p>
+{_figure(src, "Left: the measured variance of each mode against level, "
+         "with the between-pair spread as error bars; dotted lines are "
+         "each mode's measured floor, dashed lines the level where "
+         "variance reaches twice it.  Right: the same table expressed as "
+         "the per-pixel sigma an error model multiplies by.")}
+{tbl}
+<p class="sub">How to read the last column, because it decides how much of
+each curve is <i>detector</i>: a log-log slope of 1.0 is a
+shot-noise-dominated span (variance tracks signal), ~0 is a
+floor-dominated span, and anything above 1 means the pair difference is
+also measuring the sky and the mount — consecutive science exposures move
+by a fraction of a pixel, which inflates the difference variance wherever
+the image has gradients.  {(f"The steepest curve here is "
+   f"<b>{esc(steep[0])}</b> at {fnum(steep[1], 2)}, so its bright end is an "
+   "UPPER bound on detector noise, not a measurement of it."
+   if steep else "")}  Because these are science frames rather than darks,
+the &ldquo;floor&rdquo; column is the whole floor a real exposure carries
+&mdash; read noise plus dark current plus bias structure &mdash; which is
+the number an error model wants and is deliberately NOT the same quantity
+as &sect;2's zero-scene read noise.
+{(f" Modes with a measured ceiling but no measured curve: "
+   f"<b>{esc(', '.join(missing))}</b> &mdash; too few same-scene repeats in "
+   "the archive to bin, and on the October list."
+   if missing else " Every mode with a measured ceiling also has a measured "
+   "curve.")}</p>
+<h3>Decision</h3>
+<div class="decision"><b>The table above IS the adopted error model
+(<code>s2_noise_curve</code>, one row per measured level bin per mode);
+downstream code interpolates it and is refused an answer outside the
+measured span rather than handed an extrapolation.</b>  Where a formula is
+wanted anyway, &sect;2's gain bracket and read noise remain the High Gain
+statement &mdash; but they are a cross-check on this table, not its
+source.</div>
+<h3>Consequence</h3>
+<p class="sub">CV per-point uncertainties stop being a Poisson formula
+evaluated at a nominal EGAIN and become an interpolation of measured
+pixels; a mode whose curve was never measured now fails loudly instead of
+silently inheriting High Gain's numbers.</p>
 </section>"""
 
 
@@ -672,6 +855,27 @@ def section_linearity(con) -> str:
         SELECT DISTINCT mode FROM s2_ceiling_modes WHERE mode NOT IN
         (SELECT DISTINCT era_group FROM detector_params
          WHERE quantity = 'linearity_max_dev_pct')""")]
+    # The WORST-bounded mode is named explicitly.  Ranking ladders fairly
+    # across modes reached sparse modes the earlier global ranking never
+    # tried, and the first one it reached came back with by far the loosest
+    # bound in the table — a reader who stops at the Decision paragraph
+    # should not be left with the impression that everything is under 4.2%.
+    worst = q(con, """SELECT era_group, value, uncertainty, provenance
+                      FROM detector_params
+                      WHERE quantity = 'linearity_max_dev_pct'
+                      ORDER BY value DESC LIMIT 1""")
+    worst_txt = ""
+    if worst and worst[0][1] > q1(con, """
+            SELECT max(value) FROM detector_params
+            WHERE quantity = 'linearity_max_dev_pct'
+              AND era_group LIKE 'High Gain%'"""):
+        w = worst[0]
+        worst_txt = (
+            f"  The loosest bound in the table belongs to "
+            f"<b>{esc(w[0])}</b> at {fnum(w[1], 2)}% "
+            f"(rung scatter {fnum(w[2], 2)}%), from its ONLY archival "
+            f"ladder — a single sparse witness, and the weakest linearity "
+            f"statement S2 makes about any mode.")
     return f"""
 <section id="linearity"><h2>4&nbsp;&middot;&nbsp;Linearity from archival
 exposure ladders</h2>
@@ -712,7 +916,7 @@ over their witnessed ranges; the High Gain family carries a
 bound that is sky/cloud-limited, not detector-limited — treat it as an
 upper limit, not a measured non-linearity.  Sub-10-ms commanded exposure
 times are untrustworthy on the iKon and must not be used for absolute
-photometric scaling.</b></div>
+photometric scaling.</b>{worst_txt}</div>
 <h3>Consequence</h3>
 <p class="sub">Exposure-time-ratio photometry (HDR stitching, ladder
 bootstraps) inherits the tabled bound as a systematic; the timing-paper
@@ -737,11 +941,14 @@ def render_report(manifest_path: Path) -> Path:
         n_params = q1(con, "SELECT count(*) FROM detector_params")
         meta = dict(q(con, "SELECT key, value FROM s2_build_meta"))
 
+        n_curve = q1(con, "SELECT count(DISTINCT mode) FROM s2_noise_curve")
+
         sections = [
             section_ceiling(con),
             section_ptc(con),
             section_recon(con),
             section_linearity(con),
+            section_noise(con),
         ]
 
         html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
@@ -754,7 +961,8 @@ def render_report(manifest_path: Path) -> Path:
   <h1>S2 — Detector Truth</h1>
   <p>{fmt(n_modes)} readout modes characterized ({fmt(n_ceil)} measured
   ceilings) &middot; {fmt(n_pairs)} PTC pairs &middot; {fmt(n_recon)}
-  reduction eras reconstructed &middot; {fmt(n_params)} rows in
+  reduction eras reconstructed &middot; {fmt(n_curve)} empirical noise
+  curves &middot; {fmt(n_params)} rows in
   <code>detector_params</code> &middot;
   built {esc(meta.get('built_utc', ''))[:16]}Z
   ({esc(meta.get('code_version', ''))},
@@ -766,7 +974,8 @@ def render_report(manifest_path: Path) -> Path:
   <a href="#ceiling">1 Ceiling memo</a> &middot;
   <a href="#ptc">2 Photon transfer</a> &middot;
   <a href="#recon">3 Master reconstruction</a> &middot;
-  <a href="#linearity">4 Linearity</a>
+  <a href="#linearity">4 Linearity</a> &middot;
+  <a href="#noise">5 Empirical noise model</a>
 </nav>
 
 {"".join(sections)}

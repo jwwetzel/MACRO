@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -712,9 +713,32 @@ def test_no_task_cites_a_page_this_renderer_generates():
         assert task.source.document not in generated, task.id
 
 
-def test_no_task_names_its_own_project_page_as_evidence():
+def test_no_task_names_its_own_generated_project_page_as_evidence():
+    """A task may not cite the page this renderer builds FROM its own
+    status.  It may cite a stage-built evidence page that happens to live
+    in the same directory — those are rendered from the product database by
+    the stage that did the work, which is the opposite of circular."""
     for task in pp.all_tasks():
-        assert not task.evidence.startswith(f"docs/{task.project}/"), task.id
+        assert task.evidence != f"docs/{task.project}/index.html", task.id
+
+
+def test_the_generated_project_page_is_still_rejected_as_evidence(monkeypatch):
+    """The narrowing above must not have disarmed the rule: citing
+    docs/<Project>/index.html is still a PlanError.
+
+    Built by taking the REAL CV project and swapping one task's evidence,
+    so the synthetic case cannot drift away from the shape validate()
+    actually walks.
+    """
+    real = next(p for p in pp.PROJECTS if p.key == "CV_TimeSeries")
+    phase0 = real.phases[0]
+    task0 = phase0.tasks[0]
+    bad = replace(task0, evidence="docs/CV_TimeSeries/index.html",
+                  status=pp.DONE)
+    project = replace(real, phases=(replace(phase0, tasks=(bad,)),))
+    monkeypatch.setattr(pp, "PROJECTS", (project,))
+    with pytest.raises(pp.PlanError, match="generated project page"):
+        pp.validate()
 
 
 # ===========================================================================
@@ -1219,18 +1243,37 @@ def test_no_file_under_docs_quotes_a_destroyed_constant_without_warning():
             html = owner.read_text()
             if page.name not in html:
                 continue
-            chunks = html.split(page.name)[1:]
-            assert any('class="chip v-' in c[:220] for c in chunks), (
+            # A verdict chip may sit on EITHER side of the link: the project
+            # pages render it after the link, while the hub's table puts the
+            # verdict in its own column BEFORE the report column.  Checking
+            # only what follows the link failed the hub even though its row
+            # carries a chip a few characters earlier — so look both ways.
+            parts = html.split(page.name)
+            windows = [p[-220:] for p in parts[:-1]] + [p[:220] for p in parts[1:]]
+            assert any('class="chip v-' in w for w in windows), (
                 f"{owner.name} links {page.name} with no verdict chip")
 
 
 def test_the_unbacked_panel_does_not_overclaim():
     """It promised "no page here quotes them as fact" while linking pages
-    that do.  The promise must be scoped to what this plan controls."""
+    that do.  The promise must be scoped to what this plan controls.
+
+    The panel itself is CONDITIONAL: ``_unbacked_note`` renders only while
+    some stage this project rests on has a table that is MISSING from the
+    manifest.  It was written during the era when the S0 rebuild had
+    destroyed the S1 and S2 tables, and asserting its presence
+    unconditionally made a HEALTHY pipeline fail this test — the panel
+    correctly disappears once those tables are rebuilt, which is the whole
+    point of rebuilding them.  So the assertion is scoped: when the panel is
+    there, its promise must be the narrow one; when it is not there, there
+    is no promise to overclaim.
+    """
     page = REPO_ROOT / "docs" / "CV_TimeSeries" / "index.html"
     html = page.read_text()
-    assert "No page in this plan quotes them" in html
+    # The overclaim must never appear, panel or no panel.
     assert "no page here quotes them as fact" not in html
+    if "Constants with no query behind" in html:
+        assert "No page in this plan quotes them" in html
 
 
 def test_the_footer_does_not_claim_every_number_is_queried():

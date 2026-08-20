@@ -391,13 +391,67 @@ def section_universe(con) -> str:
     n_solvable = pops["solvable_candidates"][0]
     n_window = pops["excluded_window_geometry"][0]
     n_grism = pops["excluded_grism"][0]
-    # The EU UMa special case: its Fast-readout series is ALL strips.
+    # The EU UMa Fast-readout series: the frames the geometry gate used to
+    # throw away.  BOTH counts are queried — how many of them the gate
+    # still excludes, and how many exist at all — because the paragraph
+    # below has to be true whichever answer the database gives.
     n_euuma_strip = q1(con, """
         SELECT count(*) FROM frames f LEFT JOIN eras e USING (era_id)
         WHERE f.target_key = 'euuma' AND e.readoutm = 'Fast'
           AND f.is_canonical = 1 AND f.tree = 'rawimage'
           AND (f.pltsolvd IS NULL OR f.pltsolvd != 1)
           AND f.naxis1 < ?""", (astrom.MIN_SOLVABLE_NAXIS,))
+    n_euuma_fast = q1(con, """
+        SELECT count(*) FROM frames f LEFT JOIN eras e USING (era_id)
+        WHERE f.target_key = 'euuma' AND e.readoutm = 'Fast'
+          AND f.is_canonical = 1 AND f.tree = 'rawimage'
+          AND (f.pltsolvd IS NULL OR f.pltsolvd != 1)""")
+    # Where those frames sit NOW, if they came back: the stratum that was
+    # created for them.  NULL-safe — the stratum may not exist in an old
+    # design, and the paragraph must not crash on that.
+    n_cv_fast = q1(con, """SELECT n_population FROM s1_strata
+                           WHERE stratum_id = 'cv_fast_fullframe'""") or 0
+    # --- The exclusion paragraph, in two versions -----------------------
+    # THIS IS THE ONE PLACE IN THE REPORT WHERE THE ARGUMENT CHANGED, not
+    # just the numbers.  Until the S0e geometry repair, the largest
+    # exclusion here was "window geometry", and the page said EU UMa's
+    # Fast-readout season "can never be plate-solved by any tool".  That
+    # claim was wrong: the 8x3211 shape was never on the sky.  It was a
+    # tile-compressed BINTABLE's row length read as an image width, and
+    # the frames underneath are ordinary full frames.  Interpolating the
+    # new counts into the old sentence would have printed "0 frames are
+    # high-speed photometry WINDOWS ... among them sit all 0 of EU UMa's
+    # ..." — arithmetically sourced from the database and yet still
+    # asserting a retired claim.  So the SENTENCE branches on the
+    # evidence too, not only its numbers.
+    if n_window:
+        excl_para = f"""<p class="sub">The geometry exclusion is the
+headline: {fmt(n_window)} &ldquo;frames&rdquo; are high-speed photometry
+WINDOWS &mdash; strips narrower than
+{fmt(astrom.MIN_SOLVABLE_NAXIS)}&nbsp;px read out around a single target
+star, with too little sky for quad matching.  {fmt(n_euuma_strip)} of
+EU&nbsp;UMa&rsquo;s {fmt(n_euuma_fast)} unsolved Fast-readout frames are
+among them.  The {fmt(n_grism)} grism rows are slitless spectra
+(hrg/lrg/HaGrism/OGGrism) &mdash; they have no star field by design.</p>"""
+    else:
+        excl_para = f"""<p class="sub"><b>The geometry exclusion is now
+EMPTY</b> &mdash; {fmt(n_window)} frames.  It used to be the largest
+exclusion on this page, and it was an artifact: the 8&times;3211
+&ldquo;photometry windows&rdquo; were a tile-compressed BINTABLE&rsquo;s
+row length read as an image width, not a shape any camera ever put on the
+sky.  The S0e repair repointed those rows at their real geometry (see
+<a href="s0e_geometry_fix.html">the geometry-repair page</a>), and they
+returned to the candidate universe.  EU&nbsp;UMa is the case that matters
+for the CV paper: all {fmt(n_euuma_fast)} of its unsolved Fast-readout
+frames are full frames, {fmt(n_euuma_strip)} of them fail the geometry
+gate, and they now sit in their own stratum
+(<code>cv_fast_fullframe</code>, {fmt(n_cv_fast)} frames) instead of in
+no stratum at all.  <b>An earlier version of this page said that
+population &ldquo;can never be plate-solved by any tool&rdquo;.  That was
+wrong, and the rates below are measured on the repaired universe.</b>
+The {fmt(n_grism)} grism rows are slitless spectra
+(hrg/lrg/HaGrism/OGGrism) &mdash; they have no star field by design, and
+they are the only large exclusion left.</p>"""
     return f"""
 <section id="universe">
 <div class="bhead"><h2>2 &middot; The candidate universe</h2>
@@ -409,14 +463,7 @@ Light frames.  How many of them can a plate solver even be pointed at?</p>
 
 <h3>Evidence</h3>
 {pop_tbl}
-<p class="sub">The geometry exclusion is the headline: {fmt(n_window)}
-&ldquo;frames&rdquo; are high-speed photometry WINDOWS — 8-pixel-wide
-strips read out around a single target star.  Among them sit all
-{fmt(n_euuma_strip)} of EU&nbsp;UMa&rsquo;s unsolved Fast-readout series:
-that population can never be plate-solved by any tool, and its astrometry
-must come from the pointing header + the window geometry instead.  The
-{fmt(n_grism)} grism rows are slitless spectra (hrg/lrg/HaGrism/OGGrism)
-— they have no star field by design.</p>
+{excl_para}
 
 <h3>Decision</h3>
 <div class="decision"><b>The astrometry batch universe is the
@@ -437,6 +484,11 @@ def section_results(con, strata: list[dict]) -> str:
     src_times = fig_solve_times(con)
     n_frames = sum(s["n"] for s in strata)
     n_solved = sum(s["k"] for s in strata)
+    # The seed is printed RAW, not through fmt().  fmt() groups thousands,
+    # which rendered the reproducibility seed 20260817 as "20,260,817" — a
+    # quantity, when it is the identifier a reader has to type back in
+    # verbatim to redraw the same sample.
+    seed_txt = str(strata[0]["seed"]) if strata else "&mdash;"
     body, classes = [], []
     for s in strata:
         classes.append(None if s["verdict"] == "GO" else "warn")
@@ -499,8 +551,8 @@ def section_results(con, strata: list[dict]) -> str:
     return f"""
 <section id="results">
 <div class="bhead"><h2>3 &middot; The experiment</h2>
-<span class="tag">{fmt(n_frames)} frames, 10 strata, seed
-{fmt(strata[0]['seed']) if strata else '&mdash;'}</span></div>
+<span class="tag">{fmt(n_frames)} frames, {fmt(len(strata))} strata, seed
+{seed_txt}</span></div>
 
 <div class="stage"><h3>Question</h3>
 <p class="sub">Per stratum — camera family &times; exposure band &times;
@@ -732,6 +784,10 @@ def render_report(manifest_path: Path) -> Path:
     """Render the full S1 report from the manifest DB.  Returns HTML path."""
     FIG_DIR.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(f"file:{manifest_path}?mode=ro", uri=True)
+    # Read-only is not immune to a concurrent writer: the S1b production
+    # batch holds this database's write lock in bursts, and a reader that
+    # does not wait simply fails.  Same patience as the S3 renderer.
+    con.execute("PRAGMA busy_timeout = 300000")
     try:
         strata = stratum_stats(con)
         n_frames = sum(s["n"] for s in strata)

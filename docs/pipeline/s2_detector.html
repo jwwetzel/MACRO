@@ -7,12 +7,13 @@
 <header>
   <h1>S2 — Detector Truth</h1>
   <p>8 readout modes characterized (6 measured
-  ceilings) &middot; 98 PTC pairs &middot; 8
-  reduction eras reconstructed &middot; 64 rows in
+  ceilings) &middot; 98 PTC pairs &middot; 6
+  reduction eras reconstructed &middot; 8 empirical noise
+  curves &middot; 82 rows in
   <code>detector_params</code> &middot;
-  built 2026-08-18T07:30Z
-  (S2 v1.1 (2026-08-18),
-  commit <code>c930015</code>)
+  built 2026-08-20T01:54Z
+  (S2 v1.2 (2026-08-19),
+  commit <code>2c897e7</code>)
   &middot; <a href="../index.html">back to the evidence hub</a></p>
 </header>
 
@@ -20,7 +21,8 @@
   <a href="#ceiling">1 Ceiling memo</a> &middot;
   <a href="#ptc">2 Photon transfer</a> &middot;
   <a href="#recon">3 Master reconstruction</a> &middot;
-  <a href="#linearity">4 Linearity</a>
+  <a href="#linearity">4 Linearity</a> &middot;
+  <a href="#noise">5 Empirical noise model</a>
 </nav>
 
 
@@ -38,7 +40,7 @@ measured?</p>
 <p class="sub">1,110 science frames sampled across every readout
 mode (14,667,447,395 pixels histogrammed):</p>
 <figure><a href="figures/s2/s2_ceiling_hist.png"><img src="figures/s2/s2_ceiling_hist.png" alt=""></a><figcaption>Terminal histogram structure per mode.  A ceiling is a valley-then-mound at the very end of the occupied range (pileup); a smooth falling tail is honest headroom.</figcaption></figure>
-<figure><a href="figures/s2/s2_frame_maxes.png"><img src="figures/s2/s2_frame_maxes.png" alt=""></a><figcaption>Per-frame maxima.  High Gain frames pile at the mound; StackPro frames cluster at 16x the single-read clip; Low Gain's tight cluster failed the position-diversity test (same hot feature in every frame) and is NOT a ceiling.</figcaption></figure>
+<figure><a href="figures/s2/s2_frame_maxes.png"><img src="figures/s2/s2_frame_maxes.png" alt=""></a><figcaption>Per-frame maxima.  High Gain frames pile at the mound; StackPro frames cluster at a multiple of the single-read clip (the measured ratio is on the panel); Low Gain's tight cluster failed the position-diversity test (same hot feature in every frame) and is NOT a ceiling.</figcaption></figure>
 <table class="data">
 <tr><th>mode</th><th>frames</th><th>hard max</th><th>adopted ceiling</th><th>veto</th><th>ADC bits</th><th>unused codes</th></tr>
 <tr><td>(blank 2026)</td><td>120</td><td>65,535</td><td>65,534</td><td>60,200</td><td>16</td><td>1</td></tr>
@@ -84,7 +86,7 @@ reproduces it exactly.</b></div>
 <h3>Consequence</h3>
 <p class="sub">Every downstream photometry pipeline applies the tabled veto
 for its mode; pixels above it are ceiling-biased, not data.  StackPro's
-16&times; headroom is real but its sub-exposures still clip at the
+16.0&times; headroom is real but its sub-exposures still clip at the
 single-read mound — a star saturated in High Gain is equally saturated
 inside every StackPro sub-frame (see &sect;2).</p>
 </section>
@@ -128,8 +130,8 @@ High Gain (offset_ratio=15.96) agree:
 frame is the SUM of 16 sub-exposures: bias offset
 1,484.5 ADU
 (&asymp;16 &times; 93), read-noise
-variance &asymp;16&times; the single read, ceiling &asymp;16&times; the
-single-read clip (&sect;1).</li>
+variance &asymp;16&times; the single read, ceiling
+&asymp;16&times; the single-read clip (&sect;1).</li>
 <li><b>Amp glow</b> — High Gain: hottest corner +8.0 ADU (128s dark); a measurable but small spatial term that
 master darks remove.</li>
 </ul>
@@ -140,14 +142,14 @@ header EGAIN as nominal with the measured
 [0.60,
 1.77] e<sup>-</sup>/ADU bracket
 as its systematic; StackPro frames modeled as sums of 16 sub-reads
-(noise variance 16&times;, read noise 4&times; in ADU), NOT as single
-reads.</b>  The repeated darks cannot deliver a full PTC gain — that
+(noise variance 16&times;, read noise 4&times; in ADU), NOT as
+single reads.</b>  The repeated darks cannot deliver a full PTC gain — that
 limit is stated here rather than papered over, and the flat-field PTC
 joins the October list.</div>
 <h3>Consequence</h3>
 <p class="sub">Every S/N estimate for StackPro data changes: the effective
 read noise per frame is 15.59 ADU,
-sixteen sub-reads' worth, and short-exposure StackPro frames are
+16 sub-reads' worth, and short-exposure StackPro frames are
 read-noise-limited far above where a single High Gain read would be.</p>
 </section>
 <section id="recon"><h2>3&nbsp;&middot;&nbsp;The master-reconstruction
@@ -168,27 +170,25 @@ recovers D and F on a 512&sup2; central + four corner grids:</p>
 <figure><a href="figures/s2/s2_recon_stamps.png"><img src="figures/s2/s2_recon_stamps.png" alt=""></a><figcaption>Reconstructed dark (left) and flat (middle) per era; right: era-47 reconstruction minus its archived master bias+scaled-dark — the ground-truth grade.</figcaption></figure>
 <table class="data">
 <tr><th>era</th><th>mode</th><th>links</th><th>pairs fit</th><th>flat median F</th><th>dark median D (ADU)</th><th>fit RMS</th><th>pedestal</th><th>F&ndash;D corr</th><th>vs archived master</th><th>verdict</th></tr>
-<tr><td>47</td><td>1MHz High Sensitivity 16-bit</td><td>42</td><td>36</td><td>0.9998</td><td>304.8</td><td>2.34</td><td>1,000</td><td>-0.38</td><td>5.28 ADU RMS (offset 3.8)</td><td>dark subtracted, no flat (F = 1), matches archived master to 5.3 ADU RMS</td></tr>
+<tr><td>47</td><td>1MHz High Sensitivity 16-bit</td><td>42</td><td>36</td><td>0.9998</td><td>304.8</td><td>2.34</td><td>1,000</td><td>-0.38</td><td>5.29 ADU RMS (offset 3.9)</td><td>dark subtracted, no flat (F = 1), matches archived master to 5.3 ADU RMS</td></tr>
 <tr><td>72</td><td>1MHz High Sensitivity 16-bit</td><td>16,426</td><td>36</td><td>1.0671</td><td>301.6</td><td>2.61</td><td>1,000</td><td>-0.07</td><td>2.04 ADU RMS (offset 0.8)</td><td>dark subtracted, flat applied, matches archived master to 2.0 ADU RMS</td></tr>
-<tr><td>76</td><td>Mode0</td><td>63,163</td><td>36</td><td>1.1086</td><td>302.8</td><td>0.83</td><td>1,000</td><td>0.17</td><td>&mdash;</td><td>dark subtracted, flat applied</td></tr>
-<tr><td>78</td><td>Fast</td><td>8,242</td><td>36</td><td>1.0817</td><td>172.1</td><td>0.37</td><td>0</td><td>0.23</td><td>&mdash;</td><td>dark subtracted, flat applied</td></tr>
+<tr><td>76</td><td>Mode0</td><td>63,163</td><td>36</td><td>1.1086</td><td>302.8</td><td>0.83</td><td>1,000</td><td>0.17</td><td>8.47 ADU RMS (offset -0.1)</td><td>dark subtracted, flat applied, matches archived master to 8.5 ADU RMS</td></tr>
+<tr><td>78</td><td>Fast</td><td>25,442</td><td>36</td><td>1.0824</td><td>172.0</td><td>0.35</td><td>0</td><td>0.42</td><td>&mdash;</td><td>dark subtracted, flat applied</td></tr>
 <tr><td>79</td><td>Fast</td><td>136</td><td>36</td><td>1.0000</td><td>0.0</td><td>0.61</td><td>0</td><td>-0.17</td><td>&mdash;</td><td>IDENTITY: both trees hold the same pixels (no relative calibration between them)</td></tr>
-<tr><td>80</td><td>Fast</td><td>17,200</td><td>36</td><td>1.0833</td><td>172.0</td><td>0.23</td><td>0</td><td>0.03</td><td>&mdash;</td><td>dark subtracted, flat applied</td></tr>
-<tr><td>81</td><td>(blank)</td><td>36</td><td>36</td><td>1.0846</td><td>685.1</td><td>2.14</td><td>0</td><td>-0.10</td><td>&mdash;</td><td>dark subtracted, flat applied</td></tr>
-<tr><td>83</td><td>(blank)</td><td>1,634</td><td>36</td><td>1.0796</td><td>172.1</td><td>0.23</td><td>0</td><td>-0.04</td><td>&mdash;</td><td>dark subtracted, flat applied</td></tr>
+<tr><td>81</td><td>(blank)</td><td>1,670</td><td>36</td><td>1.0812</td><td>172.1</td><td>0.23</td><td>0</td><td>-0.00</td><td>&mdash;</td><td>dark subtracted, flat applied</td></tr>
 </table>
 <p class="sub">Notable per-era facts, all from the table: era 47's flat
 median 0.9998
 confirms from pixels what the reduced headers claim
 (&ldquo;flat correction NOT performed&rdquo;), and its reconstructed dark
-matches the archived master to 5.28 ADU RMS
-(MAD-&sigma; 4.23) over 36 pairs.  <b>Read the
+matches the archived master to 5.29 ADU RMS
+(MAD-&sigma; 4.25) over 36 pairs.  <b>Read the
 F&ndash;D corr column before trusting per-pixel values</b>: era 47's
 near-constant sky gave the fit little level diversity, so its per-pixel F
 and D trade off against each other (correlation -0.38,
 per-pixel F scatter 9.1%) — its
 &ldquo;no flat&rdquo; verdict rests on the MEDIAN F only, and its
-5.28 ADU grade is an upper bound that includes degeneracy
+5.29 ADU grade is an upper bound that includes degeneracy
 noise (era 72, better conditioned, grades at 2.04 ADU RMS);
 eras with |corr| &asymp; 0 support per-pixel readings.  <b>Era 79 —
 corrected by adversarial review</b>: F = 1.0000, D = 0,
@@ -203,14 +203,12 @@ calibrated-output geometry (era 78's true Fast raws are
 4,800&times;3,211).  Era 79's rawimage tree therefore
 holds mirrored copies of <i>calibrated products</i>; the era's true raws
 are absent from the archive, and its reduced tree remains calibrated
-data.  The 2026 eras (78/80/83) crop their reduced output by
-13&ndash;18 pixels; the crop offset was measured by patch alignment
-before fitting.</p>
+data.  Eras 78, 81 crop their reduced output relative to the raw frame by 13&ndash;18 pixels (era 78: 18 rows &times; 13 cols over 36 pairs; era 81: 18 rows &times; 13 cols over 36 pairs); the crop offset was measured by patch alignment before fitting.</p>
 <h3>Decision</h3>
 <div class="decision"><b>The experiment stands: per-pixel line fits
 recover the reduction's calibration to a few ADU RMS wherever
 &ge;8 clean pairs exist, and the era-47 control
-grades the method at 5.28 ADU RMS against ground truth
+grades the method at 5.29 ADU RMS against ground truth
 (an upper bound — see the degeneracy note above).  Reduced-tree
 photometry is hereby AUDITED for the fitted eras with the table's
 verdicts attached.  Era 79: the 137 rawimage-tree frames are
@@ -233,8 +231,8 @@ exposure ladders</h2>
 <p>Does flux scale with exposure time — and can the 2024-05-20 Vega
 BeStar ladder (0.0001&ndash;0.1&nbsp;s) calibrate the short end?</p>
 <h3>Evidence</h3>
-<p class="sub">63 same-night same-target same-filter same-gain
-ladders surfaced from the manifest (63 fittable); residuals
+<p class="sub">66 same-night same-target same-filter same-gain
+ladders surfaced from the manifest (66 fittable); residuals
 against flux = k&middot;t for the cleanest ladder per mode:</p>
 <figure><a href="figures/s2/s2_linearity.png"><img src="figures/s2/s2_linearity.png" alt=""></a><figcaption>Per-mode best ladder.  Filled points: unsaturated rungs (the linearity measurement).  Crosses: rungs whose peak sits above the saturation veto — they measure the ceiling, not linearity, and are excluded from the statistic.</figcaption></figure>
 <table class="data">
@@ -244,6 +242,7 @@ against flux = k&middot;t for the cleanest ladder per mode:</p>
 <tr><td>1MHz High Sensitivity 16-bit</td><td>1.39</td><td>0.94</td><td>2024-05-07|hd87737|1MHz High Sensitivity 16-bit|HaGrism|0 (3 rungs below the saturation veto)</td></tr>
 <tr><td>High Gain</td><td>4.19</td><td>2.34</td><td>2024-01-25|sn2024gy|High Gain|6|1.05697 (4 rungs below the saturation veto)</td></tr>
 <tr><td>High Gain StackPro</td><td>4.20</td><td>2.94</td><td>2023-02-09|sao12096|High Gain StackPro|6|1.05371 (5 rungs below the saturation veto)</td></tr>
+<tr><td>5MHz High Sensitivity 16-bit</td><td>10.92</td><td>5.77</td><td>2024-05-27|hatp-18|5MHz High Sensitivity 16-bit|r|0 (7 rungs below the saturation veto)</td></tr>
 </table>
 <p class="sub">Read the table as <b>single-ladder consistency bounds</b>,
 not measured non-linearities: each mode's number comes from ONE
@@ -258,7 +257,7 @@ scale of each bound.</p>
 times collapse below ~10 ms (0.0001s &rarr; 23,751,922 ADU (peak 40,942); 0.001s &rarr; 23,552,458 ADU (peak 36,739); 0.01s &rarr; 24,880,892 ADU (peak 43,186); 0.025s &rarr; 28,504,038 ADU (peak 48,601): flux is NOT monotonic in
 commanded time, i.e. the shutter/timing floor, not the detector,
 dominates); (2) modes with <b>no usable ladder</b> —
-(blank 2026), 5MHz High Sensitivity 16-bit, Low Gain — have no
+(blank 2026), Low Gain — have no
 archival linearity constraint at all.  Both go on the October list
 (a dedicated dome-flat ladder per mode costs minutes).</p>
 <h3>Decision</h3>
@@ -270,11 +269,67 @@ over their witnessed ranges; the High Gain family carries a
 bound that is sky/cloud-limited, not detector-limited — treat it as an
 upper limit, not a measured non-linearity.  Sub-10-ms commanded exposure
 times are untrustworthy on the iKon and must not be used for absolute
-photometric scaling.</b></div>
+photometric scaling.</b>  The loosest bound in the table belongs to <b>5MHz High Sensitivity 16-bit</b> at 10.92% (rung scatter 5.77%), from its ONLY archival ladder — a single sparse witness, and the weakest linearity statement S2 makes about any mode.</div>
 <h3>Consequence</h3>
 <p class="sub">Exposure-time-ratio photometry (HDR stitching, ladder
 bootstraps) inherits the tabled bound as a systematic; the timing-paper
 error budget cites the sub-10-ms finding directly.</p>
+</section>
+<section id="noise"><h2>5&nbsp;&middot;&nbsp;The empirical noise model:
+what a pixel actually does, per mode</h2>
+<h3>Question</h3>
+<p>&sect;2's photon transfer needed one very special night, and that night
+was shot entirely in <code>High&nbsp;Gain</code>.  The CV time-series
+project puts an error bar on every point it measures, in every mode it ever
+observed in — so it needs the question answered without that night and
+without a gain: <i>at a measured level of L&nbsp;ADU, how much does a pixel
+of this mode actually fluctuate?</i></p>
+<h3>Evidence</h3>
+<p class="sub">128 same-scene consecutive science pairs
+across 113 distinct (night, target) scenes &rarr;
+603 (level, variance) measurements &mdash; level bins backed by
+fewer than 2 independent pairs are discarded
+rather than published thin &mdash; distilled into
+8 per-mode curves.  No gain, no Poisson law, no formula
+enters anywhere: the pixels are binned on level and their
+half-difference variance is recorded.</p>
+<figure><a href="figures/s2/s2_noise.png"><img src="figures/s2/s2_noise.png" alt=""></a><figcaption>Left: the measured variance of each mode against level, with the between-pair spread as error bars; dotted lines are each mode's measured floor, dashed lines the level where variance reaches twice it.  Right: the same table expressed as the per-pixel sigma an error model multiplies by.</figcaption></figure>
+<table class="data">
+<tr><th>mode</th><th>level span measured (ADU)</th><th>bins</th><th>points</th><th>floor &sigma; (ADU)</th><th>2&times;-floor crossover (ADU)</th><th>log-log slope</th></tr>
+<tr><td>(blank 2026)</td><td>188&ndash;8,278</td><td>11</td><td>58</td><td>3.95</td><td>195</td><td>2.30</td></tr>
+<tr><td>1MHz High Sensitivity 16-bit</td><td>356&ndash;3,164</td><td>6</td><td>39</td><td>10.88</td><td>358</td><td>1.06</td></tr>
+<tr><td>5MHz High Sensitivity 16-bit</td><td>5,964&ndash;6,294</td><td>11</td><td>88</td><td>22.65</td><td><i>not witnessed</i></td><td>&mdash;</td></tr>
+<tr><td>Fast</td><td>182&ndash;556</td><td>5</td><td>32</td><td>3.54</td><td>184</td><td>5.62</td></tr>
+<tr><td>High Gain</td><td>102&ndash;933</td><td>10</td><td>82</td><td>4.86</td><td>112</td><td>3.23</td></tr>
+<tr><td>High Gain StackPro</td><td>1,521&ndash;3,203</td><td>6</td><td>36</td><td>19.89</td><td>1,721</td><td>6.48</td></tr>
+<tr><td>Low Gain</td><td>92&ndash;280</td><td>4</td><td>178</td><td>1.47</td><td>93</td><td>0.67</td></tr>
+<tr><td>Mode0</td><td>315&ndash;2,104</td><td>5</td><td>30</td><td>4.18</td><td>316</td><td>4.95</td></tr>
+</table>
+<p class="sub">How to read the last column, because it decides how much of
+each curve is <i>detector</i>: a log-log slope of 1.0 is a
+shot-noise-dominated span (variance tracks signal), ~0 is a
+floor-dominated span, and anything above 1 means the pair difference is
+also measuring the sky and the mount — consecutive science exposures move
+by a fraction of a pixel, which inflates the difference variance wherever
+the image has gradients.  The steepest curve here is <b>High Gain StackPro</b> at 6.48, so its bright end is an UPPER bound on detector noise, not a measurement of it.  Because these are science frames rather than darks,
+the &ldquo;floor&rdquo; column is the whole floor a real exposure carries
+&mdash; read noise plus dark current plus bias structure &mdash; which is
+the number an error model wants and is deliberately NOT the same quantity
+as &sect;2's zero-scene read noise.
+ Every mode with a measured ceiling also has a measured curve.</p>
+<h3>Decision</h3>
+<div class="decision"><b>The table above IS the adopted error model
+(<code>s2_noise_curve</code>, one row per measured level bin per mode);
+downstream code interpolates it and is refused an answer outside the
+measured span rather than handed an extrapolation.</b>  Where a formula is
+wanted anyway, &sect;2's gain bracket and read noise remain the High Gain
+statement &mdash; but they are a cross-check on this table, not its
+source.</div>
+<h3>Consequence</h3>
+<p class="sub">CV per-point uncertainties stop being a Poisson formula
+evaluated at a nominal EGAIN and become an interpolation of measured
+pixels; a mode whose curve was never measured now fails loudly instead of
+silently inheriting High Gain's numbers.</p>
 </section>
 
 <footer>Generated by <code>rlmt_diagnostics.report_s2</code> from

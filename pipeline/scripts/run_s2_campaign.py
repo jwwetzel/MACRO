@@ -18,6 +18,12 @@ tables are never modified.
                      raw<->reduced pairs: the effective master dark/flat the
                      unaudited reduction actually applied; era 47 graded
                      against its archived master bias/dark.
+* ``noise``        — the EMPIRICAL noise model: same-scene consecutive
+                     science-frame pairs from every readout mode (not just
+                     the one PTC night) turned into a measured
+                     counts-vs-variance table per mode.  The CV
+                     time-series error model reads this table; it assumes
+                     no gain, no Poisson law, no formula.
 * ``linearity``    — the 2024-05-20 Vega exposure ladder + every other
                      archival ladder the manifest surfaces: counts-vs-
                      exptime residuals per mode.
@@ -44,6 +50,7 @@ USAGE (a student's quick start)
 from __future__ import annotations
 
 import argparse
+import os
 import sqlite3
 import subprocess
 import sys
@@ -63,6 +70,7 @@ from macro_core.inventory import exptime_bin                  # noqa: E402
 from rlmt_diagnostics import S2_CODE_VERSION                  # noqa: E402
 from rlmt_diagnostics import ceiling as ceil                  # noqa: E402
 from rlmt_diagnostics import linearity as lin                 # noqa: E402
+from rlmt_diagnostics import noise as noisemod                # noqa: E402
 from rlmt_diagnostics import ptc                              # noqa: E402
 from rlmt_diagnostics import reconstruct as rec               # noqa: E402
 
@@ -97,6 +105,32 @@ PTC_MAX_PAIRS_PER_GROUP = 15
 #: enter the experiment; at most this many pairs are read per era.
 RECON_MIN_LINKS = 20
 RECON_MAX_PAIRS = 36
+
+#: How far the archived master dark may be scaled in exposure time before
+#: the ground-truth comparison drops the dark term instead of extrapolating
+#: it.  4x is generous for a linear dark-current model and still refuses the
+#: 3,100x extrapolation era 76's 0.01 s master would have demanded.
+RECON_TRUTH_MAX_SCALE = 4.0
+
+#: Empirical noise model: same-scene consecutive science pairs per mode.
+#: 16 pairs is enough to give every level bin several independent pairs
+#: (the curve builder refuses thin bins) while keeping one mode's pass
+#: inside the ten-minute batch discipline.
+NOISE_MAX_PAIRS_PER_MODE = 16
+
+#: ... and at most this many from any ONE (night, target, filter, exptime)
+#: scene, so a single well-observed night cannot own a mode's curve.
+NOISE_MAX_PAIRS_PER_SCENE = 3
+
+#: Two frames are "the same scene seconds apart" only if their JD gap is
+#: below this many days (6 minutes).  Longer gaps let the sky rotate, the
+#: transparency drift and the target move — all of which inflate the
+#: difference variance with things that are not detector noise.
+NOISE_MAX_GAP_DAYS = 6.0 / (24.0 * 60.0)
+
+#: A scene must hold at least this many frames before it is paired: two
+#: frames are one pair and no cross-check.
+NOISE_MIN_SCENE_FRAMES = 3
 
 #: Linearity: cap on auto-discovered ladders (the Vega ladder is always
 #: included when present).
@@ -138,6 +172,21 @@ def read_image(archive: Path, rel_path: str) -> tuple[np.ndarray, fits.Header]:
     raise ValueError(f"no 2-D image HDU in {rel_path}")
 
 
+#: SQL predicate for "this is a science exposure".
+#:
+#: The obvious ``imagetyp LIKE 'Light%'`` is WRONG for this archive and the
+#: ceiling stage already knew it: the 2026 camera writes no IMAGETYP card at
+#: all (the same unwritten-header condition that leaves READOUTM blank), so a
+#: strict test silently drops every blank-2026 frame.  Measured on the
+#: current manifest, canonical rawimage frames with a null/empty IMAGETYP
+#: number 2,212 and ALL of them are blank-READOUTM 2026 frames — so allowing
+#: the blank widens the net for exactly that camera and for nothing else.
+#: The ceiling stage's sample was built with this rule; noise and linearity
+#: now use the same one, so all three describe the same frame population.
+SCIENCE_IMAGETYP = ("(f.imagetyp LIKE 'Light%' OR f.imagetyp IS NULL "
+                    "OR trim(f.imagetyp) = '')")
+
+
 def mode_where(mode: str) -> tuple[str, tuple]:
     """SQL fragment selecting one ceiling mode group's science frames."""
     if mode == "(blank 2026)":
@@ -149,8 +198,11 @@ def open_db(path: Path) -> sqlite3.Connection:
     # The manifest is shared with sibling pipeline stages that may hold
     # their own connections: never change the journal mode (that needs an
     # exclusive lock), just wait politely when a writer is ahead of us.
-    con = sqlite3.connect(path, timeout=120.0)
-    con.execute("PRAGMA busy_timeout = 120000")
+    # 300 s: sibling stages (the S1 batch solver runs ten workers) can hold
+    # the write lock for minutes at a time; waiting is always cheaper than
+    # failing a batch that has already read pixels off the archive.
+    con = sqlite3.connect(path, timeout=300.0)
+    con.execute("PRAGMA busy_timeout = 300000")
     return con
 
 
@@ -207,6 +259,20 @@ def ensure_tables(con: sqlite3.Connection) -> None:
     CREATE TABLE IF NOT EXISTS s2_ceiling_egain (
         mode TEXT, egain REAL, n_frames INTEGER, min_max_adu INTEGER,
         median_max_adu REAL, max_max_adu INTEGER, PRIMARY KEY (mode, egain));
+    -- The empirical noise model (CV-P15-noise-model).  s2_noise_pairs and
+    -- s2_noise_points are the MEASUREMENTS (one row per level bin of one
+    -- same-scene frame pair); s2_noise_curve is the distilled per-mode
+    -- lookup table the photometry error model actually reads.
+    CREATE TABLE IF NOT EXISTS s2_noise_pairs (
+        pair_id TEXT PRIMARY KEY, mode TEXT, night TEXT, target_key TEXT,
+        filter TEXT, egain REAL, exptime REAL, era_id INTEGER,
+        path_a TEXT, path_b TEXT, gap_s REAL, n_points INTEGER);
+    CREATE TABLE IF NOT EXISTS s2_noise_points (
+        pair_id TEXT, mode TEXT, level REAL, var REAL, n_pix INTEGER);
+    CREATE TABLE IF NOT EXISTS s2_noise_curve (
+        mode TEXT, bin_index INTEGER, level_adu REAL, var_adu2 REAL,
+        var_mad_adu2 REAL, sigma_adu REAL, n_points INTEGER,
+        n_pairs INTEGER, n_pix REAL, PRIMARY KEY (mode, bin_index));
     """)
     # Columns added after the first field campaign (schema migration for an
     # existing s2_ceiling_frames): the argmax position, which arbitrates
@@ -233,6 +299,15 @@ def ensure_tables(con: sqlite3.Connection) -> None:
         con.execute("ALTER TABLE s2_recon_eras ADD COLUMN fd_corr REAL")
     except sqlite3.OperationalError:
         pass
+    # The reduced-vs-raw CROP, measured per era by patch alignment.  The
+    # report used to state "the 2026 eras crop by 13-18 pixels" as prose;
+    # prose is not evidence, and the geometry repair moved which eras those
+    # are.  Recording the measured offset makes the sentence a query.
+    for col in ("crop_dy", "crop_dx", "n_pairs_cropped"):
+        try:
+            con.execute(f"ALTER TABLE s2_recon_eras ADD COLUMN {col} INTEGER")
+        except sqlite3.OperationalError:
+            pass
     con.commit()
 
 
@@ -255,8 +330,7 @@ def cmd_ceiling(con: sqlite3.Connection, archive: Path, batch: int) -> int:
         rows = con.execute(f"""
             SELECT f.obs_rowid, f.path, f.night, f.exptime FROM frames f
             WHERE {cond} AND f.is_canonical = 1 AND f.tree = 'rawimage'
-              AND (f.imagetyp LIKE 'Light%' OR f.imagetyp IS NULL
-                   OR trim(f.imagetyp) = '')
+              AND {SCIENCE_IMAGETYP}
             ORDER BY f.obs_rowid""", params).fetchall()
         if not rows:
             continue
@@ -423,6 +497,16 @@ def cmd_ptc(con: sqlite3.Connection, archive: Path, batch: int) -> int:
             points = ptc.pair_ptc_points(a.astype(np.float64),
                                          b.astype(np.float64),
                                          level_max=level_max)
+            # REPLACE this pair's points, never append to them.  s2_ptc_pairs
+            # is keyed on pair_id and so is naturally idempotent, but the
+            # points table has no key — so a pair measured twice (two
+            # campaign processes overlapping, or a batch re-run after a kill
+            # that landed between the two writes) silently doubled its
+            # points, and a doubled point is a doubled WEIGHT in the fit.
+            # Deleting first makes re-measuring a pair a no-op, which is
+            # what "resumable" has to mean.
+            con.execute("DELETE FROM s2_ptc_points WHERE pair_id = ?",
+                        (pair_id,))
             con.executemany(
                 "INSERT INTO s2_ptc_points VALUES (?,?,?,?,?,?,?)",
                 [(pair_id, g["mode"], g["kind"], g["exptime"],
@@ -449,6 +533,145 @@ def cmd_ptc(con: sqlite3.Connection, archive: Path, batch: int) -> int:
                 con.commit()
     print(f"[S2:ptc] done ({n_done} new pairs this run; "
           "0 new pairs = nothing left to do).")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Subcommand: noise  (the empirical per-mode counts-vs-variance model)
+# ---------------------------------------------------------------------------
+def _noise_pairs_for_mode(con: sqlite3.Connection, mode: str) -> list[dict]:
+    """Same-scene consecutive science pairs for one readout mode.
+
+    A "scene" is one (night, target, filter, camera gain, exposure bin,
+    geometry) group — everything that must match before two frames can be
+    differenced meaningfully.  Within a scene the frames are ordered in
+    time and adjacent ones are paired, provided their gap stays under
+    :data:`NOISE_MAX_GAP_DAYS`.
+
+    Selection is FAIR, not greedy: scenes are visited richest-first and
+    each contributes at most :data:`NOISE_MAX_PAIRS_PER_SCENE` pairs, in
+    round-robin passes, until the mode has
+    :data:`NOISE_MAX_PAIRS_PER_MODE`.  A curve pooled from many scenes is a
+    statement about the DETECTOR; a curve pooled from one night's 16 pairs
+    is a statement about that night.
+    """
+    cond, params = mode_where(mode)
+    rows = con.execute(f"""
+        SELECT f.obs_rowid, f.path, f.night, f.target_key,
+               coalesce(f.filter, ''), coalesce(f.egain, -1), f.exptime,
+               f.jd, f.naxis1, f.naxis2, f.era_id
+        FROM frames f
+        WHERE {cond} AND f.is_canonical = 1 AND f.tree = 'rawimage'
+          AND {SCIENCE_IMAGETYP} AND f.target_key IS NOT NULL
+          AND f.exptime > 0 AND f.jd IS NOT NULL
+        ORDER BY f.jd""", params).fetchall()
+    from collections import defaultdict
+    scenes: dict[tuple, list] = defaultdict(list)
+    for (rowid, path, night, tkey, filt, eg, expt, jd, n1, n2, era) in rows:
+        ebin = exptime_bin(expt)
+        if ebin is None or ebin <= 0:
+            continue
+        scenes[(night, tkey, filt, eg, ebin, n1, n2, era)].append(
+            (jd, rowid, path))
+    # Candidate pairs per scene, in time order.
+    per_scene: list[tuple[tuple, list]] = []
+    for key, members in scenes.items():
+        if len(members) < NOISE_MIN_SCENE_FRAMES:
+            continue
+        members.sort()
+        pairs = [(members[i], members[i + 1])
+                 for i in range(0, len(members) - 1, 2)
+                 if members[i + 1][0] - members[i][0] <= NOISE_MAX_GAP_DAYS]
+        if pairs:
+            per_scene.append((key, pairs))
+    # Richest scenes first; ties broken by the scene key so the choice is
+    # reproducible run to run.
+    per_scene.sort(key=lambda kv: (-len(kv[1]), str(kv[0])))
+    out: list[dict] = []
+    for slot in range(NOISE_MAX_PAIRS_PER_SCENE):
+        for key, pairs in per_scene:
+            if len(out) >= NOISE_MAX_PAIRS_PER_MODE:
+                return out
+            if slot >= len(pairs):
+                continue
+            (jd_a, id_a, path_a), (jd_b, id_b, path_b) = pairs[slot]
+            night, tkey, filt, eg, ebin, _n1, _n2, era = key
+            out.append({
+                "pair_id": f"n{id_a}-{id_b}", "mode": mode, "night": night,
+                "target_key": tkey, "filter": filt, "egain": eg,
+                "exptime": ebin, "era_id": era, "path_a": path_a,
+                "path_b": path_b, "gap_s": (jd_b - jd_a) * 86400.0})
+    return out
+
+
+def cmd_noise(con: sqlite3.Connection, archive: Path, batch: int) -> int:
+    """Measure counts-vs-variance for every readout mode.
+
+    This is the same difference-pair arithmetic the PTC uses, applied to
+    ordinary science frames across the WHOLE archive instead of one
+    dedicated night — which is what makes it available for every mode.  It
+    buys breadth at the cost of purity: science pairs contain stars that
+    move a fraction of a pixel between exposures, so the bright end of each
+    curve is an UPPER bound on detector noise.  That limitation is recorded
+    with the curve (``curve_shape_index`` reads >1 when it bites) rather
+    than hidden.
+    """
+    done = {r[0] for r in con.execute("SELECT pair_id FROM s2_noise_pairs")}
+    # Per-mode ceilings gate the level axis: pixels near the clip have an
+    # artificially collapsed variance and would drag every fit down.
+    ceilings = dict(con.execute(
+        "SELECT mode, clip_adu FROM s2_ceiling_modes WHERE clip_adu IS NOT NULL"))
+    n_done = 0
+    for mode in CEILING_MODES:
+        clip = ceilings.get(mode)
+        level_max = (ptc.PTC_LEVEL_CEILING_FRACTION * clip) if clip else None
+        for pr in _noise_pairs_for_mode(con, mode):
+            if pr["pair_id"] in done:
+                continue
+            if n_done >= batch:
+                print("[S2:noise] batch cap reached; re-run to continue.")
+                return 0
+            try:
+                a, _ = read_image(archive, pr["path_a"])
+                b, _ = read_image(archive, pr["path_b"])
+            except Exception as e:
+                print(f"[S2:noise]   SKIP {pr['pair_id']}: {e}")
+                # Sentinel row: an unreadable pair is recorded once, never
+                # retried, and never counted as a measurement (n_points 0).
+                con.execute("INSERT OR REPLACE INTO s2_noise_pairs VALUES "
+                            "(?,?,?,?,?,?,?,?,?,?,?,0)",
+                            (pr["pair_id"], mode, pr["night"],
+                             pr["target_key"], pr["filter"], pr["egain"],
+                             pr["exptime"], pr["era_id"], pr["path_a"],
+                             pr["path_b"], pr["gap_s"]))
+                con.commit()
+                continue
+            if a.shape != b.shape:
+                print(f"[S2:noise]   SKIP {pr['pair_id']}: shape mismatch")
+                continue
+            points = ptc.pair_ptc_points(a.astype(np.float64),
+                                         b.astype(np.float64),
+                                         level_max=level_max)
+            # Same idempotence rule as the PTC points (see cmd_ptc): a pair
+            # re-measured must REPLACE its rows, or a duplicated point
+            # becomes a duplicated weight in the mode's curve.
+            con.execute("DELETE FROM s2_noise_points WHERE pair_id = ?",
+                        (pr["pair_id"],))
+            con.executemany(
+                "INSERT INTO s2_noise_points VALUES (?,?,?,?,?)",
+                [(pr["pair_id"], mode, p["level"], p["var"], p["n_pix"])
+                 for p in points])
+            con.execute("INSERT OR REPLACE INTO s2_noise_pairs VALUES "
+                        "(?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (pr["pair_id"], mode, pr["night"], pr["target_key"],
+                         pr["filter"], pr["egain"], pr["exptime"],
+                         pr["era_id"], pr["path_a"], pr["path_b"],
+                         pr["gap_s"], len(points)))
+            con.commit()
+            n_done += 1
+    # Falling out of the loop means every mode's pair list is exhausted —
+    # the batch cap returns early above, so this line is the real "done".
+    print(f"[S2:noise] nothing left to do. ({n_done} new pairs this run)")
     return 0
 
 
@@ -503,6 +726,7 @@ def cmd_reconstruct(con: sqlite3.Connection, archive: Path,
 
         regions = None
         red_stack, raw_stack, exptimes, pedestals = [], [], [], []
+        crops: list[tuple[int, int]] = []       # measured reduced-vs-raw crop
         for raw_path, red_path, expt, _n1, _n2 in chosen:
             try:
                 raw_img, _ = read_image(archive, raw_path)
@@ -518,6 +742,10 @@ def cmd_reconstruct(con: sqlite3.Connection, archive: Path,
                 off = rec.find_crop_offset(raw_img, red_img)
                 if off is None:
                     continue
+                # How many rows/columns the reduction dropped, in total —
+                # the number the report used to assert in prose.
+                crops.append((raw_img.shape[0] - red_img.shape[0],
+                              raw_img.shape[1] - red_img.shape[1]))
                 raw_img = raw_img[off["dy"]:off["dy"] + red_img.shape[0],
                                   off["dx"]:off["dx"] + red_img.shape[1]]
             if regions is None:
@@ -554,7 +782,35 @@ def cmd_reconstruct(con: sqlite3.Connection, archive: Path,
             WHERE era_id = ? AND is_master = 1 AND kind IN ('bias','dark')
             ORDER BY kind""", (era_id,)).fetchall()
         bias_row = next((m for m in masters if m[1] == "bias"), None)
-        dark_row = next((m for m in masters if m[1] == "dark"), None)
+        # The master dark must be the one CLOSEST IN EXPOSURE to the pairs,
+        # not simply the first row the query returns.
+        #
+        # The truth model is  truth = bias + (t_pairs / t_dark) * (dark - bias),
+        # so the scale factor is a ratio of exposure times and a badly chosen
+        # dark multiplies its own noise by that ratio.  Era 76 caught this:
+        # its master set opens with a 0.01 s dark, which against a 31 s
+        # median exposure is a 3,100x extrapolation — every pixel where the
+        # dark differs from the bias by one ADU acquired 3,100 ADU of
+        # invented signal, and the era graded at 2,638 ADU RMS against a
+        # MAD-sigma of 5.7 (the giveaway: the bulk of pixels agreed fine and
+        # a handful of extrapolated outliers owned the RMS).
+        #
+        # Closest in LOG exposure, because the damage is multiplicative; and
+        # beyond RECON_TRUTH_MAX_SCALE either way the dark term is dropped
+        # rather than extrapolated, leaving an honest bias-only truth.
+        darks = [m for m in masters if m[1] == "dark" and m[2] and m[2] > 0]
+        dark_row = None
+        if darks and exp_med > 0:
+            dark_row = min(darks, key=lambda m: abs(np.log(m[2] / exp_med)))
+            scale = exp_med / dark_row[2]
+            if not (1.0 / RECON_TRUTH_MAX_SCALE <= scale
+                    <= RECON_TRUTH_MAX_SCALE):
+                print(f"[S2:recon]   era {era_id}: nearest master dark is "
+                      f"{dark_row[2]:g}s against {exp_med:g}s pairs "
+                      f"({scale:.3g}x) — beyond the "
+                      f"{RECON_TRUTH_MAX_SCALE:g}x extrapolation limit, so "
+                      "the truth is bias-only.")
+                dark_row = None
         if bias_row:
             try:
                 bias_img, _ = read_image(archive, bias_row[0])
@@ -582,7 +838,14 @@ def cmd_reconstruct(con: sqlite3.Connection, archive: Path,
         # Atomic write: temp name, then replace.  The temp name must end in
         # '.npz' or numpy silently appends the extension and the rename
         # target never exists.
-        tmp = npz_path.with_suffix(".tmp.npz")
+        # The temp name carries THIS process's pid.  A shared "eraNN.tmp.npz"
+        # is not actually atomic when two campaign processes reconstruct the
+        # same era: the first one's replace() consumes the shared temp file
+        # and the second dies with FileNotFoundError on a path it just
+        # wrote.  (Observed, not hypothesised.)  The name must still end in
+        # '.npz' or numpy appends the extension and the rename target never
+        # exists.
+        tmp = npz_path.with_suffix(f".tmp{os.getpid()}.npz")
         np.savez_compressed(
             tmp, F=fit["F"], D=fit["D"], n_used=fit["n_used"], rms=fit["rms"],
             regions=np.array([(nm, ys.start, ys.stop, xs.start, xs.stop)
@@ -592,14 +855,26 @@ def cmd_reconstruct(con: sqlite3.Connection, archive: Path,
             truth=(truth_stamp if truth_stamp is not None else np.array([])))
         tmp.replace(npz_path)
 
-        con.execute("""INSERT OR REPLACE INTO s2_recon_eras VALUES
-            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        # Columns are named, never positional: this table has been ALTERed
+        # twice (fd_corr, then the crop columns), and a bare
+        # `INSERT ... VALUES (?,...)` breaks the moment the column count
+        # moves — silently in review, loudly at 3 a.m. mid-campaign.
+        con.execute("""INSERT OR REPLACE INTO s2_recon_eras
+            (era_id, mode, n_links, n_pairs_used, exptime_med, pedestal,
+             flat_median, flat_mad_sigma, dark_median, dark_mad_sigma,
+             fit_fraction, rms_median, truth_master, truth_offset,
+             truth_resid_rms, truth_resid_mad, truth_n_pix, npz_path,
+             crop_dy, crop_dx, n_pairs_cropped)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (era_id, mode, n_links, len(red_stack), exp_med,
              float(np.median(pedestals)), summ["flat_median"],
              summ["flat_mad_sigma"], summ["dark_median"],
              summ["dark_mad_sigma"], summ["fit_fraction"], summ["rms_median"],
              truth_name, tr["offset"], tr["resid_rms"], tr["resid_mad_sigma"],
-             tr["n_pix"], str(npz_path.relative_to(REPO_ROOT))))
+             tr["n_pix"], str(npz_path.relative_to(REPO_ROOT)),
+             int(np.median([c[0] for c in crops])) if crops else None,
+             int(np.median([c[1] for c in crops])) if crops else None,
+             len(crops) or None))
         con.commit()
         print(f"[S2:recon]   era {era_id}: F~{summ['flat_median']:.4f} "
               f"D~{summ['dark_median']:.1f} ADU, rms {summ['rms_median']:.2f}")
@@ -621,40 +896,62 @@ def cmd_linearity(con: sqlite3.Connection, archive: Path, batch: int) -> int:
     # (the Vega 0.1 s rung is HaGrism among OGGrism rungs) and the 2026
     # Fast camera toggles EGAIN mid-sequence (HDR pairs, 16x apart) — both
     # would fake enormous "non-linearity" if pooled.
-    cands = con.execute("""
-        SELECT night, target_key, readoutm, coalesce(filter, '') AS filt,
-               coalesce(egain, -1) AS eg,
-               count(DISTINCT round(coalesce(exptime, -1), 4)) AS nex,
+    cands = con.execute(f"""
+        SELECT f.night, f.target_key, f.readoutm,
+               coalesce(f.filter, '') AS filt,
+               coalesce(f.egain, -1) AS eg,
+               count(DISTINCT round(coalesce(f.exptime, -1), 4)) AS nex,
                count(*) AS n
-        FROM frames
-        WHERE is_canonical = 1 AND tree = 'rawimage'
-          AND imagetyp LIKE 'Light%' AND target_key IS NOT NULL
-        GROUP BY night, target_key, readoutm, filt, eg
+        FROM frames f
+        WHERE f.is_canonical = 1 AND f.tree = 'rawimage'
+          AND {SCIENCE_IMAGETYP} AND f.target_key IS NOT NULL
+        GROUP BY f.night, f.target_key, f.readoutm, filt, eg
         HAVING nex >= 3 AND n >= 6
         ORDER BY nex DESC, n DESC""").fetchall()
-    # The Vega BeStar ladder is the roadmap's named case: always first.
-    # After it, prefer ladders with the most FRAMES PER RUNG (the rung
-    # median beats transients/clouds; the field campaign showed dedicated
-    # 14-rung single-frame sequences drowning in sky variation), then the
-    # most rungs.
-    ordered = sorted(cands, key=lambda r: (0 if "vega" in (r[1] or "")
-                                           else 1, -r[6] / r[5], -r[5]))
+    # Ordering, in two layers.
+    #
+    # QUALITY (within a mode): the Vega BeStar ladder is the roadmap's
+    # named case and goes first; after it, prefer ladders with the most
+    # FRAMES PER RUNG (the rung median beats transients/clouds; the field
+    # campaign showed dedicated 14-rung single-frame sequences drowning in
+    # sky variation), then the most rungs.
+    #
+    # FAIRNESS (across modes): take every mode's best candidate before any
+    # mode's second.  The earlier pass ranked globally, which handed all
+    # twelve slots to the two richest modes and left Low Gain, 5 MHz and
+    # blank-2026 with no ladder at all — exactly the modes CV-P15 needs
+    # covered.  Round-robin guarantees each mode is TRIED; whether its
+    # frames support a fit is then a finding, not a scheduling accident.
+    ordered = lin.fair_ladder_order(
+        cands,
+        mode_of=lambda r: ceil.mode_group(r[2]),
+        quality=lambda r: (0 if "vega" in (r[1] or "") else 1,
+                           -r[6] / r[5], -r[5]))
     done = {r[0] for r in con.execute(
         "SELECT ladder_id FROM s2_linearity_ladders")}
     n_run = 0
     for night, tkey, mode, filt, eg, _nex, _n in ordered[:MAX_LADDERS * 6]:
         if n_run >= min(batch, MAX_LADDERS):
             break
-        ladder_id = f"{night}|{tkey}|{mode}|{filt}|{eg:g}"
+        # The mode LABEL is the canonical group name ("(blank 2026)" for the
+        # current camera's unwritten READOUTM cards), because every other S2
+        # table keys on that label — a ladder stored under a raw NULL/'' mode
+        # could never join s2_ceiling_modes for its saturation veto.  The raw
+        # value is kept only to re-select the frames.
+        label = ceil.mode_group(mode)
+        ladder_id = f"{night}|{tkey}|{label}|{filt}|{eg:g}"
         if ladder_id in done:
             continue
-        frames = con.execute("""
-            SELECT path, basename, exptime FROM frames
-            WHERE night = ? AND target_key = ? AND readoutm = ?
-              AND coalesce(filter, '') = ? AND coalesce(egain, -1) = ?
-              AND is_canonical = 1 AND tree = 'rawimage'
-              AND imagetyp LIKE 'Light%' ORDER BY jd""",
-            (night, tkey, mode, filt, eg)).fetchall()
+        # ... and the re-selection must use the same NULL-tolerant predicate
+        # the mode grouping used: `readoutm = NULL` matches nothing in SQL.
+        mode_cond, mode_params = mode_where(label)
+        frames = con.execute(f"""
+            SELECT f.path, f.basename, f.exptime FROM frames f
+            WHERE f.night = ? AND f.target_key = ? AND {mode_cond}
+              AND coalesce(f.filter, '') = ? AND coalesce(f.egain, -1) = ?
+              AND f.is_canonical = 1 AND f.tree = 'rawimage'
+              AND {SCIENCE_IMAGETYP} ORDER BY f.jd""",
+            (night, tkey) + mode_params + (filt, eg)).fetchall()
         # Rung assignment: filename token beats a rounded-to-zero header.
         rungs: dict[float, list[str]] = {}
         for path, base, expt in frames:
@@ -689,7 +986,7 @@ def cmd_linearity(con: sqlite3.Connection, archive: Path, batch: int) -> int:
             con.execute("INSERT OR REPLACE INTO s2_linearity_ladders "
                         "(ladder_id, mode, night, target_key, n_rungs, "
                         "n_frames) VALUES (?,?,?,?,?,?)",
-                        (ladder_id, mode, night, tkey, len(rung_rows),
+                        (ladder_id, label, night, tkey, len(rung_rows),
                          sum(r[1] for r in rung_rows)))
             con.commit()
             n_run += 1
@@ -697,7 +994,7 @@ def cmd_linearity(con: sqlite3.Connection, archive: Path, batch: int) -> int:
         resid = dict(zip(fit["exptimes"], fit["resid_pct"]))
         con.execute("INSERT OR REPLACE INTO s2_linearity_ladders VALUES "
                     "(?,?,?,?,?,?,?,?)",
-                    (ladder_id, mode, night, tkey, fit["n_rungs"],
+                    (ladder_id, label, night, tkey, fit["n_rungs"],
                      sum(r[1] for r in rung_rows), fit["rate_adu_per_s"],
                      fit["max_abs_resid_pct"]))
         con.executemany("INSERT OR REPLACE INTO s2_linearity_rungs VALUES "
@@ -1025,6 +1322,64 @@ def cmd_params(con: sqlite3.Connection) -> int:
             "unc = half-range across darks",
             f"max over {n} darks; edge-band excess {edge:.1f} ADU")
 
+    # --- the empirical noise model ----------------------------------------
+    # Pure distillation of s2_noise_points: rebuild from scratch so a re-run
+    # never leaves a stale curve behind.
+    con.execute("DELETE FROM s2_noise_curve")
+    for mode, in con.execute("SELECT DISTINCT mode FROM s2_noise_points"):
+        pts = con.execute("SELECT level, var, n_pix, pair_id "
+                          "FROM s2_noise_points WHERE mode = ?",
+                          (mode,)).fetchall()
+        curve = noisemod.empirical_noise_curve(pts)
+        if not curve:
+            continue
+        con.executemany("INSERT OR REPLACE INTO s2_noise_curve VALUES "
+                        "(?,?,?,?,?,?,?,?,?)",
+                        [(mode, i, c["level"], c["var"], c["var_mad"],
+                          c["sigma"], c["n_points"], c["n_pairs"], c["n_pix"])
+                         for i, c in enumerate(curve)])
+        n_pairs = con.execute("SELECT count(*) FROM s2_noise_pairs "
+                              "WHERE mode = ? AND n_points > 0",
+                              (mode,)).fetchone()[0]
+        n_scenes = con.execute(
+            "SELECT count(DISTINCT night || '|' || target_key) "
+            "FROM s2_noise_pairs WHERE mode = ? AND n_points > 0",
+            (mode,)).fetchone()[0]
+        prov = (f"{n_pairs} same-scene science pairs across {n_scenes} "
+                f"(night, target) scenes; {len(curve)} measured level bins "
+                f"spanning {curve[0]['level']:,.0f}-{curve[-1]['level']:,.0f}"
+                " ADU (table: s2_noise_curve)")
+        fl = noisemod.noise_floor(curve)
+        if fl:
+            put(mode, "noise_floor_adu", fl["floor_sigma_adu"],
+                fl["floor_sigma_err_adu"],
+                "MEASURED sigma at the bottom of the counts-vs-variance "
+                f"curve (level {fl['level_adu']:,.0f} ADU, "
+                f"{fl['n_bins']} bins); this is the whole floor a science "
+                "frame carries — read noise PLUS dark PLUS bias structure — "
+                "not a zero-second read noise; unc = half-spread across the "
+                "pooled floor bins", prov)
+            # The crossover contrasts the floor against the rest of the
+            # curve, so it means nothing when the floor window IS the whole
+            # curve (a mode measured at a single sky level — the 5 MHz
+            # iKon's science pairs all sit on a flat ~6,000 ADU sky).
+            x = (None if fl["is_whole_curve"]
+                 else noisemod.crossover_level(curve, fl["floor_var_adu2"]))
+            if x is not None:
+                put(mode, "noise_crossover_adu", x, None,
+                    f"level where the MEASURED variance reaches "
+                    f"{noisemod.CROSSOVER_VAR_MULTIPLE:g}x the floor "
+                    "(interpolated between measured bins — no gain and no "
+                    "Poisson law assumed; exact by interpolation)", prov)
+        slope = noisemod.curve_shape_index(curve)
+        if slope is not None:
+            put(mode, "noise_curve_logslope", slope, None,
+                "log-log slope of measured variance vs level: 1.0 = "
+                "shot-noise-dominated, ~0 = floor-dominated, >1 = the "
+                "pair difference is also measuring scene motion, so the "
+                "bright end is an UPPER bound on detector noise "
+                "(descriptive statistic — no uncertainty attached)", prov)
+
     # --- reconstruction ---------------------------------------------------
     # Backfill the F-D degeneracy diagnostic from the stored npz products
     # (cheap: eight small files; no archive pixels re-read).
@@ -1119,7 +1474,7 @@ def parse_args(argv=None) -> argparse.Namespace:
                      "archive. Resumable: every subcommand records finished "
                      "work in the manifest DB and skips it when re-invoked."),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument("stage", choices=["ceiling", "ceilpos", "ptc",
+    p.add_argument("stage", choices=["ceiling", "ceilpos", "ptc", "noise",
                                      "reconstruct", "linearity", "params",
                                      "report"])
     p.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST,
@@ -1152,6 +1507,8 @@ def main(argv=None) -> int:
             return cmd_ceilpos(con, args.archive, args.batch)
         if args.stage == "ptc":
             return cmd_ptc(con, args.archive, args.batch)
+        if args.stage == "noise":
+            return cmd_noise(con, args.archive, args.batch)
         if args.stage == "reconstruct":
             return cmd_reconstruct(con, args.archive, args.era)
         if args.stage == "linearity":

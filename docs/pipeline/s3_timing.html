@@ -9,9 +9,9 @@
   <p>198,289 header stamps audited &middot; 191,858 of
   193,318 canonical science frames with mid-exposure BJD_TDB
   (ephemeris <code>de440s</code>) &middot;
-  absolute clock consistent with zero at the ~75 min level set by AG LMi's ephemeris &middot; built 2026-08-18T19:08Z
+  absolute clock consistent with zero at the ~75 min level set by AG LMi's ephemeris &middot; built 2026-08-19T23:47Z
   (S3 v1.0 (2026-08-18),
-  commit <code>7de2b60</code>)
+  commit <code>2c897e7</code>)
   &middot; <a href="../index.html">back to the evidence hub</a></p>
 </header>
 
@@ -109,7 +109,7 @@ systematic if pyscope truncates rather than rounds.  The frames with no
 start-vs-mid evidence at all:</p>
 <table class="data">
 <tr><th>readout family</th><th>frames</th><th>eras</th><th>nights</th><th>what is missing</th></tr>
-<tr class="warn"><td>(blank)</td><td>3,901</td><td>81&ndash;83</td><td>2026-06-28 &ndash; 2026-07-02</td><td>no JD-HELIO card; TELUT is a copy of DATE-OBS</td></tr>
+<tr class="warn"><td>(blank)</td><td>3,901</td><td>81&ndash;82</td><td>2026-06-28 &ndash; 2026-07-02</td><td>no JD-HELIO card; TELUT is a copy of DATE-OBS</td></tr>
 <tr class="warn"><td>HDR</td><td>16</td><td>5</td><td>2023-04-17 &ndash; 2023-11-22</td><td>JD-HELIO present but broken / no discriminating exposure</td></tr>
 </table>
 
@@ -341,7 +341,7 @@ UTC.  Does an external astrophysical clock confirm the time axis?</p>
 <p class="sub">AG LMi (type EA,
 V 10.55 - 11.16) is an eclipsing binary in the
 archive with P = 1.3590176&nbsp;d, minimum epoch HJD
-2458211.194 (VSX via Vizier B/vsx/vsx, fetched live 2026-08-18).  4 nights of it were
+2458211.194 (VSX via Vizier B/vsx/vsx, fetched live 2026-08-19).  4 nights of it were
 measured; 192 frames of those plus three baseline nights
 went through forced-aperture differential photometry against
 3 fixed comparison stars
@@ -371,21 +371,21 @@ same reason: so it cannot vanish from the table without a trace.</p>
 their agreement — however tight — cannot bound that clock's drift.  The
 one genuinely independent comparison in the archive is TELUT, the
 telescope control system's UTC, against the acquisition PC's DATE-OBS.
-Sampled across every era (30 of 231 sampled
+Sampled across every era (34 of 239 sampled
 headers carry a TELUT that is a real clock read; the rest have no TELUT
 card, or the pyscope copy of DATE-OBS):</p>
 <div class="grid"><figure><a href="figures/s3/s3_clock_drift.png"><img src="figures/s3/s3_clock_drift.png" alt=""></a><figcaption>TELUT minus the end of the exposure DATE-OBS names, per sampled header, across the baseline. The scatter is header-write latency; a diverging pair of clocks would show as a trend.</figcaption></figure></div>
 <p class="sub">Over 2024-05-25 to 2026-06-25 the residual
 TELUT&nbsp;&minus;&nbsp;(DATE-OBS&nbsp;+&nbsp;EXPTIME) has median
-2.03&nbsp;s and interquartile spread 1.09&nbsp;s,
+1.97&nbsp;s and interquartile spread 1.01&nbsp;s,
 ranging +1.04 to +17.73&nbsp;s, with a fitted trend of
--2.15&nbsp;s/year — smaller than the scatter it is fitted
+-2.18&nbsp;s/year — smaller than the scatter it is fitted
 through, i.e. consistent with no divergence at all.  That scatter is
 dominated by variable header-write latency, so the number is an UPPER
 limit on relative drift, not a measurement of it: <b>the two clocks do
 not diverge by more than a few seconds across the baseline, and S3
 cannot say anything finer than that.</b>  The check also has a hole worth
-naming: 201 of the 231 sampled
+naming: 205 of the 239 sampled
 headers carry no usable TELUT, so the eras before 2024-05-25 are not
 covered at all.</p>
 

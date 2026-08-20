@@ -347,12 +347,14 @@ CV_TIMESERIES = Project(
                        "AAVSO cross-match for YZ Cnc, 2024-02-21 → 2024-05-03",
                        "An outburst-state tag per dense run — the branch point "
                        "that decides whether Q3 is superhumps or flickering.",
-                       "S0c", _cv_src("§4 Phase 0 step 2"), PENDING),
+                       "CV-S7", _cv_src("§4 Phase 0 step 2"), DONE,
+                       evidence="docs/CV_TimeSeries/cv_external_context.html"),
                   Task("CV-P0-survey-context",
                        "Pull the survey record for all five targets",
                        "Cached ZTF/ATLAS/ASAS-SN/AAVSO/TESS/Gaia/eROSITA "
                        "series that the state histories are plotted over.",
-                       "S0c", _cv_src("§4 Phase 0 step 3"), PENDING),
+                       "CV-S7", _cv_src("§4 Phase 0 step 3"), DONE,
+                       evidence="docs/CV_TimeSeries/cv_external_context.html"),
               )),
         Phase("Phase 0.5 — Astrometry go/no-go",
               "The pipeline's first bottleneck: ~4,600 of ~5,500 polar "
@@ -548,11 +550,24 @@ CV_TIMESERIES = Project(
                        "runs were in outburst; orbital hump + flickering "
                        "statistics if not.",
                        "CV-S4", _cv_src("§4 Phase 3 step 19"), BLOCKED,
-                       blocker="Which branch this is depends entirely on "
-                               "CV-P0-aavso-yzcnc; and the quiescent "
-                               "fallback is only promised after the 8 s "
-                               "High Gain S/N check passes. Clears when the "
-                               "AAVSO cross-match reports."),
+                       blocker="BRANCH DECIDED — the superhump branch is "
+                               "CLOSED for this season. CV-P0-aavso-yzcnc "
+                               "(CV-S7, cv_external_context.html) finds no "
+                               "dense run inside a superoutburst: the 2024 "
+                               "superoutburst ran 2024-03-28 → 04-09 (peak "
+                               "3.65 mag above quiescence) and our dense "
+                               "blocks sit either side of it. The brightest "
+                               "dense run reaches 1.86 mag above quiescence "
+                               "— a normal outburst. So this task is the "
+                               "FALLBACK: orbital hump + flickering "
+                               "statistics on the three quiescent dense runs "
+                               "(2024-02-21, 05-02, 05-03), plus a distinct "
+                               "normal-outburst analysis of the six "
+                               "outburst dense runs. Still blocked on the "
+                               "one remaining gate: §4.19's empirical S/N "
+                               "check on the 8 s High Gain frames at "
+                               "quiescent V≈14.2–14.7. Clears when that "
+                               "check passes."),
                   Task("CV-P3-detrending", "Detrending discipline",
                        "Per-night systematics fit JOINTLY with the periodic "
                        "model — low-order airmass polynomial, or a celerite2 "
@@ -1980,10 +1995,22 @@ def validate() -> None:
                         f"tasks must cite one of its standing decisions "
                         f"({', '.join(sorted(headings)) or 'none declared'})"
                         f" — {task.source.section!r} is not one")
-            if task.evidence.startswith(f"docs/{project.key}/"):
+            # The circularity this forbids is a task citing the page THIS
+            # RENDERER GENERATES from the task's own status —
+            # docs/<Project>/index.html and nothing else (see
+            # report_projects.page_path).  It was written as a ban on the
+            # whole docs/<Project>/ directory, which also caught the
+            # stage-built evidence pages that live there by convention
+            # (cv_characterization.html, cv_catalogue_tie.html,
+            # cv_external_context.html).  Those are the opposite of
+            # circular: each is rendered from the product database by the
+            # stage that did the work, and is exactly what a DONE task
+            # should point at.  Narrowed to the generated page, so the rule
+            # forbids what it always meant to forbid and no more.
+            if task.evidence == f"docs/{project.key}/index.html":
                 raise PlanError(
-                    f"{task.id}: names its own project page as its "
-                    f"evidence — a page cannot be the evidence for the "
+                    f"{task.id}: names its own generated project page as "
+                    f"its evidence — a page cannot be the evidence for the "
                     f"claims it makes")
 
     # Dependencies are checked in a second pass: a task may legitimately

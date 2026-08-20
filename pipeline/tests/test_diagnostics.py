@@ -444,3 +444,52 @@ class TestLinearity:
         out = lin.group_ladders(rows)
         assert len(out) == 1
         assert out[0]["target_key"] == "vega" and len(out[0]["rungs"]) == 4
+
+
+# ---------------------------------------------------------------------------
+# linearity: fair scheduling across readout modes
+# ---------------------------------------------------------------------------
+class TestFairLadderOrder:
+    """The scheduler must try every mode before it repeats any mode.
+
+    The archive is wildly uneven — hundreds of Mode0 candidates against one
+    5 MHz candidate — so a globally-ranked list never reaches the sparse
+    modes, and the campaign then reports "no archival linearity constraint"
+    for modes it simply never looked at.
+    """
+
+    def _rows(self):
+        # (mode, quality) pairs; lower quality value = better.
+        return [("Mode0", i) for i in range(5)] + \
+               [("High Gain", i) for i in range(3)] + \
+               [("5MHz", 0)]
+
+    def test_every_mode_appears_before_any_mode_repeats(self):
+        out = lin.fair_ladder_order(self._rows(),
+                                    mode_of=lambda r: r[0],
+                                    quality=lambda r: r[1])
+        first_three = [r[0] for r in out[:3]]
+        assert sorted(first_three) == ["5MHz", "High Gain", "Mode0"]
+
+    def test_best_candidate_of_each_mode_comes_first(self):
+        out = lin.fair_ladder_order(self._rows(),
+                                    mode_of=lambda r: r[0],
+                                    quality=lambda r: r[1])
+        assert all(r[1] == 0 for r in out[:3])
+
+    def test_sparse_mode_is_reached_within_one_slot(self):
+        """The failure this guards: 227 Mode0 candidates burying 5 MHz."""
+        rows = [("Mode0", i) for i in range(227)] + [("5MHz", 0)]
+        out = lin.fair_ladder_order(rows, mode_of=lambda r: r[0],
+                                    quality=lambda r: r[1])
+        assert ("5MHz", 0) in out[:2]
+
+    def test_keeps_every_candidate_and_is_deterministic(self):
+        rows = self._rows()
+        a = lin.fair_ladder_order(rows, lambda r: r[0], lambda r: r[1])
+        b = lin.fair_ladder_order(rows, lambda r: r[0], lambda r: r[1])
+        assert a == b
+        assert sorted(a) == sorted(rows)
+
+    def test_empty_input(self):
+        assert lin.fair_ladder_order([], lambda r: r[0], lambda r: r[1]) == []

@@ -146,6 +146,49 @@ def fit_ladder(exptimes: Sequence[float], fluxes: Sequence[float]) -> Optional[d
     }
 
 
+def fair_ladder_order(candidates: Sequence[tuple],
+                      mode_of, quality) -> list[tuple]:
+    """Order ladder candidates so every MODE is tried before any repeats.
+
+    Parameters
+    ----------
+    candidates
+        Opaque rows; this function never looks inside them.
+    mode_of
+        ``row -> mode label``.  Rows sharing a label compete with each
+        other and with nobody else.
+    quality
+        ``row -> sort key``, best first, applied WITHIN a mode.
+
+    Returns
+    -------
+    list
+        Every mode's best candidate, then every mode's second, and so on —
+        modes visited in sorted label order so the result is deterministic.
+
+    WHY THIS EXISTS.  Ranking candidates globally by quality is the obvious
+    thing and it is wrong here: the archive's frame counts are wildly
+    uneven (Mode0 alone offers hundreds of candidate ladders, Low Gain and
+    5 MHz offer one or none), so a global ranking spends every processing
+    slot on the two richest modes and reports "no archival linearity
+    constraint" for the sparse ones — a conclusion about the SCHEDULER
+    dressed up as a conclusion about the archive.  Round-robin guarantees
+    each mode is tried; a mode that then yields nothing has genuinely
+    yielded nothing, and that is a finding worth reporting.
+    """
+    by_mode: dict[str, list] = {}
+    for row in candidates:
+        by_mode.setdefault(mode_of(row), []).append(row)
+    for rows in by_mode.values():
+        rows.sort(key=quality)
+    out: list[tuple] = []
+    for slot in range(max((len(v) for v in by_mode.values()), default=0)):
+        for label in sorted(by_mode):
+            if slot < len(by_mode[label]):
+                out.append(by_mode[label][slot])
+    return out
+
+
 def group_ladders(rows: Sequence[tuple],
                   min_rungs: int = MIN_RUNGS,
                   min_frames: int = MIN_FRAMES_PER_RUNG) -> list[dict]:
