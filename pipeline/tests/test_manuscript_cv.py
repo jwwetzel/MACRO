@@ -478,3 +478,367 @@ class TestNoNumberIsTyped:
                             r"Token not allowed|Citation .* undefined|"
                             r"Reference .* undefined", ln)]
         assert not bad, "the build is not warning-free:\n" + "\n".join(bad)
+
+
+# ---------------------------------------------------------------------------
+# Referee 4
+# ---------------------------------------------------------------------------
+class TestUntiedTargetRowsAreSplitByWhetherTheStarWasSeen:
+    """Referee 4, major.  §7 --- the section whose stated purpose is that any
+    statement above can be checked with one query --- called all 245 untied
+    rows "target detections", and said the 235 in the two EU UMa blocks were
+    points "the fitted colour relation could not place on the standard
+    system".  All 235 have inst_mag, inst_mag_err and mag NULL and match an
+    aperture measurement of negative flux: they are non-detections, and a
+    colour relation cannot fail to place a magnitude that was never
+    measured.  The split now happens at the emitter, on inst_mag."""
+
+    @staticmethod
+    def _untied_series(phot) -> list:
+        """The blocks that have untied target rows at all.
+
+        Read from ``cv_series`` rather than by scanning ``cv_lightcurve``:
+        a series' untied rows are exactly ``n_target_rows -
+        n_target_points``, the counts below check that the two agree, and
+        naming the blocks lets every query here ride the light curve's
+        ``(series_key, ...)`` index instead of scanning a 1.2 GB table.
+        """
+        return [r[0] for r in phot.execute(
+            "SELECT series_key FROM cv_series "
+            "WHERE n_target_rows > n_target_points ORDER BY series_key")]
+
+    def test_the_two_counts_are_the_instrumental_magnitude_split(self,
+                                                                 numbers,
+                                                                 phot):
+        keys = self._untied_series(phot)
+        marks = ",".join("?" * len(keys))
+        det, non, total = phot.execute(
+            f"SELECT sum(inst_mag IS NOT NULL), sum(inst_mag IS NULL), "
+            f"count(*) FROM cv_lightcurve WHERE series_key IN ({marks}) "
+            f"AND role='target' AND cal_mag IS NULL", keys).fetchone()
+        from_series = phot.execute(
+            "SELECT sum(n_target_rows - n_target_points) FROM cv_series"
+        ).fetchone()[0]
+        assert total == from_series, (
+            "cv_series and cv_lightcurve disagree about how many target "
+            "rows carry no catalogue-tied magnitude")
+        assert _num(numbers, "NumPointsUntiedDetections") == det
+        assert _num(numbers, "NumPointsUntiedNonDetections") == non
+        assert _num(numbers, "NumPointsUntied") == total
+
+    def test_the_non_detections_really_have_no_flux(self, numbers, phot):
+        """The evidence for calling them non-detections, from the apertures
+        themselves rather than from the absence of a magnitude.
+
+        ``+d.star_id`` keeps the planner off ``idx_det_star``, which for a
+        target star spans every frame in the archive; the join rides the
+        detections' (frame_id, det_id) key instead.
+        """
+        keys = self._untied_series(phot)
+        marks = ",".join("?" * len(keys))
+        n, neg = phot.execute(f"""
+            SELECT count(*), sum(COALESCE(d.flux, 0) < 0)
+            FROM cv_lightcurve l
+            LEFT JOIN cv_detections d ON d.frame_id = l.frame_id
+                                     AND +d.star_id = l.star_id
+            WHERE l.series_key IN ({marks})
+              AND l.role='target' AND l.cal_mag IS NULL
+              AND l.inst_mag IS NULL""", keys).fetchone()
+        assert neg == n, (
+            f"only {neg} of {n} untied rows without an instrumental "
+            f"magnitude have negative aperture flux; the paper's reason for "
+            f"calling them non-detections no longer holds")
+        assert _num(numbers, "NumPointsUntiedNonDetectionNegFlux") == neg
+
+    def test_no_macro_calls_the_undetected_rows_detections(self, phot):
+        """The note is in the release, so a reader querying p5_number finds
+        it as surely as a reader of §7 finds the prose.  A count of rows
+        with no instrumental magnitude may not be described as detections,
+        and may not be blamed on the colour relation."""
+        keys = self._untied_series(phot)
+        marks = ",".join("?" * len(keys))
+        non = phot.execute(
+            f"SELECT count(*) FROM cv_lightcurve WHERE series_key IN "
+            f"({marks}) AND role='target' AND cal_mag IS NULL "
+            f"AND inst_mag IS NULL", keys).fetchone()[0]
+        bad = []
+        for name, body, note in phot.execute(
+                "SELECT macro, value_tex, COALESCE(note,'') FROM p5_number"):
+            try:
+                v = int(str(body).replace("\\,", "").strip())
+            except (TypeError, ValueError):
+                continue
+            if v != non:
+                continue
+            low = str(note).lower()
+            if "colour relation could not place" in low:
+                bad.append((name, "blames the colour relation"))
+            # "detections" alone, not inside "non-detections"
+            if re.search(r"(?<!non-)(?<!non )detections", low) and \
+                    "non-detection" not in low:
+                bad.append((name, "calls them detections"))
+        assert not bad, f"p5_number misdescribes the non-detections: {bad}"
+
+    def test_the_body_says_non_detection_and_names_the_blocks(self, body,
+                                                              numbers):
+        assert "\\NumPointsUntiedNonDetections" in body
+        assert "\\NumPointsUntiedDetections" in body
+        assert "\\NumPointsUntiedInTiedBlocks" not in body, (
+            "§7 still uses the tie-verdict split, which is not what "
+            "distinguishes these rows")
+        assert "fitted colour\n  relation could not place" not in body
+        assert "$i$ and $r$" in numbers["NumPointsUntiedNonDetectionBlocks"]
+
+
+class TestTheAnUmaEdgeErrorsAreNotAllOutsideTheThreshold:
+    """Referee 4, major.  §5.3 and Conclusion 6 said AN UMa's fitted-edge
+    errors "all lie outside the 60 s threshold" in sentences printing 57 s
+    as the range's lower end.  One fitted edge is inside, and was rejected
+    on step signal-to-noise rather than on precision."""
+
+    def _range(self, numbers, name):
+        lo, hi = numbers[name].replace("\\,", "").split("--")
+        return float(lo), float(hi)
+
+    def test_the_fitted_range_really_does_straddle_the_threshold(
+            self, numbers, phot):
+        lo, hi = self._range(numbers, "NumAnUmaEdgeSigmaRangeS")
+        thr = _num(numbers, "NumSigmaTThresholdS")
+        n, outside = phot.execute(
+            "SELECT count(*), sum(sigma_t_s >= ?) FROM p3_edge "
+            "WHERE target_key='anuma'", (thr,)).fetchone()
+        assert _num(numbers, "NumAnUmaEdgesOutsideThreshold") == outside
+        assert _num(numbers, "NumAnUmaEdgesInsideThreshold") == n - outside
+        # The accepted set is the one the universal claim is true of.
+        alo, _ = self._range(numbers, "NumAnUmaEdgeSigmaAcceptedRangeS")
+        assert alo >= thr, "the accepted edges no longer clear the threshold"
+        assert lo < thr, (
+            "the fitted range no longer straddles the threshold; if that is "
+            "real the prose may simplify, but the test must be retired "
+            "deliberately and not by drift")
+
+    def test_no_sentence_quantifies_universally_over_the_fitted_range(
+            self, body, numbers):
+        """Every sentence quoting the FITTED range against the threshold is
+        checked: if it universally quantifies, the range's lower end must be
+        outside the threshold, and it is not."""
+        lo, _ = self._range(numbers, "NumAnUmaEdgeSigmaRangeS")
+        thr = _num(numbers, "NumSigmaTThresholdS")
+        if lo >= thr:
+            pytest.skip("the fitted range clears the threshold outright")
+        universal = re.compile(r"\b(every|all|each|none|whole)\b", re.I)
+        # A universal claim is legitimate only when the sentence also names
+        # the set it is universal over: the ACCEPTED range, or the count of
+        # fitted edges that are outside.
+        qualified = ("NumAnUmaEdgeSigmaAcceptedRangeS",
+                     "NumAnUmaEdgesOutsideThreshold")
+        offenders = []
+        for sentence in re.split(r"(?<=[.;])\s", body):
+            if "NumAnUmaEdgeSigmaRangeS" not in sentence:
+                continue
+            if "NumSigmaTThresholdS" not in sentence:
+                continue
+            if not universal.search(sentence):
+                continue
+            if not any(q in sentence for q in qualified):
+                offenders.append(" ".join(sentence.split())[:200])
+        assert not offenders, (
+            f"a sentence quantifies universally over the "
+            f"{lo:.0f} s--... fitted range against a {thr:.0f} s threshold "
+            f"its own lower end is inside, without naming the subset the "
+            f"claim is true of: {offenders}")
+
+    def test_the_products_do_not_carry_the_false_claim_either(self, phot,
+                                                              numbers):
+        """The same sentence was generated into p4_anuma and p4_verdict, so
+        a prose-only fix would leave the release contradicting the paper."""
+        thr = _num(numbers, "NumSigmaTThresholdS")
+        lo = phot.execute("SELECT min(sigma_t_s) FROM p3_edge WHERE "
+                          "target_key='anuma'").fetchone()[0]
+        if lo >= thr:
+            pytest.skip("no fitted edge inside the threshold any more")
+        texts = [r[0] for r in phot.execute(
+            "SELECT COALESCE(reasoning,'')||' '||COALESCE(deciding_number,'')"
+            " FROM p4_anuma")]
+        texts += [r[0] for r in phot.execute(
+            "SELECT COALESCE(reasoning,'') FROM p4_verdict "
+            "WHERE verdict_id='ANUMA-role'")]
+        bad = [t[:160] for t in texts
+               if re.search(r"every one of them outside", t, re.I)]
+        assert not bad, f"the release still carries the false claim: {bad}"
+
+
+class TestTheTransferCheckIsDescribedAsWhatItIs:
+    """Referee 4, major.  §4.2 justified transporting the one-night injection
+    budget by recomputing the chi-squared "from the edge fits' OWN
+    Monte-Carlo errors, which are measured on each night in its own era".
+    No 2024 edge has a Monte-Carlo error at all, and those epochs are
+    exactly the ones whose budget was transported: on the epochs the check
+    exists to validate, it falls back to the formal bar."""
+
+    def test_the_epochs_without_a_monte_carlo_error_are_the_transported_ones(
+            self, numbers, phot):
+        edges = phot.execute(
+            "SELECT night, filter, sigma_t_mc_s FROM p3_edge "
+            "WHERE target_key='stlmi' AND accepted=1").fetchall()
+        by_ep: dict = {}
+        for night, filt, mc in edges:
+            by_ep.setdefault((night, filt), []).append(mc)
+        ocn = phot.execute(
+            "SELECT night, filter, era_id FROM p3_oc_night "
+            "WHERE target_key='stlmi'").fetchall()
+        formal = [(n, f, e) for n, f, e in ocn
+                  if not all(m is not None for m in by_ep.get((n, f), [None]))]
+        transported = [(n, f, e) for n, f, e in ocn if e != 76]
+        assert sorted(formal) == sorted(transported), (
+            "the epochs with no Monte-Carlo error are no longer exactly the "
+            "epochs whose budget was transported; §4.2's wording assumes "
+            "they coincide")
+        assert _num(numbers, "NumStLmiEpochsEdgeFormal") == len(formal)
+        assert _num(numbers, "NumStLmiEpochsEdgeMonteCarlo") == \
+            len(ocn) - len(formal)
+        assert _num(numbers, "NumStLmiEpochsEdgeFormal") == \
+            _num(numbers, "NumStLmiEpochsTransferredBudget")
+
+    def test_the_body_no_longer_claims_a_per_era_measurement(self, body):
+        assert "measured on each night in its own\nera" not in body
+        assert "which are measured on each night in its own era" not in body
+        assert "\\NumStLmiEpochsEdgeFormal" in body, (
+            "§4.2 does not say how many epochs fall back to the formal bar")
+        assert "\\NumStLmiOcChisqEdgeMonteCarlo" in body, (
+            "§4.2 does not quote the part of the check that is what it "
+            "claims to be")
+
+    def test_limitation_three_no_longer_calls_it_the_only_reason(self, body):
+        assert "which is the only\n  reason we let it stand" not in body
+        assert "weaker\n  check than its name suggests" in body
+
+    def test_the_emitters_note_says_which_errors_the_check_uses(self, phot):
+        note = phot.execute(
+            "SELECT note FROM p5_number WHERE macro='NumStLmiOcChisqEdge'"
+        ).fetchone()[0]
+        assert "rescaled formal bar" in note
+        assert "measured on every night in its own era" not in note
+
+
+class TestThePerEraChiSquaredCountsCloseOnEveryEpoch:
+    """Referee 4, minor.  The split gave 8 High Gain and 27 Mode0 epochs
+    against a set of 36, leaving the single 1MHz HS 16-bit z epoch out."""
+
+    def test_every_era_gets_a_macro_and_they_sum_to_the_epoch_count(
+            self, numbers, phot):
+        eras = phot.execute(
+            "SELECT era_id, count(*) FROM p3_oc_night WHERE "
+            "target_key='stlmi' GROUP BY 1").fetchall()
+        tags = {7: "HighGain", 47: "OneMhzHsZ", 76: "ModeZero"}
+        total = 0
+        for era, n in eras:
+            tag = tags.get(era)
+            assert tag, f"era {era} has no macro tag; the sum will not close"
+            assert _num(numbers, f"NumStLmiEpochs{tag}") == n
+            assert f"NumStLmiOcChisq{tag}" in numbers
+            total += n
+        assert total == _num(numbers, "NumStLmiOcEpochs")
+
+    def test_the_body_quotes_all_three(self, body):
+        for tag in ("HighGain", "ModeZero", "OneMhzHsZ"):
+            assert f"\\NumStLmiEpochs{tag}" in body
+            assert f"\\NumStLmiOcChisq{tag}" in body
+
+
+class TestTheRemainingReferee4Minors:
+
+    def test_figure_nines_envelope_names_both_ends_separately(self,
+                                                              captions):
+        """The envelope reaches 293 s at one end and 49 s at the other; the
+        caption said "only 293 s at the ends" (plural)."""
+        cap = captions["CapFigZeroNine"]
+        assert "at the ends of the baseline" not in cap
+        assert "at the late end of the baseline" in cap
+        assert "at the\nearly end" in cap or "at the early end" in cap
+
+    def test_the_timed_offset_and_the_fold_phase_share_a_bin(self, numbers,
+                                                             phot):
+        """§4.3 called 0.157 cycles "the same number" as a 0.16--0.19 range
+        that does not contain it.  What is true is that they fall in one bin
+        of the fold, and the paper now claims exactly that."""
+        bins = int(_num(numbers, "NumFoldProfileBins"))
+        offset = _num(numbers, "NumStLmiOcOffsetCycles")
+        fall_lo = float(numbers["NumStLmiFallPhaseRange"].split("--")[0])
+        assert int(offset * bins) == int(fall_lo * bins), (
+            f"{offset} and {fall_lo} are no longer in one 1/{bins} bin")
+        lo, hi = (float(x) for x in
+                  numbers["NumStLmiOcOffsetBinRange"].split("--"))
+        assert lo <= offset < hi
+        assert "which is the same\nnumber arrived at" not in _text("main.tex")
+
+    def test_the_order_of_magnitude_names_what_it_is_against(self, numbers,
+                                                             body):
+        """0.152 fails the 0.05 bar by 3.0, not by an order of magnitude;
+        the order of magnitude is against ST LMi's 0.014."""
+        bar_ratio = _num(numbers, "NumAnUmaPhaseSpreadOverBar")
+        st_ratio = _num(numbers, "NumAnUmaPhaseSpreadOverStLmi")
+        assert bar_ratio < 10 <= st_ratio, (
+            "the two comparisons no longer differ in order of magnitude; "
+            "the sentence may be simplified deliberately")
+        assert "fail by an\norder of magnitude" not in body
+        assert "\\NumAnUmaPhaseSpreadOverBar" in body
+        assert "\\NumAnUmaPhaseSpreadOverStLmi" in body
+
+    def test_the_colour_census_partitions_the_tied_blocks(self, numbers,
+                                                          phot):
+        """12 + 14 = 26 over a population the sentence fixed at 25.  The
+        26th was the untied block, which has no colour term at all."""
+        tied = _num(numbers, "NumTieTied")
+        assert (_num(numbers, "NumTieColourInside")
+                + _num(numbers, "NumTieColourUnsafe") == tied)
+        assert (_num(numbers, "NumTieExtrapolated")
+                + _num(numbers, "NumTieColourUnknown")
+                == _num(numbers, "NumTieColourUnsafe"))
+        db_tied = phot.execute(
+            "SELECT count(*) FROM cv_cattie WHERE is_primary=1 "
+            "AND verdict LIKE 'TIED%'").fetchone()[0]
+        assert tied == db_tied
+        inside = phot.execute(
+            "SELECT count(*) FROM cv_cattie WHERE is_primary=1 AND verdict "
+            "LIKE 'TIED%' AND colour_position IN "
+            "('inside-span','inside-core')").fetchone()[0]
+        assert _num(numbers, "NumTieColourInside") == inside
+
+    def test_both_tie_median_ratios_are_against_the_same_goal(self, numbers):
+        """"between about one and a half and six times the goal" compared
+        the clipped median with the goal's upper bound and the unclipped one
+        with its lower bound."""
+        goal_hi = _num(numbers, "NumTieGoalHiMmag")
+        clip = _num(numbers, "NumTieMedianAccuracyMmag")
+        raw = _num(numbers, "NumTieMedianAccuracyUnclippedMmag")
+        assert _num(numbers, "NumTieMedianRatioToGoal") == \
+            pytest.approx(clip / goal_hi, abs=0.06)
+        assert _num(numbers, "NumTieMedianRatioUnclippedToGoal") == \
+            pytest.approx(raw / goal_hi, abs=0.06)
+
+    def test_the_body_does_not_say_one_and_a_half_times_the_goal(self, body):
+        assert "between about one and a half and six times the" not in body
+        assert "\\NumTieMedianRatioToGoal" in body
+
+    def test_figure_eleven_does_not_call_a_two_night_block_a_run(
+            self, captions, phot):
+        """Three of the six rows fold two nights; the caption called all six
+        "quiescent dense runs" and the axis named the blocks by one night."""
+        n_block = phot.execute(
+            "SELECT count(*) FROM p4_run WHERE upper(state)='QUIESCENT' "
+            "AND hump_amp IS NOT NULL AND amp90_self IS NOT NULL "
+            "AND kind='block'").fetchone()[0]
+        cap = captions["CapFigOneOne"]
+        assert "For each quiescent dense run," not in cap
+        if n_block:
+            assert f"{n_block} two-night blocks" in cap
+            assert "each row labelled with every night it folds" in cap
+
+    def test_the_body_says_how_the_six_scopes_split(self, body, numbers,
+                                                    phot):
+        assert "\\NumHumpScopesBlocks" in body
+        assert "\\NumHumpScopesRuns" in body
+        assert (_num(numbers, "NumHumpScopesRuns")
+                + _num(numbers, "NumHumpScopesBlocks")
+                == _num(numbers, "NumHumpScopesTested"))

@@ -1091,6 +1091,22 @@ def cmd_anuma(args) -> None:
     edge_ok_lo, edge_ok_hi, n_edge_ok = (_eo[0] or float("nan"),
                                          _eo[1] or float("nan"),
                                          int(_eo[2] or 0))
+    # HOW MANY OF THOSE EDGES ARE ACTUALLY OUTSIDE THE BAR.  These strings
+    # said "every one of them outside the 60 s bar" of the FULL fitted
+    # range while printing that range's 57 s lower end in the same
+    # sentence, and the same claim reached §5.3 and Conclusion 6 of the
+    # manuscript.  One fitted edge (2026-01-25 g, cycle 54437) is inside
+    # the bar and was rejected on step signal-to-noise, not on precision.
+    # The claim is true of the ACCEPTED set and of all but that one fitted
+    # edge, and the counts below say so instead of quantifying universally
+    # over a range whose printed end refutes it.
+    _bar_s = float(ANUMA_BARS["sigma_t_s"])
+    n_edge_outside = int(con.execute(
+        "SELECT count(*) FROM p3_edge WHERE target_key='anuma' "
+        "AND sigma_t_s >= ?", (_bar_s,)).fetchone()[0] or 0)
+    n_ok_outside = int(con.execute(
+        "SELECT count(*) FROM p3_edge WHERE target_key='anuma' "
+        "AND accepted=1 AND sigma_t_s >= ?", (_bar_s,)).fetchone()[0] or 0)
     # The one-feature bar, from the stage that applied it rather than typed
     # here: CV-S9 stores it in p3_meta and grades every target against it,
     # and a second copy in this file is a second bar waiting to drift.
@@ -1197,10 +1213,21 @@ def cmd_anuma(args) -> None:
                      f"quoting as achieved. What is measured is the "
                      f"per-epoch error of the fitted edges themselves: "
                      f"{edge_sig_lo:.0f}-{edge_sig_hi:.0f} s over all "
-                     f"{n_edge_all} fitted edges, "
+                     f"{n_edge_all} fitted edges and "
                      f"{edge_ok_lo:.0f}-{edge_ok_hi:.0f} s over the "
-                     f"{n_edge_ok} accepted ones, every one of them outside "
-                     f"the 60 s bar.",
+                     f"{n_edge_ok} accepted ones. All {n_ok_outside} "
+                     f"accepted edges are outside the {_bar_s:.0f} s bar, "
+                     f"as are {n_edge_outside} of the {n_edge_all} fitted "
+                     f"ones; the remaining "
+                     f"{n_edge_all - n_edge_outside} "
+                     + ("falls" if n_edge_all - n_edge_outside == 1
+                        else "fall")
+                     + " inside it and "
+                     + ("was" if n_edge_all - n_edge_outside == 1 else "were")
+                     + " rejected on step signal-to-noise rather than "
+                     "on precision, so no accepted epoch rests on "
+                     + ("it." if n_edge_all - n_edge_outside == 1
+                        else "them."),
                      "Whatever raises the STEP SIGNAL-TO-NOISE of the edge "
                      "-- longer exposures, fewer filters per cycle so each "
                      "gets more integration, or catching the star in a "
@@ -1550,6 +1577,15 @@ def cmd_verdict(args) -> None:
                     "target_key='anuma'"))
     an_fit = int(one("SELECT count(*) FROM p3_edge WHERE "
                      "target_key='anuma'"))
+    # See the note in ``cmd_anuma``: the fitted range's lower end is
+    # INSIDE the bar, so this verdict counts rather than quantifies.
+    an_bar = float(ANUMA_BARS["sigma_t_s"])
+    an_outside = int(one("SELECT count(*) FROM p3_edge WHERE "
+                         "target_key='anuma' AND sigma_t_s >= ?", an_bar))
+    an_ok_sig = one("SELECT min(sigma_t_s) FROM p3_edge WHERE "
+                    "target_key='anuma' AND accepted=1")
+    an_ok_sig_hi = one("SELECT max(sigma_t_s) FROM p3_edge WHERE "
+                       "target_key='anuma' AND accepted=1")
     an_amp = {r[0]: 1000.0 * (r[1] or 0.0) for r in con.execute(
         "SELECT filter, amplitude_mag FROM p3_period WHERE "
         "series_key LIKE 'anuma|%'")}
@@ -1569,8 +1605,11 @@ def cmd_verdict(args) -> None:
         "stage refuses an O-C on them. It is NOT established that the "
         "precision would otherwise be adequate -- no injection test was run "
         f"for this target, and the measured per-epoch errors of its own "
-        f"fitted edges are {an_sig_lo:.0f}-{an_sig_hi:.0f} s, every one "
-        f"outside the 60 s bar. What survives is real and costs "
+        f"fitted edges are {an_sig_lo:.0f}-{an_sig_hi:.0f} s over all "
+        f"{an_fit} and {an_ok_sig:.0f}-{an_ok_sig_hi:.0f} s over the "
+        f"{an_ok} accepted ones -- every accepted edge outside the "
+        f"{an_bar:.0f} s bar, and {an_outside} of the {an_fit} fitted "
+        f"ones. What survives is real and costs "
         f"nothing extra: folded morphology in g and r, where the modulation "
         f"is detected at {an_amp.get('g', float('nan')):.0f} and "
         f"{an_amp.get('r', float('nan')):.0f} mmag, and a relative state "

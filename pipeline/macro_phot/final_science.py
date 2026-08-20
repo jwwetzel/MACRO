@@ -693,6 +693,40 @@ def run_night_label(utc_nights, nights) -> str:
     return str(night or "").split("+")[0]
 
 
+def run_scope_label(utc_nights, nights, kind=None) -> str:
+    """The name a SCOPE is called by, which for a block is not one night.
+
+    :func:`run_night_label` names a run by its first UTC night, and that is
+    right for a run because a run is one night.  Three of the six quiescent
+    YZ Cnc scopes are not runs: they are ``kind='block'`` rows spanning
+    2024-05-02 and 2024-05-03 UTC, folded together with one free constant
+    per night, and the block construction is exactly what gives those three
+    scopes their sensitivity.  Labelling them ``2024-05-02`` printed a
+    two-night block under a one-night name, in a figure whose caption then
+    said "for each quiescent dense run".
+
+    Returns the first night for a single-night scope and ``first+DD`` for a
+    multi-night one --- the second night's day alone, because the month is
+    already on the label and repeating it doubles the width of six axis
+    ticks to say nothing.  Falls back to the full second date across a
+    month boundary, where the day alone would be ambiguous.
+    """
+    raw = str((utc_nights if utc_nights else nights) or "")
+    parts = [p for p in raw.split("+") if p]
+    if len(parts) < 2:
+        return parts[0] if parts else ""
+    first, last = parts[0], parts[-1]
+    if first[:7] == last[:7] and len(last) >= 10:
+        return f"{first}+{last[8:10]}"
+    return f"{first}+{last}"
+
+
+def is_multi_night_scope(utc_nights, nights, kind=None) -> bool:
+    """Whether a scope covers more than one night, from its own dates."""
+    raw = str((utc_nights if utc_nights else nights) or "")
+    return len([p for p in raw.split("+") if p]) > 1
+
+
 def capability_verdict(measured: float, bar: float,
                        higher_is_better: bool = True) -> str:
     """One measured number against one stated bar -> one word.

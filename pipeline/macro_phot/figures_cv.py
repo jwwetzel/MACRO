@@ -440,7 +440,7 @@ def pdot_envelope_seconds(cycles_at, cycles_fit, sigma_fit,
             - np.vstack([np.ones_like(ea), ea]).T @ beta)
 
 
-def _envelope_report(oc_s, sigma_s, envelope_s) -> dict:
+def _envelope_report(oc_s, sigma_s, envelope_s, cycles=None) -> dict:
     """How the epochs actually stand against the drawn envelope.
 
     Returns the counts and sizes a caption may state, so that the caption
@@ -448,15 +448,28 @@ def _envelope_report(oc_s, sigma_s, envelope_s) -> dict:
     remembered.  ``n_outside`` is the number of epochs whose residual
     exceeds the envelope; a caption may only claim containment when it is
     zero, and :func:`fig09_oc` does not claim it at all.
+
+    ``env_first`` and ``env_last`` are the envelope at the earliest and
+    latest epoch of the baseline, and they are NOT the same number.  The
+    curve is a parabola minus a weighted linear fit, so it is strongly
+    asymmetric -- 49 s at the early end against 293 s at the late one, with
+    two zeros in between.  The caption said it "reaches only 293 s at the
+    ends" (plural), which overstates the early end sixfold and is the sort
+    of claim the picture itself refutes.  ``cycles`` orders the epochs; the
+    ends fall back to the array order when it is not given.
     """
     y = np.abs(np.asarray(oc_s, dtype=float))
     s = np.asarray(sigma_s, dtype=float)
     e = np.abs(np.asarray(envelope_s, dtype=float))
+    order = (np.argsort(np.asarray(cycles, dtype=float))
+             if cycles is not None else np.arange(e.size))
     return {
         "n": int(y.size),
         "n_outside": int(np.sum(y > e)),
         "n_under_error": int(np.sum(e < s)),
         "env_max": float(e.max()) if e.size else float("nan"),
+        "env_first": float(e[order][0]) if e.size else float("nan"),
+        "env_last": float(e[order][-1]) if e.size else float("nan"),
         "sigma_median": float(np.median(s)) if s.size else float("nan"),
     }
 
@@ -1791,7 +1804,7 @@ def fig09_oc(cv):
             ax.plot([], [], lw=0.8, ls=":", color=OKABE_ITO["green"],
                     label=f"$|\\dot{{P}}|$ = {float(lim):.1e} (3$\\sigma$ "
                           f"limit)")
-            env_report = _envelope_report(y_ep, s_ep, env_ep)
+            env_report = _envelope_report(y_ep, s_ep, env_ep, e_ep)
     ax.set_xlabel("cycle number since the catalogue epoch")
     ax.set_ylabel("O$-$C (s)")
     ax.grid(color="#f2f2f2")
@@ -1927,9 +1940,13 @@ def fig09_oc(cv):
             "period derivative at this data set's 3$\\sigma$ upper bound "
             "would still have left behind after the constant and linear "
             "terms are absorbed as the ephemeris fit absorbs them, i.e. "
-            "the CURVATURE the epochs would have had to follow. It reaches "
-            f"only {env_report['env_max']:.0f}~s at the ends of the "
-            f"baseline and is smaller than a single epoch's error bar on "
+            "the CURVATURE the epochs would have had to follow. Removing "
+            "those two terms leaves it strongly ASYMMETRIC rather than "
+            "bowl-shaped: it reaches "
+            f"{env_report['env_last']:.0f}~s at the late end of the "
+            f"baseline and only {env_report['env_first']:.0f}~s at the "
+            f"early end, "
+            f"and is smaller than a single epoch's error bar on "
             f"{env_report['n_under_error']} of the {env_report['n']} "
             f"epochs, against a median epoch error of "
             f"{env_report['sigma_median']:.0f}~s; "
@@ -2152,6 +2169,10 @@ def _scope_label(run) -> str:
     if run is None:
         return "none"
     band = series_parts(run["series_key"])[2]
+    if _fs.is_multi_night_scope(run["utc_nights"], run["nights"]):
+        return (f"the "
+                f"{_fs.run_scope_label(run['utc_nights'], run['nights'])} "
+                f"${band}$ two-night block")
     return (f"the {_fs.run_night_label(run['utc_nights'], run['nights'])} "
             f"${band}$ run")
 
@@ -2184,7 +2205,10 @@ def fig11_yzcnc_fallback(cv):
         ax.plot([s90], [i], "|", ms=7, color=OKABE_ITO["vermilion"], mew=1.2,
                 zorder=3)
     ax.set_yticks(y)
-    ax.set_yticklabels([f"{_fs.run_night_label(r['utc_nights'], r['nights'])} "
+    # A ROW IS LABELLED BY EVERY NIGHT IT FOLDS.  Three of these six scopes
+    # are two-night blocks; naming them by their first night alone printed
+    # a block under a run's name and let the caption call all six "runs".
+    ax.set_yticklabels([f"{_fs.run_scope_label(r['utc_nights'], r['nights'])} "
                         f"{series_parts(r['series_key'])[2]}"
                         for r in runs], fontsize=5.6)
     ax.set_xscale("log")
@@ -2200,7 +2224,9 @@ def fig11_yzcnc_fallback(cv):
                mew=1.2, label="90% recovery vs the star's own residuals")],
         loc="upper center", bbox_to_anchor=(0.5, -0.16), ncol=1,
         fontsize=5.6)
-    ax.set_title("(a) the two nulls, quiescent runs only", fontsize=7,
+    # "quiescent runs only" was wrong twice over: it excluded the outburst
+    # scopes correctly and called the three two-night blocks runs.
+    ax.set_title("(a) the two nulls, quiescent scopes only", fontsize=7,
                  loc="left")
 
     fl = read_rows(cv, """SELECT * FROM p4_flicker
@@ -2248,13 +2274,29 @@ def fig11_yzcnc_fallback(cv):
     n_above = len(above)
     below = next((r for r in runs if r not in above), None)
 
+    # HALF THESE ROWS ARE NOT RUNS.  Three of the six quiescent scopes are
+    # kind='block': two nights folded together with one free constant per
+    # night, which is what gives those three their sensitivity.  The
+    # caption called all six "runs" and the axis labelled the blocks by
+    # their first night, so the construction §6.4 relies on was invisible
+    # in the one figure that draws its result.  Both counts come from the
+    # rows themselves.
+    n_block = sum(1 for r in runs
+                  if _fs.is_multi_night_scope(r["utc_nights"], r["nights"]))
+    n_run = len(runs) - n_block
+    _scopes_txt = (f"{n_run} single-night runs and {n_block} two-night "
+                   f"blocks" if n_block else f"{n_run} dense runs")
+
     spec = FigureSpec(
         fig_id="fig11", label="fig:yzcncfallback",
         title="YZ Cnc: orbital-hump limits and flickering",
         caption=(
-            "(a) For each quiescent dense run, the fitted orbital-hump "
+            "(a) For each quiescent dense scope --- "
+            f"{_scopes_txt}, each block folding both of its nights together "
+            "under one free constant per night, and each row labelled with "
+            "every night it folds --- the fitted orbital-hump "
             "semi-amplitude against TWO injection--recovery contours "
-            "measured on that run's own timestamps: against "
+            "measured on that scope's own timestamps: against "
             "magnitude-matched field stars seen through the same frames, "
             "and against the star's own night-rolled residuals, which carry "
             f"its flickering. The hump exceeds the instrumental contour on "
@@ -2262,7 +2304,7 @@ def fig11_yzcnc_fallback(cv):
             f"contour on none, so it is reported as an upper limit and not "
             f"a detection. On the remaining scope "
             f"({_scope_label(below)}) the fitted hump sits BELOW the "
-            f"instrumental contour, so that run could not have shown a "
+            f"instrumental contour, so that scope could not have shown a "
             f"hump of the fitted size at all and is uninformative rather "
             "than a non-detection. (b) "
             "Flickering as a structure function against timescale, with the "

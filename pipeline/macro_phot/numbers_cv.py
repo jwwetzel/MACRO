@@ -278,6 +278,49 @@ ERA_LABEL = {6: "High Gain StackPro", 7: "High Gain",
 TARGET_LABEL = {"stlmi": "ST LMi", "vvpup": "VV Pup", "euuma": "EU UMa",
                 "anuma": "AN UMa", "yzcnc": "YZ Cnc"}
 
+#: The catalogue-tie accuracy goal of ANALYSIS_STRATEGY §5, in mmag.  Named
+#: once because two macros print it and two more divide by it, and a ratio
+#: quoted against one end of a range while its neighbour is quoted against
+#: the other is not a comparison.
+TIE_GOAL_LO_MMAG = 10
+TIE_GOAL_HI_MMAG = 20
+
+
+def block_label(series_key: str) -> str:
+    """``euuma|e76|i`` -> ``EU~UMa's Mode0 $i$ block``.
+
+    One block, named the way the prose names it.  ``~`` because a target
+    name must not break across a line.
+    """
+    tgt, era, filt = str(series_key).split("|")
+    return (f"{TARGET_LABEL.get(tgt, tgt).replace(' ', '~')}'s "
+            f"{ERA_LABEL.get(int(era.lstrip('e')), era)} ${filt}$ block")
+
+
+def blocks_phrase(series_keys: Sequence[str]) -> str:
+    """Several blocks of one target and era, named once and listed.
+
+    ``[euuma|e76|i, euuma|e76|r]`` -> ``EU~UMa's Mode0 $i$ and $r$ blocks``.
+    Blocks that do not share a target and era fall back to naming each in
+    full, because a shared prefix that is not shared is a false statement
+    about which camera took the frames.
+    """
+    keys = [str(k) for k in series_keys]
+    if not keys:
+        return ""
+    if len(keys) == 1:
+        return block_label(keys[0])
+    heads = {tuple(k.split("|")[:2]) for k in keys}
+    if len(heads) > 1:
+        return ", ".join(block_label(k) for k in keys[:-1]) + \
+            " and " + block_label(keys[-1])
+    tgt, era = keys[0].split("|")[:2]
+    bands = [f"${k.split('|')[-1]}$" for k in keys]
+    return (f"{TARGET_LABEL.get(tgt, tgt).replace(' ', '~')}'s "
+            f"{ERA_LABEL.get(int(era.lstrip('e')), era)} "
+            f"{', '.join(bands[:-1])} and {bands[-1]} blocks")
+
+
 def pdot_timescale_yr(period_d: Any, pdot: Any) -> Optional[float]:
     """``P / |dP/dt|`` in years, with the PERIOD in the numerator.
 
@@ -387,8 +430,17 @@ def full_orbit_nights(cv: sqlite3.Connection, series_key: str,
             if len(v) >= min_points and (max(v) - min(v)) > period_d}
 
 
+#: Bins in the folded orbital profile every phase in this paper is read off.
+#: Named because it is also the RESOLUTION of any phase quoted from that
+#: profile: §4.3 compares an independently timed 0.157 cycles with a fall
+#: phase read from this fold, and two phases inside one bin are the same
+#: measurement, while two phases quoted to three decimals look like two.
+FOLD_BINS = 40
+
+
 def _folded_profile(cv: sqlite3.Connection, series_key: str,
-                    target_key: str, n_bins: int = 40, min_count: int = 3):
+                    target_key: str, n_bins: int = FOLD_BINS,
+                    min_count: int = 3):
     """The binned folded light curve of one series: ``(centres, medians)``.
 
     The same statistic Figure 5 draws, computed here so that the one
@@ -499,37 +551,80 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         source="cv_lightcurve",
         note="catalogue-tied target measurements, all series; the five "
              "per-target counts sum to exactly this")
-    # UNTIED TARGET POINTS, SPLIT BY WHY.  An earlier revision described all
-    # of them as sitting in series "whose tie did not converge", which is
-    # true of only one of the three blocks: the other two ARE tied and
-    # appear in Table 2, and their untied rows are individual detections
-    # that the converged solution could not place on the standard system.
+    # UNTIED TARGET ROWS, SPLIT BY WHETHER THE STAR WAS MEASURED AT ALL.
+    #
+    # Two earlier revisions split these the wrong way.  The first put all of
+    # them in series "whose tie did not converge", which is true of one
+    # block of three.  The second split them by the TIE VERDICT of their
+    # block and called every one of them a "detection" the fitted colour
+    # relation could not place on the standard system -- and that is false
+    # of 235 of the 245: the EU UMa Mode0 i and r rows carry inst_mag,
+    # inst_mag_err and mag all NULL, and every one of them matches an
+    # aperture measurement with NEGATIVE flux.  They are NON-DETECTIONS
+    # retained as placeholders on their frames.  A colour relation cannot
+    # fail to place a magnitude that was never measured, so the tie verdict
+    # of their block is not what decides what they are.
+    #
+    # The split that decides it is inst_mag: a row with an instrumental
+    # magnitude is a measurement that stopped short of the standard system;
+    # a row without one is a non-detection.  Only the first may be called a
+    # detection, here or in the prose that quotes these macros.
     untied = rows(cv, """
         SELECT l.series_key AS sk, count(*) AS n,
+               sum(l.inst_mag IS NOT NULL) AS n_inst,
+               sum(COALESCE(d.flux, 0) < 0) AS n_negflux,
                COALESCE(c.verdict, 'no tie') AS verdict
         FROM cv_lightcurve l
         LEFT JOIN cv_cattie c ON c.series_key = l.series_key
                              AND c.is_primary = 1
+        LEFT JOIN cv_detections d ON d.frame_id = l.frame_id
+                                 AND +d.star_id = l.star_id
         WHERE l.role='target' AND l.cal_mag IS NULL
-        GROUP BY 1, 3 ORDER BY n DESC""")
-    n_in_tied = sum(r["n"] for r in untied
-                    if str(r["verdict"]).startswith("TIED"))
-    n_in_untied = sum(r["n"] for r in untied
-                      if not str(r["verdict"]).startswith("TIED"))
+        GROUP BY 1, 5 ORDER BY n DESC""")
+    # ``+d.star_id``: the unary plus keeps the planner off ``idx_det_star``,
+    # which for a target star spans every frame of the archive and turns a
+    # 245-row lookup into a scan of hundreds of thousands of detections.
+    # With it the join rides the (frame_id, det_id) primary key instead and
+    # the emitter runs in seconds rather than minutes.
+    n_detected = sum(r["n_inst"] or 0 for r in untied)
+    n_undetected = sum(r["n"] - (r["n_inst"] or 0) for r in untied)
+    n_negflux = sum(r["n_negflux"] or 0 for r in untied)
+    _nd_blocks = [r for r in untied if (r["n_inst"] or 0) == 0]
     add("points untied", fmt_int(sum(r["n"] for r in untied)),
         source="cv_lightcurve",
-        note="target detections carrying no catalogue-tied magnitude: "
-             + "; ".join(f"{r['sk']} {r['n']} ({r['verdict']})"
+        note="target light-curve rows carrying no catalogue-tied "
+             "magnitude. NOT all detections: "
+             + "; ".join(f"{r['sk']} {r['n']} rows, {r['n_inst']} with an "
+                         f"instrumental magnitude, {r['n_negflux']} with "
+                         f"negative aperture flux ({r['verdict']})"
                          for r in untied))
-    add("points untied in tied blocks", fmt_int(n_in_tied),
+    add("points untied detections", fmt_int(n_detected),
         source="cv_lightcurve",
-        note="detections inside blocks whose tie DID converge and which "
-             "appear in Table 2: individual points the fitted colour "
-             "relation could not place on the standard system, not the "
-             "output of a failed solve")
-    add("points untied in untied blocks", fmt_int(n_in_untied),
+        note="untied rows that ARE detections: a real instrumental "
+             "magnitude and error, positive aperture flux, but no ensemble "
+             "zero point, so the star was measured and never reached the "
+             "natural system or the standard one. Counted with "
+             "inst_mag IS NOT NULL")
+    add("points untied non detections", fmt_int(n_undetected),
         source="cv_lightcurve",
-        note="detections in the one block with no usable tie at all")
+        note="untied rows that are NON-DETECTIONS: inst_mag, inst_mag_err "
+             "and mag all NULL, and the matched aperture flux negative on "
+             f"{n_negflux} of {n_undetected}. Their blocks are tied and in "
+             "Table 2; the tie is not why these rows carry no magnitude, "
+             "because there was no magnitude to place. Counted with "
+             "inst_mag IS NULL")
+    add("points untied non detection blocks",
+        blocks_phrase([r["sk"] for r in _nd_blocks])
+        if _nd_blocks else None,
+        source="cv_lightcurve",
+        note="the blocks those non-detections sit in: "
+             + ", ".join(str(r["sk"]) for r in _nd_blocks))
+    add("points untied non detection neg flux", fmt_int(n_negflux),
+        source="cv_detections",
+        note="of the non-detected untied rows, how many match an aperture "
+             "measurement with flux < 0. Equal to the count itself, which "
+             "is the evidence that they are non-detections and not "
+             "measurements the tie failed to place")
     add("lightcurve rows", fmt_int(one(cv, "SELECT count(*) FROM "
                                        "cv_lightcurve")),
         source="cv_lightcurve",
@@ -794,10 +889,7 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     # at all -- two different series under one description, in a paper that
     # already had to separate two senses of "full-orbit night".  Both are
     # named from the database here so neither sentence can float free.
-    def _blk_label(series_key: str) -> str:
-        tgt, era, filt = str(series_key).split("|")
-        return (f"{TARGET_LABEL.get(tgt, tgt)}'s "
-                f"{ERA_LABEL.get(int(era[1:]), era)} ${filt}$ block")
+    _blk_label = block_label          # one block-naming rule, module level
     _unt = next((r for r in tie if r["verdict"] == "UNTIED"), None)
     add("tie untied block",
         _blk_label(_unt["series_key"]) if _unt else "\\NumMissing",
@@ -850,6 +942,30 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "-- a clipped star may be a blend or a variable rather than a "
              "tie failure -- so the paper prints both and the calibration "
              "goal is missed either way")
+    # HOW FAR THE MEDIAN MISSES THE GOAL, BOTH MEDIANS AGAINST THE SAME
+    # END OF IT.  §3.2 said the median is "between about one and a half and
+    # six times the goal": 1.5 came from 25/20 rounded up and 6 from 64/10,
+    # i.e. the clipped median was compared with the goal's upper bound and
+    # the unclipped one with its lower bound.  That is two different bars
+    # inside one range, in the paragraph whose whole argument is that no
+    # choice is made silently.  Both ratios are now emitted against the
+    # UPPER goal, which is the generous end and therefore the one a
+    # "the goal is missed either way" claim has to survive.
+    _med_c = _median([r["check_rms_clip"] for r in tied], 1000.0)
+    _med_u = _median([r["check_rms"] for r in tied], 1000.0)
+    add("tie median ratio to goal", fmt_float(
+        None if _med_c is None else _med_c / TIE_GOAL_HI_MMAG, 1),
+        source="cv_cattie",
+        note=f"clipped median tie error divided by the {TIE_GOAL_HI_MMAG} "
+             f"mmag UPPER goal: the smaller of the two ratios, quoted "
+             f"against the same bar as the larger one")
+    add("tie median ratio unclipped to goal", fmt_float(
+        None if _med_u is None else _med_u / TIE_GOAL_HI_MMAG, 1),
+        source="cv_cattie",
+        note=f"unclipped median tie error divided by the same "
+             f"{TIE_GOAL_HI_MMAG} mmag upper goal. Against the "
+             f"{TIE_GOAL_LO_MMAG} mmag lower goal both ratios double; the "
+             f"paper quotes one end and names it")
     add("tie blocks clipped", fmt_int(sum(
         1 for r in tied if (r["n_check_outlier"] or 0) > 0)),
         source="cv_cattie",
@@ -948,29 +1064,44 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         note="the same four bars with every held-out check star kept. The "
              "upper end is the Mode0 g-r panel and is an order of magnitude "
              "above the calibration goal, which is why §3.3 states it")
-    add("tie goal lo mmag", fmt_int(10), unit="mmag",
+    add("tie goal lo mmag", fmt_int(TIE_GOAL_LO_MMAG), unit="mmag",
         source="ANALYSIS_STRATEGY §5", note="the stated accuracy goal")
-    add("tie goal hi mmag", fmt_int(20), unit="mmag",
-        source="ANALYSIS_STRATEGY §5")
+    add("tie goal hi mmag", fmt_int(TIE_GOAL_HI_MMAG), unit="mmag",
+        source="ANALYSIS_STRATEGY §5",
+        note="the goal's upper bound, and the end both median ratios above "
+             "are quoted against")
+    # THE COLOUR-TERM CENSUS, OVER THE TIED BLOCKS AND ONLY THOSE.  These
+    # four counted over all 26 PRIMARY blocks while §3.2's sentence had
+    # just fixed the population at the 25 TIED ones, so the census summed
+    # to 26 over 25 and a reader adding 12 and 14 found one block too many.
+    # The 26th is the UNTIED block, whose colour_position is NULL and which
+    # was landing in "unknown": it has no colour term to interpolate at
+    # all, so its place in a census of colour terms is nowhere.  The four
+    # now partition the tied blocks exactly, and inside + unsafe == tied.
+    _inside = ("inside-span", "inside-core")
     add("tie extrapolated", fmt_int(sum(
-        1 for r in tie if r["colour_position"] == "extrapolated")),
+        1 for r in tied if r["colour_position"] == "extrapolated")),
         source="cv_cattie",
-        note="blocks that place the CV OUTSIDE the fitted colour range, so "
-             "their colour term is an extrapolation")
+        note="TIED blocks that place the CV OUTSIDE the fitted colour "
+             "range, so their colour term is an extrapolation")
     add("tie colour unknown", fmt_int(sum(
-        1 for r in tie if r["colour_position"] in (None, "unknown"))),
+        1 for r in tied if r["colour_position"] in (None, "unknown"))),
         source="cv_cattie",
-        note="blocks in which the CV's own colour could not be measured at "
-             "all, so it cannot even be checked against the fitted range")
+        note="TIED blocks in which the CV's own colour could not be "
+             "measured at all, so it cannot even be checked against the "
+             "fitted range. The untied block is not counted here: it has "
+             "no colour term for the question to be about")
     add("tie colour unsafe", fmt_int(sum(
-        1 for r in tie if r["colour_position"] not in
-        ("inside-span", "inside-core"))),
+        1 for r in tied if r["colour_position"] not in _inside)),
         source="cv_cattie",
-        note="extrapolated plus unknown: every block whose colour term is "
-             "not demonstrably an interpolation")
+        note="extrapolated plus unknown: every TIED block whose colour "
+             "term is not demonstrably an interpolation. This plus "
+             "'tie colour inside' is exactly 'tie tied'")
     add("tie colour inside", fmt_int(sum(
-        1 for r in tie if r["colour_position"] in
-        ("inside-span", "inside-core"))), source="cv_cattie")
+        1 for r in tied if r["colour_position"] in _inside)),
+        source="cv_cattie",
+        note="TIED blocks that place the CV inside the fitted colour "
+             "range, so their colour term is an interpolation")
 
     veto = rows(cv, "SELECT * FROM p2_cloud_series")
     fl, fh = _minmax([r["frac_vetoed"] for r in veto], 100.0)
@@ -1300,8 +1431,20 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     # crosses the very instrument seam §2.1 insists cannot be crossed for
     # saturation, so it has to be stated, and it has to be checked.  The
     # check is oc_night_chi2nu_edge: the same reduced chi-squared computed
-    # from the edge fits' OWN Monte-Carlo errors, which are measured on
-    # every night in its own era.
+    # from the edge fits' OWN errors instead of the transported budget.
+    #
+    # WHAT THAT CHECK IS AND IS NOT.  It was described here and in §4.2 as
+    # resting on "Monte-Carlo errors, measured on every night in its own
+    # era".  It is not.  ``night_epochs`` builds oc_sigma_edge_s from
+    # ``max(sigma_t_s, sigma_t_mc_s)``, i.e. the Monte-Carlo sigma where
+    # the fitter produced one and the RESCALED FORMAL BAR otherwise -- and
+    # no 2024 edge has a Monte-Carlo sigma at all.  The epochs with no
+    # Monte-Carlo error are exactly the 9 whose budget was transported, so
+    # on precisely the epochs the check exists to validate it supplies no
+    # independently measured per-era error.  The macros below count that
+    # coverage and emit the check restricted to the epochs where it is
+    # what it claims to be, so no sentence can quote the whole-set number
+    # as though the Monte-Carlo errors were everywhere.
     # =====================================================================
     add("timing budget night", one(
         cv, "SELECT value FROM p3_meta WHERE key='sigmat_night'"),
@@ -1343,9 +1486,57 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         source="p3_oc_night",
         note="THE CHECK ON THE TRANSFER: the same reduced chi-squared, on "
              f"the same {_dof} degrees of freedom, computed from the edge "
-             "fits' own Monte-Carlo errors instead of the transported "
-             "injection budget. It agrees, so the null does not rest on "
-             "the transfer")
+             "fits' OWN errors instead of the transported injection "
+             "budget. Those errors are the fitter's Monte-Carlo sigma "
+             "where it produced one and the rescaled formal bar otherwise; "
+             "see 'st lmi epochs edge monte carlo' for how many epochs are "
+             "which")
+    # HOW MUCH OF THE CHECK IS ACTUALLY MONTE-CARLO.  An epoch's edge error
+    # is Monte-Carlo only if EVERY edge averaged into it carries one.
+    _acc = rows(cv, "SELECT night, filter, sigma_t_mc_s FROM p3_edge "
+                    "WHERE target_key='stlmi' AND accepted=1")
+    _by_ep: dict[tuple, list] = {}
+    for _e in _acc:
+        _by_ep.setdefault((str(_e["night"]), str(_e["filter"])), []).append(_e)
+
+    def _all_monte_carlo(row) -> bool:
+        g = _by_ep.get((str(row["night"]), str(row["filter"])))
+        return bool(g) and all(x["sigma_t_mc_s"] is not None for x in g)
+    _mc_ep = [r for r in ocn if _all_monte_carlo(r)]
+    _fb_ep = [r for r in ocn if not _all_monte_carlo(r)]
+    add("st lmi epochs edge monte carlo", fmt_int(len(_mc_ep)),
+        source="p3_edge",
+        note="published epochs every one of whose accepted edges carries a "
+             "Monte-Carlo error from the fitter, so the check on the "
+             "transfer really is an independently measured per-night error "
+             "for them")
+    add("st lmi epochs edge formal", fmt_int(len(_fb_ep)),
+        source="p3_edge",
+        note="published epochs with NO Monte-Carlo error on any edge, "
+             "whose entry in the check is the rescaled formal bar instead: "
+             + ", ".join(f"{r['night']} {r['filter']}" for r in _fb_ep)
+             + ". These are exactly the epochs whose injection budget was "
+               "transported across the instrument seam, so for them the "
+               "check supplies no independent per-era measurement")
+    _mc_only = (sum((r["oc_s"] / r["oc_sigma_edge_s"]) ** 2 for r in _mc_ep)
+                if _mc_ep and all(r["oc_sigma_edge_s"] for r in _mc_ep)
+                else None)
+    add("st lmi oc chisq edge monte carlo",
+        fmt_float(None if _mc_only is None else _mc_only / len(_mc_ep), 2),
+        source="p3_oc_night",
+        note="the part of the check that is what it claims to be: "
+             f"chi-squared PER EPOCH over the {len(_mc_ep)} epochs whose "
+             "edge errors are all Monte-Carlo. Per epoch and not per "
+             "degree of freedom, because the one absorbed constant was "
+             "fitted across every epoch and is not attributable to this "
+             "subset")
+    _fb_lo = _minmax([r["oc_sigma_edge_s"] for r in _fb_ep])[0]
+    add("st lmi edge formal bar min s", fmt_float(_fb_lo, 1), unit="s",
+        source="p3_oc_night",
+        note="the smallest formal-bar epoch error standing in for a "
+             "Monte-Carlo one. Far below the injection test's own "
+             "per-cycle floor, which is why the paper does not treat the "
+             "fallback bars as measured precisions")
     add("st lmi sigma night edge median s",
         fmt_float(st_cc.get("sigma_night_edge_median_s"), 0), unit="s",
         source="p3_cycle_count",
@@ -1353,7 +1544,18 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     # The same check split by era, because the transfer is exactly an
     # across-era assumption and a reader is entitled to see it tested
     # inside each era separately.
-    for era, tag in ((7, "high gain"), (76, "mode zero")):
+    #
+    # ALL THREE ERAS, NOT TWO.  The loop ran over High Gain and Mode0 and
+    # the prose quoted 8 + 27 = 35 against a set of 36 epochs, leaving the
+    # single 1MHz HS 16-bit z epoch out with no explanation -- the same
+    # epoch the paragraph names two sentences earlier as the fallback-band
+    # one and the same epoch Figure 9's legend draws in a colour of its
+    # own.  The eras are taken from the data rather than typed, so a new
+    # era cannot silently drop out of the sum again.
+    _eras = sorted({int(r["era_id"]) for r in ocn})
+    _era_tag = {7: "high gain", 47: "one mhz hs z", 76: "mode zero"}
+    for era in _eras:
+        tag = _era_tag.get(era, f"era {era}")
         sub = [r for r in ocn if r["era_id"] == era]
         add(f"st lmi epochs {tag}", fmt_int(len(sub)),
             source="p3_oc_night")
@@ -1524,12 +1726,33 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         source="p3_meta",
         note="phase scatter above which pooled edges are timing different "
              "features and no O-C may be built")
+    # HOW BADLY THE TWO FAIL, AGAINST BOTH THINGS A READER MIGHT MEAN.
+    # §4.3 said they "fail by an order of magnitude" in the sentence right
+    # after naming the 0.05 bar, and against THAT bar they fail by 3.0 and
+    # 2.6.  The order of magnitude is against ST LMi's 0.014, which is the
+    # comparison the clause did not name.  Both ratios are emitted so the
+    # sentence has to say which one it means.
+    _bar = one(cv, "SELECT value FROM p3_meta WHERE "
+                   "key='one_feature_bar_cycles'")
+    _st_spread = st_cc.get("phase_spread")
     for tgt, tag in (("anuma", "an uma"), ("vvpup", "vv pup")):
-        add(f"{tag} phase spread", fmt_float(
-            cc.get(tgt, {}).get("phase_spread"), 3), unit="cycles",
+        _sp = cc.get(tgt, {}).get("phase_spread")
+        add(f"{tag} phase spread", fmt_float(_sp, 3), unit="cycles",
             source="p3_cycle_count",
             note="above the 0.05 bar: these epochs time different features "
                  "and CV-S9 refused to build an O-C from them")
+        add(f"{tag} phase spread over bar",
+            fmt_float(None if not (_sp and _bar) else _sp / float(_bar), 1),
+            source="p3_cycle_count",
+            note="this target's phase scatter divided by the ONE-FEATURE "
+                 "BAR: how far it misses the test it is being judged by")
+        add(f"{tag} phase spread over st lmi",
+            fmt_float(None if not (_sp and _st_spread)
+                      else _sp / float(_st_spread), 0),
+            source="p3_cycle_count",
+            note="the same scatter divided by ST LMi's, which is the "
+                 "comparison an 'order of magnitude' claim is true of and "
+                 "the bar is not")
 
     st = rows(cv, "SELECT * FROM p3_state_series WHERE separability "
                   "IS NOT NULL")
@@ -1635,9 +1858,31 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     flo, fhi = _minmax(fall_ph)
     add("st lmi fall phase range", fmt_range(flo, fhi, 2), unit="cycles",
         source="cv_lightcurve",
-        note="phase of the steepest FAINTWARD gradient of the 40-bin "
-             "folded profile, over every solved g/r/i ST LMi series in both "
-             "eras: the falling edge §4.3 times")
+        note=f"phase of the steepest FAINTWARD gradient of the "
+             f"{FOLD_BINS}-bin folded profile, over every solved g/r/i "
+             f"ST LMi series in both eras: the falling edge §4.3 times")
+    # THE RESOLUTION THE PREVIOUS TWO NUMBERS AGREE AT.  §4.3 called the
+    # timed 0.157 cycles "the same number" as this 0.16--0.19 range, which
+    # does not contain it.  The corroboration is real -- 0.157 and the
+    # range's lower end fall in ONE bin of this fold -- but it is an
+    # agreement at the fold's own resolution and not an identity, so the
+    # bin count and the shared bin are emitted and the sentence says which
+    # it is claiming.
+    add("fold profile bins", fmt_int(FOLD_BINS), source="cv_lightcurve",
+        note="bins in the folded orbital profile every phase read off it "
+             "carries; its bin width is the resolution of such a phase")
+    _obc = (st_cc["oc_mean_s"] / _Ps
+            if _Ps and st_cc.get("oc_mean_s") else None)
+    _bin = None if _obc is None else int(_obc * FOLD_BINS)
+    add("st lmi oc offset bin range",
+        None if _bin is None else fmt_range(_bin / FOLD_BINS,
+                                            (_bin + 1) / FOLD_BINS, 3),
+        unit="cycles", source="p3_cycle_count",
+        note=f"the one bin of the {FOLD_BINS}-bin fold that the timed "
+             f"edge-to-epoch offset falls in. The steepest faintward "
+             f"gradient falls in the same bin, which is what the two "
+             f"independent measurements agree to -- not to a common value "
+             f"at three decimals")
     rlo2, rhi2 = _minmax(ratios)
     add("st lmi fall rise ratio range", fmt_range(rlo2, rhi2, 1),
         source="cv_lightcurve",
@@ -1723,6 +1968,20 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "residuals: the red-noise null the hump does not clear")
     add("hump scopes tested", fmt_int(len(run)), source="p4_run",
         note="quiescent scopes on which BOTH contours could be measured")
+    # HOW MANY OF THOSE SCOPES ARE RUNS.  Half of them are not: three are
+    # kind='block' rows folding two nights together under one free constant
+    # per night, and the block construction is what gives those three their
+    # sensitivity.  Figure 11 called all six "runs" and labelled the blocks
+    # by their first night; §6.4 says "scopes" and now says how they split.
+    _blocks = [r for r in run if str(r["kind"]) == "block"]
+    add("hump scopes blocks", fmt_int(len(_blocks)), source="p4_run",
+        note="of the tested quiescent scopes, how many are TWO-NIGHT "
+             "BLOCKS rather than single runs: "
+             + ("; ".join(f"{r['scope']} over {r['utc_nights']} UTC"
+                          for r in _blocks) or "none"))
+    add("hump scopes runs", fmt_int(len(run) - len(_blocks)),
+        source="p4_run",
+        note="the remainder: single-night dense runs")
     add("hump scopes quiescent", fmt_int(one(
         cv, "SELECT count(*) FROM p4_run WHERE upper(state)='QUIESCENT'")),
         source="p4_run",
@@ -1869,18 +2128,50 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     # exists is (a) the analytic budget, which §4.2 forbids quoting as
     # achieved, and (b) the per-epoch errors of the edges actually fitted.
     # Both are emitted, under names that cannot be mistaken for each other.
-    an_edge = rows(cv, "SELECT sigma_t_s, accepted FROM p3_edge "
-                       "WHERE target_key='anuma'")
+    an_edge = rows(cv, "SELECT sigma_t_s, accepted, night, filter, cycle, "
+                       "reason FROM p3_edge WHERE target_key='anuma'")
     elo, ehi = _minmax([r["sigma_t_s"] for r in an_edge])
     alo2, ahi2 = _minmax([r["sigma_t_s"] for r in an_edge if r["accepted"]])
+    # HOW MANY OF THEM ARE ACTUALLY OUTSIDE THE THRESHOLD.  §5.3 and
+    # Conclusion 6 said the whole 57--798 s range "lies outside the 60 s
+    # threshold" in the sentence that prints 57, and a reader comparing two
+    # adjacent numbers falsifies it.  One fitted edge is inside: it was
+    # rejected on step signal-to-noise, not on precision, so the claim is
+    # true of the ACCEPTED set and of 23 of the 24 fitted ones.  The counts
+    # are emitted so no sentence has to universally quantify over a range
+    # whose printed lower end contradicts it.
+    _thr = float(thr)
+    _inside = [r for r in an_edge
+               if r["sigma_t_s"] is not None and float(r["sigma_t_s"]) < _thr]
+    add("an uma edges outside threshold",
+        fmt_int(len(an_edge) - len(_inside)), source="p3_edge",
+        note=f"fitted AN UMa edges whose per-epoch error is outside the "
+             f"{_thr:.0f} s threshold. NOT all of them: the range's lower "
+             f"end is inside it")
+    add("an uma edges inside threshold", fmt_int(len(_inside)),
+        source="p3_edge",
+        note="fitted AN UMa edges INSIDE the threshold: "
+             + ("; ".join(f"{r['night']} {r['filter']} cycle {r['cycle']} at "
+                          f"{float(r['sigma_t_s']):.0f} s, "
+                          f"{'accepted' if r['accepted'] else str(r['reason'])}"
+                          for r in _inside) or "none")
+             + ". Every one of them was rejected on the step signal-to-noise "
+               "bar rather than on precision, which is why the accepted "
+               "edges are all outside the threshold and the fitted ones are "
+               "not")
     add("an uma edge sigma range s", fmt_range(elo, ehi, 0), unit="s",
         source="p3_edge",
-        note="MEASURED per-epoch timing error of every bright-phase edge "
-             "fitted for AN UMa; the whole range lies outside the 60 s "
-             "threshold")
+        note=f"MEASURED per-epoch timing error of every bright-phase edge "
+             f"fitted for AN UMa, accepted or not. The lower end is INSIDE "
+             f"the {_thr:.0f} s threshold: "
+             f"{len(an_edge) - len(_inside)} of {len(an_edge)} fitted edges "
+             f"are outside it, and all "
+             f"{sum(1 for r in an_edge if r['accepted'])} accepted ones are")
     add("an uma edge sigma accepted range s", fmt_range(alo2, ahi2, 0),
         unit="s", source="p3_edge",
-        note="the same, over the accepted edges only")
+        note=f"the same, over the accepted edges only. This is the set the "
+             f"paper's 'every one outside the {_thr:.0f} s threshold' claim "
+             f"is true of")
     add("an uma edges accepted", fmt_int(sum(1 for r in an_edge
                                              if r["accepted"])),
         source="p3_edge")

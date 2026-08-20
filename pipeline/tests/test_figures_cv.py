@@ -459,6 +459,46 @@ def test_envelope_report_counts_the_epochs_outside():
     assert rep["env_max"] == pytest.approx(50.0)
 
 
+def test_envelope_report_gives_the_two_ends_separately():
+    """Referee 4, minor.  Figure 9's caption said the envelope "reaches only
+    293 s at the ends of the baseline"; it reaches 293 s at the late end and
+    49 s at the early one, because the curve is a parabola with a weighted
+    linear fit removed and is strongly asymmetric.  The report has to be
+    able to tell a caption the two ends apart, and has to order them by
+    cycle rather than by the order the query happened to return."""
+    rep = fx._envelope_report([0.0, 0.0, 0.0], [8.0, 8.0, 8.0],
+                              [293.0, -76.0, 49.0],
+                              cycles=[21868.5, 16000.0, 13181.0])
+    assert rep["env_first"] == pytest.approx(49.0)
+    assert rep["env_last"] == pytest.approx(293.0)
+    assert rep["env_max"] == pytest.approx(293.0)
+    # Without cycles it must still answer, in array order.
+    plain = fx._envelope_report([0.0], [8.0], [49.0])
+    assert plain["env_first"] == plain["env_last"] == pytest.approx(49.0)
+
+
+# ===========================================================================
+# A scope's name carries every night it folds
+# ===========================================================================
+def test_a_two_night_block_is_not_labelled_by_one_night():
+    """Referee 4, minor.  Three of Figure 11's six rows are two-night blocks
+    and were labelled '2024-05-02', which is one of their nights."""
+    from macro_phot import final_science as fs
+    assert fs.run_scope_label("2024-05-02+2024-05-03", None) == \
+        "2024-05-02+03"
+    assert fs.run_scope_label("2024-02-21", "2024-02-20") == "2024-02-21"
+    assert fs.is_multi_night_scope("2024-05-02+2024-05-03", None)
+    assert not fs.is_multi_night_scope("2024-02-21", "2024-02-20")
+
+
+def test_a_block_across_a_month_boundary_keeps_the_second_month():
+    """The day alone is ambiguous when the two nights are in different
+    months, so the label keeps the whole date there."""
+    from macro_phot import final_science as fs
+    assert fs.run_scope_label("2024-04-30+2024-05-01", None) == \
+        "2024-04-30+2024-05-01"
+
+
 # ===========================================================================
 # dynamic_range_ratios -- one comparison, one pair of numbers
 # ===========================================================================
