@@ -842,3 +842,385 @@ class TestTheRemainingReferee4Minors:
         assert (_num(numbers, "NumHumpScopesRuns")
                 + _num(numbers, "NumHumpScopesBlocks")
                 == _num(numbers, "NumHumpScopesTested"))
+
+
+# ---------------------------------------------------------------------------
+# Referee 5
+# ---------------------------------------------------------------------------
+CHAR_DB = REPO_ROOT / "products" / "phot" / "cv_characterization.sqlite"
+MANIFEST_DB = REPO_ROOT / "products" / "manifest" / "rlmt-manifest.sqlite"
+
+#: The three databases §7 says the release comprises, by the file name the
+#: emitter records in ``p5_number.db``.
+RELEASE_DBS = {
+    "cv_timeseries.sqlite": PHOT_DB,
+    "cv_characterization.sqlite": CHAR_DB,
+    "rlmt-manifest.sqlite": MANIFEST_DB,
+}
+
+
+@pytest.fixture(scope="module")
+def release_tables() -> dict:
+    """``{database file name: {table and view names}}`` for all three."""
+    out = {}
+    for name, path in RELEASE_DBS.items():
+        if not path.exists():
+            pytest.skip(f"{name} not built in this checkout")
+        con = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=300)
+        con.execute("PRAGMA busy_timeout = 300000")
+        out[name] = {r[0] for r in con.execute(
+            "SELECT name FROM sqlite_master WHERE type IN ('table','view')")}
+        con.close()
+    return out
+
+
+@pytest.fixture(scope="module")
+def macro_rows(phot) -> list:
+    """Every p5_number row as a dict, or a skip if the stage has not run."""
+    cols = {r[1] for r in phot.execute("PRAGMA table_info(p5_number)")}
+    if not {"db", "kind"} <= cols:
+        pytest.skip("p5_number predates the db/kind columns; re-run "
+                    "run_cv_paper.py numbers")
+    return [dict(zip(("macro", "value", "unit", "source", "note", "db",
+                      "kind"), r))
+            for r in phot.execute("SELECT macro, value_tex, unit, source, "
+                                  "note, db, kind FROM p5_number")]
+
+
+class TestTheReleaseIsTheDatabasesTheSectionNames:
+    """Referee 5, major.  §7 opened "released as a single SQLite database"
+    and closed by claiming that running the emitter "against the released
+    database" reproduces every number.  Thirty-one macros --- the whole of
+    Table 1, the abstract's own precision range, the injection contours,
+    the check-bias ratio --- resolve in neither that database nor anything
+    it references, and five of the thirteen figures are drawn from more
+    than one database.  §7 now names all three and says which macros come
+    from which, and the mapping is measured rather than asserted."""
+
+    def test_every_macro_resolves_in_the_database_it_records(
+            self, macro_rows, release_tables):
+        """The claim under test is exactly the reader's: take a macro, open
+        the database §7 sends you to, find the table it names."""
+        unresolved = []
+        for r in macro_rows:
+            if r["kind"] == "external":
+                continue
+            tables = release_tables.get(r["db"])
+            assert tables is not None, (
+                f"{r['macro']} records database {r['db']!r}, which §7 does "
+                f"not name")
+            if r["source"] not in tables:
+                unresolved.append(f"{r['macro']}: {r['source']} not in "
+                                  f"{r['db']}")
+        assert not unresolved, (
+            "macros whose source table is not in the database they claim: "
+            + "; ".join(unresolved))
+
+    def test_no_external_constant_hides_in_a_products_table(
+            self, macro_rows, release_tables):
+        """The other half of the same invariant: a value flagged external
+        must not be a query against anything released, or the flag is a
+        label rather than a fact."""
+        bad = [r["macro"] for r in macro_rows if r["kind"] == "external"
+               and any(r["source"] in t for t in release_tables.values())]
+        assert not bad, (
+            f"macros flagged external whose source IS a released table: "
+            f"{bad}")
+
+    def test_section_seven_names_all_three_and_no_longer_says_one(
+            self, body):
+        for name in ("cv\\_timeseries.sqlite", "cv\\_characterization.sqlite",
+                     "rlmt-manifest.sqlite"):
+            assert name in body, f"§7 does not name {name}"
+        assert "released as a single SQLite database" not in body
+        assert "against the released database" not in body
+
+    def test_the_census_macros_partition_the_macro_table(self, numbers,
+                                                          macro_rows):
+        """§7's own counts are emitted from p5_number, so they cannot drift
+        from it: the four parts must sum to the whole."""
+        total = _num(numbers, "NumMacrosTotal")
+        parts = {
+            "NumMacrosPhot": "cv_timeseries.sqlite",
+            "NumMacrosCharacterisation": "cv_characterization.sqlite",
+            "NumMacrosManifest": "rlmt-manifest.sqlite",
+        }
+        assert total == len(macro_rows)
+        for macro, db in parts.items():
+            assert _num(numbers, macro) == sum(
+                1 for r in macro_rows if r["db"] == db), macro
+        assert _num(numbers, "NumMacrosExternal") == sum(
+            1 for r in macro_rows if r["kind"] == "external")
+        assert (sum(_num(numbers, m) for m in parts)
+                + _num(numbers, "NumMacrosExternal") == total)
+
+    def test_every_table_a_figure_was_drawn_from_is_in_the_release(
+            self, phot, release_tables):
+        """The same claim for the figures.  §7 says running the generator
+        against the release redraws every one of them, so every table a
+        figure recorded reading has to be in a database §7 names."""
+        rows = phot.execute(
+            "SELECT fig_id, COALESCE(tables_used,'') FROM p5_figure"
+        ).fetchall()
+        assert rows, "no figures recorded; run run_cv_paper.py figures"
+        stray = []
+        for fig_id, used in rows:
+            for table in [t.strip() for t in used.split(",") if t.strip()]:
+                if not any(table in t for t in release_tables.values()):
+                    stray.append(f"{fig_id}: {table}")
+        assert not stray, (
+            f"figures drawn from tables that are in none of the released "
+            f"databases: {stray}")
+
+    def test_the_figure_census_macros_match_the_figure_table(self, numbers,
+                                                              phot,
+                                                              release_tables):
+        rows = phot.execute(
+            "SELECT COALESCE(tables_used,'') FROM p5_figure").fetchall()
+        dbs = []
+        for (used,) in rows:
+            tables = [t.strip() for t in used.split(",") if t.strip()]
+            dbs.append({name for name, have in release_tables.items()
+                        for t in tables if t in have})
+        assert _num(numbers, "NumFiguresTotal") == len(rows)
+        assert _num(numbers, "NumFiguresBeyondPhot") == sum(
+            1 for d in dbs if d - {"cv_timeseries.sqlite"})
+        assert _num(numbers, "NumFiguresMultiDatabase") == sum(
+            1 for d in dbs if len(d) > 1)
+        assert _num(numbers, "NumFiguresBeyondPhot") > 0, (
+            "if no figure needs another database any more, §7's sentence "
+            "about them should be retired deliberately")
+
+    def test_the_headline_numbers_are_attributed_to_their_own_database(
+            self, macro_rows):
+        """The two the referee named: the abstract's per-point precision is
+        not in the photometry database, and neither is any of Table 1."""
+        by_macro = {r["macro"]: r for r in macro_rows}
+        assert by_macro["NumPrecisionRangeMmag"]["db"] == \
+            "cv_characterization.sqlite"
+        table_one = [r for r in macro_rows
+                     if r["source"] in ("detector_params",
+                                        "s2_ceiling_modes")]
+        assert table_one, "Table 1's macros have vanished from p5_number"
+        assert {r["db"] for r in table_one} == {"rlmt-manifest.sqlite"}
+
+
+class TestExternalConstantsAreSeparableWithOneQuery:
+    """Referee 5, major.  §1 and Conclusion 10 promised that every external
+    constant carries "the strategy section or the citation as its source,
+    never a products table", so filtering on the source field separates
+    constants from measurements.  Six macros broke it, among them the 60 s
+    timing threshold quoted in the abstract, the 0.05 one-feature bar and
+    the 50 mmag literature superhump floor: all three were sourced to a
+    stage-meta or products table, so a reader doing what §1 describes was
+    left believing they were measurements of this programme."""
+
+    #: The constants the referee named, plus the catalogue periods.  Each
+    #: must be flagged external; the test does not care which origin string
+    #: it carries, only that it is not a products table.
+    NAMED = ("NumSigmaTThresholdS", "NumOneFeatureBar",
+             "NumStateSeparabilityBar", "NumFullOrbitMinPoints",
+             "NumSuperhumpFloorMmag", "NumStLmiPeriodD", "NumStLmiPeriodMin",
+             "NumVvPupPeriodD", "NumYzCncPeriodD", "NumEuUmaPeriodD",
+             "NumAnUmaPeriodD")
+
+    def test_the_named_constants_are_flagged_external(self, macro_rows):
+        by_macro = {r["macro"]: r for r in macro_rows}
+        wrong = [m for m in self.NAMED
+                 if by_macro[m]["kind"] != "external"]
+        assert not wrong, (
+            f"still recorded as measurements of this programme: {wrong}")
+
+    def test_a_note_that_names_an_outside_origin_is_never_a_measurement(
+            self, macro_rows):
+        """The lint that closes this at the root.  A note saying the value
+        was set in advance, fixed by a stage, or published elsewhere
+        describes something we did not measure, and such a value may not
+        carry a products table as its source."""
+        outside = re.compile(
+            r"set in advance|set by CV-S\d|published VSX|"
+            r"published superhump|taken from the literature", re.I)
+        bad = [r["macro"] for r in macro_rows
+               if r["kind"] == "measured" and outside.search(r["note"] or "")]
+        assert not bad, (
+            f"macros whose own note says they came from outside this "
+            f"programme, sourced to a products table: {bad}")
+
+    def test_every_external_constant_says_where_it_came_from(self,
+                                                             macro_rows):
+        """The inverse: a flag with no explanation is not provenance."""
+        origin = re.compile(
+            r"set in advance|set by CV-S\d|published|literature|catalogue",
+            re.I)
+        silent = [r["macro"] for r in macro_rows if r["kind"] == "external"
+                  and not origin.search(r["note"] or "")]
+        assert not silent, (
+            f"external constants whose note does not name an origin: "
+            f"{silent}")
+
+    def test_the_promise_in_the_introduction_matches_the_table(self, body,
+                                                               numbers,
+                                                               macro_rows):
+        n_external = sum(1 for r in macro_rows if r["kind"] == "external")
+        assert _num(numbers, "NumMacrosExternal") == n_external
+        assert "\\NumMacrosExternal" in body, (
+            "§1 promises a reader can separate the constants but does not "
+            "say how many there are to find")
+        assert "never with a products table" in " ".join(body.split()), (
+            "§1 no longer states the rule the flag enforces")
+
+
+class TestARangeIsQuotedOverThePopulationItsSentenceIsAbout:
+    """Referee 5, minor.  §4.5 printed a separability range of 0.65--0.99
+    over the 11 series that "separate into two populations", in a sentence
+    that had just set the bar for separating at 0.75.  The range was over
+    all 15 GRADED series; over the 11 it is 0.76--0.99.  The generic lint
+    below is the AN UMa range/threshold test made general, because that one
+    walked a single macro by name and so could not see this."""
+
+    def _range(self, numbers, name):
+        raw = numbers[name].replace("\\,", "")
+        lo, hi = raw.split("--") if "--" in raw else raw.split(" to ")
+        return float(lo), float(hi)
+
+    def test_the_bimodal_range_clears_the_bar_and_matches_the_database(
+            self, numbers, phot):
+        lo, hi = self._range(numbers, "NumStateSeparabilityBimodalRange")
+        bar = _num(numbers, "NumStateSeparabilityBar")
+        db_lo, db_hi = phot.execute(
+            "SELECT min(separability), max(separability) FROM "
+            "p3_state_series WHERE bimodal=1").fetchone()
+        assert lo == pytest.approx(db_lo, abs=0.005)
+        assert hi == pytest.approx(db_hi, abs=0.005)
+        assert lo >= bar, (
+            "a series counted as bimodal now sits below the bar; that would "
+            "be a defect in the classifier, not in the sentence")
+
+    def test_the_graded_range_is_still_emitted_and_is_the_wider_one(
+            self, numbers, phot):
+        glo, ghi = self._range(numbers, "NumStateSeparabilityRange")
+        blo, _ = self._range(numbers, "NumStateSeparabilityBimodalRange")
+        db_lo = phot.execute(
+            "SELECT min(separability) FROM p3_state_series WHERE "
+            "separability IS NOT NULL").fetchone()[0]
+        assert glo == pytest.approx(db_lo, abs=0.005)
+        assert glo <= blo
+
+    def test_the_sentence_about_the_bimodal_series_quotes_their_own_range(
+            self, body):
+        sentences = [s for s in re.split(r"(?<=[.;])\s", body)
+                     if "\\NumStateSeriesBimodal" in s]
+        assert sentences, "§4.5's bimodal sentence has gone"
+        for s in sentences:
+            if "\\NumStateSeparability" not in s:
+                continue
+            assert "\\NumStateSeparabilityBimodalRange" in s, (
+                "the sentence about the series that separate quotes a "
+                "separability range that is not theirs: "
+                + " ".join(s.split())[:200])
+
+    def test_no_claim_straddles_a_bar_it_prints_without_saying_over_what(
+            self, body, macro_rows, numbers):
+        """The general form of this defect, and of the AN UMa one before
+        it.  A range that STRADDLES a bar printed beside it is ambiguous by
+        construction --- part of what it covers clears the bar and part does
+        not --- so the claim must name the population the range is over.
+
+        Scope is a sentence and the one before it, because that is how the
+        bar reached this sentence: §4.5 set the 0.75 bar in one sentence and
+        quoted the 0.65--0.99 range in the next.  Comparisons are made only
+        between macros in the same unit, so a cycle count beside a threshold
+        in seconds is not treated as a comparison.  A claim escapes either
+        by naming the wider set in words, or by printing the counts on each
+        side of the bar, which is what the paragraphs that legitimately
+        straddle one already do."""
+        unit = {r["macro"]: (r["unit"] or "") for r in macro_rows}
+        rng = {k: v for k, v in numbers.items()
+               if re.fullmatch(r"[-0-9.]+--[-0-9.]+", v.replace("\\,", ""))}
+        bars = {k: v for k, v in numbers.items()
+                if re.search(r"(Bar|Threshold[A-Za-z]*)$", k)
+                and re.fullmatch(r"[-0-9.]+", v.replace("\\,", ""))}
+        scope = re.compile(r"\bgraded\b|\bfitted\b|\battempted\b|"
+                           r"\bfull grid\b|\ball \\Num", re.I)
+        split_macro = re.compile(
+            r"\\Num[A-Za-z]*(AtThreshold|BelowThreshold|Outside[A-Za-z]*"
+            r"|Inside[A-Za-z]*)\b")
+        sentences = re.split(r"(?<=[.;])\s", body)
+        offenders = []
+        for i, sentence in enumerate(sentences):
+            window = " ".join(sentences[max(0, i - 1):i + 1])
+            for rk in rng:
+                if f"\\{rk}" not in sentence:
+                    continue
+                for bk in bars:
+                    if f"\\{bk}" not in window:
+                        continue
+                    if unit.get(rk, "") != unit.get(bk, ""):
+                        continue
+                    lo, hi = (float(x) for x in
+                              rng[rk].replace("\\,", "").split("--"))
+                    bar = float(bars[bk].replace("\\,", ""))
+                    if not lo < bar <= hi:
+                        continue
+                    if scope.search(window) or split_macro.search(window):
+                        continue
+                    offenders.append(
+                        f"{rk} ({rng[rk]}) straddles {bk} ({bars[bk]}): "
+                        + " ".join(window.split())[-170:])
+        assert not offenders, (
+            "a claim quotes a range that straddles a bar printed beside it "
+            "without naming the population the range is over: "
+            + " | ".join(offenders))
+
+
+class TestTheMacroTableRecordsWhatSectionSevenSaysItRecords:
+    """Referee 5, minor.  §7 and Conclusion 10 said the macro table records
+    "the query that produced" each value.  p5_number has no query column and
+    never had one --- source is a bare table name, note is prose --- and 72
+    of its 293 rows carried no note either, so those rows recorded a table
+    name and nothing else."""
+
+    def test_every_macro_carries_a_note(self, macro_rows):
+        silent = sorted(r["macro"] for r in macro_rows
+                        if not (r["note"] or "").strip())
+        assert not silent, (
+            f"{len(silent)} macros record a table name and nothing else: "
+            f"{silent[:12]}")
+
+    def test_the_paper_does_not_claim_a_query_the_table_does_not_hold(
+            self, body, phot):
+        cols = {r[1] for r in phot.execute("PRAGMA table_info(p5_number)")}
+        if "query" in cols:
+            pytest.skip("p5_number now holds the SQL; the claim may return")
+        flat = " ".join(body.split())
+        assert "the query that produced" not in flat
+        assert "recording the query and" not in flat
+        assert "a note on how the value was derived" in flat, (
+            "§7 no longer says what the macro table does record")
+
+
+class TestFigureSevenNamesTheEraTheWayTheTablesDo:
+    """Referee 5, minor.  Figure 7's caption called VV Pup's 2024 era
+    "iKon" --- the camera model, a label that appears nowhere in Table 1,
+    Table 2 or Figure 1's legend --- so a reader could not map it onto any
+    row of the table beside it.  Table 2's column was headed "Camera" while
+    its cells were readout modes, which is the same slippage the other
+    way."""
+
+    ERA_LABEL_72 = "1MHz High Sensitivity 16-bit"
+
+    def test_the_caption_uses_the_label_the_tables_use(self, captions):
+        cap = captions["CapFigZeroSeven"]
+        assert "iKon" not in cap
+        assert self.ERA_LABEL_72 in cap
+        assert "split by READOUT MODE" in cap
+
+    def test_that_label_really_is_in_the_instrument_table(self):
+        tables = _text("tables.tex")
+        assert self.ERA_LABEL_72 in tables, (
+            "the caption names an era label Table 1 does not carry")
+
+    def test_the_series_table_column_is_named_for_what_its_cells_hold(self):
+        tables = _text("tables.tex")
+        assert "\\colhead{Readout mode}" in tables
+        assert "\\colhead{Camera}" not in tables

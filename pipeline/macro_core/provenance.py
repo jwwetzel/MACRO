@@ -1148,9 +1148,11 @@ _reg(ResourceSpec(
     database="products/phot/cv_timeseries.sqlite",
     order_by="macro",
     columns=("macro", "value_tex", "coalesce(unit,'')",
-             "coalesce(source,'')"),
+             "coalesce(source,'')", "coalesce(db,'')",
+             "coalesce(kind,'')"),
     why=("Every value the manuscript prose is allowed to state, with its "
-         "unit and the table it came from.  This is the fingerprint that "
+         "unit, the table it came from, the released database that table "
+         "is in, and whether it is a measurement or an external constant.  This is the fingerprint that "
          "makes the paper's numbers auditable: if a pipeline re-run moves "
          "a measurement, this hash moves, and the manuscript is stale "
          "until it is rebuilt.")))
@@ -1793,6 +1795,16 @@ STAGES: tuple[Stage, ...] = (
         code_version="PAPER_CODE_VERSION",
         version_file="pipeline/scripts/run_cv_paper.py",
         version_symbol="PAPER_CODE_VERSION",
+        # THIS STAGE READS THREE DATABASES, AND UNTIL THIS EDIT IT DECLARED
+        # ONE.  The emitter opens the photometry products, the
+        # characterisation products and the frame manifest: the abstract's
+        # per-point precision comes from ch_noise_series, the injection
+        # contours from ch_contour, and the whole of the paper's Table 1
+        # from detector_params and s2_ceiling_modes.  With no declared edge
+        # the manuscript could report FRESH over a re-measured noise model
+        # or a rebuilt detector characterisation -- the same false green the
+        # S4 entry above was fixed for, and the same mistake §7 of the paper
+        # made in prose when it called the release a single database.
         reads=("db:cvphot:p5_figure", "db:cvphot:cv_frames",
                "db:cvphot:cv_cattie", "db:cvphot:p2_limit_series",
                "db:cvphot:p2_extinction", "db:cvphot:p3_period",
@@ -1801,6 +1813,8 @@ STAGES: tuple[Stage, ...] = (
                "db:cvphot:p4_run", "db:cvphot:p4_flicker",
                "db:cvphot:p4_outburst", "db:cvphot:p4_anuma",
                "db:cvphot:p4_verdict",
+               "db:cvchar:ch_noise_series", "db:cvchar:ch_contour",
+               "table:detector_params", "table:s2_ceiling_modes",
                "file:pipeline/macro_phot/numbers_cv.py"),
         writes=("db:cvphot:p5_number",),
         meta_table="p5_meta",

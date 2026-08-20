@@ -50,6 +50,17 @@ USAGE
     $P pipeline/scripts/run_cv_paper.py manifest
     $P pipeline/scripts/run_cv_paper.py all
 
+WHICH DATABASES THIS READS, AND WHICH IT WRITES
+------------------------------------------------
+It READS three, because this paper's numbers come from three: ``CV_DB``
+(the photometry products), ``CH_DB`` (the characterisation products -- the
+noise model, the timing budget, the check-star bias, the injection
+contours) and ``MAN_DB`` (the frame manifest -- Table 1's detector
+constants and per-mode ceilings).  All three are part of the release, and
+§7 of the manuscript names all three; ``numbers_cv.resolve_databases``
+records which one every macro came from so that description is emitted
+rather than asserted.  It WRITES only ``CV_DB``.
+
 TABLES WRITTEN (all inside products/phot/cv_timeseries.sqlite)
 --------------------------------------------------------------
 ``p5_figure``   one row per figure: id, LaTeX label, title, full caption,
@@ -57,8 +68,10 @@ TABLES WRITTEN (all inside products/phot/cv_timeseries.sqlite)
                 in inches, and -- when it is a substitute -- what was
                 planned and why it could not be drawn.
 ``p5_number``   one row per macro: the macro name, the formatted LaTeX
-                body, the unit, the source table, and the clause a referee
-                needs about how it was derived.
+                body, the unit, the source table, the RELEASED DATABASE
+                that table is in, whether it is a measurement or an
+                external constant, and the clause a referee needs about
+                how it was derived.
 ``p5_meta``     build stamps and every constant this run used.
 
 RESUMABILITY
@@ -106,7 +119,8 @@ TABLES_TEX = MANUSCRIPT_DIR / "tables.tex"
 #: Stamped into ``p5_meta`` and read by the provenance graph.  Bump it when
 #: a figure's ARITHMETIC or a macro's definition changes, not when a
 #: comment or a colour does.
-PAPER_CODE_VERSION = "CV-S11 v1.0 (2026-08-20, manuscript figures + numbers)"
+PAPER_CODE_VERSION = ("CV-S11 v1.1 (2026-08-20, manuscript figures + "
+                      "numbers; p5_number carries db + kind)")
 
 BUSY_TIMEOUT_MS = 300_000
 
@@ -157,11 +171,20 @@ def ensure_tables(con: sqlite3.Connection) -> None:
         );
         CREATE TABLE IF NOT EXISTS p5_number (
             macro TEXT PRIMARY KEY,
-            key TEXT, value_tex TEXT, unit TEXT, source TEXT, note TEXT
+            key TEXT, value_tex TEXT, unit TEXT, source TEXT, note TEXT,
+            db TEXT, kind TEXT
         );
         CREATE TABLE IF NOT EXISTS p5_meta (key TEXT PRIMARY KEY,
                                             value TEXT);
     """)
+    # ``db`` and ``kind`` arrived after the first build wrote this table, and
+    # CREATE TABLE IF NOT EXISTS will not add a column to a table that is
+    # already there.  Without the migration an old products database keeps a
+    # six-column p5_number and the insert below fails at build time.
+    have = {r[1] for r in con.execute("PRAGMA table_info(p5_number)")}
+    for col in ("db", "kind"):
+        if col not in have:
+            con.execute(f"ALTER TABLE p5_number ADD COLUMN {col} TEXT")
     con.commit()
 
 
@@ -292,15 +315,16 @@ def cmd_numbers(args) -> None:
     ensure_tables(out)
 
     numbers = nx.collect(cv, ch, man)
-    stamp = (f"built {utcnow()} from {CV_DB.name} at commit {git_commit()} "
-             f"by {PAPER_CODE_VERSION}")
+    stamp = (f"built {utcnow()} from {CV_DB.name}, {CH_DB.name} and "
+             f"{MAN_DB.name} at commit {git_commit()} by "
+             f"{PAPER_CODE_VERSION}")
     write_atomic(NUMBERS_TEX, nx.render_tex(numbers, stamp=stamp))
 
     out.execute("DELETE FROM p5_number")
     out.executemany("""INSERT INTO p5_number(macro,key,value_tex,unit,
-                       source,note) VALUES(?,?,?,?,?,?)""",
-                    [(n.macro, n.key, n.body, n.unit, n.source, n.note)
-                     for n in numbers])
+                       source,note,db,kind) VALUES(?,?,?,?,?,?,?,?)""",
+                    [(n.macro, n.key, n.body, n.unit, n.source, n.note,
+                      n.db, n.kind) for n in numbers])
     out.commit()
 
     missing = [n for n in numbers if n.value is None]

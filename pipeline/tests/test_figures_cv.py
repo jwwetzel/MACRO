@@ -567,3 +567,87 @@ def test_fmt_range_collapses_a_degenerate_range():
     assert nx.fmt_range(0.10, 0.104, 2) == "0.10", (
         "two values that round to the same printed number are the same "
         "printed number")
+
+
+# ===========================================================================
+# numbers_cv: which released database a macro came from  (referee 5)
+# ===========================================================================
+def _fake_release():
+    """Three in-memory stand-ins for the three released databases."""
+    import sqlite3
+    cv = sqlite3.connect(":memory:")
+    cv.execute("CREATE TABLE cv_series (a)")
+    ch = sqlite3.connect(":memory:")
+    ch.execute("CREATE TABLE ch_contour (a)")
+    man = sqlite3.connect(":memory:")
+    man.execute("CREATE TABLE detector_params (a)")
+    return cv, ch, man
+
+
+def test_resolve_databases_records_the_file_each_table_lives_in():
+    """§7 names three databases and says which macros come from which; the
+    mapping is measured here rather than asserted in prose."""
+    cv, ch, man = _fake_release()
+    out = nx.resolve_databases(
+        [nx.Number("a", "1", source="cv_series", note="n"),
+         nx.Number("b", "2", source="ch_contour", note="n"),
+         nx.Number("c", "3", source="detector_params", note="n")],
+        cv, ch, man)
+    assert [n.db for n in out] == ["cv_timeseries.sqlite",
+                                   "cv_characterization.sqlite",
+                                   "rlmt-manifest.sqlite"]
+    assert {n.kind for n in out} == {"measured"}
+
+
+def test_an_external_constant_resolves_to_no_database_and_is_flagged():
+    cv, ch, man = _fake_release()
+    out = nx.resolve_databases(
+        [nx.Number("a", "60", source="ANALYSIS_STRATEGY §4", note="n"),
+         nx.Number("b", "0.079", source="VSX catalogue", note="n"),
+         nx.Number("c", "50", source="literature: superhumps", note="n"),
+         nx.Number("d", "12", source="CV-S10 constant", note="n")],
+        cv, ch, man)
+    assert {n.kind for n in out} == {"external"}
+    assert {n.db for n in out} == {""}
+
+
+def test_a_source_that_names_nothing_stops_the_build():
+    """The failure mode this guard exists for: a mistyped table name would
+    otherwise be silently reclassified as 'not a measurement'."""
+    cv, ch, man = _fake_release()
+    with pytest.raises(ValueError, match="names no table"):
+        nx.resolve_databases(
+            [nx.Number("a", "1", source="cv_seires", note="n")],
+            cv, ch, man)
+
+
+def test_a_table_in_two_databases_is_refused_as_ambiguous():
+    cv, ch, man = _fake_release()
+    ch.execute("CREATE TABLE cv_series (a)")
+    with pytest.raises(ValueError, match="ambiguous"):
+        nx.resolve_databases(
+            [nx.Number("a", "1", source="cv_series", note="n")],
+            cv, ch, man)
+
+
+def test_a_macro_with_no_note_is_refused():
+    """72 macros once recorded a table name and nothing else, in a paper
+    whose §7 promises a note for every value."""
+    cv, ch, man = _fake_release()
+    with pytest.raises(ValueError, match="carries no note"):
+        nx.resolve_databases(
+            [nx.Number("a", "1", source="cv_series", note="   ")],
+            cv, ch, man)
+
+
+def test_the_rendered_macro_line_names_the_database_too():
+    n = nx.Number("hg ceiling adu", "3\\,496", "ADU", "detector_params",
+                  "note", "rlmt-manifest.sqlite", "measured")
+    line = [l for l in nx.render_tex([n]).splitlines()
+            if "HgCeilingAdu" in l][0]
+    assert "detector_params in rlmt-manifest.sqlite" in line
+    ext = nx.Number("sigma t threshold s", "60", "s",
+                    "ANALYSIS_STRATEGY §4", "note", "", "external")
+    line = [l for l in nx.render_tex([ext]).splitlines()
+            if "SigmaTThresholdS" in l][0]
+    assert "external constant" in line

@@ -25,10 +25,40 @@ discipline as the tables.
 HOW A NUMBER GETS IN HERE
 --------------------------
 Through :func:`collect`, which is a list of ``Number`` records.  Each one
-names the macro, the SQL that produced it, the unit, and the table it came
-from.  ``p5_number`` stores all four, so a referee asking "where does 25
-mmag come from?" is answered by one query against the product, not by
-reading the paper's source.
+names the macro, the formatted value, its unit, the TABLE it came from, the
+DATABASE that table lives in, whether it is a measurement or an external
+constant, and the one clause a referee needs about how it was derived.
+``p5_number`` stores all seven, so a referee asking "where does 25 mmag
+come from?" is answered by one query against the product, not by reading
+the paper's source.  It does NOT store the SQL: several macros are computed
+in Python over the rows of more than one query, and a `query` column that
+was right for some rows and misleading for others would be worse than an
+honest note.  §7 of the manuscript says exactly this and no more.
+
+WHICH DATABASE A NUMBER CAME FROM, AND WHY THE COLUMN EXISTS
+------------------------------------------------------------
+The release is THREE SQLite databases (:data:`RELEASE_DB_FILE`), because
+this paper's numbers genuinely come from three: the photometry products,
+the characterisation products, and the frame manifest.  §7 used to call it
+"a single SQLite database", which was false of Table 1, of the abstract's
+own precision range, and of the injection contours.  Rather than fix that
+in prose, :func:`resolve_databases` walks every macro's source table
+against the three open connections and RECORDS the file it resolves in, so
+the paper's description of its own release is itself emitted from the
+release.  A source that resolves in no released database must declare an
+external origin matching :data:`EXTERNAL_SOURCE_RE` -- otherwise it is a
+typo, and the build stops rather than shipping a macro no reader can trace.
+
+EXTERNAL CONSTANTS ARE FLAGGED, NOT INFERRED
+---------------------------------------------
+A handful of values are not measurements of this programme: a threshold the
+analysis strategy set in advance, a bar an analysis stage fixed in code, a
+catalogue period, a floor taken from the literature.  Each carries that
+origin as its ``source`` -- never a products table, because a products
+table is where a measurement comes from -- and ``kind='external'`` in
+``p5_number``.  §1 promises a reader can separate the two with one query;
+``WHERE kind='external'`` is that query, and the test suite checks that the
+promise and the table agree.
 
 FORMATTING RULES
 ----------------
@@ -49,7 +79,7 @@ import cmath
 import math
 import re
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Optional, Sequence
 
 # ===========================================================================
@@ -163,8 +193,13 @@ class Number:
 
     ``key`` is the stable name; ``value`` the already-formatted LaTeX body;
     ``unit`` the unit it is in (empty for counts and fractions); ``source``
-    the database table it came from; ``note`` the one clause a referee needs
-    to know about how it was derived.  All four go into ``p5_number``.
+    the database table it came from, or -- for an external constant -- the
+    strategy section, stage constant or catalogue it came from; ``note`` the
+    one clause a referee needs to know about how it was derived.  ``db`` and
+    ``kind`` are filled in by :func:`resolve_databases`, never by hand: ``db``
+    is the released database file the source table lives in (empty for an
+    external constant) and ``kind`` is ``measured`` or ``external``.  All
+    seven go into ``p5_number``.
     """
 
     key: str
@@ -172,6 +207,8 @@ class Number:
     unit: str = ""
     source: str = ""
     note: str = ""
+    db: str = ""
+    kind: str = "measured"
 
     @property
     def macro(self) -> str:
@@ -180,6 +217,70 @@ class Number:
     @property
     def body(self) -> str:
         return self.value if self.value is not None else "\\NumMissing"
+
+
+#: The three SQLite databases the release comprises, keyed by the handle
+#: name :func:`collect` receives them under.  §7 of the manuscript names all
+#: three and says which is which; this dict is where those names come from,
+#: so the paper cannot describe a release the emitter does not read.
+RELEASE_DB_FILE = {"cv": "cv_timeseries.sqlite",
+                   "ch": "cv_characterization.sqlite",
+                   "man": "rlmt-manifest.sqlite"}
+
+#: What an EXTERNAL constant is allowed to name as its origin.  A source
+#: that resolves in none of the three released databases must match this or
+#: the build fails: the alternative is a macro whose provenance is a typo,
+#: silently reclassified as "not a measurement".
+EXTERNAL_SOURCE_RE = re.compile(
+    r"^(ANALYSIS_STRATEGY §\d+|VSX catalogue|literature:|CV-S\d+ constant)")
+
+
+def _table_names(con: sqlite3.Connection) -> set:
+    return {r[0] for r in con.execute(
+        "SELECT name FROM sqlite_master WHERE type IN ('table','view')")}
+
+
+def resolve_databases(numbers: Sequence[Number], cv: sqlite3.Connection,
+                      ch: sqlite3.Connection,
+                      man: sqlite3.Connection) -> list[Number]:
+    """Record, for every macro, WHICH released database its table is in.
+
+    Three databases hold this paper's numbers and §7 must say so.  Rather
+    than assert the mapping in prose, it is measured here: each source table
+    is looked up in the three connections' ``sqlite_master``.  A name found
+    in more than one would make "the table it came from" ambiguous, and a
+    name found in none is either an external constant that says so or a
+    mistake; both raise rather than ship.
+    """
+    catalog = {h: _table_names(c)
+               for h, c in (("cv", cv), ("ch", ch), ("man", man))}
+    out = []
+    for n in numbers:
+        # §7 says every macro carries a note on how it was computed, and
+        # that has to be enforced where the macro is made: a row recording
+        # a table name and nothing else is a provenance claim with no
+        # content, and 72 of them once reached the release.
+        if not (n.note or "").strip():
+            raise ValueError(
+                f"macro {n.macro} carries no note; §7 promises one for "
+                f"every value, so the emitter refuses to write it")
+        hits = [h for h in ("cv", "ch", "man") if n.source in catalog[h]]
+        if len(hits) > 1:
+            raise ValueError(
+                f"macro {n.macro}: table {n.source!r} exists in "
+                f"{', '.join(RELEASE_DB_FILE[h] for h in hits)}; 'the table "
+                f"it came from' is ambiguous")
+        if hits:
+            out.append(replace(n, db=RELEASE_DB_FILE[hits[0]],
+                               kind="measured"))
+            continue
+        if not EXTERNAL_SOURCE_RE.match(n.source or ""):
+            raise ValueError(
+                f"macro {n.macro}: source {n.source!r} names no table in any "
+                f"released database and declares no external origin; a "
+                f"reader could not trace it")
+        out.append(replace(n, db="", kind="external"))
+    return out
 
 
 def render_tex(numbers: Sequence[Number], stamp: str = "") -> str:
@@ -213,9 +314,18 @@ def render_tex(numbers: Sequence[Number], stamp: str = "") -> str:
             raise ValueError(f"duplicate macro {macro} from keys "
                              f"{seen[macro]!r} and {n.key!r}")
         seen[macro] = n.key
+        # The provenance a reader of the SOURCE file sees, which is the same
+        # provenance p5_number stores: the table, the database it is in, and
+        # -- for the values that are not measurements -- that fact, said in
+        # the file itself rather than only in §7.
+        where = n.source
+        if n.source and n.db:
+            where = f"{n.source} in {n.db}"
+        elif n.source:
+            where = f"{n.source}, external constant"
         tail = f"  % {n.unit}" if n.unit else ""
-        if n.source:
-            tail += f" [{n.source}]" if tail else f"  % [{n.source}]"
+        if where:
+            tail += f" [{where}]" if tail else f"  % [{where}]"
         lines.append(f"\\newcommand{{\\{macro}}}{{{n.body}}}{tail}")
     lines.append("")
     return "\n".join(lines)
@@ -533,14 +643,19 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
                                "FROM cv_series")),
         source="cv_series", note="targets with at least one staged series")
     add("series total", fmt_int(one(cv, "SELECT count(*) FROM cv_series")),
-        source="cv_series")
+        source="cv_series",
+        note="every staged target--era--filter series, solved or not; the "
+             "release holds all of them and Table 2 lists the subset that "
+             "produced target photometry")
     add("series solved", fmt_int(one(cv, "SELECT count(*) FROM cv_series "
                                      "WHERE status='solved'")),
         source="cv_series", note="series with a converged ensemble solution")
     add("frames total", fmt_int(one(cv, "SELECT count(*) FROM cv_frames")),
         source="cv_frames", note="staged light frames, raw-tree alias-merged")
     add("nights total", fmt_int(one(cv, "SELECT count(DISTINCT night) "
-                                    "FROM cv_frames")), source="cv_frames")
+                                    "FROM cv_frames")), source="cv_frames",
+        note="distinct local nights carrying a staged frame on any target; "
+             "a night observing two targets counts once")
     # CATALOGUE-TIED target measurements.  The bare ``role='target'`` count
     # includes detections in series whose tie did not converge, and the
     # per-target macros below already exclude those, so quoting the bare
@@ -635,10 +750,15 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
                      ("yzcnc", "yz cnc")):
         add(f"{tag} frames", fmt_int(one(
             cv, "SELECT count(*) FROM cv_frames WHERE target_key=?", (tgt,))),
-            source="cv_frames")
+            source="cv_frames",
+            note="staged light frames on this target, raw-tree "
+                 "alias-merged; the five sum to the archive total")
         add(f"{tag} nights", fmt_int(one(
             cv, "SELECT count(DISTINCT night) FROM cv_frames "
-                "WHERE target_key=?", (tgt,))), source="cv_frames")
+                "WHERE target_key=?", (tgt,))), source="cv_frames",
+            note="distinct local nights carrying a staged frame on this "
+                 "target; targets share nights, so these do NOT sum to the "
+                 "archive's night count")
         add(f"{tag} points", fmt_int(one(
             cv, "SELECT count(*) FROM cv_lightcurve l JOIN cv_series s "
                 "ON s.series_key=l.series_key WHERE s.target_key=? "
@@ -647,11 +767,19 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
             note="catalogue-tied target measurements")
         p = one(cv, "SELECT period_d FROM p3_ephemeris WHERE target_key=?",
                 (tgt,))
+        # EXTERNAL: the catalogue period, which this programme confirms and
+        # never determines.  Its source is the catalogue, not the table the
+        # ephemeris stage parked it in -- a reader separating our
+        # measurements from everything else must not find it among ours.
         add(f"{tag} period d", fmt_float(p, 8), unit="d",
-            source="p3_ephemeris", note="published VSX period, not measured")
+            source="VSX catalogue",
+            note="published VSX orbital period, not measured here; the "
+                 "ephemeris stage stores it in p3_ephemeris.period_d")
         add(f"{tag} period min", fmt_float(None if p is None
                                            else float(p) * 1440.0, 1),
-            unit="min", source="p3_ephemeris")
+            unit="min", source="VSX catalogue",
+            note="the same published VSX period in minutes; a unit "
+                 "conversion of an external constant, not a measurement")
 
     # Three-filter full-orbit night census: the number that decides which
     # colour panels may exist at all, and therefore the one number in this
@@ -659,9 +787,14 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     # target rather than only to AN UMa, reproduces p4_anuma's own count.
     mp = one(cv, "SELECT value FROM p4_meta WHERE key='full_orbit_min_points'")
     min_pts = int(mp) if mp is not None else FULL_ORBIT_MIN_POINTS_DEFAULT
-    add("full orbit min points", fmt_int(min_pts), source="p4_meta",
+    # EXTERNAL: a qualifying rule CV-S10 fixed in code before the census
+    # was run.  p4_meta records it as a stage INPUT, which is exactly why it
+    # is not a measurement and must not be sourced to a products table.
+    add("full orbit min points", fmt_int(min_pts), source="CV-S10 constant",
         note="points a night must carry, over more than one orbit, to count "
-             "as covering a full orbit")
+             "as covering a full orbit; set by CV-S10 "
+             "(FULL_ORBIT_MIN_POINTS) and recorded as a stage input in "
+             "p4_meta.full_orbit_min_points")
     for tgt, tag in (("stlmi", "st lmi"), ("anuma", "an uma"),
                      ("vvpup", "vv pup"), ("euuma", "eu uma")):
         cen = coverage_census(cv, tgt, min_pts)
@@ -687,7 +820,10 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     add("hg veto adu", fmt_int(dp("High Gain", "saturation_veto_adu")),
         unit="ADU", source="detector_params", note="0.92 of the ceiling")
     add("hg read noise e", fmt_float(dp("High Gain", "read_noise_e"), 2),
-        unit="e-", source="detector_params")
+        unit="e-", source="detector_params",
+        note="High Gain read noise: the measured RN in ADU times the "
+             "nominal header EGAIN, which is why its error bar is the gain "
+             "bracket and not a counting statistic")
     add("hg read noise e err", fmt_float(one(
         man, "SELECT uncertainty FROM detector_params WHERE era_group=? "
              "AND quantity=?", ("High Gain", "read_noise_e")), 2),
@@ -705,12 +841,18 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "opposite directions and the flat-field PTC that closes them "
              "awaits the October 2026 restart")
     add("mode zero ceiling adu", fmt_int(dp("Mode0", "ceiling_adu")),
-        unit="ADU", source="detector_params")
+        unit="ADU", source="detector_params",
+        note="Mode0 pileup clip, measured in the science-frame pixel "
+             "histograms; the top of the 16-bit range")
     add("mode zero veto adu", fmt_int(dp("Mode0", "saturation_veto_adu")),
-        unit="ADU", source="detector_params")
+        unit="ADU", source="detector_params",
+        note="the veto the photometry applied in Mode0: 0.92 of that "
+             "ceiling, rounded down to the nearest 100 ADU")
     add("stackpro ceiling adu", fmt_int(dp("High Gain StackPro",
                                            "ceiling_adu")),
-        unit="ADU", source="detector_params")
+        unit="ADU", source="detector_params",
+        note="StackPro pileup clip from the frame-maximum cluster; the "
+             "coadd is 16-bit even though its sub-exposures are 12-bit")
     add("nsub", fmt_int(dp("High Gain StackPro", "nsub")),
         source="detector_params",
         note="sub-exposures coadded per StackPro frame before readout")
@@ -732,7 +874,8 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "in every mode")
     add("veto clip ratio nominal", fmt_float(0.92, 2),
         source="ANALYSIS_STRATEGY §2",
-        note="the nominal fraction of the measured clip the photometry "
+        note="set in advance by ANALYSIS_STRATEGY §2: the nominal "
+             "fraction of the measured clip the photometry "
              "vetoes at; an external choice, not a measurement")
     # THE DYNAMIC-RANGE RATIO, MEASURED, ONCE.  §2.1 called it "nearly
     # twenty" and Figure 3's caption "a factor of 16" -- the second being
@@ -793,7 +936,9 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         source="ch_noise_series",
         note="per-point precision at the CV's own magnitude, best series")
     add("precision hi mmag", fmt_float(hi, 0), unit="mmag",
-        source="ch_noise_series")
+        source="ch_noise_series",
+        note="per-point precision at the CV's own magnitude, worst series; "
+             "the upper end of the headline range")
     add("precision range mmag", fmt_range(lo, hi, 0), unit="mmag",
         source="ch_noise_series",
         note="the paper's headline per-point precision: the measured "
@@ -829,7 +974,10 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "magnitude-matched FIELD stars in the same frames, per block: "
              "how far a four-star hold-out can sit from the field it is "
              "meant to represent")
-    add("check bias blocks", fmt_int(len(cb)), source="ch_check_bias")
+    add("check bias blocks", fmt_int(len(cb)), source="ch_check_bias",
+        note="blocks over which the check-star-to-field bias ratio could be "
+             "measured at all: those with both a check-star sample and "
+             "magnitude-matched field stars in the same frames")
     clo, chi = _minmax([r["check_rms_median"] for r in solved], 1000.0)
     add("check rms range mmag", fmt_range(clo, chi, 0), unit="mmag",
         source="cv_series",
@@ -841,7 +989,10 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     add("comp stars median", fmt_int(one(
         cv, "SELECT n_comp FROM cv_series WHERE status='solved' "
             "ORDER BY n_comp LIMIT 1 OFFSET (SELECT count(*)/2 FROM "
-            "cv_series WHERE status='solved')")), source="cv_series")
+            "cv_series WHERE status='solved')")), source="cv_series",
+        note="median comparison-star count over the solved series; the "
+             "ensemble is inhomogeneous, so the count varies field to "
+             "field")
     # Check stars per series, from the series that HAVE target photometry.
     # euuma|e78|g is the exception the paper names in §5.2: five comparison
     # stars, no check stars and no target detection at all.
@@ -863,7 +1014,9 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         note="solved series holding out no check stars")
 
     tie = rows(cv, "SELECT * FROM cv_cattie WHERE is_primary=1")
-    add("tie series", fmt_int(len(tie)), source="cv_cattie")
+    add("tie series", fmt_int(len(tie)), source="cv_cattie",
+        note="blocks that reached the catalogue-tie stage at all, tied or "
+             "untied; one primary row per block")
     add("tie tied", fmt_int(sum(1 for r in tie
                                 if str(r["verdict"]).startswith("TIED"))),
         source="cv_cattie", note="series with a usable catalogue tie")
@@ -882,7 +1035,10 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "than saying the goal is missed 'either way' without checking")
     add("tie untied", fmt_int(sum(1 for r in tie
                                   if r["verdict"] == "UNTIED")),
-        source="cv_cattie")
+        source="cv_cattie",
+        note="blocks that reached the tie stage and found no clean tie "
+             "star; a different failure from the blocks that never reached "
+             "the stage at all")
     # NAME THE UNTIED BLOCK.  "The one block with no usable tie" was used
     # in §3.2 for the primary block cv_cattie grades UNTIED (EU UMa's 2026
     # Fast series) and in §7 for the ST LMi block that has no cv_cattie row
@@ -1065,10 +1221,14 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "upper end is the Mode0 g-r panel and is an order of magnitude "
              "above the calibration goal, which is why §3.3 states it")
     add("tie goal lo mmag", fmt_int(TIE_GOAL_LO_MMAG), unit="mmag",
-        source="ANALYSIS_STRATEGY §5", note="the stated accuracy goal")
+        source="ANALYSIS_STRATEGY §5",
+        note="the accuracy goal ANALYSIS_STRATEGY §5 set in advance; the "
+             "programme is measured against it, so it cannot be a "
+             "measurement")
     add("tie goal hi mmag", fmt_int(TIE_GOAL_HI_MMAG), unit="mmag",
         source="ANALYSIS_STRATEGY §5",
-        note="the goal's upper bound, and the end both median ratios above "
+        note="the upper bound of that same goal, set in advance, and the "
+             "end both median ratios above "
              "are quoted against")
     # THE COLOUR-TERM CENSUS, OVER THE TIED BLOCKS AND ONLY THOSE.  These
     # four counted over all 26 PRIMARY blocks while §3.2's sentence had
@@ -1109,13 +1269,20 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         source="p2_cloud_series", note="worst series")
     add("cloud vetoed frames", fmt_int(one(
         cv, "SELECT count(*) FROM p2_cloud_frame WHERE vetoed=1")),
-        source="p2_cloud_frame")
+        source="p2_cloud_frame",
+        note="frames the ensemble-flux-ratio cloud veto removed; excluded "
+             "from every light curve, fold, periodogram and fit")
     add("cloud checked frames", fmt_int(one(
         cv, "SELECT count(*) FROM p2_cloud_frame")),
-        source="p2_cloud_frame")
+        source="p2_cloud_frame",
+        note="frames the cloud veto could be evaluated on at all: the "
+             "denominator the vetoed count is quoted against")
 
     ext = rows(cv, "SELECT * FROM p2_extinction WHERE kpp IS NOT NULL")
-    add("extinction groups", fmt_int(len(ext)), source="p2_extinction")
+    add("extinction groups", fmt_int(len(ext)), source="p2_extinction",
+        note="era--filter groups with a fitted second-order extinction "
+             "term; groups whose fit did not converge carry no kpp and are "
+             "not counted")
     add("extinction significant", fmt_int(sum(1 for r in ext
                                               if r["significant"])),
         source="p2_extinction",
@@ -1153,25 +1320,37 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "upper bound on a low-state duty cycle and not a measurement")
     add("limit forced points", fmt_int(one(
         cv, "SELECT sum(n_limits) FROM p2_limit_series")),
-        source="p2_limit_series")
+        source="p2_limit_series",
+        note="forced-photometry upper limits published across all series: "
+             "one per frame on which the target was not detected")
 
     # -- §4 Time-series analysis ----------------------------------------
     per = rows(cv, "SELECT * FROM p3_period WHERE status='ok'")
-    add("period series", fmt_int(len(per)), source="p3_period")
+    add("period series", fmt_int(len(per)), source="p3_period",
+        note="series the period search ran to completion on; the three "
+             "constraint classes below partition exactly this count")
     add("period tight", fmt_int(sum(1 for r in per
                                     if r["constraint_class"] == "TIGHT")),
-        source="p3_period")
+        source="p3_period",
+        note="series whose search constrains a period tightly, in the "
+             "constraint class the period stage assigned")
     add("period weak", fmt_int(sum(1 for r in per
                                    if r["constraint_class"] == "WEAK")),
-        source="p3_period")
+        source="p3_period",
+        note="series whose search constrains a period only weakly")
     add("period uninformative", fmt_int(sum(
         1 for r in per if r["constraint_class"] == "UNINFORMATIVE")),
-        source="p3_period")
+        source="p3_period",
+        note="series whose search constrains no period at all; with the "
+             "tight and weak counts these exhaust the searched series")
     alo, ahi = _minmax([r["alias_frac_max"] for r in per])
     add("alias frac max", fmt_float(ahi, 2), source="p3_period",
         note="largest fraction of the peak carried by a +/-1 c/d alias; "
              "no multi-night period is claimed without naming its family")
-    add("alias frac range", fmt_range(alo, ahi, 2), source="p3_period")
+    add("alias frac range", fmt_range(alo, ahi, 2), source="p3_period",
+        note="alias fraction over ALL searched series, not only the ones "
+             "that constrain a period: the spread the single worst value "
+             "above sits at the top of")
     add("period prior families", fmt_int(sum(1 for r in per
                                              if r["family_code"] == "PRIOR")),
         source="p3_period",
@@ -1202,7 +1381,9 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "five and the depth by 20 per cent")
     add("sigma t mismatched hi s",
         fmt_float(max(mism) if mism else None, 0), unit="s",
-        source="ch_timing")
+        source="ch_timing",
+        note="the worst cell of that shape-mismatched budget: the "
+             "pessimistic end the paper quotes when it names one number")
 
     sig = rows(cv, "SELECT * FROM p3_sigmat")
     add("sigma t injected best s",
@@ -1219,26 +1400,42 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "it exceeds the 60 s threshold")
     add("sigma t injected range s",
         fmt_range(min(tot) if tot else None, max(tot) if tot else None, 0),
-        unit="s", source="p3_sigmat")
+        unit="s", source="p3_sigmat",
+        note="total error over EVERY cell of the injection grid, best to "
+             "worst; the median above is the number a timing claim is "
+             "judged against")
     thr = one(cv, "SELECT value FROM p3_meta WHERE key='timing_threshold_s'")
+    # EXTERNAL, and the most load-bearing external constant in the paper:
+    # the abstract, §4.2, §5.3, Limitation 3 and two Conclusions are all
+    # quoted against it.  ANALYSIS_STRATEGY §4 set it in advance; p3_meta
+    # merely records what the timing stage was told.
     add("sigma t threshold s", fmt_float(thr, 0), unit="s",
-        source="p3_meta",
-        note="the strategy's own per-epoch timing threshold, as the timing "
-             "stage recorded it")
+        source="ANALYSIS_STRATEGY §4",
+        note="the strategy's own per-epoch timing threshold, set in advance "
+             "(§4, step 16) and recorded by the timing stage in "
+             "p3_meta.timing_threshold_s")
     add("sigma t trials", fmt_int(one(cv, "SELECT max(n_try) FROM "
-                                      "p3_sigmat")), source="p3_sigmat")
+                                      "p3_sigmat")), source="p3_sigmat",
+        note="injection trials per amplitude--period cell of the timing "
+             "grid")
     add("sigma t recovered frac", fmt_percent(one(
         cv, "SELECT max(recovered_fraction) FROM p3_sigmat"), 0),
         unit="per cent", source="p3_sigmat",
         note="best recovery fraction over the injection grid")
 
     add("edges accepted", fmt_int(one(cv, "SELECT sum(accepted) FROM "
-                                      "p3_edge")), source="p3_edge")
+                                      "p3_edge")), source="p3_edge",
+        note="bright-phase edge fits accepted across all targets; the "
+             "inputs to every epoch in this paper")
     add("edges attempted", fmt_int(one(cv, "SELECT count(*) FROM p3_edge")),
-        source="p3_edge")
+        source="p3_edge",
+        note="edge fits attempted across all targets, accepted or not: the "
+             "denominator the acceptance count is quoted against")
     add("st lmi edges accepted", fmt_int(one(
         cv, "SELECT sum(accepted) FROM p3_edge WHERE target_key='stlmi'")),
-        source="p3_edge")
+        source="p3_edge",
+        note="ST LMi's accepted per-cycle edge fits: the ones CV-S9 "
+             "averaged into published epochs")
     # THE PUBLISHED EPOCHS.  p3_oc holds the per-cycle edge residuals; the
     # injection test above does not license a single cycle's edge as an
     # epoch, so §4.2 forbids publishing one and CV-S9 collapses them into
@@ -1258,13 +1455,21 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "that night's accepted per-cycle edges")
     add("st lmi oc nights", fmt_int(one(
         cv, "SELECT count(DISTINCT night) FROM p3_oc_night WHERE "
-            "target_key='stlmi'")), source="p3_oc_night")
+            "target_key='stlmi'")), source="p3_oc_night",
+        note="distinct nights carrying a published epoch; fewer than the "
+             "epochs themselves, because a night observed in two bands "
+             "yields one epoch per band")
     ocn = rows(cv, "SELECT * FROM p3_oc_night WHERE target_key='stlmi'")
     olo, ohi = _minmax([r["oc_s"] for r in ocn])
     # ``to`` rather than an en dash: the low end is negative, and
     # "-239--175" is a range a reader has to decode.
     add("st lmi oc range s", fmt_range(olo, ohi, 0, dash=" to "), unit="s",
-        source="p3_oc_night")
+        source="p3_oc_night",
+        note="spread of the published O-C residuals AFTER the edge's "
+             "constant phase offset is subtracted, which is what CV-S9 "
+             "stores in p3_oc_night.oc_s; a statement about whether the "
+             "edge-to-epoch interval is constant, never about whether it "
+             "is zero")
     ncy_lo, ncy_hi = _minmax([r["n_cycles"] for r in ocn])
     add("st lmi oc cycles per epoch", fmt_range(ncy_lo, ncy_hi, 0),
         source="p3_oc_night",
@@ -1360,7 +1565,10 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     add("st lmi sigma night range s",
         fmt_range(st_cc.get("sigma_night_lo_s"),
                   st_cc.get("sigma_night_hi_s"), 0), unit="s",
-        source="p3_cycle_count")
+        source="p3_cycle_count",
+        note="error bar on a published epoch over ALL of them, best to "
+             "worst; the best end is a night with several cycles to average "
+             "and the worst a night with one")
     add("st lmi epochs at threshold",
         fmt_int(st_cc.get("n_night_at_threshold")), source="p3_cycle_count",
         note="published epochs whose error bar is inside the 60 s "
@@ -1394,11 +1602,17 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         note="cycles between the FIRST and LAST timed edge: the span the "
              "published epochs actually cover")
     add("st lmi epoch span days", fmt_int(st_cc.get("span_d")), unit="d",
-        source="p3_cycle_count")
+        source="p3_cycle_count",
+        note="days between the first and last timed edge: the OBSERVED "
+             "span, which is what leverage on a period change scales with, "
+             "and not the extrapolation baseline")
     add("st lmi epoch span years",
         fmt_float(None if st_cc.get("span_d") is None
                   else st_cc["span_d"] / 365.25, 1), unit="yr",
-        source="p3_cycle_count")
+        source="p3_cycle_count",
+        note="the same observed span in years; a quarter of the "
+             "catalogue-epoch baseline, which is why the paper never writes "
+             "one where the other belongs")
     add("st lmi drift cycles", fmt_float(st_cc.get("drift_cycles"), 4),
         unit="cycles", source="p3_cycle_count",
         note="accumulated phase drift at the catalogue period's quoted "
@@ -1411,7 +1625,10 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "value")
     add("st lmi fitted period sigma d",
         fmt_sci(st_cc.get("fitted_period_night_sigma_d"), 1), unit="d",
-        source="p3_cycle_count")
+        source="p3_cycle_count",
+        note="error bar on that refitted period, from the weighted fit "
+             "through the published epochs; the yardstick the agreement "
+             "with the catalogue value is measured in")
     _fp, _fs, _cp = (st_cc.get("fitted_period_night_d"),
                      st_cc.get("fitted_period_night_sigma_d"),
                      st_cc.get("period_d"))
@@ -1558,7 +1775,10 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         tag = _era_tag.get(era, f"era {era}")
         sub = [r for r in ocn if r["era_id"] == era]
         add(f"st lmi epochs {tag}", fmt_int(len(sub)),
-            source="p3_oc_night")
+            source="p3_oc_night",
+            note=f"published epochs observed in instrument era {era}; the "
+                 f"eras are read from the data, so the three counts sum to "
+                 f"the epoch total by construction")
         # Chi-squared PER EPOCH here, not per degree of freedom: the one
         # absorbed constant was fitted across the whole edge set and
         # belongs to neither era, so charging it to one of them (or half
@@ -1644,7 +1864,8 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         note="ZERO. No band pair, pooled or per night, reaches the "
              "3-sigma bar, and no pooled pair reaches even 2 sigma")
     add("band pair sigma bar", fmt_int(3), source="ANALYSIS_STRATEGY §4",
-        note="the significance a band-to-band offset must reach to be "
+        note="set in advance by ANALYSIS_STRATEGY §4: the significance a "
+             "band-to-band offset must reach to be "
              "called a detection")
     if pooled:
         top = max(pooled, key=lambda r: abs(r["delta_s"]) / r["sigma_s"])
@@ -1653,15 +1874,22 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
             note="the MOST SIGNIFICANT pooled band pair, over "
                  f"{top['n_cycles']} paired cycles")
         add("band offset top s", fmt_float(top["delta_s"], 0), unit="s",
-            source="p3_band_pair")
+            source="p3_band_pair",
+            note="that pair's pooled edge-time difference; a value, not a "
+                 "detection -- its own error bar is larger than it is")
         add("band offset top err s", fmt_float(top["sigma_s"], 0), unit="s",
-            source="p3_band_pair")
+            source="p3_band_pair",
+            note="the error bar on that difference, pooled over the same "
+                 "cycles")
         add("band offset top sigma",
             fmt_float(abs(top["delta_s"]) / top["sigma_s"], 1),
             source="p3_band_pair",
             note="its significance: the largest any band pair here reaches")
         add("band offset top cycles", fmt_int(top["n_cycles"]),
-            source="p3_band_pair")
+            source="p3_band_pair",
+            note="paired cycles behind that pooled difference: cycles timed "
+                 "in both bands, which is the only comparison a band offset "
+                 "may be built from")
         big = max(pooled, key=lambda r: abs(r["delta_s"]))
         add("band offset abs max s", fmt_float(abs(big["delta_s"]), 0),
             unit="s", source="p3_band_pair",
@@ -1720,12 +1948,16 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         unit="cycles", source="p3_cycle_count",
         note="circular scatter of the accepted edges; below the bar that "
              "says they time ONE feature")
+    # EXTERNAL: CV-S9 fixed this bar in code before any scatter was
+    # measured against it, and p3_meta records it as a stage input.
     add("one feature bar", fmt_float(one(
         cv, "SELECT value FROM p3_meta WHERE "
             "key='one_feature_bar_cycles'"), 2), unit="cycles",
-        source="p3_meta",
+        source="CV-S9 constant",
         note="phase scatter above which pooled edges are timing different "
-             "features and no O-C may be built")
+             "features and no O-C may be built; set by CV-S9 "
+             "(ONE_FEATURE_BAR_CYCLES) and recorded as a stage input in "
+             "p3_meta.one_feature_bar_cycles")
     # HOW BADLY THE TWO FAIL, AGAINST BOTH THINGS A READER MIGHT MEAN.
     # §4.3 said they "fail by an order of magnitude" in the sentence right
     # after naming the 0.05 bar, and against THAT bar they fail by 3.0 and
@@ -1756,23 +1988,49 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
 
     st = rows(cv, "SELECT * FROM p3_state_series WHERE separability "
                   "IS NOT NULL")
-    add("state series graded", fmt_int(len(st)), source="p3_state_series")
+    add("state series graded", fmt_int(len(st)), source="p3_state_series",
+        note="series with enough nightly medians to attempt a two-state "
+             "classification at all; the bimodal count is a subset of this")
     add("state series bimodal", fmt_int(sum(1 for r in st if r["bimodal"])),
         source="p3_state_series",
         note="series in which two accretion states separate")
+    # EXTERNAL: the bimodality bar CV-S9 fixed in code; p3_meta records it
+    # as a stage input, which is what makes it a criterion and not a result.
     add("state separability bar", fmt_float(one(
         cv, "SELECT value FROM p3_meta WHERE key='state_bimodal_bar'"), 2),
-        source="p3_meta", note="Otsu separability threshold")
+        source="CV-S9 constant",
+        note="Otsu separability a series must reach before its nightly "
+             "medians are called two populations; set by CV-S9 and "
+             "recorded as a stage input in p3_meta.state_bimodal_bar")
+    # TWO RANGES, BECAUSE THEY ARE OVER TWO DIFFERENT POPULATIONS.
+    # §4.5 printed the range over all GRADED series in a sentence whose
+    # subject was the BIMODAL ones, next to the 0.75 bar -- so the paper
+    # appeared to say a series with separability 0.65 had separated into two
+    # populations.  The bimodal-only span starts above the bar by
+    # construction, and the sentence now quotes the one it is about.
     slo, shi = _minmax([r["separability"] for r in st])
     add("state separability range", fmt_range(slo, shi, 2),
-        source="p3_state_series")
+        source="p3_state_series",
+        note="separability over ALL graded series, bimodal or not; its "
+             "lower end is below the bar because the series that fail the "
+             "bar are in it")
+    blo, bhi = _minmax([r["separability"] for r in st if r["bimodal"]])
+    add("state separability bimodal range", fmt_range(blo, bhi, 2),
+        source="p3_state_series",
+        note="separability over the BIMODAL series only: the population "
+             "§4.5's sentence is about, and the one whose span must lie "
+             "above the bar")
     # Figure 8 draws every class p3_state_night contains, so §4.4 states
     # how many nights fall in each rather than leaving three of the five
     # colours in the panel unexplained.
     for state in ("HIGH", "LOW", "INTERMEDIATE", "UNCLASSIFIED", "UNKNOWN"):
         add(f"state nights {state.lower()}", fmt_int(one(
             cv, "SELECT count(*) FROM p3_state_night WHERE state=?",
-            (state,))), source="p3_state_night")
+            (state,))), source="p3_state_night",
+            note=f"series--nights the classifier put in the {state} class; "
+                 f"two of the five classes are states and three are ways of "
+                 f"saying the classification could not be made, and Figure 8 "
+                 f"draws all five")
     add("state nights total", fmt_int(one(
         cv, "SELECT count(*) FROM p3_state_night")),
         source="p3_state_night",
@@ -1900,7 +2158,10 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "archive census, used in no measurement")
     add("eu uma fast comp stars",
         fmt_int(max((r["n_comp"] or 0) for r in eu) if eu else None),
-        source="cv_series")
+        source="cv_series",
+        note="comparison stars in the merged 2026 Fast-mode series: enough "
+             "to solve an ensemble, and with no check stars beside them no "
+             "way to know whether the solve is right")
     add("eu uma fast check stars",
         fmt_int(max((r["n_check"] or 0) for r in eu) if eu else None),
         source="cv_series", note="ZERO: nothing held out, so there is no "
@@ -1914,7 +2175,10 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
 
     # -- §5 Results: YZ Cnc -------------------------------------------
     gate = rows(cv, "SELECT * FROM p4_gate")
-    add("gate lines", fmt_int(len(gate)), source="p4_gate")
+    add("gate lines", fmt_int(len(gate)), source="p4_gate",
+        note="lines of the strategy's 4.19 signal-to-noise gate that were "
+             "evaluated at all: the denominator the pass count is quoted "
+             "against")
     add("gate passes", fmt_int(sum(1 for r in gate if r["passes"])),
         source="p4_gate", note="lines of the strategy's 4.19 S/N gate that "
                                "the photometry clears")
@@ -2065,8 +2329,12 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
 
     ob = rows(cv, "SELECT * FROM p4_outburst")
     add("outburst runs", fmt_int(len({r["night"] for r in ob})),
-        source="p4_outburst")
-    add("outburst run filters", fmt_int(len(ob)), source="p4_outburst")
+        source="p4_outburst",
+        note="dense runs inside a normal outburst, counted as NIGHTS: "
+             "three filters through one night are one run seen three ways")
+    add("outburst run filters", fmt_int(len(ob)), source="p4_outburst",
+        note="the same runs counted as run--filter combinations, which is "
+             "the unit the rates and contours below are measured in")
     sig_ob = [r for r in ob if str(r["rate_verdict"]).upper()
               in ("BRIGHTENING", "FADING")]
     add("outburst rate significant", fmt_int(len(sig_ob)),
@@ -2085,7 +2353,8 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         note="brightest dense run above quiescence")
     add("superoutburst amp", fmt_float(3.0, 1), unit="mag",
         source="ANALYSIS_STRATEGY §4",
-        note="the amplitude a superoutburst reaches: the peak above is "
+        note="the amplitude a superoutburst reaches, set in advance by "
+             "ANALYSIS_STRATEGY §4: the peak above is "
              "1.14 mag short of it")
     blo, bhi = _minmax([r["amp90_blind"] for r in ob], 1000.0)
     add("blind contour range mmag", fmt_range(blo, bhi, 0), unit="mmag",
@@ -2098,11 +2367,17 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         source="p4_outburst",
         note="run-filters long enough to place a blind periodogram maximum "
              "and therefore to carry a contour at all; the rest carry none")
+    # EXTERNAL: the literature floor the contour is compared against.  The
+    # outburst stage stamped it onto every row it wrote, but it is a number
+    # about SU UMa stars in the literature and not about YZ Cnc's data --
+    # and §5.4 introduces it as exactly that.
     add("superhump floor mmag", fmt_float(_median(
         [r["superhump_floor"] for r in ob], 1000.0), 0), unit="mmag",
-        source="p4_outburst", note="lower edge of published superhump "
-                                   "semi-amplitudes, as the outburst stage "
-                                   "recorded it")
+        source="literature: SU UMa superhump semi-amplitudes",
+        note="lower edge of published superhump semi-amplitudes for SU UMa "
+             "stars, set by CV-S10 (SUPERHUMP_SEMI_AMP_FLOOR = 0.050 mag) "
+             "and stamped onto every p4_outburst row; never a measurement "
+             "of YZ Cnc")
     # Dense RUNS are nights, not run-filters: three filters through one
     # night are one run seen three ways.
     add("yz cnc dense runs", fmt_int(one(
@@ -2112,17 +2387,27 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              "superoutburst")
     add("yz cnc quiescent runs", fmt_int(one(
         cv, "SELECT count(DISTINCT nights) FROM p4_run WHERE kind='run' "
-            "AND upper(state)='QUIESCENT'")), source="p4_run")
+            "AND upper(state)='QUIESCENT'")), source="p4_run",
+        note="dense runs in quiescence, counted as nights: the runs the "
+             "orbital-hump and flickering results rest on")
     add("yz cnc outburst runs", fmt_int(one(
         cv, "SELECT count(DISTINCT night) FROM p4_outburst")),
-        source="p4_outburst")
+        source="p4_outburst",
+        note="dense runs inside a normal outburst, counted as nights; with "
+             "the quiescent runs these exhaust the dense runs, and none is "
+             "a superoutburst")
 
     # -- §5 Results: AN UMa --------------------------------------------
     an = rows(cv, "SELECT * FROM p4_anuma")
-    add("an uma capabilities", fmt_int(len(an)), source="p4_anuma")
+    add("an uma capabilities", fmt_int(len(an)), source="p4_anuma",
+        note="capability--filter rows of Table 3: what the AN UMa data can "
+             "and cannot support, graded one line at a time")
     add("an uma supported", fmt_int(sum(
         1 for r in an if str(r["verdict"]).upper().startswith("SUPPORTED"))),
-        source="p4_anuma")
+        source="p4_anuma",
+        note="those graded SUPPORTED; the rest are graded by what is "
+             "missing, and the paper reports the grade rather than the "
+             "capability")
     # AN UMa's timing precision.  There is NO injection test for this
     # target: p3_sigmat's grid was run on ST LMi's Mode0 night alone.  What
     # exists is (a) the analytic budget, which §4.2 forbids quoting as
@@ -2174,8 +2459,12 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
              f"is true of")
     add("an uma edges accepted", fmt_int(sum(1 for r in an_edge
                                              if r["accepted"])),
-        source="p3_edge")
-    add("an uma edges fitted", fmt_int(len(an_edge)), source="p3_edge")
+        source="p3_edge",
+        note="AN UMa edge fits that passed every acceptance test; too few "
+             "to build an O-C, which is the finding rather than a gap")
+    add("an uma edges fitted", fmt_int(len(an_edge)), source="p3_edge",
+        note="edge fits attempted on AN UMa, accepted or not: the "
+             "denominator behind the rejection breakdown below")
     # WHY THE EDGES ARE REJECTED, from the stored reasons.  §5.3 blamed a
     # slow filter cycle; the database says the opposite, and the remedy
     # that follows is different in kind.  A faster filter cycle samples
@@ -2186,7 +2475,9 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
             "accepted=0")]
     snr_v = [float(m.group(1)) for m in
              (re.search(r"step SNR ([0-9.]+)", t) for t in rej) if m]
-    add("an uma rejections", fmt_int(len(rej)), source="p3_edge")
+    add("an uma rejections", fmt_int(len(rej)), source="p3_edge",
+        note="AN UMa edge fits rejected, with the stored reason read back "
+             "rather than assumed; the three counts below break this down")
     add("an uma rejections snr", fmt_int(len(snr_v)), source="p3_edge",
         note="edges rejected because the step signal-to-noise is below the "
              "bar: the edge is not distinguishable from this star's own "
@@ -2204,7 +2495,8 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         source="p3_edge",
         note="measured step signal-to-noise of the rejected edges")
     add("an uma step snr bar", fmt_int(5), source="ANALYSIS_STRATEGY §4",
-        note="step signal-to-noise an edge must reach to be accepted")
+        note="set in advance by ANALYSIS_STRATEGY §4: the step "
+             "signal-to-noise an edge must reach to be accepted")
     an_ct = rows(ch, "SELECT * FROM ch_timing WHERE target_key='anuma' "
                      "AND night_kind='richest' AND "
                      "regime='per-cycle shape-mismatched'")
@@ -2250,9 +2542,83 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
 
     # -- Verdicts -------------------------------------------------------
     vd = rows(cv, "SELECT * FROM p4_verdict")
-    add("verdicts", fmt_int(len(vd)), source="p4_verdict")
+    add("verdicts", fmt_int(len(vd)), source="p4_verdict",
+        note="closing decisions in Table 4: one row per question the "
+             "programme opened, each with the number that decided it")
 
-    return N
+    # -- §7 The figures, counted by the databases they are drawn from ----
+    # §7 claims that running the generators against the release reproduces
+    # every figure.  That is a claim about how many databases a reader has
+    # to download, so it is counted here from what the figure builders
+    # actually recorded reading, rather than from the connections they were
+    # handed -- one builder takes a handle it never uses.
+    _catalog = {h: _table_names(c)
+                for h, c in (("cv", cv), ("ch", ch), ("man", man))}
+    _fig_dbs = []
+    for r in rows(cv, "SELECT tables_used FROM p5_figure"):
+        used = [t.strip() for t in (r["tables_used"] or "").split(",")
+                if t.strip()]
+        _fig_dbs.append({h for h in _catalog for t in used
+                         if t in _catalog[h]})
+    add("figures total", fmt_int(len(_fig_dbs)) if _fig_dbs else None,
+        source="p5_figure",
+        note="figures in the manuscript, as the figure stage recorded them")
+    add("figures beyond phot",
+        fmt_int(sum(1 for d in _fig_dbs if d - {"cv"})) if _fig_dbs else None,
+        source="p5_figure",
+        note="figures drawn from at least one table outside the photometry "
+             "products: a reader with only that database cannot redraw them")
+    add("figures multi database",
+        fmt_int(sum(1 for d in _fig_dbs if len(d) > 1)) if _fig_dbs else None,
+        source="p5_figure",
+        note="figures drawn from more than one released database at once")
+
+    # -- §7 The release describing itself -------------------------------
+    # §7 used to say the release was "a single SQLite database", and 31 of
+    # these macros -- Table 1 entire, the abstract's precision range, the
+    # injection contours, the check-bias ratio -- came from the other two.
+    # The census below is emitted rather than asserted: the four counts are
+    # taken from the macros' own resolved databases AFTER they are all
+    # collected, so a macro that moves between databases moves the
+    # sentence in §7 with it, and the counts cannot drift from the table.
+    census_keys = ["macros total", "macros phot", "macros characterisation",
+                   "macros manifest", "macros external"]
+    census_notes = {
+        "macros total": "macros in numbers.tex, counting these five; the "
+                        "four counts below partition it exactly",
+        "macros phot": "macros whose source table is in the photometry "
+                       "products database",
+        "macros characterisation": "macros whose source table is in the "
+                                   "characterisation products database: "
+                                   "the noise model, the timing budget, "
+                                   "the check-star bias and the contours",
+        "macros manifest": "macros whose source table is in the frame "
+                           "manifest: Table 1's detector constants and "
+                           "the per-mode ceilings",
+        "macros external": "macros that are not queries against any "
+                           "released table at all: the external constants, "
+                           "which carry a strategy section, a stage "
+                           "constant or a catalogue as their source",
+    }
+    for key in census_keys:
+        add(key, None, source="p5_number", note=census_notes[key])
+
+    # Resolve every macro's database BEFORE counting, because the count is
+    # over exactly that resolution.  This also fails the build on a source
+    # that names no released table and declares no external origin.
+    resolved = resolve_databases(N, cv, ch, man)
+    by_db = {}
+    for n in resolved:
+        by_db[n.db or "external"] = by_db.get(n.db or "external", 0) + 1
+    counts = {
+        "macros total": len(resolved),
+        "macros phot": by_db.get(RELEASE_DB_FILE["cv"], 0),
+        "macros characterisation": by_db.get(RELEASE_DB_FILE["ch"], 0),
+        "macros manifest": by_db.get(RELEASE_DB_FILE["man"], 0),
+        "macros external": by_db.get("external", 0),
+    }
+    return [replace(n, value=fmt_int(counts[n.key]))
+            if n.key in counts else n for n in resolved]
 
 
 # ===========================================================================
@@ -2365,7 +2731,12 @@ def render_series_table(cv: sqlite3.Connection) -> str:
         f"and {len(_no_pts)} solved series: {_no_pts_txt}; "
         "Section~\\ref{sec:vvpupeuuma}). "
         "\\label{tab:series}}",
-        "\\tablehead{\\colhead{Target} & \\colhead{Camera} & "
+        # "Readout mode", not "Camera": the cells are ERA_LABEL readout
+        # modes -- 'Mode0', '1MHz HS 16-bit' -- and heading them 'Camera'
+        # invited exactly the slippage Figure 7's caption then made in the
+        # other direction, naming a camera model no other row of this table
+        # or of Table 1 uses.
+        "\\tablehead{\\colhead{Target} & \\colhead{Readout mode} & "
         "\\colhead{Band} & \\colhead{Frames} & \\colhead{Points} & "
         "\\colhead{$N_{\\rm comp}$} & \\colhead{$N_{\\rm chk}$} & "
         "\\colhead{$\\sigma_{\\rm chk}$} & \\colhead{$I$} & "

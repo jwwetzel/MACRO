@@ -1485,10 +1485,11 @@ def fig06_colour_phase(cv, max_dt_s=600.0):
 
 def fig07_vvpup_euuma_folds(cv):
     """Figure 7 -- VV Pup (per camera) and EU UMa folded curves. SUBSTITUTE."""
-    picks = [("vvpup|e72|g", "VV Pup — 1MHz HS (2024-11/12)"),
-             ("vvpup|e76|g", "VV Pup — Mode0 (2025)"),
-             ("vvpup|e76|r", "VV Pup — Mode0 (2025)"),
-             ("euuma|e76|g", "EU UMa — Mode0 (2025)")]
+    picks = [("vvpup|e72|g", f"VV Pup — {MODE_SHORT.get(ERA_LABEL[72], '')}"
+                             f" 16-bit (2024-11/12)"),
+             ("vvpup|e76|g", f"VV Pup — {ERA_LABEL[76]} (2025)"),
+             ("vvpup|e76|r", f"VV Pup — {ERA_LABEL[76]} (2025)"),
+             ("euuma|e76|g", f"EU UMa — {ERA_LABEL[76]} (2025)")]
     fig, axes = plt.subplots(2, 2, figsize=(COL_DOUBLE, 4.2), sharex=True,
                              squeeze=False)
     eph = read_ephemeris(cv)
@@ -1511,17 +1512,25 @@ def fig07_vvpup_euuma_folds(cv):
              "catalogue tie — it cannot carry a validated magnitude.",
              ha="center", fontsize=6.2, color=OKABE_ITO["vermilion"])
 
+    # THE ERA LABELS COME FROM ERA_LABEL, NOT FROM PROSE.  This caption used
+    # to call VV Pup's 2024 era "iKon" -- the camera model, a name that
+    # appears nowhere in Table 1, Table 2 or Figure 1's legend, so a reader
+    # could not map it onto any row of the table it sits beside.  Naming the
+    # eras from the same dict the panels and the legends use means the
+    # caption cannot drift away from them again.
     spec = FigureSpec(
         fig_id="fig07", label="fig:vvpupeuumafold",
         title="VV Pup and EU UMa folded light curves",
         caption=(
             "Folded light curves of VV Pup and EU UMa on their catalogue "
             "ephemerides, drawn exactly as Figure~\\ref{fig:stlmifold}. VV "
-            "Pup is split by CAMERA and never combined across the two: its "
-            "iKon (2024 Nov--Dec) and Mode0 (2025) epochs are fully "
-            "confounded with instrument, so a joint fold would put a "
+            "Pup is split by READOUT MODE and never combined across the "
+            f"two: its {ERA_LABEL[72]} (2024 Nov--Dec) and {ERA_LABEL[76]} "
+            "(2025) epochs are fully confounded with instrument --- the "
+            "camera and its readout mode changed together, with no "
+            "interleaving in time --- so a joint fold would put a "
             "zero-point step inside a phase curve. EU UMa is shown only in "
-            "the Mode0 $g$ series that has a catalogue tie."),
+            f"the {ERA_LABEL[76]} $g$ series that has a catalogue tie."),
         tables=("cv_lightcurve", "cv_frames", "p2_cloud_frame",
                 "p3_ephemeris", "p3_state_night"),
         width_in=COL_DOUBLE, substitute=True,
