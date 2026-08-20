@@ -1242,8 +1242,10 @@ def fig05_stlmi_folds(cv):
             "median phase bins with a median-absolute-deviation error on "
             "the median, and empty bins are left empty rather than "
             "interpolated. Colour separates the accretion states classified "
-            "in \\texttt{p3\\_state\\_night}. The two columns are NOT "
-            "combined and share no colour axis: the 2024 G/R/I and 2025 "
+            "in \\texttt{p3\\_state\\_night}, and that state palette is "
+            "the one thing the two columns do share. The two columns are "
+            "NOT combined and share no MAGNITUDE axis, which is this "
+            "figure's ordinate: the 2024 G/R/I and 2025 "
             "g/r/i seasons do not overlap in time and were taken through "
             "different cameras and different bandpasses, so the comparison "
             "the paper makes is between morphologies, never between "
@@ -1294,15 +1296,29 @@ def fig06_colour_phase(cv, max_dt_s=600.0):
                         yerr=np.concatenate([sb[good], sb[good]]),
                         fmt="o", ms=2.6, lw=0.8, capsize=0,
                         color=BAND_COLOR.get(ba, "k"), mec="none")
+            # TWO BARS, because the tie accuracy depends on whether outlier
+            # check stars are clipped and the paper may not make that
+            # choice invisibly.  Inner solid bar: the sigma-clipped
+            # residuals.  Outer pale bar: every held-out star kept.  The
+            # colour zero point is uncertain by somewhere between them, and
+            # a single bar drawn at the smaller one understates it.
             ra = tie.get(ska, {}).get("check_rms_clip") or 0.0
             rb = tie.get(skb, {}).get("check_rms_clip") or 0.0
+            ua = tie.get(ska, {}).get("check_rms") or 0.0
+            ub = tie.get(skb, {}).get("check_rms") or 0.0
             sysbar = math.hypot(float(ra), float(rb))
+            sysbar_raw = math.hypot(float(ua), float(ub))
             lo, hi = robust_ylim(colr)
-            ax.errorbar([0.09], [lo + 0.14 * (hi - lo)], yerr=[sysbar],
-                        fmt="none", ecolor=OKABE_ITO["black"], lw=1.1,
-                        capsize=2.0)
-            ax.text(0.13, lo + 0.14 * (hi - lo),
-                    f"tie systematic\n{1000 * sysbar:.0f} mmag",
+            y0 = lo + 0.14 * (hi - lo)
+            if sysbar_raw > sysbar:
+                ax.errorbar([0.09], [y0], yerr=[sysbar_raw], fmt="none",
+                            ecolor=OKABE_ITO["grey"], lw=2.6, alpha=0.45,
+                            capsize=2.6)
+            ax.errorbar([0.09], [y0], yerr=[sysbar], fmt="none",
+                        ecolor=OKABE_ITO["black"], lw=1.1, capsize=2.0)
+            ax.text(0.13, y0,
+                    f"tie systematic\n{1000 * sysbar:.0f} mmag clipped\n"
+                    f"{1000 * sysbar_raw:.0f} mmag unclipped",
                     fontsize=5.6, va="center")
             ax.set_ylim(lo, hi)
             ax.set_ylabel(f"${ba}-{bb}$ (mag)", fontsize=7)
@@ -1347,9 +1363,14 @@ def fig06_colour_phase(cv, max_dt_s=600.0):
             f"{_p_min:.0f}-minute orbit and "
             "a pair separated by half an orbit is not a colour. Small "
             "points are individual pairs, large points are median phase "
-            "bins. The black bar in each panel is the catalogue-tie "
+            "bins. The bars in each panel are the catalogue-tie "
             "systematic, the two series' check-star residuals added in "
-            "quadrature: it shifts the whole curve and does not scatter it, "
+            "quadrature, drawn twice: the black bar from the "
+            "SIGMA-CLIPPED residuals and the pale bar behind it from the "
+            "same residuals with every held-out star kept, because that "
+            "choice moves the zero-point uncertainty by a factor of a few "
+            "and Section~\\ref{sec:tie} declines to make it silently. It "
+            "shifts the whole curve and does not scatter it, "
             "so colour SHAPE is measured here at the per-point precision "
             "while colour ZERO POINT carries that bar. No colour-dependent "
             "extinction term is applied anywhere in this paper; the 3$\\sigma$ "
@@ -1427,7 +1448,13 @@ def fig08_state_history(cv, first_night="2018-01-01"):
     visible rather than silent.
     """
     targets = ["stlmi", "vvpup", "euuma", "anuma", "yzcnc"]
-    fig, axes = plt.subplots(len(targets), 1, figsize=(COL_DOUBLE, 7.6),
+    # 7.0 in, not 7.6.  At \textwidth in a two-column AASTeX figure* the
+    # panel is reproduced at its full 7.1 in width, so its height goes onto
+    # the page unscaled; at 7.6 in this float plus its caption overflowed
+    # the text block by 31.9 pt and LaTeX warned on every build.  A figure
+    # that does not fit its page is a layout defect, and the fix belongs
+    # in the code that draws it rather than in a \resizebox in the source.
+    fig, axes = plt.subplots(len(targets), 1, figsize=(COL_DOUBLE, 7.0),
                              sharex=True, squeeze=False)
     src_color = {"ztf": "#9ab4d0", "asassn": "#d0b49a", "aavso": "#b7c9a8"}
     x_min = float(night_to_ordinal([first_night])[0])
@@ -1640,6 +1667,24 @@ def fig09_oc(cv):
                 f"$\\chi^2$/epoch {float(cc[0]['oc_night_chi2nu']):.2f}",
                 transform=ax.transAxes, fontsize=5.6, va="bottom",
                 color=OKABE_ITO["black"])
+        # THE BOUND THE NULL BUYS.  A null is worth what it excludes, so
+        # draw the O-C a period derivative at the 3-sigma limit would have
+        # produced.  The epochs sit inside it by construction; the point is
+        # that a reader can see how much curvature this baseline could have
+        # carried without being noticed.
+        lim = cc[0]["pdot_limit3"] if "pdot_limit3" in cc[0].keys() else None
+        per_d = cc[0]["period_d"]
+        if lim and per_d and oc:
+            e_ax = np.linspace(min(r["cycle_mean"] for r in oc),
+                               max(r["cycle_mean"] for r in oc), 200)
+            e0 = float(np.mean([r["cycle_mean"] for r in oc]))
+            env = quadratic_oc_seconds(e_ax - e0, float(lim), float(per_d))
+            for sgn in (-1.0, 1.0):
+                ax.plot(e_ax, sgn * (env - env.min()), lw=0.8, ls=":",
+                        color=OKABE_ITO["green"], zorder=1)
+            ax.plot([], [], lw=0.8, ls=":", color=OKABE_ITO["green"],
+                    label=f"$|\\dot{{P}}|$ = {float(lim):.1e} (3$\\sigma$ "
+                          f"limit)")
     ax.set_xlabel("cycle number since the catalogue epoch")
     ax.set_ylabel("O$-$C (s)")
     ax.grid(color="#f2f2f2")
@@ -1647,27 +1692,34 @@ def fig09_oc(cv):
               fontsize=5.6, columnspacing=0.9, handletextpad=0.35)
 
     # Right: the band-to-band edge offsets, which the strategy demanded not
-    # be averaged away.  If the falling edge is at a different phase in i
-    # than in g, then "the" epoch of a bright-phase edge is band dependent
-    # and any O--C that pools bands inherits that as a scatter.
-    # Grouped by BAND PAIR rather than one row per night: thirty per-night
-    # rows produced a tick label every two millimetres and nothing legible.
-    # Each pair now gets one row, its individual nights scattered along it
-    # and its pooled value drawn as the filled point with an error bar.
+    # be averaged away.  The result is a NULL, and the panel has to show it
+    # as one: every pooled offset is printed with its error bar and its
+    # significance, so a reader can see that the largest reaches 1.9 sigma
+    # against a 3 sigma bar rather than having to infer a detection from
+    # the mere existence of non-zero differences.
+    #
+    # Only pairs WITH a pooled measurement get a row.  A pair seen on one
+    # night has no pooled estimate (the stage needs two paired cycles), and
+    # an earlier version of this panel drew that row anyway, with a lone
+    # pale marker and no diamond and no explanation.
     bp = read_rows(cv, """SELECT * FROM p3_band_pair WHERE target_key='stlmi'
                           ORDER BY era_id, band_a, band_b, night""")
     groups: dict[tuple, list[dict]] = {}
     for r in bp:
         groups.setdefault((r["era_id"], r["band_a"], r["band_b"]),
                           []).append(r)
-    keys = sorted(groups)
+
+    def _pooled_of(rows_):
+        return [r for r in rows_ if "pooled" in str(r["night"]).lower()]
+
+    keys = sorted(k for k in groups if _pooled_of(groups[k]))
+    dropped = sorted(set(groups) - set(keys))
+    n_sig = sum(1 for r in bp if r["significant"])
     for i, key in enumerate(keys):
         era, ba, bb = key
         rows_ = groups[key]
-        # 'pooled' is a night label the stage writes for the combined
-        # estimate; it is the summary, not another night.
         singles = [r for r in rows_ if "pooled" not in str(r["night"]).lower()]
-        pooled = [r for r in rows_ if "pooled" in str(r["night"]).lower()]
+        pooled = _pooled_of(rows_)
         col = BAND_COLOR.get(ba, OKABE_ITO["grey"])
         if singles:
             jit = np.linspace(-0.22, 0.22, len(singles))
@@ -1675,20 +1727,31 @@ def fig09_oc(cv):
                          xerr=[r["sigma_s"] for r in singles], fmt="o",
                          ms=2.0, lw=0, elinewidth=0.5, capsize=0,
                          color=col, ecolor="#d5d5d5", alpha=0.85, mec="none")
-        if pooled:
-            ax2.errorbar([pooled[0]["delta_s"]], [i],
-                         xerr=[pooled[0]["sigma_s"]], fmt="D", ms=3.4,
-                         lw=0, elinewidth=1.1, capsize=1.8,
-                         color=OKABE_ITO["black"], zorder=5)
+        p0 = pooled[0]
+        ax2.errorbar([p0["delta_s"]], [i], xerr=[p0["sigma_s"]], fmt="D",
+                     ms=3.4, lw=0, elinewidth=1.1, capsize=1.8,
+                     color=OKABE_ITO["black"], zorder=5)
+        # THE NUMBER, ON THE PANEL.  Panel (a) already annotates its own
+        # error scales; the deciding number of panel (b) is a significance
+        # and it belongs in print, not in a database a reader has to open.
+        ax2.annotate(
+            f"{p0['delta_s']:+.0f}$\\pm${p0['sigma_s']:.0f} s "
+            f"({abs(p0['delta_s']) / p0['sigma_s']:.1f}$\\sigma$, "
+            f"n={int(p0['n_cycles'])})",
+            xy=(p0["delta_s"], i), xytext=(0, 9.0),
+            textcoords="offset points", ha="center", fontsize=4.9,
+            color=OKABE_ITO["black"], zorder=6)
     if keys:
         ax2.axvline(0.0, color="k", lw=0.7)
         ax2.set_yticks(np.arange(len(keys)))
         ax2.set_yticklabels(
             [f"{ba}$-${bb}  {ERA_LABEL.get(era, era)[:9]}"
              for era, ba, bb in keys], fontsize=5.8)
-        ax2.set_ylim(-0.6, len(keys) - 0.4)
+        ax2.set_ylim(-0.6, len(keys) - 0.15)
         ax2.set_xlabel("band-to-band edge offset (s)")
         ax2.grid(axis="x", color="#f2f2f2")
+        ax2.set_title(f"{n_sig} of {len(bp)} significant at 3$\\sigma$",
+                      fontsize=6.0, color=OKABE_ITO["vermilion"], pad=3)
         ax2.legend(handles=[
             Line2D([], [], marker="o", lw=0, ms=3,
                    color=OKABE_ITO["grey"], label="one night"),
@@ -1704,27 +1767,74 @@ def fig09_oc(cv):
              "a 0.05 bar). EU UMa has two accepted edges.",
              ha="center", fontsize=6.0, color=OKABE_ITO["vermilion"])
 
+    # The caption's numbers come from the same rows the panel drew, so a
+    # re-run that moved a measurement moves the caption with it.
+    _cc0 = cc[0] if cc else {}
+    _n_single = sum(1 for r in oc if r["n_cycles"] == 1)
+    _n_xfer = sum(1 for r in oc if r["era_id"] != 76)
+    _pool = [r for r in bp if "pooled" in str(r["night"]).lower()
+             and r["sigma_s"]]
+    _top = (max(_pool, key=lambda r: abs(r["delta_s"]) / r["sigma_s"])
+            if _pool else None)
+    _bnd = (min(_pool, key=lambda r: abs(r["delta_s"]) + 2 * r["sigma_s"])
+            if _pool else None)
+    _drop_txt = ""
+    if dropped:
+        _drop_txt = (
+            " Band pairs seen on a single night carry no pooled estimate "
+            "and are not drawn ("
+            + ", ".join(f"${ba}-{bb}$ in {ERA_LABEL.get(era, era)}"
+                        for era, ba, bb in dropped) + ").")
+    _null_txt = ""
+    if _top is not None and _bnd is not None:
+        _null_txt = (
+            f" Every pooled offset is consistent with zero: {n_sig} of "
+            f"{len(bp)} pairs are significant at 3$\\sigma$, the strongest "
+            f"pooled pair is ${_top['band_a']}-{_top['band_b']}$ at "
+            f"{_top['delta_s']:+.0f}$\\pm${_top['sigma_s']:.0f}~s "
+            f"({abs(_top['delta_s']) / _top['sigma_s']:.1f}$\\sigma$ over "
+            f"{int(_top['n_cycles'])} paired cycles), and the tightest "
+            f"pooled pair bounds any such offset below "
+            f"{abs(_bnd['delta_s']) + 2 * _bnd['sigma_s']:.0f}~s at "
+            f"2$\\sigma$. This panel is a NON-DETECTION and is reported as "
+            "one.")
     spec = FigureSpec(
         fig_id="fig09", label="fig:oc",
-        title="ST LMi O$-$C and band-dependent edge offsets",
+        title="ST LMi O$-$C and the inter-band edge-offset null",
         caption=(
             "(a) Bright-phase timing residuals against the catalogue "
             "ephemeris. Symbols with error bars are the PUBLISHED epochs: "
             "one per night per band, each the mean of that night's "
             "accepted per-cycle edges, open for the 2024 High Gain era and "
             "filled for the 2025 Mode0 era. Pale dots behind them are the "
-            "per-cycle edges those means are made of; none is published as "
-            "an epoch, because the injection test of "
-            "Section~\\ref{sec:timing} showed that one cycle's edge does "
-            "not reach the 60~s threshold (dash-dot lines). The outer "
-            "shaded band is that per-cycle error, the inner the median "
-            "error of a per-night epoch. Bands are averaged separately, "
-            "for the reason panel (b) gives. (b) Band-to-band "
-            "offsets of the same edge on the same night, shown "
-            "rather than averaged away: if the falling edge sits at a "
-            "different phase in $i$ than in $g$, then the epoch of a "
-            "bright-phase edge is band dependent and any O$-$C that pools "
-            "bands inherits that offset as apparent period noise."),
+            "per-cycle edges those means are made of; none is published "
+            "carrying its own per-cycle error bar, because the injection "
+            "test of Section~\\ref{sec:timing} showed that one cycle's "
+            "edge does not reach the 60~s threshold (dash-dot lines). On "
+            f"{_n_single} of the {len(oc)} epochs only one cycle was timed, "
+            "so the mean is that cycle with the injection budget attached "
+            "instead of the fit's own error. That budget is measured on a "
+            "SINGLE Mode0 night of ST~LMi and served out by band slot, so "
+            f"the {_n_xfer} epochs from the other instrument eras carry an "
+            "error bar measured in an era they were not observed in; "
+            "Section~\\ref{sec:timing} gives the reduced chi-squared "
+            "recomputed under the edge fits' own errors as the check on "
+            "that. The outer shaded band is the per-cycle error, the inner "
+            "the median error of a per-night epoch. The dotted envelope is "
+            "the O$-$C a steady period derivative at this data set's "
+            "3$\\sigma$ upper bound would have produced, with the constant "
+            "and linear terms absorbed as the fit absorbs them: it is what "
+            "the null excludes, and the epochs sit inside it. (b) "
+            "Band-to-band "
+            "offsets of the same edge on the same cycle, shown rather than "
+            "averaged away, one row per band pair with the pooled estimate "
+            "as the black diamond and its value, error and significance "
+            "printed above it." + _null_txt + _drop_txt
+            + " Bands are nonetheless averaged separately throughout, as "
+            "the conservative choice against a wavelength-dependent edge "
+            "phase that the cyclotron picture predicts and these data are "
+            "not precise enough to detect or exclude at the size it would "
+            "have."),
         tables=("p3_oc", "p3_oc_night", "p3_band_pair", "p3_sigmat",
                 "p3_cycle_count"),
         width_in=COL_DOUBLE, substitute=True,

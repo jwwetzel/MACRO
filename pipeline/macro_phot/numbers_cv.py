@@ -409,13 +409,37 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         source="cv_lightcurve",
         note="catalogue-tied target measurements, all series; the five "
              "per-target counts sum to exactly this")
-    add("points untied", fmt_int(one(
-        cv, "SELECT count(*) FROM cv_lightcurve WHERE role='target' AND "
-            "cal_mag IS NULL")),
+    # UNTIED TARGET POINTS, SPLIT BY WHY.  An earlier revision described all
+    # of them as sitting in series "whose tie did not converge", which is
+    # true of only one of the three blocks: the other two ARE tied and
+    # appear in Table 2, and their untied rows are individual detections
+    # that the converged solution could not place on the standard system.
+    untied = rows(cv, """
+        SELECT l.series_key AS sk, count(*) AS n,
+               COALESCE(c.verdict, 'no tie') AS verdict
+        FROM cv_lightcurve l
+        LEFT JOIN cv_cattie c ON c.series_key = l.series_key
+                             AND c.is_primary = 1
+        WHERE l.role='target' AND l.cal_mag IS NULL
+        GROUP BY 1, 3 ORDER BY n DESC""")
+    n_in_tied = sum(r["n"] for r in untied
+                    if str(r["verdict"]).startswith("TIED"))
+    n_in_untied = sum(r["n"] for r in untied
+                      if not str(r["verdict"]).startswith("TIED"))
+    add("points untied", fmt_int(sum(r["n"] for r in untied)),
         source="cv_lightcurve",
-        note="target detections in series with no usable catalogue tie: "
-             "real measurements on no standard system, so they are counted "
-             "and then not used")
+        note="target detections carrying no catalogue-tied magnitude: "
+             + "; ".join(f"{r['sk']} {r['n']} ({r['verdict']})"
+                         for r in untied))
+    add("points untied in tied blocks", fmt_int(n_in_tied),
+        source="cv_lightcurve",
+        note="detections inside blocks whose tie DID converge and which "
+             "appear in Table 2: individual points the fitted colour "
+             "relation could not place on the standard system, not the "
+             "output of a failed solve")
+    add("points untied in untied blocks", fmt_int(n_in_untied),
+        source="cv_lightcurve",
+        note="detections in the one block with no usable tie at all")
     add("lightcurve rows", fmt_int(one(cv, "SELECT count(*) FROM "
                                        "cv_lightcurve")),
         source="cv_lightcurve",
@@ -534,6 +558,19 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     # brighter or fainter than the target.  ch_noise_series measures it
     # directly; cv_series' check-star median is a FIELD statistic and is
     # quoted under its own name so the two cannot be confused.
+    #
+    # WHAT SAMPLE THIS IS FITTED OVER, SAID HERE BECAUSE §3.1 MUST SAY IT.
+    # ``prec_at_target_all`` interpolates the measured RMS-magnitude
+    # relation at the target's magnitude over the constant stars NEAR that
+    # magnitude, and that local sample is comparison AND check stars --
+    # overwhelmingly comparison stars, whose residuals the ensemble solve
+    # minimises by construction.  It is therefore NOT a held-out statistic,
+    # and the paper may not claim it as one.  The held-out statistics are
+    # ``check_rms_median`` (Table 2's sigma_chk), the tie accuracy and the
+    # inflation factor; ``ch_check_bias`` measures how far a four-star
+    # hold-out can be from a magnitude-matched field sample, and that
+    # spread is emitted below because it bounds what the hold-out could
+    # have said instead.
     prec = [r["prec_at_target_all"] for r in
             rows(ch, "SELECT prec_at_target_all FROM ch_noise_series")]
     lo, hi = _minmax(prec, 1000.0)
@@ -544,8 +581,33 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         source="ch_noise_series")
     add("precision range mmag", fmt_range(lo, hi, 0), unit="mmag",
         source="ch_noise_series",
-        note="the paper's headline per-point precision, measured at each "
-             "target's own magnitude in each series")
+        note="the paper's headline per-point precision: the measured "
+             "RMS-magnitude relation evaluated at each target's own "
+             "magnitude, fitted over the constant ENSEMBLE AND CHECK stars "
+             "local to that magnitude. It is a local fit, not a held-out "
+             "statistic, and §3.1 says so")
+    # Only the series that actually CONTRIBUTE a precision value: the five
+    # with no target magnitude contribute none, and counting their empty
+    # neighbourhoods would open the range at zero.
+    nnt = [r["n_near_target"] for r in
+           rows(ch, "SELECT n_near_target FROM ch_noise_series "
+                    "WHERE prec_at_target_all IS NOT NULL "
+                    "AND n_near_target IS NOT NULL")]
+    nlo, nhi = _minmax(nnt)
+    add("precision sample range", fmt_range(nlo, nhi, 0),
+        source="ch_noise_series",
+        note="constant stars near the target's magnitude that the local "
+             "fit uses, per series: comparison and check stars together, "
+             "the upper end being VV Pup's crowded low-latitude field")
+    cb = rows(ch, "SELECT * FROM ch_check_bias")
+    blo2, bhi2 = _minmax([r["bias_ratio"] for r in cb])
+    add("check bias ratio range", fmt_range(blo2, bhi2, 2),
+        source="ch_check_bias",
+        note="median check-star RMS divided by the median RMS of "
+             "magnitude-matched FIELD stars in the same frames, per block: "
+             "how far a four-star hold-out can sit from the field it is "
+             "meant to represent")
+    add("check bias blocks", fmt_int(len(cb)), source="ch_check_bias")
     clo, chi = _minmax([r["check_rms_median"] for r in solved], 1000.0)
     add("check rms range mmag", fmt_range(clo, chi, 0), unit="mmag",
         source="cv_series",
@@ -583,18 +645,68 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     add("tie at goal", fmt_int(sum(1 for r in tie
                                    if r["verdict"] == "TIED-GOAL")),
         source="cv_cattie",
-        note="blocks meeting the 0.01--0.02 mag accuracy goal")
+        note="blocks meeting the 0.01--0.02 mag accuracy goal on the "
+             "sigma-clipped check-star RMS, which is the statistic the tie "
+             "stage grades on")
+    add("tie at goal unclipped", fmt_int(sum(
+        1 for r in tie if str(r["verdict"]).startswith("TIED")
+        and r["check_rms"] is not None and r["check_rms"] <= 0.020)),
+        source="cv_cattie",
+        note="blocks meeting the same goal with every held-out check star "
+             "kept. Fewer, which is why the paper gives both counts rather "
+             "than saying the goal is missed 'either way' without checking")
     add("tie untied", fmt_int(sum(1 for r in tie
                                   if r["verdict"] == "UNTIED")),
         source="cv_cattie")
-    med_check = sorted(float(r["check_rms_clip"]) for r in tie
-                       if r["check_rms_clip"] is not None)
+    # THE TIE ACCURACY, BOTH WAYS.  ``check_rms_clip`` is the check-star
+    # RMS after sigma-clipping; ``check_rms`` is the same statistic with
+    # every held-out star in it.  They differ by a factor 2.6 in the median
+    # and by up to 7x per block, which is far too large a choice to make
+    # silently in the number the paper calls its largest systematic.  Both
+    # are emitted, and the paper quotes both.
+    tied = [r for r in tie if str(r["verdict"]).startswith("TIED")]
     add("tie median accuracy mmag",
-        fmt_float(1000.0 * med_check[len(med_check) // 2] if med_check
-                  else None, 0),
+        fmt_float(_median([r["check_rms_clip"] for r in tied], 1000.0), 0),
         unit="mmag", source="cv_cattie",
-        note="median achieved accuracy on held-out check stars, against a "
-             "10--20 mmag goal")
+        note="median achieved accuracy on the held-out check stars AFTER "
+             "sigma-clipping, over the tied primary blocks, against a "
+             "10--20 mmag goal; the unclipped median is quoted beside it "
+             "and is 2.6x larger")
+    add("tie median accuracy unclipped mmag",
+        fmt_float(_median([r["check_rms"] for r in tied], 1000.0), 0),
+        unit="mmag", source="cv_cattie",
+        note="the SAME statistic with every held-out check star kept: no "
+             "outlier rejection at all. Neither is obviously the right one "
+             "-- a clipped star may be a blend or a variable rather than a "
+             "tie failure -- so the paper prints both and the calibration "
+             "goal is missed either way")
+    add("tie blocks clipped", fmt_int(sum(
+        1 for r in tied if (r["n_check_outlier"] or 0) > 0)),
+        source="cv_cattie",
+        note="tied blocks in which at least one held-out check star was "
+             "clipped from the accuracy statistic")
+    olo, ohi = _minmax([r["n_check_outlier"] for r in tied
+                        if (r["n_check_outlier"] or 0) > 0])
+    add("tie clipped stars range", fmt_range(olo, ohi, 0),
+        source="cv_cattie", note="stars clipped per affected block")
+    klo, khi = _minmax([r["n_check"] for r in tied])
+    add("tie check stars range", fmt_range(klo, khi, 0),
+        source="cv_cattie",
+        note="held-out check stars per tied block; a handful of stars "
+             "removed from a sample this size is what moves the accuracy "
+             "by up to a factor of seven")
+    worst = max(tied, key=lambda r: (r["check_rms"] or 0.0)) if tied else None
+    add("tie worst unclipped mmag",
+        fmt_float(None if worst is None else 1000.0 * worst["check_rms"], 0),
+        unit="mmag", source="cv_cattie",
+        note=("worst block unclipped ("
+              + (str(worst["series_key"]) if worst else "n/a") + ")"))
+    add("tie worst clipped mmag",
+        fmt_float(None if worst is None
+                  else 1000.0 * worst["check_rms_clip"], 0),
+        unit="mmag", source="cv_cattie",
+        note="the same block after clipping: the largest single move the "
+             "outlier choice makes")
     add("tie goal lo mmag", fmt_int(10), unit="mmag",
         source="ANALYSIS_STRATEGY §5", note="the stated accuracy goal")
     add("tie goal hi mmag", fmt_int(20), unit="mmag",
@@ -785,6 +897,26 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     add("st lmi oc cycles per epoch", fmt_range(ncy_lo, ncy_hi, 0),
         source="p3_oc_night",
         note="per-cycle edges averaged into each published epoch")
+    # HOW OFTEN THE MEAN HAS ONE TERM IN IT.  The rule §4.2 states is about
+    # the ERROR BAR, not the estimator: no per-cycle edge is published
+    # carrying its own per-cycle sigma_t.  On a night with one accepted
+    # edge the epoch IS that edge, with the injection budget attached
+    # instead.  Stating the rule without stating this count -- an earlier
+    # revision did -- makes a true rule read as a false one.
+    add("st lmi single cycle epochs",
+        fmt_int(sum(1 for r in ocn if r["n_cycles"] == 1)),
+        source="p3_oc_night",
+        note="published epochs built from exactly one timed cycle: the "
+             "mean of one cycle is that cycle, republished with the "
+             "injection-demonstrated budget rather than the edge fit's own "
+             "error bar")
+    add("st lmi epochs below threshold",
+        fmt_int(sum(1 for r in ocn if not r["meets_threshold"])),
+        source="p3_oc_night",
+        note="published epochs whose error bar exceeds the 60 s threshold. "
+             "The threshold is a per-epoch QUALITY LABEL, not a publication "
+             "gate: an epoch outside it is published with an error bar that "
+             "says so")
     cc = {r["target_key"]: r for r in rows(cv, "SELECT * FROM p3_cycle_count")}
     st_cc = cc.get("stlmi", {})
     add("st lmi oc rms s", fmt_float(st_cc.get("oc_night_rms_s"), 0),
@@ -813,9 +945,39 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         note="published epochs whose error bar is inside the 60 s "
              "threshold; the rest are nights on which too few cycles were "
              "timed to average down to it")
+    # TWO CYCLE COUNTS, AND THEY ARE NOT INTERCHANGEABLE.
+    #   \NumStLmiCycles      -- catalogue epoch to our last timed edge.
+    #                           The EXTRAPOLATION BASELINE: it is what the
+    #                           sensitivity to a period ERROR scales with,
+    #                           and it is what §4.3's cycle-count argument
+    #                           is about.
+    #   \NumStLmiEpochSpan*  -- first timed edge to last timed edge.  The
+    #                           OBSERVED SPAN: it is what the leverage on a
+    #                           period CHANGE scales with, and it is what
+    #                           any sentence about "the epochs" is about.
+    # They differ by a factor 2.5 here (21,869 against 8,688 cycles, 4.7
+    # against 1.9 yr), and an earlier revision printed the first where the
+    # second belonged and then glossed it as "some two years".
     add("st lmi cycles", fmt_int(st_cc.get("n_cycles_last")),
         source="p3_cycle_count",
-        note="cycles between the catalogue epoch and the last timed edge")
+        note="cycles between the CATALOGUE EPOCH and the last timed edge: "
+             "the extrapolation baseline, not the span of the epochs")
+    _P = st_cc.get("period_d")
+    add("st lmi cycles years",
+        fmt_float(None if not (_P and st_cc.get("n_cycles_last")) else
+                  st_cc["n_cycles_last"] * float(_P) / 365.25, 1),
+        unit="yr", source="p3_cycle_count",
+        note="the same baseline in years")
+    add("st lmi epoch span cycles", fmt_int(st_cc.get("n_cycles_span")),
+        source="p3_cycle_count",
+        note="cycles between the FIRST and LAST timed edge: the span the "
+             "published epochs actually cover")
+    add("st lmi epoch span days", fmt_int(st_cc.get("span_d")), unit="d",
+        source="p3_cycle_count")
+    add("st lmi epoch span years",
+        fmt_float(None if st_cc.get("span_d") is None
+                  else st_cc["span_d"] / 365.25, 1), unit="yr",
+        source="p3_cycle_count")
     add("st lmi drift cycles", fmt_float(st_cc.get("drift_cycles"), 4),
         unit="cycles", source="p3_cycle_count",
         note="accumulated phase drift at the catalogue period's quoted "
@@ -837,6 +999,181 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         source="p3_cycle_count",
         note="separation between our refitted period and the catalogue "
              "value, in units of our own error bar")
+    # =====================================================================
+    # WHERE EVERY PUBLISHED ERROR BAR COMES FROM, AND THE CHECK ON IT
+    # ---------------------------------------------------------------------
+    # p3_sigmat -- the injection grid the whole timing budget rests on --
+    # exists for ONE night of ONE target in ONE readout mode.  night_epochs
+    # serves that budget out by band NAME, so a 2024 High Gain epoch in the
+    # G slot silently receives the 2025 Mode0 g number, and a band the grid
+    # never saw (z) falls through to the whole-grid median.  That transfer
+    # crosses the very instrument seam §2.1 insists cannot be crossed for
+    # saturation, so it has to be stated, and it has to be checked.  The
+    # check is oc_night_chi2nu_edge: the same reduced chi-squared computed
+    # from the edge fits' OWN Monte-Carlo errors, which are measured on
+    # every night in its own era.
+    # =====================================================================
+    add("timing budget night", one(
+        cv, "SELECT value FROM p3_meta WHERE key='sigmat_night'"),
+        source="p3_meta",
+        note="the single night the injection grid was run on")
+    _bs = rows(cv, "SELECT DISTINCT series_key FROM p3_sigmat")
+    add("timing budget series", fmt_int(len(_bs)), source="p3_sigmat",
+        note="series the injection grid covers: "
+             + ", ".join(sorted(r["series_key"] for r in _bs)))
+    _rand = [r["sigma_random_s"] * math.sqrt(r["n_cycles"]) for r in ocn
+             if r["sigma_random_s"] and r["n_cycles"]]
+    add("sigma random range s", fmt_range(*_minmax(_rand), 0), unit="s",
+        source="p3_oc_night",
+        note="the injection test's random term per band before averaging; "
+             "it falls as the square root of the cycles a night timed")
+    add("sigma bias floor s",
+        fmt_float(_median([r["sigma_floor_s"] for r in ocn]), 1), unit="s",
+        source="p3_oc_night",
+        note="the injection test's bias, which does NOT average down and "
+             "is the irreducible floor under every published epoch")
+    _budget_era = 76          # the era of the night p3_sigmat was run on
+    add("st lmi epochs transferred budget",
+        fmt_int(sum(1 for r in ocn if r["era_id"] != _budget_era)),
+        source="p3_oc_night",
+        note="published epochs whose error bar was measured in a DIFFERENT "
+             "instrument era from the one they were observed in: the "
+             "injection grid exists only for the 2025 Mode0 camera, and "
+             "these carry it by band slot regardless")
+    add("st lmi epochs fallback budget",
+        fmt_int(sum(1 for r in ocn if str(r["budget_band"]) == "*")),
+        source="p3_oc_night",
+        note="published epochs in a band the injection grid never saw at "
+             "all, which take the whole-grid median instead")
+    add("st lmi oc chisq edge",
+        fmt_float(st_cc.get("oc_night_chi2nu_edge"), 2),
+        source="p3_cycle_count",
+        note="THE CHECK ON THE TRANSFER: the same reduced chi-squared "
+             "computed from the edge fits' own Monte-Carlo errors instead "
+             "of the transported injection budget. It agrees, so the null "
+             "does not rest on the transfer")
+    add("st lmi sigma night edge median s",
+        fmt_float(st_cc.get("sigma_night_edge_median_s"), 0), unit="s",
+        source="p3_cycle_count",
+        note="median epoch error under the edge fits' own errors")
+    # The same check split by era, because the transfer is exactly an
+    # across-era assumption and a reader is entitled to see it tested
+    # inside each era separately.
+    for era, tag in ((7, "high gain"), (76, "mode zero")):
+        sub = [r for r in ocn if r["era_id"] == era]
+        add(f"st lmi epochs {tag}", fmt_int(len(sub)),
+            source="p3_oc_night")
+        add(f"st lmi oc chisq {tag}",
+            fmt_float(sum((r["oc_s"] / r["oc_sigma_s"]) ** 2
+                          for r in sub) / len(sub) if sub else None, 2),
+            source="p3_oc_night",
+            note=f"reduced chi-squared about zero over the {len(sub)} "
+                 f"epochs of this instrument era alone")
+    # =====================================================================
+    # THE PERIOD DERIVATIVE THE NULL BOUNDS
+    # ---------------------------------------------------------------------
+    # "We report no period change" is an absence until it carries a
+    # number.  A weighted quadratic through the published epochs gives one.
+    # =====================================================================
+    add("st lmi pdot sigma", fmt_float(
+        abs(st_cc["quad_coeff_s_per_cycle2"] /
+            st_cc["quad_sigma_s_per_cycle2"])
+        if st_cc.get("quad_sigma_s_per_cycle2") else None, 1),
+        source="p3_cycle_count",
+        note="significance of the quadratic term in the O-C: below 2, so "
+             "no period change is detected")
+    add("st lmi pdot limit", fmt_sci(st_cc.get("pdot_limit3"), 1),
+        source="p3_cycle_count",
+        note="3-sigma upper bound on |dP/dt| (dimensionless) from a "
+             "weighted quadratic through the published epochs: what the "
+             "null actually excludes")
+    add("st lmi pdot limit s per yr", fmt_float(
+        None if st_cc.get("pdot_limit3") is None
+        else st_cc["pdot_limit3"] * 365.25 * 86400.0, 2),
+        unit="s/yr", source="p3_cycle_count",
+        note="the same bound as a change in the orbital period per year")
+    # P / |dP/dt|, with the PERIOD in the numerator.  It was written as
+    # 1 / (pdot_limit3 * 365.25), which drops P entirely — and since
+    # pdot_limit3 is dimensionless (d/d), that expression is not a time at
+    # all.  It published 7.6e5 yr where the paper's own P and Pdot give
+    # 6.0e4 yr, a factor 12.7, in the abstract and a conclusion.
+    add("st lmi pdot timescale yr", fmt_sci(
+        None if not (st_cc.get("pdot_limit3") and st_cc.get("period_d"))
+        else st_cc["period_d"] / st_cc["pdot_limit3"] / 365.25, 1), unit="yr",
+        source="p3_cycle_count",
+        note="P / |dP/dt| at the 3-sigma bound: the shortest period-change "
+             "timescale these epochs are consistent with")
+    # =====================================================================
+    # THE INTER-BAND OFFSET: A NON-DETECTION, PUBLISHED AS ONE
+    # ---------------------------------------------------------------------
+    # An earlier revision put "the epoch of a bright-phase edge is band
+    # dependent" in the abstract and the conclusions.  Every row of
+    # p3_band_pair carries significant=0 and no pooled pair reaches 2
+    # sigma.  These macros make the null quotable: the number of pairs, how
+    # many are significant, the strongest one with its error bar and its
+    # significance, and the tightest bound the pooled pairs place on any
+    # such offset.  A claim that cannot be stated with these numbers beside
+    # it is a claim this data set does not support.
+    # =====================================================================
+    bp = rows(cv, "SELECT * FROM p3_band_pair WHERE target_key='stlmi'")
+    pooled = [r for r in bp if str(r["night"]).lower().startswith("(pooled")
+              and r["sigma_s"]]
+    add("band pairs", fmt_int(len(bp)), source="p3_band_pair",
+        note="paired same-cycle edge-time differences: one row per night "
+             "per band pair, plus one pooled row per band pair per era")
+    add("band pairs pooled", fmt_int(len(pooled)), source="p3_band_pair",
+        note="the publishable inter-band numbers; the per-night rows are "
+             "their components, not independent results")
+    add("band pairs significant",
+        fmt_int(sum(1 for r in bp if r["significant"])),
+        source="p3_band_pair",
+        note="ZERO. No band pair, pooled or per night, reaches the "
+             "3-sigma bar, and no pooled pair reaches even 2 sigma")
+    add("band pair sigma bar", fmt_int(3), source="ANALYSIS_STRATEGY §4",
+        note="the significance a band-to-band offset must reach to be "
+             "called a detection")
+    if pooled:
+        top = max(pooled, key=lambda r: abs(r["delta_s"]) / r["sigma_s"])
+        add("band offset top pair",
+            f"${top['band_a']}-{top['band_b']}$", source="p3_band_pair",
+            note="the MOST SIGNIFICANT pooled band pair, over "
+                 f"{top['n_cycles']} paired cycles")
+        add("band offset top s", fmt_float(top["delta_s"], 0), unit="s",
+            source="p3_band_pair")
+        add("band offset top err s", fmt_float(top["sigma_s"], 0), unit="s",
+            source="p3_band_pair")
+        add("band offset top sigma",
+            fmt_float(abs(top["delta_s"]) / top["sigma_s"], 1),
+            source="p3_band_pair",
+            note="its significance: the largest any band pair here reaches")
+        add("band offset top cycles", fmt_int(top["n_cycles"]),
+            source="p3_band_pair")
+        big = max(pooled, key=lambda r: abs(r["delta_s"]))
+        add("band offset abs max s", fmt_float(abs(big["delta_s"]), 0),
+            unit="s", source="p3_band_pair",
+            note=f"largest pooled offset in absolute size "
+                 f"(${big['band_a']}-{big['band_b']}$), at "
+                 f"{abs(big['delta_s']) / big['sigma_s']:.1f} sigma")
+        # The BOUND: |delta| + 2 sigma, per pooled pair, and the tightest
+        # of them.  This is what a non-detection is worth as a limit.
+        bnd = min(pooled,
+                  key=lambda r: abs(r["delta_s"]) + 2.0 * r["sigma_s"])
+        bound_s = abs(bnd["delta_s"]) + 2.0 * bnd["sigma_s"]
+        add("band offset bound pair",
+            f"${bnd['band_a']}-{bnd['band_b']}$", source="p3_band_pair")
+        add("band offset bound s", fmt_float(bound_s, 0), unit="s",
+            source="p3_band_pair",
+            note="tightest 2-sigma upper bound on the size of a "
+                 "band-to-band edge offset, over the pooled pairs")
+        add("band offset bound cycles",
+            fmt_float(bound_s / (float(_P) * 86400.0) if _P else None, 3),
+            unit="cycles", source="p3_band_pair",
+            note="the same bound as a fraction of an orbit")
+        add("band offset pooled range s",
+            fmt_range(min(r["delta_s"] for r in pooled),
+                      max(r["delta_s"] for r in pooled), 0, dash=" to "),
+            unit="s", source="p3_band_pair",
+            note="every pooled offset; all are consistent with zero")
     add("st lmi phase spread", fmt_float(st_cc.get("phase_spread"), 3),
         unit="cycles", source="p3_cycle_count",
         note="circular scatter of the accepted edges; below the bar that "
@@ -1163,6 +1500,35 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
                                              if r["accepted"])),
         source="p3_edge")
     add("an uma edges fitted", fmt_int(len(an_edge)), source="p3_edge")
+    # WHY THE EDGES ARE REJECTED, from the stored reasons.  §5.3 blamed a
+    # slow filter cycle; the database says the opposite, and the remedy
+    # that follows is different in kind.  A faster filter cycle samples
+    # more edges; it does not make any one of them stand out of AN UMa's
+    # flickering, and 16 of the 20 rejections are exactly that failure.
+    rej = [str(r["reason"]) for r in rows(
+        cv, "SELECT reason FROM p3_edge WHERE target_key='anuma' AND "
+            "accepted=0")]
+    snr_v = [float(m.group(1)) for m in
+             (re.search(r"step SNR ([0-9.]+)", t) for t in rej) if m]
+    add("an uma rejections", fmt_int(len(rej)), source="p3_edge")
+    add("an uma rejections snr", fmt_int(len(snr_v)), source="p3_edge",
+        note="edges rejected because the step signal-to-noise is below the "
+             "bar: the edge is not distinguishable from this star's own "
+             "flickering on that cycle")
+    add("an uma rejections grid",
+        fmt_int(sum(1 for t in rej if "search grid" in t)), source="p3_edge",
+        note="edges whose best epoch landed on the boundary of the search "
+             "grid, so the epoch is not bracketed")
+    add("an uma rejections gap",
+        fmt_int(sum(1 for t in rej if " gap," in t)), source="p3_edge",
+        note="edges rejected for CADENCE -- the edge fell in a gap wider "
+             "than 2.5 times the sampling. Exactly one of twenty, which is "
+             "why a faster filter cycle is not the first remedy")
+    add("an uma step snr range", fmt_range(*_minmax(snr_v), 1),
+        source="p3_edge",
+        note="measured step signal-to-noise of the rejected edges")
+    add("an uma step snr bar", fmt_int(5), source="ANALYSIS_STRATEGY §4",
+        note="step signal-to-noise an edge must reach to be accepted")
     an_ct = rows(ch, "SELECT * FROM ch_timing WHERE target_key='anuma' "
                      "AND night_kind='richest' AND "
                      "regime='per-cycle shape-mismatched'")
@@ -1264,6 +1630,11 @@ def render_series_table(cv: sqlite3.Connection) -> str:
     n_all_series = one(cv, "SELECT count(*) FROM cv_series")
     n_unsolved = one(cv, "SELECT count(*) FROM cv_series WHERE "
                          "status <> 'solved'")
+    # Both tie statistics, so the caption names which column this is.
+    _tied = rows(cv, "SELECT check_rms, check_rms_clip FROM cv_cattie "
+                     "WHERE is_primary=1 AND verdict LIKE 'TIED%'")
+    _med_clip = _median([r["check_rms_clip"] for r in _tied]) or 0.0
+    _med_raw = _median([r["check_rms"] for r in _tied]) or 0.0
     out = [
         "\\begin{deluxetable*}{llccrrrrrrl}",
         "\\tablecaption{Per-series photometric census: the "
@@ -1272,7 +1643,11 @@ def render_series_table(cv: sqlite3.Connection) -> str:
         "\\texttt{cv\\_series} and \\texttt{cv\\_cattie}; nothing in this "
         "table was typed. $\\sigma_{\\rm chk}$ is the median scatter of "
         "the four held-out check stars and $I$ the ratio of achieved "
-        "scatter to the formal error bar. "
+        "scatter to the formal error bar. The tie accuracy is the "
+        "SIGMA-CLIPPED RMS of the tie's own held-out check stars "
+        f"(\\texttt{{check\\_rms\\_clip}}); over the tied blocks its median "
+        f"is {1000 * _med_clip:.0f}~mmag against {1000 * _med_raw:.0f}~mmag "
+        "unclipped, and Section~\\ref{sec:tie} quotes both. "
         f"The release holds {n_all_series} series in all; the remaining "
         f"{n_all_series - len(rr)} produced no catalogue-tied target "
         f"measurement at all ({n_unsolved} ensemble solves that did not "
@@ -1323,7 +1698,12 @@ def render_anuma_table(cv: sqlite3.Connection) -> str:
         "\\begin{deluxetable}{llrrll}",
         "\\tablecaption{AN UMa graded capability by capability and filter "
         "by filter. Each row is one measured value against one stated "
-        "threshold, emitted from \\texttt{p4\\_anuma}. "
+        "threshold, emitted from \\texttt{p4\\_anuma}. The morphology rows "
+        "count \\emph{usable} full-orbit nights, which is a stricter "
+        "criterion than Section~\\ref{sec:obs}'s census: the census counts "
+        "nights whose SAMPLING covers an orbit, while a folded panel "
+        "additionally requires the modulation to be detected in that band, "
+        "which is why AN~UMa's six full-orbit $i$ nights yield none. "
         "\\label{tab:anuma}}",
         "\\tablehead{\\colhead{Capability} & \\colhead{Band} & "
         "\\colhead{Measured} & \\colhead{Bar} & \\colhead{Unit} & "

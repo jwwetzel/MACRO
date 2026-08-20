@@ -97,6 +97,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import re
 import sqlite3
 import subprocess
 import sys
@@ -1116,10 +1117,13 @@ def cmd_anuma(args) -> None:
         rows.append((filt, "folded orbital morphology", 1, float(usable),
                      float(ANUMA_BARS["full_orbit_nights"]), "nights", v,
                      f"{usable} usable full-orbit nights in {filt} "
-                     f"({n_full} observed, >= {FULL_ORBIT_MIN_POINTS} points "
-                     f"spanning more than one {period_d:.6f} d orbit, "
-                     f"counted as usable only where the modulation is "
-                     f"detected); CV-S9 modulation "
+                     f"({n_full} nights whose SAMPLING covers an orbit by "
+                     f"the Section 2.2 census -- >= "
+                     f"{FULL_ORBIT_MIN_POINTS} points "
+                     f"spanning more than one {period_d:.6f} d orbit -- "
+                     f"of which usable counts only those where the "
+                     f"modulation is also detected in this filter, which "
+                     f"is why the two counts differ); CV-S9 modulation "
                      f"detected = {detected}, PDM theta "
                      f"{per['pdm_theta']:.3f}, LS power at the published "
                      f"frequency {per['p_ls_pow']:.3f}, fitted semi-amplitude "
@@ -1135,22 +1139,48 @@ def cmd_anuma(args) -> None:
                       "nothing schedulable: the modulation is not detected "
                       "in this filter at all, so more nights of the same "
                       "kind buy depth, not a detection")))
-        # ---- 2. per-cycle bright-phase timing --------------------------
+        # ---- 2. bright-phase timing ------------------------------------
+        # NOT "per-cycle" timing: §4.2 abolished the per-cycle epoch
+        # programme-wide, so grading AN UMa on an estimator the paper says
+        # it does not use put a passing standard and a failing rule on the
+        # same page.  The question for this target is whether per-NIGHT
+        # epochs are constructible, and they are not -- for two independent
+        # reasons, both quoted here rather than one.
         edg = con.execute(
             "SELECT count(*) n, sum(accepted) ok FROM p3_edge "
             "WHERE series_key=?", (sk,)).fetchone()
         n_ok = int(edg["ok"] or 0)
         v = fs.capability_verdict(n_ok, ANUMA_BARS["accepted_edges"])
-        cyc = con.execute("SELECT verdict FROM p3_cycle_count WHERE "
-                          "target_key='anuma'").fetchone()
-        rows.append((filt, "per-cycle bright-phase timing (O-C)", 2,
+        cyc = con.execute("SELECT verdict, phase_spread FROM p3_cycle_count "
+                          "WHERE target_key='anuma'").fetchone()
+        # WHY the edges are rejected, from the stored reasons rather than
+        # from an assumption about the cadence.  16 of 20 are step-SNR
+        # failures; exactly one is a cadence gap.  A faster filter cycle
+        # does not fix an S/N-limited edge, and the remedy below says so.
+        rej = con.execute(
+            "SELECT reason FROM p3_edge WHERE target_key='anuma' AND "
+            "accepted=0").fetchall()
+        n_snr = sum(1 for r in rej if "step SNR" in str(r["reason"]))
+        n_grid = sum(1 for r in rej if "search grid" in str(r["reason"]))
+        n_gap = sum(1 for r in rej if " gap," in str(r["reason"]))
+        snr_vals = [float(m.group(1)) for m in
+                    (re.search(r"step SNR ([0-9.]+)", str(r["reason"]))
+                     for r in rej) if m]
+        rows.append((filt, "bright-phase timing (O-C)", 2,
                      float(n_ok), float(ANUMA_BARS["accepted_edges"]),
                      "accepted edges", v,
                      f"{n_ok} of {int(edg['n'] or 0)} fitted edges accepted "
-                     f"in {filt}; the rejections are step signal-to-noise "
-                     f"below 5, i.e. the bright-phase edge is not "
-                     f"distinguishable from flickering on most cycles. "
-                     f"CV-S9's cycle-count verdict for the target: "
+                     f"in {filt}. Across the target, {n_snr} of "
+                     f"{len(rej)} rejections are step signal-to-noise below "
+                     f"5 (measured {min(snr_vals):.1f}-{max(snr_vals):.1f}), "
+                     f"{n_grid} are grid-edge epochs and {n_gap} is a "
+                     f"cadence gap: the edge is not distinguishable from "
+                     f"AN UMa's own flickering on most cycles. Per-NIGHT "
+                     f"epochs are unavailable for a second, independent "
+                     f"reason: the accepted edges scatter over "
+                     f"{float(cyc['phase_spread']):.3f} in orbital phase "
+                     f"against the 0.05 one-feature bar, so CV-S9's "
+                     f"cycle-count verdict is "
                      f"{cyc['verdict'] if cyc else 'n/a'}",
                      f"The edge itself is only detected on a handful of "
                      f"cycles, so there are almost no epochs to time. The "
@@ -1165,9 +1195,15 @@ def cmd_anuma(args) -> None:
                      f"{edge_ok_lo:.0f}-{edge_ok_hi:.0f} s over the "
                      f"{n_edge_ok} accepted ones, every one of them outside "
                      f"the 60 s bar.",
-                     "Deeper per-cycle sampling of the bright-phase edge "
-                     "(a faster filter cycle on fewer filters), not more "
-                     "nights: the shortfall is in edges per night."),)
+                     "Whatever raises the STEP SIGNAL-TO-NOISE of the edge "
+                     "-- longer exposures, fewer filters per cycle so each "
+                     "gets more integration, or catching the star in a "
+                     "brighter state -- because "
+                     f"{n_snr} of {len(rej)} rejections are S/N and only "
+                     f"{n_gap} is a cadence gap. A faster filter cycle "
+                     "raises the number of sampled edges but not the "
+                     "signal-to-noise of any one of them, so on its own it "
+                     "would not convert a rejection into an acceptance."),)
         # ---- 3. relative state history ---------------------------------
         st = con.execute("SELECT * FROM p3_state_series WHERE series_key=?",
                          (sk,)).fetchone()
@@ -1284,6 +1320,22 @@ def cmd_verdict(args) -> None:
     a_lo, a_hi = rng("hump_amp", testable)
     f_lo, f_hi = rng("amp90_field", testable)
     s_lo, s_hi = rng("amp90_self", testable)
+    # WHERE THE INSTRUMENTAL CONTOUR IS CLEARED, SCOPE BY SCOPE.  A blanket
+    # "the photometry could see a hump this size" is false on any scope
+    # whose fitted hump sits BELOW its own instrumental contour, and one of
+    # ours does: it is uninformative rather than a non-detection, and the
+    # deciding number has to say so or the table contradicts the figure
+    # caption and Section 5.4, which already do.
+    n_above = int(one(f"SELECT count(*) FROM p4_run WHERE {testable} AND "
+                      "hump_amp > amp90_field"))
+    below = con.execute(
+        f"SELECT nights, filter FROM p4_run WHERE {testable} AND "
+        "hump_amp <= amp90_field ORDER BY nights, filter").fetchall()
+    below_txt = ("; on the remaining "
+                 + (", ".join(f"{r['filter']} run of {r['nights']}"
+                              for r in below))
+                 + " it does not, so that scope is uninformative rather "
+                   "than a non-detection") if below else ""
     # ---- YZ Cnc: flickering ------------------------------------------
     n_fl = int(one("SELECT count(*) FROM p4_flicker WHERE state='QUIESCENT' "
                    "AND detected=1"))
@@ -1347,8 +1399,9 @@ def cmd_verdict(args) -> None:
          f"{n_det} of {n_test} testable quiescent scopes clear both the 90% "
          f"recovery contour and the 1% false-alarm threshold. The folded "
          f"fundamental has semi-amplitude {a_lo:.0f}-{a_hi:.0f} mmag; the "
-         f"INSTRUMENTAL contour is {f_lo:.0f}-{f_hi:.0f} mmag, so the "
-         f"photometry could see a hump this size, but the contour set by "
+         f"INSTRUMENTAL contour is {f_lo:.0f}-{f_hi:.0f} mmag and the "
+         f"fitted hump exceeds it on {n_above} of the {n_test} testable "
+         f"scopes{below_txt}; but the contour set by "
          f"the star's OWN flickering is {s_lo:.0f}-{s_hi:.0f} mmag, so the "
          f"data cannot tell a coherent hump from the flickering",
          "Two nulls, and they disagree, which is the whole result. Against "

@@ -525,3 +525,255 @@ class TestCatalogueTie:
                     (SELECT series_key FROM cv_series WHERE status='solved')"""
             ).fetchone()[0]
             assert n == 0, f"{tab} carries {n} orphan rows"
+
+
+# ---------------------------------------------------------------------------
+# The second referee report, 2026-08-20
+#
+# Every test below names a statement the manuscript made that the products
+# contradicted.  None of them is an arithmetic defect: the stages computed
+# what their docstrings said, and the PAPER said something else, either
+# because a claim was inferred from the existence of a measurement rather
+# than from its significance, or because a hand-written summary string
+# survived a re-run of the numbers underneath it.  These pin the products
+# so the same paraphrase cannot come back.
+# ---------------------------------------------------------------------------
+class TestTheInterBandOffsetIsANonDetection:
+    """Blocker 1.  The abstract and Conclusion 5 of the previous revision
+    asserted that a bright-phase edge epoch is band dependent.  Every row of
+    ``p3_band_pair`` carries ``significant=0`` and no pooled pair reaches
+    even 2 sigma.  "Not uniformly zero" is true of any set of measured
+    differences; it is not a detection."""
+
+    def _skip(self, phot):
+        if not _has(phot, "p3_band_pair"):
+            pytest.skip("phase 3 not built in this checkout")
+
+    def test_no_band_pair_is_significant(self, phot):
+        self._skip(phot)
+        rows = phot.execute("SELECT count(*), sum(significant) "
+                            "FROM p3_band_pair").fetchone()
+        assert rows[0] > 0
+        assert (rows[1] or 0) == 0, (
+            "a band pair became significant: the paper publishes this as a "
+            "NON-DETECTION and its abstract, Section 5.1, Conclusion 5 and "
+            "Figure 9's caption all have to be rewritten if it is one")
+
+    def test_no_pooled_pair_reaches_two_sigma(self, phot):
+        """The bound the paper publishes is 2 sigma, so the null has to hold
+        at 2 sigma and not only at the 3 sigma acceptance bar."""
+        self._skip(phot)
+        for r in phot.execute(
+                "SELECT band_a, band_b, era_id, delta_s, sigma_s FROM "
+                "p3_band_pair WHERE night='(pooled)' AND sigma_s > 0"):
+            assert abs(r[3]) / r[4] < 2.0, (
+                f"{r[0]}-{r[1]} in era {r[2]} reaches "
+                f"{abs(r[3]) / r[4]:.1f} sigma")
+
+    def test_the_epoch_rule_does_not_call_the_offset_measured(self, phot):
+        """``p3_meta.oc_epoch_rule`` is released text and justified averaging
+        within a band by "a band-dependent edge epoch" it had not measured."""
+        self._skip(phot)
+        rule = phot.execute("SELECT value FROM p3_meta WHERE "
+                            "key='oc_epoch_rule'").fetchone()
+        if rule is None:
+            pytest.skip("oc stage predates the epoch-rule note")
+        low = str(rule[0]).lower()
+        assert "does not detect" in low or "not detect" in low
+        assert "conservative" in low
+
+
+class TestPublishedEpochsAndTheirSpan:
+    """Majors 2, 3 and 7.  The rule the paper states, the span it quotes and
+    the provenance of the error bars it plots."""
+
+    def _skip(self, phot):
+        if not _has(phot, "p3_oc_night"):
+            pytest.skip("phase 3 not built in this checkout")
+
+    def test_single_cycle_epochs_exist_and_are_counted(self, phot):
+        """"No single orbital cycle's edge is published as a timing epoch"
+        was false: the mean of one cycle IS that cycle.  The rule is about
+        the error bar, and the count of one-cycle epochs must be published
+        beside it."""
+        self._skip(phot)
+        n_single, n_all = phot.execute(
+            "SELECT sum(n_cycles = 1), count(*) FROM p3_oc_night "
+            "WHERE target_key='stlmi'").fetchone()
+        stored = phot.execute(
+            "SELECT n_night_single_cycle FROM p3_cycle_count "
+            "WHERE target_key='stlmi'").fetchone()[0]
+        assert n_single > 0, (
+            "if no epoch is a single cycle any more, the paper's disclosure "
+            "of 18 such epochs is stale and must be regenerated")
+        assert stored == n_single, (
+            f"p3_cycle_count says {stored} single-cycle epochs, p3_oc_night "
+            f"has {n_single} of {n_all}")
+
+    def test_every_epoch_carries_the_budget_and_not_its_own_sigma(self, phot):
+        """The rule that IS true: an epoch's error bar is the injection
+        budget, never the edge fit's own sigma_t."""
+        self._skip(phot)
+        for r in phot.execute(
+                "SELECT target_key, night, filter, oc_sigma_s, "
+                "sigma_random_s, sigma_floor_s FROM p3_oc_night"):
+            want = math.hypot(r[4], r[5])
+            assert abs(r[3] - want) < 1e-6, f"{r[0]} {r[1]} {r[2]}"
+
+    def test_the_epoch_span_is_not_the_catalogue_baseline(self, phot):
+        """The abstract quoted 21,869 cycles as the span of the epochs; that
+        is the count from the CATALOGUE epoch and is 2.5x larger."""
+        self._skip(phot)
+        c_first, c_last, span, span_d, t_first, t_last = phot.execute(
+            "SELECT n_cycles_first, n_cycles_last, n_cycles_span, span_d, "
+            "t_first_bjd, t_last_bjd FROM p3_cycle_count "
+            "WHERE target_key='stlmi'").fetchone()
+        assert span is not None, "span column not populated"
+        assert abs(span - (c_last - c_first)) < 1e-6
+        assert abs(span_d - (t_last - t_first)) < 1e-6
+        assert span < 0.6 * c_last, (
+            "the two counts have converged; check that the paper still "
+            "distinguishes them")
+
+    def test_the_error_budget_comes_from_one_night_and_says_so(self, phot):
+        """Every published error bar is transported from a single night of a
+        single target.  The release has to record that, and the epochs that
+        cross an instrument seam have to be countable."""
+        self._skip(phot)
+        nights = phot.execute(
+            "SELECT count(DISTINCT night), count(DISTINCT series_key) "
+            "FROM p3_sigmat").fetchone()
+        assert nights[0] == 1, (
+            "the injection grid now covers more than one night; §4.2's "
+            "disclosure of the transfer needs revisiting")
+        src = phot.execute("SELECT value FROM p3_meta WHERE "
+                           "key='timing_budget_source'").fetchone()
+        assert src is not None and str(src[0]).strip(), (
+            "the provenance of the timing budget is not in the release")
+        # The band a row was served from must be recorded, so an epoch on
+        # the whole-grid fallback is distinguishable from one on its band.
+        n_null = phot.execute("SELECT count(*) FROM p3_oc_night WHERE "
+                              "budget_band IS NULL").fetchone()[0]
+        assert n_null == 0, "budget_band is not populated for every epoch"
+
+    def test_the_null_survives_the_edge_fits_own_errors(self, phot):
+        """The check on the transfer.  If the two chi-squareds diverge, the
+        flagship null rests on the transported budget and the paper may not
+        say the residuals are the demonstrated error."""
+        self._skip(phot)
+        chi_budget, chi_edge = phot.execute(
+            "SELECT oc_night_chi2nu, oc_night_chi2nu_edge FROM "
+            "p3_cycle_count WHERE target_key='stlmi'").fetchone()
+        assert chi_edge is not None
+        assert chi_budget < 2.0 and chi_edge < 2.0
+        assert abs(chi_budget - chi_edge) < 0.5, (
+            "the transported budget and the edge fits' own errors no longer "
+            "agree; the transfer is doing work and must be defended")
+
+    def test_the_period_change_null_carries_a_bound(self, phot):
+        """A null is publishable when it excludes something.  The quadratic
+        must be insignificant AND its 3-sigma bound must be stored."""
+        self._skip(phot)
+        coeff, sigma, limit = phot.execute(
+            "SELECT quad_coeff_s_per_cycle2, quad_sigma_s_per_cycle2, "
+            "pdot_limit3 FROM p3_cycle_count "
+            "WHERE target_key='stlmi'").fetchone()
+        assert limit is not None and limit > 0
+        assert abs(coeff) < 3.0 * sigma, (
+            "the quadratic term is now significant: this is a period-change "
+            "DETECTION and the paper's headline null is wrong")
+
+
+class TestVerdictStringsReproduceFromTheirSources:
+    """Major 8.  ``p4_verdict.deciding_number`` is printed verbatim as
+    Table 4.  Twice now a hand-written summary in it has outlived the
+    numbers underneath.  These recompute the claims from the source rows."""
+
+    def _skip(self, phot):
+        if not _has(phot, "p4_verdict"):
+            pytest.skip("phase 4 not built in this checkout")
+
+    def test_the_hump_row_does_not_make_a_blanket_contour_claim(self, phot):
+        """One of the six testable scopes has a fitted hump BELOW its own
+        instrumental contour, so "the photometry could see a hump this size"
+        is false there and the row may not say it unqualified."""
+        self._skip(phot)
+        num = phot.execute("SELECT deciding_number FROM p4_verdict "
+                           "WHERE verdict_id='YZ-hump'").fetchone()[0]
+        n_test, n_above = phot.execute(
+            "SELECT count(*), sum(hump_amp > amp90_field) FROM p4_run "
+            "WHERE state='QUIESCENT' AND detection NOT IN ('AMPLITUDE ONLY')"
+        ).fetchone()
+        assert f"{n_above} of the {n_test} testable scopes" in num, (
+            "Table 4's hump row does not carry the scope-by-scope count "
+            f"({n_above} of {n_test}) that Figure 11 and §5.4 use")
+        assert "so the photometry could see a hump this size" not in num
+        if n_above < n_test:
+            assert "uninformative" in num
+
+    def test_the_anuma_row_grades_the_estimator_the_paper_uses(self, phot):
+        """§4.2 abolished per-cycle timing programme-wide; Table 3 went on
+        grading AN UMa on "per-cycle bright-phase timing (O-C)"."""
+        self._skip(phot)
+        caps = {r[0] for r in phot.execute(
+            "SELECT DISTINCT capability FROM p4_anuma")}
+        assert not any(c.startswith("per-cycle") for c in caps), (
+            f"p4_anuma still grades a per-cycle capability: {sorted(caps)}")
+
+    def test_the_anuma_timing_remedy_follows_the_stored_reasons(self, phot):
+        """§5.3 and §6.3 blamed a slow filter cycle; 16 of 20 rejections are
+        step S/N and exactly one is a cadence gap.  A faster cycle does not
+        fix an S/N-limited edge, and the remedy has to say so."""
+        self._skip(phot)
+        if not _has(phot, "p3_edge"):
+            pytest.skip("phase 3 not built in this checkout")
+        reasons = [str(r[0]) for r in phot.execute(
+            "SELECT reason FROM p3_edge WHERE target_key='anuma' "
+            "AND accepted=0")]
+        n_snr = sum(1 for t in reasons if "step SNR" in t)
+        n_gap = sum(1 for t in reasons if " gap," in t)
+        assert n_snr > n_gap, (
+            "the rejection mix has changed; §5.3's diagnosis and §6.3's "
+            "remedy are derived from it and must be regenerated")
+        row = phot.execute(
+            "SELECT deciding_number, what_would_change_it FROM p4_anuma "
+            "WHERE rank=2 AND filter='g'").fetchone()
+        assert f"{n_snr} of {len(reasons)} rejections" in row[0]
+        assert "SIGNAL-TO-NOISE" in row[1].upper()
+        assert "faster filter cycle" in row[1].lower(), (
+            "the remedy must still name the faster filter cycle in order "
+            "to say why it is NOT the first thing to try")
+
+
+class TestTheTieAccuracyIsQuotedWithItsChoice:
+    """Major 5.  The paper's largest systematic is a sigma-clipped check-star
+    RMS and the unclipped value is 2.6x worse.  Both have to be available,
+    and the conclusion has to hold either way."""
+
+    def _skip(self, phot):
+        if not _has(phot, "cv_cattie"):
+            pytest.skip("catalogue tie not built in this checkout")
+
+    def test_both_statistics_exist_and_differ(self, phot):
+        self._skip(phot)
+        rows = phot.execute(
+            "SELECT check_rms, check_rms_clip FROM cv_cattie "
+            "WHERE is_primary=1 AND verdict LIKE 'TIED%'").fetchall()
+        assert rows
+        assert all(r[0] is not None and r[1] is not None for r in rows)
+        assert all(r[0] >= r[1] - 1e-9 for r in rows), (
+            "a clipped RMS exceeds its unclipped parent, which cannot happen")
+
+    def test_the_calibration_goal_is_missed_on_either_statistic(self, phot):
+        """The paper says the goal is missed.  If clipping ever brought the
+        median inside 10--20 mmag, the sentence would depend on the choice."""
+        self._skip(phot)
+        rows = phot.execute(
+            "SELECT check_rms, check_rms_clip FROM cv_cattie "
+            "WHERE is_primary=1 AND verdict LIKE 'TIED%' "
+            "ORDER BY check_rms_clip").fetchall()
+        med_clip = sorted(r[1] for r in rows)[len(rows) // 2]
+        med_raw = sorted(r[0] for r in rows)[len(rows) // 2]
+        assert med_clip > 0.020 and med_raw > 0.020, (
+            "the tie now meets the 10--20 mmag goal on one statistic; §3.2, "
+            "the abstract and Conclusion 9 all say it does not")

@@ -812,3 +812,92 @@ def test_joint_gp_fit_survives_a_hyperparameter_that_breaks_celerite2():
                           sigma_grid=[1e-12, 0.02, 1e9])
     assert np.isfinite(out["amplitude"])
     assert out["backend"] == "celerite2"
+
+
+# ---------------------------------------------------------------------------
+# The period-derivative bound behind the paper's headline null.
+#
+# "We report no period change" is an absence of evidence until it carries a
+# number.  ``run_cv_phase3.pdot_bound`` fits a weighted quadratic through the
+# published epochs and returns the 3-sigma bound on |dP/dt|.  These tests
+# inject a known dP/dt and check that it comes back, and check that a flat
+# O-C returns a bound rather than a detection.
+# ---------------------------------------------------------------------------
+def _pdot_bound():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "_run_cv_phase3",
+        Path(__file__).resolve().parent.parent / "scripts" /
+        "run_cv_phase3.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.pdot_bound
+
+
+def test_pdot_bound_recovers_an_injected_period_derivative():
+    """An O-C built from a known dP/dt must return that dP/dt, because the
+    conversion 0.5 * dPdt * P * E^2 is where a factor of two hides."""
+    pdot_bound = _pdot_bound()
+    rng = np.random.default_rng(3)
+    e = np.linspace(0.0, 8000.0, 36)
+    pdot_true = 4.0e-8
+    oc = 0.5 * pdot_true * PERIOD_D * 86400.0 * e ** 2
+    sig = np.full(e.size, 80.0)
+    oc = oc + rng.normal(0.0, 5.0, e.size)
+    out = pdot_bound(e, oc, sig, PERIOD_D)
+    assert out["pdot"] == pytest.approx(pdot_true, rel=0.02)
+    assert abs(out["pdot"]) > 3.0 * out["pdot_sigma"], (
+        "an injected derivative this large must be detected, or the bound "
+        "the paper quotes is not calibrated")
+
+
+def test_pdot_bound_on_a_flat_oc_is_a_limit_and_not_a_detection():
+    """The real case.  Pure noise must give an insignificant coefficient and
+    a positive 3-sigma bound: that bound is what makes the null publishable."""
+    pdot_bound = _pdot_bound()
+    rng = np.random.default_rng(11)
+    e = np.linspace(0.0, 8000.0, 36)
+    sig = np.full(e.size, 84.0)
+    out = pdot_bound(e, rng.normal(0.0, 84.0, e.size), sig, PERIOD_D)
+    assert abs(out["quad_coeff_s_per_cycle2"]) < \
+        3.0 * out["quad_sigma_s_per_cycle2"]
+    assert out["pdot_limit3"] > 0.0
+    assert out["pdot_limit3"] >= abs(out["pdot"])
+
+
+def test_pdot_bound_declines_to_fit_too_few_epochs():
+    """Three points determine a parabola exactly; a bound from them would be
+    zero-width and false.  The function must return nothing instead."""
+    pdot_bound = _pdot_bound()
+    assert pdot_bound([0.0, 1.0, 2.0], [0.0, 1.0, 0.0],
+                      [1.0, 1.0, 1.0], PERIOD_D) == {}
+
+
+class TestPeriodChangeTimescaleIsDimensionallyRight:
+    """Regression (2026-08-20, third referee, blocker): the published
+    period-change timescale was computed as 1/(Pdot*365.25), which drops the
+    PERIOD from the numerator.  Pdot is dimensionless (d/d), so that
+    expression is not a time at all — it printed 7.6e5 yr in the abstract and
+    a conclusion where the paper's own P and Pdot give 6.0e4 yr."""
+
+    def test_timescale_equals_period_over_pdot(self):
+        # An exactly-known case: a 0.1 d period changing at 1e-8 d/d has a
+        # timescale of 1e7 d, which is 27,378.5 yr.  The dropped-P formula
+        # would return 1/(1e-8*365.25) = 273,785 yr — ten times larger, and
+        # independent of the period, which is the tell.
+        period_d, pdot = 0.1, 1.0e-8
+        correct = period_d / pdot / 365.25
+        dropped_p = 1.0 / (pdot * 365.25)
+        assert correct == pytest.approx(27378.5, rel=1e-4)
+        assert dropped_p / correct == pytest.approx(1.0 / period_d, rel=1e-9)
+
+    def test_the_published_macro_uses_the_right_formula(self):
+        """Guard the real emitter, not just the arithmetic: halving the period
+        must halve the timescale.  Under the old formula it would not move."""
+        from macro_phot import numbers_cv as nv
+        fn = getattr(nv, "pdot_timescale_yr", None)
+        if fn is None:                      # inline in the macro table
+            pytest.skip("timescale is computed inline; covered by the "
+                        "products test that compares macro to database")
+        assert fn(0.08, 3.6e-9) == pytest.approx(
+            2.0 * fn(0.04, 3.6e-9), rel=1e-9)
