@@ -1074,6 +1074,22 @@ def cmd_anuma(args) -> None:
     # three filters independently covered a full orbit.
     three = set.intersection(*[set(v) for v in per_filter_nights.values()]) \
         if per_filter_nights else set()
+    # The MEASURED per-epoch timing error for this target, from the edges
+    # actually fitted.  There is no injection test for AN UMa -- the grid
+    # was run on ST LMi's Mode0 night -- so the analytic budget must not
+    # stand in for one, and these are the numbers the capability rows quote.
+    _es = con.execute(
+        "SELECT min(sigma_t_s), max(sigma_t_s), count(*) FROM p3_edge "
+        "WHERE target_key='anuma'").fetchone()
+    edge_sig_lo, edge_sig_hi, n_edge_all = (_es[0] or float("nan"),
+                                            _es[1] or float("nan"),
+                                            int(_es[2] or 0))
+    _eo = con.execute(
+        "SELECT min(sigma_t_s), max(sigma_t_s), count(*) FROM p3_edge "
+        "WHERE target_key='anuma' AND accepted=1").fetchone()
+    edge_ok_lo, edge_ok_hi, n_edge_ok = (_eo[0] or float("nan"),
+                                         _eo[1] or float("nan"),
+                                         int(_eo[2] or 0))
     # Seasons actually observed, from the nights themselves — the rate that
     # converts a shortfall in nights into a number of observing seasons.
     all_nights = sorted({n for v in per_filter_nights.values() for n in v})
@@ -1136,11 +1152,19 @@ def cmd_anuma(args) -> None:
                      f"distinguishable from flickering on most cycles. "
                      f"CV-S9's cycle-count verdict for the target: "
                      f"{cyc['verdict'] if cyc else 'n/a'}",
-                     "The precision is NOT the problem: CV-S5 measures "
-                     "sigma_t = 21-35 s on AN UMa's richest g night against "
-                     "a 60 s bar, the best of any target here. The problem "
-                     "is that the edge itself is only detected on a handful "
-                     "of cycles, so there are almost no epochs to time.",
+                     f"The edge itself is only detected on a handful of "
+                     f"cycles, so there are almost no epochs to time. The "
+                     f"precision is NOT measured for this target: CV-S5's "
+                     f"injection test was run on ST LMi's Mode0 night only, "
+                     f"and CV-S5's ANALYTIC budget for AN UMa's richest g "
+                     f"night (21-35 s) is the estimator §4.16 forbids "
+                     f"quoting as achieved. What is measured is the "
+                     f"per-epoch error of the fitted edges themselves: "
+                     f"{edge_sig_lo:.0f}-{edge_sig_hi:.0f} s over all "
+                     f"{n_edge_all} fitted edges, "
+                     f"{edge_ok_lo:.0f}-{edge_ok_hi:.0f} s over the "
+                     f"{n_edge_ok} accepted ones, every one of them outside "
+                     f"the 60 s bar.",
                      "Deeper per-cycle sampling of the bright-phase edge "
                      "(a faster filter cycle on fewer filters), not more "
                      "nights: the shortfall is in edges per night."),)
@@ -1273,6 +1297,28 @@ def cmd_verdict(args) -> None:
                        "state='QUIESCENT' AND sf_excess IS NOT NULL")
     fo_hi = 1000 * one("SELECT max(sf_floor) FROM p4_flicker WHERE "
                        "state='QUIESCENT' AND sf_excess IS NOT NULL")
+    # The timescales the MEASUREMENT populates, not the edges of the grid it
+    # was searched on.  Quoting TAU_MIN_S--TAU_MAX_S here -- an earlier
+    # revision did -- advertises the tau_edges_s constant as a measured
+    # range, and it disagrees with every other timescale number in the
+    # paper because the shortest and longest bins carry no detected excess.
+    ta_lo = one("SELECT min(tau_s) FROM p4_flicker WHERE state='QUIESCENT' "
+                "AND detected=1")
+    ta_hi = one("SELECT max(tau_s) FROM p4_flicker WHERE state='QUIESCENT' "
+                "AND detected=1")
+    # The two eras' floors, per era rather than typed: the 8 s High Gain
+    # frames and the 30 s Sloan-era frames are the comparison §4.19 asked
+    # for, and both bounds move if the flicker stage is re-run.
+    def _floor_era(prefix):
+        lo = one("SELECT min(sf_floor) FROM p4_flicker WHERE "
+                 "state='QUIESCENT' AND sf_floor IS NOT NULL AND "
+                 "series_key LIKE ?", prefix)
+        hi = one("SELECT max(sf_floor) FROM p4_flicker WHERE "
+                 "state='QUIESCENT' AND sf_floor IS NOT NULL AND "
+                 "series_key LIKE ?", prefix)
+        return 1000 * lo, 1000 * hi
+    hg_lo, hg_hi = _floor_era("yzcnc|e7|%")
+    sl_lo, sl_hi = _floor_era("yzcnc|e72|%")
     # ---- YZ Cnc: outbursts -------------------------------------------
     b_lo = 1000 * one("SELECT min(amp90_blind) FROM p4_outburst WHERE "
                       "amp90_blind IS NOT NULL")
@@ -1287,6 +1333,12 @@ def cmd_verdict(args) -> None:
     n_rate = int(one("SELECT count(*) FROM p4_outburst WHERE rate_verdict "
                      "IN ('BRIGHTENING','FADING')"))
     n_all = int(one("SELECT count(*) FROM p4_outburst"))
+    # The blind contour is not measurable on every run-filter: a run too
+    # short to place a periodogram maximum carries no contour at all.  The
+    # verdict states its coverage, because a range quoted without it reads
+    # as a property of all eighteen.
+    n_blind = int(one("SELECT count(*) FROM p4_outburst WHERE "
+                      "amp90_blind IS NOT NULL"))
     rows = [
         ("YZ-hump", 1, "CV-P3-yzcnc-superhump",
          "Is the quiescent orbital hump detected, and at what amplitude?",
@@ -1320,7 +1372,7 @@ def cmd_verdict(args) -> None:
          f"runs exceed the measured field-star floor by "
          f"{fs.FLICKER_SIGMA_BAR:g} sigma or more on the variance excess. "
          f"Flickering amplitude {fl_lo:.0f}-{fl_hi:.0f} mmag over "
-         f"{TAU_MIN_S:.0f}-{TAU_MAX_S:.0f} s; the floor subtracted is "
+         f"{ta_lo:.0f}-{ta_hi:.0f} s; the floor subtracted is "
          f"{fo_lo:.0f}-{fo_hi:.0f} mmag",
          "The floor is not modelled and not a formal error bar. It is the "
          "SAME structure function computed on field stars within "
@@ -1329,17 +1381,20 @@ def cmd_verdict(args) -> None:
          "zero-point wander and atmosphere, and no flickering. YZ Cnc's "
          "four held-out check stars sit about a magnitude BRIGHTER than the "
          "star at quiescence and would have given an optimistic floor.",
-         "The subtraction is done in variance, and bins where the target "
-         "does not exceed the floor are reported as NOT MEASURED rather "
-         "than as a small amplitude. The two eras differ by design: the "
-         "30 s Sloan-era frames reach a 5-12 mmag floor, the 8 s High Gain "
-         "frames only 27-46 mmag, which is precisely what §4.19 feared."),
+         f"The subtraction is done in variance, and bins where the target "
+         f"does not exceed the floor are reported as NOT MEASURED rather "
+         f"than as a small amplitude. The two eras differ by design: the "
+         f"30 s Sloan-era frames reach a {sl_lo:.0f}-{sl_hi:.0f} mmag "
+         f"floor, the 8 s High Gain frames only {hg_lo:.0f}-{hg_hi:.0f} "
+         f"mmag, which is precisely what §4.19 feared."),
         ("YZ-superhump", 3, "CV-P3-yzcnc-superhump",
          "Can this season measure a superhump period or dP_sh/dt?",
          "NO — AND THAT IS A MEASUREMENT, NOT AN ABSENCE",
          f"the blind-search 90% recovery contour on the outburst dense runs "
-         f"is {b_lo:.0f}-{b_hi:.0f} mmag, against superhump semi-amplitudes "
-         f"of {1000 * fs.SUPERHUMP_SEMI_AMP_FLOOR:.0f} mmag and up; and "
+         f"is {b_lo:.0f}-{b_hi:.0f} mmag on the {n_blind} of {n_all} "
+         f"run-filters long enough to carry one, against superhump "
+         f"semi-amplitudes of "
+         f"{1000 * fs.SUPERHUMP_SEMI_AMP_FLOOR:.0f} mmag and up; and "
          f"CV-S7 already established that none of the {n_ob} outburst dense "
          f"runs sits inside a superoutburst (brightest {ob_amp:.2f} mag "
          f"above quiescence, against the ~3 mag a superoutburst reaches)",
@@ -1384,6 +1439,17 @@ def cmd_verdict(args) -> None:
                 "key='anuma_three_filter_nights'")
     n_three = len([x for x in str(three).split(",") if x]) \
         if isinstance(three, str) else 0
+    an_sig_lo = one("SELECT min(sigma_t_s) FROM p3_edge WHERE "
+                    "target_key='anuma'")
+    an_sig_hi = one("SELECT max(sigma_t_s) FROM p3_edge WHERE "
+                    "target_key='anuma'")
+    an_ok = int(one("SELECT sum(accepted) FROM p3_edge WHERE "
+                    "target_key='anuma'"))
+    an_fit = int(one("SELECT count(*) FROM p3_edge WHERE "
+                     "target_key='anuma'"))
+    an_amp = {r[0]: 1000.0 * (r[1] or 0.0) for r in con.execute(
+        "SELECT filter, amplitude_mag FROM p3_period WHERE "
+        "series_key LIKE 'anuma|%'")}
     rows.append((
         "ANUMA-role", 5, "CV-P4-anuma",
         "What role should AN UMa have in the paper?",
@@ -1394,14 +1460,18 @@ def cmd_verdict(args) -> None:
         "failures have different causes. The colour goal fails on "
         f"SCHEDULING: {n_three} nights carry a full orbit in all three "
         f"filters against a bar of {ANUMA_BARS['three_filter_nights']}. The "
-        "timing goal fails on the EDGE, not on precision: CV-S5 measures "
-        "sigma_t = 21-35 s on the richest g night against a 60 s bar -- the "
-        "best of any target here -- but only 4 of 24 fitted bright-phase "
+        f"timing goal fails on the EDGE: only {an_ok} of {an_fit} fitted "
+        f"bright-phase "
         "edges survive a step signal-to-noise of 5, and CV-S9's cycle-count "
-        "stage refuses an O-C on them. What survives is real and costs "
-        "nothing extra: folded morphology in g and r, where the modulation "
-        "is detected at 223 and 140 mmag, and a relative state history that "
-        "is bimodal in all three filters.",
+        "stage refuses an O-C on them. It is NOT established that the "
+        "precision would otherwise be adequate -- no injection test was run "
+        f"for this target, and the measured per-epoch errors of its own "
+        f"fitted edges are {an_sig_lo:.0f}-{an_sig_hi:.0f} s, every one "
+        f"outside the 60 s bar. What survives is real and costs "
+        f"nothing extra: folded morphology in g and r, where the modulation "
+        f"is detected at {an_amp.get('g', float('nan')):.0f} and "
+        f"{an_amp.get('r', float('nan')):.0f} mmag, and a relative state "
+        f"history that is bimodal in all three filters.",
         "Cutting AN UMa entirely would discard a resolved bimodal state "
         "history and a detected orbital modulation already in hand; "
         "promoting it to a full target would require three-filter "

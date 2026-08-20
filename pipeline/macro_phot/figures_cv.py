@@ -718,6 +718,10 @@ def fig01_coverage(cv, ext_targets=("stlmi", "vvpup", "euuma",
             transform=ax.transAxes, ha="center", va="top", fontsize=5.6,
             color=OKABE_ITO["grey"])
 
+    pmin = [1440.0 * float(r["period_d"]) for r in per
+            if r["period_d"] and r["target_key"] in ypos]
+    p_lo, p_hi = (min(pmin), max(pmin)) if pmin else (float("nan"),) * 2
+
     spec = FigureSpec(
         fig_id="fig01", label="fig:coverage",
         title="Coverage and cadence map",
@@ -731,22 +735,42 @@ def fig01_coverage(cv, ext_targets=("stlmi", "vvpup", "euuma",
             "one. (b) Orbital cycles covered per night per filter, on a "
             "logarithmic axis, against the one-cycle line: this is what "
             "these data add to the sparse survey record, which samples "
-            "these 90--125 minute binaries one point at a time."),
+            f"these {p_lo:.0f}--{p_hi:.0f} minute binaries one point at a "
+            "time. This is a "
+            "census of what was OBSERVED, so EU~UMa's 2026 Fast-mode "
+            "nights appear here even though no measurement in this paper "
+            "uses them (Section~\\ref{sec:vvpupeuuma}); a coverage map "
+            "that omitted observed nights would be a different claim."),
         tables=("cv_frames", "cv_ext_nightly", "p3_ephemeris"),
         width_in=COL_DOUBLE)
     return fig, spec
 
 
-def fig02_rms_vs_mag(ch):
-    """Figure 2 -- RMS against magnitude, per camera, model overplotted."""
-    series = read_rows(ch, """
+def fig02_rms_vs_mag(ch, cv, man):
+    """Figure 2 -- RMS against magnitude, per camera, model overplotted.
+
+    ONLY series that carry a catalogue tie appear.  The abscissa is a
+    catalogue-tied magnitude, so a series with no tie has no position on
+    it; and the annotated systematic floor is a precision statement, which
+    §3.1 allows only on held-out check stars of a converged, tied solve.
+    EU UMa's 2026 Fast-mode block is neither -- five comparison stars, no
+    check stars, no tie and no target detection -- and an earlier revision
+    of this figure gave it a panel of its own, whose 1--2 mmag floor was
+    the smallest number in the figure and rested on nothing the paper is
+    allowed to rest a precision claim on.
+    """
+    tied = {r["series_key"] for r in read_rows(cv, """
+        SELECT series_key FROM cv_cattie
+        WHERE is_primary = 1 AND verdict LIKE 'TIED%'
+    """)}
+    series = [r for r in read_rows(ch, """
         SELECT series_key, target_key, era_id, filter, readoutm, exptime,
                floor_nom, k_nom, floor_lo, floor_hi, k_lo, k_hi,
                target_mag, prec_at_target, check_rms_med, n_stars,
                best_star_mag, best_star_rms
         FROM ch_noise_series WHERE n_stars >= 20
         ORDER BY era_id, filter
-    """)
+    """) if r["series_key"] in tied]
     modes: dict[str, list[dict]] = {}
     for r in series:
         modes.setdefault(r["readoutm"] or "unknown", []).append(r)
@@ -836,6 +860,15 @@ def fig02_rms_vs_mag(ch):
                label="at the CV's magnitude")]
     flat[0].legend(handles=handles, loc="upper left", ncol=3, fontsize=5.6)
 
+    # The gain bracket the noise band is drawn from, read rather than typed.
+    gb = read_rows(man, """SELECT quantity, value FROM detector_params
+                           WHERE era_group='High Gain' AND quantity IN
+                           ('gain_lower_bound_e_per_adu',
+                            'gain_upper_bound_e_per_adu')""")
+    gv = {r["quantity"]: float(r["value"]) for r in gb}
+    g_lo = gv.get("gain_lower_bound_e_per_adu", float("nan"))
+    g_hi = gv.get("gain_upper_bound_e_per_adu", float("nan"))
+
     spec = FigureSpec(
         fig_id="fig02", label="fig:rmsmag",
         title="Per-point scatter against magnitude, per camera",
@@ -844,8 +877,9 @@ def fig02_rms_vs_mag(ch):
             "catalogue-tied magnitude, one panel per readout mode. The "
             "shaded curve is the noise model: the per-star photon and read "
             "term added in quadrature to that series' own MEASURED "
-            "systematic floor, drawn as a band rather than a line because "
-            "the detector gain is bracketed at 0.60--1.77 e$^{-}$/ADU and a "
+            f"systematic floor, drawn as a band rather than a line because "
+            f"the detector gain is bracketed at {g_lo:.2f}--{g_hi:.2f} "
+            "e$^{-}$/ADU and a "
             "single curve would claim a calibration this instrument does "
             "not yet have. The horizontal grey band is that floor, which is "
             "what limits every bright star. Stars mark the best-performing "
@@ -853,8 +887,15 @@ def fig02_rms_vs_mag(ch):
             "CV's own magnitude, which is where the model has to be "
             "believed. The scatter of individual field stars well above the "
             "band is the field's own variability and blending, not the "
-            "instrument's."),
-        tables=("ch_noise_stars", "ch_noise_series"),
+            "instrument's. Only catalogue-tied series appear: the abscissa "
+            "is a tied magnitude, and the floor annotated on each panel is "
+            "a precision statement, which this paper permits only on the "
+            "held-out check stars of a tied solve. EU~UMa's untied 2026 "
+            "Fast-mode block therefore has no panel here, and the Fast "
+            "readout mode no measured floor "
+            "(Section~\\ref{sec:vvpupeuuma})."),
+        tables=("ch_noise_stars", "ch_noise_series", "cv_cattie",
+                "detector_params"),
         width_in=COL_DOUBLE)
     return fig, spec
 
@@ -966,6 +1007,17 @@ def fig03_linearity(man):
         loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=1,
         fontsize=5.6)
 
+    # The two numbers the caption's punchline rests on, read not typed.
+    _dp = {(r["era_group"], r["quantity"]): float(r["value"])
+           for r in read_rows(man, "SELECT era_group, quantity, value FROM "
+                                   "detector_params")}
+    hg_bits = _dp.get(("High Gain", "adc_bits"), float("nan"))
+    hg_clip = _dp.get(("High Gain", "ceiling_adu"), float("nan"))
+    _sixteen = [v for (g, q), v in _dp.items() if q == "ceiling_adu"
+                and _dp.get((g, "adc_bits")) == 16.0]
+    hg_ratio = (min(_sixteen) / hg_clip if _sixteen and hg_clip
+                else float("nan"))
+
     spec = FigureSpec(
         fig_id="fig03", label="fig:linearity",
         title="Linearity ladders and adopted saturation vetoes",
@@ -978,9 +1030,11 @@ def fig03_linearity(man):
             "against. Dashed vertical lines are each mode's adopted "
             "saturation veto, the dotted horizontal line one per cent. (b) The three levels the pipeline uses "
             "per mode: the hard observed maximum, the measured clip that "
-            "defines the ceiling, and the veto at 0.92 of the ceiling. "
-            "High Gain's 12-bit ceiling of 3496 ADU is a factor of nearly "
-            "twenty below every 16-bit mode, which is why its vetoes cannot "
+            f"defines the ceiling, and the veto, which is 0.92 of the "
+            f"ceiling rounded down to the nearest 100 ADU. "
+            f"High Gain's {hg_bits:.0f}-bit ceiling of {hg_clip:,.0f} ADU "
+            f"is a factor of {hg_ratio:.0f} below every 16-bit mode, which "
+            "is why its vetoes cannot "
             "be shared with the Sloan-era data."),
         tables=("s2_linearity_ladders", "s2_linearity_rungs",
                 "s2_ceiling_modes"),
@@ -1066,6 +1120,17 @@ def fig04_periodograms(cv, ch, picks=None):
     axes[0][0].set_title("spectral window", fontsize=7, loc="left")
     axes[0][1].set_title("Lomb--Scargle periodogram", fontsize=7, loc="left")
 
+    # The caption's alias figure, computed in the same call that drew the
+    # panels.  Typing it here -- an earlier revision said 0.92 -- lets the
+    # caption understate the paper's own worst case while §4.1 states it
+    # correctly, so the figure and the text disagree about the number that
+    # justifies refusing every period claim.
+    af = [r["alias_frac_max"] for r in read_rows(
+        cv, "SELECT alias_frac_max FROM p3_period WHERE status='ok' "
+            "AND alias_frac_max IS NOT NULL")]
+    a_lo, a_hi = (min(af), max(af)) if af else (float("nan"), float("nan"))
+    n_ok = len(af)
+
     spec = FigureSpec(
         fig_id="fig04", label="fig:periodograms",
         title="Spectral windows and periodograms",
@@ -1077,7 +1142,8 @@ def fig04_periodograms(cv, ch, picks=None):
             "the survey band, with the published orbital frequency solid "
             "and its $\\pm1$ cycle d$^{-1}$ aliases dashed. The annotated "
             "alias power is the fraction of the peak carried by the "
-            "strongest alias. It reaches 0.92 for some series, which is why "
+            f"strongest alias. Over the {n_ok} series searched it spans "
+            f"{a_lo:.2f}--{a_hi:.2f}, which is why "
             "no multi-night period in this paper is presented as a "
             "determination: each is a confirmation of the catalogue value "
             "within a stated alias family, and the family is named."),
@@ -1250,12 +1316,25 @@ def fig06_colour_phase(cv, max_dt_s=600.0):
         ax.set_xlabel("orbital phase (cycles, repeated)")
         ax.set_xlim(0, 2)
 
-    # The census that justifies the substitution, printed INSIDE the figure.
+    # The census that justifies the substitution, printed INSIDE the figure
+    # and computed by the SAME function the manuscript's census macros use,
+    # so the figure cannot state one coverage and §2.2 another.
+    from . import numbers_cv as _nx
+    _mp = _nx.one(cv, "SELECT value FROM p4_meta WHERE "
+                      "key='full_orbit_min_points'")
+    _mp = int(_mp) if _mp is not None else _nx.FULL_ORBIT_MIN_POINTS_DEFAULT
+    _cen = {t: _nx.coverage_census(cv, t, _mp) for t in ("vvpup", "euuma")}
+    _vv, _eu = _cen["vvpup"], _cen["euuma"]
     fig.text(0.5, -0.02,
-             "VV Pup and EU UMa panels are not drawn: VV Pup has 1 of 18 "
-             "three-filter full-orbit nights (and its two cameras are fully "
-             "confounded with epoch); EU UMa has 0 of 25.",
+             f"VV Pup and EU UMa panels are not drawn: VV Pup has "
+             f"{len(_vv['three'])} of {len(_vv['any'])} three-filter "
+             f"full-orbit nights (and its two cameras are fully "
+             f"confounded with epoch); EU UMa has {len(_eu['three'])} of "
+             f"{len(_eu['any'])}.",
              ha="center", fontsize=6.2, color=OKABE_ITO["vermilion"])
+    _p_min = 1440.0 * float(read_rows(
+        cv, "SELECT period_d FROM p3_ephemeris WHERE target_key='stlmi'"
+    )[0]["period_d"])
 
     spec = FigureSpec(
         fig_id="fig06", label="fig:colourphase",
@@ -1263,8 +1342,9 @@ def fig06_colour_phase(cv, max_dt_s=600.0):
         caption=(
             "Quasi-simultaneous colours of ST LMi against orbital phase, "
             "one column per instrument era. A pair enters only if the two "
-            "exposures are within 600 s of each other, because these stars "
-            "move by tenths of a magnitude within one 114-minute orbit and "
+            f"exposures are within {max_dt_s:.0f} s of each other, because "
+            f"these stars move by tenths of a magnitude within one "
+            f"{_p_min:.0f}-minute orbit and "
             "a pair separated by half an orbit is not a colour. Small "
             "points are individual pairs, large points are median phase "
             "bins. The black bar in each panel is the catalogue-tie "
@@ -1277,10 +1357,11 @@ def fig06_colour_phase(cv, max_dt_s=600.0):
         tables=("cv_lightcurve", "cv_frames", "cv_cattie", "p3_ephemeris"),
         width_in=COL_DOUBLE, substitute=True,
         substitute_reason=(
-            "the planned figure paired ST LMi with per-camera VV Pup "
-            "panels; VV Pup has one three-filter full-orbit night of "
-            "eighteen and EU UMa none of twenty-five, so those panels "
-            "would show one night's colour as a season's morphology"))
+            f"the planned figure paired ST LMi with per-camera VV Pup "
+            f"panels; VV Pup has {len(_vv['three'])} three-filter "
+            f"full-orbit nights of {len(_vv['any'])} and EU UMa "
+            f"{len(_eu['three'])} of {len(_eu['any'])}, so there is no "
+            f"night from which those panels could be built"))
     return fig, spec
 
 
@@ -1329,8 +1410,9 @@ def fig07_vvpup_euuma_folds(cv):
         substitute_reason=(
             "the planned figure was a three-filter panel per target; only "
             "the bands with full-orbit coverage are shown, and EU UMa's "
-            "2026 Fast series is excluded entirely because it is untied "
-            "and carries no check stars"))
+            "2026 Fast series carries no target photometry to fold at "
+            "all -- it is untied, holds out no check stars, and the star "
+            "is not detected in it"))
     return fig, spec
 
 
@@ -1417,24 +1499,54 @@ def fig08_state_history(cv, first_night="2018-01-01"):
     ax_last.set_xticks(pos)
     ax_last.set_xticklabels(lab, fontsize=6)
     ax_last.set_xlabel("UTC night")
-    axes[0][0].text(0.5, 1.30,
+    axes[0][0].text(0.5, 1.62,
                     f"axis begins {first_night} (start of ZTF); "
                     f"{n_before:,} earlier survey epochs, mostly visual "
                     f"AAVSO estimates, lie off the left of every panel",
                     transform=axes[0][0].transAxes, ha="center", va="bottom",
                     fontsize=5.6, color=OKABE_ITO["grey"])
+    # EVERY class the panels actually draw.  p3_state_night holds five, and
+    # a legend that documents two of them leaves the grey and yellow
+    # markers that dominate the ST LMi and EU UMa panels unexplained --
+    # while Figure 5's legend, drawn from the same palette, lists them.
+    counts = {str(r["state"]).lower(): r["n"] for r in read_rows(
+        cv, "SELECT state, count(*) n FROM p3_state_night GROUP BY state")}
+    # The caption's shallow-limit tally, by the same test §3.5 applies: a
+    # limit is informative only if it goes deeper than the star's own
+    # median detection.  Typed into the caption, this is a number that
+    # cannot follow a re-run of the forced-photometry stage.
+    lim_rows = read_rows(cv, """SELECT series_key, median_limit_cal_mag
+                                FROM p2_limit_series
+                                WHERE median_limit_cal_mag IS NOT NULL""")
+    n_limit, n_shallow = len(lim_rows), 0
+    for r in lim_rows:
+        mags = sorted(x["cal_mag"] for x in read_rows(
+            cv, "SELECT cal_mag FROM cv_lightcurve WHERE series_key=? AND "
+                "role='target' AND cal_mag IS NOT NULL", (r["series_key"],)))
+        if mags and r["median_limit_cal_mag"] < mags[len(mags) // 2]:
+            n_shallow += 1
     handles = [
-        Line2D([], [], marker="o", lw=0, ms=4, mfc=STATE_COLOR["high"],
-               mec="none", label="RLMT night, high state"),
-        Line2D([], [], marker="o", lw=0, ms=4, mfc=STATE_COLOR["low"],
-               mec="none", label="RLMT night, low state"),
+        Line2D([], [], marker="o", lw=0, ms=4,
+               mfc=STATE_COLOR[normalise_state(s)], mec="none",
+               label=f"RLMT night, {lab} ({counts.get(s, 0)})")
+        for s, lab in (("high", "high state"), ("low", "low state"),
+                       ("intermediate", "inside the threshold's own "
+                                       "uncertainty"),
+                       ("unclassified", "coverage gate not cleared"),
+                       ("unknown", "series has no measurable threshold"))
+        if counts.get(s)]
+    handles += [
         Line2D([], [], marker="v", lw=0, ms=4, mfc="none",
                mec=OKABE_ITO["grey"], label="censored night (upper limit)"),
         Line2D([], [], ls="--", color="k", lw=0.8, label="state threshold"),
         Line2D([], [], ls=":", color=OKABE_ITO["vermilion"], lw=0.9,
                label="median faint limit"),
     ]
-    axes[0][0].legend(handles=handles, loc="upper left", ncol=2, fontsize=5.4)
+    # Above the top panel, not inside it: eight entries laid over ST LMi's
+    # nights hid the very markers they were there to explain.
+    axes[0][0].legend(handles=handles, loc="lower center",
+                      bbox_to_anchor=(0.5, 1.02), ncol=3, fontsize=5.4,
+                      columnspacing=1.0, handletextpad=0.4)
 
     spec = FigureSpec(
         fig_id="fig08", label="fig:states",
@@ -1443,11 +1555,16 @@ def fig08_state_history(cv, first_night="2018-01-01"):
             "Nightly RLMT medians (large symbols, coloured by classified "
             "accretion state, marker by filter) over the independent survey "
             "record (small pale points: ZTF, ASAS-SN, AAVSO nightly means, "
-            "with any RLMT data resubmitted to AAVSO removed). Dashed lines "
+            "with any RLMT data resubmitted to AAVSO removed). The legend "
+            "lists every class the panels draw, with the number of nights "
+            "in each: two of the five are states, and the other three are "
+            "ways of saying the classification could not be made. Dashed "
+            "lines "
             "are the per-series state thresholds; open triangles are nights "
             "on which the star was not detected and only an upper limit "
-            "exists. The dotted red line is the median faint limit: for "
-            "eleven of thirteen series it lies SHALLOWER than the median "
+            f"exists. The dotted red line is the median faint limit: for "
+            f"{n_shallow} of {n_limit} series it lies SHALLOWER than the "
+            "median "
             "detection, so every faint-state fraction in this paper is an "
             "upper bound on a low-state duty cycle and not a measurement "
             "of one."),
@@ -1464,42 +1581,63 @@ def fig09_oc(cv):
                                           "wspace": 0.40})
     ax, ax2 = axes
 
-    oc = read_rows(cv, """SELECT * FROM p3_oc WHERE target_key='stlmi'
-                          ORDER BY cycle""")
+    # THE PUBLISHED EPOCHS: one per night per band, from p3_oc_night.  The
+    # per-cycle residuals in p3_oc are the inputs -- CV-S5's injection test
+    # does not license a single cycle's edge as an epoch, and §4.2 forbids
+    # publishing one -- so they are drawn as pale background points, and
+    # the epochs the paper fits are the filled ones with error bars.
+    raw = read_rows(cv, """SELECT * FROM p3_oc WHERE target_key='stlmi'
+                           ORDER BY cycle""")
+    for r in raw:
+        band = series_parts(r["series_key"])[2]
+        ax.plot([r["cycle"]], [r["oc_s"]], marker=".", ms=2.0, lw=0,
+                color=BAND_COLOR.get(band, OKABE_ITO["grey"]), alpha=0.30,
+                zorder=2)
+
+    oc = read_rows(cv, """SELECT * FROM p3_oc_night WHERE target_key='stlmi'
+                          ORDER BY cycle_mean""")
     by_series: dict[str, list[dict]] = {}
     for r in oc:
         by_series.setdefault(r["series_key"], []).append(r)
     for sk, rows in sorted(by_series.items()):
         _, era, band = series_parts(sk)
-        e = np.array([r["cycle"] for r in rows], dtype=float)
+        e = np.array([r["cycle_mean"] for r in rows], dtype=float)
         y = np.array([r["oc_s"] for r in rows], dtype=float)
         s = np.array([(r["oc_sigma_s"] or np.nan) for r in rows], dtype=float)
-        ax.errorbar(e, y, yerr=s, fmt=BAND_MARKER.get(band, "o"), ms=3.0,
+        ax.errorbar(e, y, yerr=s, fmt=BAND_MARKER.get(band, "o"), ms=3.4,
                     lw=0, elinewidth=0.7, capsize=0,
                     color=BAND_COLOR.get(band, OKABE_ITO["grey"]),
                     mfc=("none" if era == 7 else
                          BAND_COLOR.get(band, OKABE_ITO["grey"])),
                     mec=BAND_COLOR.get(band, OKABE_ITO["grey"]), mew=0.8,
+                    zorder=4,
                     label=f"{ERA_LABEL.get(era, era)} {band}")
     ax.axhline(0.0, color="k", lw=0.7)
 
-    # The realistic sigma_t band: the demonstrated timing systematic, the
-    # number that decides what a residual is allowed to mean.
+    # The two bands are the two ERROR SCALES this diagram lives between:
+    # what a single cycle's edge achieved in the injection test (outer),
+    # and what a per-night mean of several cycles achieves (inner).  The
+    # published epochs are the second; the first is drawn to show why they
+    # are not the first.
+    cc = read_rows(cv, "SELECT * FROM p3_cycle_count WHERE "
+                       "target_key='stlmi'")
     sig = read_rows(cv, """SELECT sigma_t_s, total_error_s FROM p3_sigmat""")
-    if sig:
-        s_best = float(np.nanmin([r["sigma_t_s"] for r in sig]))
-        s_med = float(np.nanmedian([r["total_error_s"] for r in sig]))
-        ax.axhspan(-s_med, s_med, color=OKABE_ITO["grey"], alpha=0.16,
+    thr = 60.0
+    if sig and cc:
+        s_cycle = float(np.nanmedian([r["total_error_s"] for r in sig]))
+        s_night = float(cc[0]["sigma_night_median_s"])
+        ax.axhspan(-s_cycle, s_cycle, color=OKABE_ITO["grey"], alpha=0.14,
                    lw=0, zorder=0)
-        ax.axhspan(-s_best, s_best, color=OKABE_ITO["grey"], alpha=0.24,
+        ax.axhspan(-s_night, s_night, color=OKABE_ITO["grey"], alpha=0.22,
                    lw=0, zorder=0)
         for sgn in (-1, 1):
-            ax.axhline(sgn * 60.0, lw=0.7, ls="-.",
+            ax.axhline(sgn * thr, lw=0.7, ls="-.",
                        color=OKABE_ITO["vermilion"])
         ax.text(0.012, 0.025,
-                f"injection-demonstrated $\\sigma_t$ = {s_best:.0f} s best, "
-                f"{s_med:.0f} s median;\nthe 60 s threshold (dash-dot) is "
-                f"NOT met",
+                f"per-CYCLE {s_cycle:.0f} s (outer band): fails {thr:.0f} s\n"
+                f"per-NIGHT {s_night:.0f} s (inner band); rms "
+                f"{float(cc[0]['oc_night_rms_s']):.0f} s, "
+                f"$\\chi^2$/epoch {float(cc[0]['oc_night_chi2nu']):.2f}",
                 transform=ax.transAxes, fontsize=5.6, va="bottom",
                 color=OKABE_ITO["black"])
     ax.set_xlabel("cycle number since the catalogue epoch")
@@ -1571,18 +1709,24 @@ def fig09_oc(cv):
         title="ST LMi O$-$C and band-dependent edge offsets",
         caption=(
             "(a) Bright-phase timing residuals against the catalogue "
-            "ephemeris, per band and per era; open symbols are the 2024 "
-            "High Gain era, filled the 2025 Mode0 era. The shaded bands are "
-            "the demonstrated timing precision from the injection test: the "
-            "inner band the ideal-shape case, the outer the realistic case "
-            "in which the edge shape is mismatched. A residual inside the "
-            "outer band is not evidence of anything. (b) Band-to-band "
-            "offsets of the same edge measured on the same night, shown "
+            "ephemeris. Symbols with error bars are the PUBLISHED epochs: "
+            "one per night per band, each the mean of that night's "
+            "accepted per-cycle edges, open for the 2024 High Gain era and "
+            "filled for the 2025 Mode0 era. Pale dots behind them are the "
+            "per-cycle edges those means are made of; none is published as "
+            "an epoch, because the injection test of "
+            "Section~\\ref{sec:timing} showed that one cycle's edge does "
+            "not reach the 60~s threshold (dash-dot lines). The outer "
+            "shaded band is that per-cycle error, the inner the median "
+            "error of a per-night epoch. Bands are averaged separately, "
+            "for the reason panel (b) gives. (b) Band-to-band "
+            "offsets of the same edge on the same night, shown "
             "rather than averaged away: if the falling edge sits at a "
             "different phase in $i$ than in $g$, then the epoch of a "
             "bright-phase edge is band dependent and any O$-$C that pools "
             "bands inherits that offset as apparent period noise."),
-        tables=("p3_oc", "p3_band_pair", "p3_sigmat", "p3_cycle_count"),
+        tables=("p3_oc", "p3_oc_night", "p3_band_pair", "p3_sigmat",
+                "p3_cycle_count"),
         width_in=COL_DOUBLE, substitute=True,
         substitute_reason=(
             "the planned figure carried VV Pup and EU UMa panels; CV-S9's "
@@ -1692,6 +1836,18 @@ def fig10_yzcnc_season(cv):
         axi.tick_params(labelsize=5.5)
         axi.grid(color="#f4f4f4")
 
+    # The run census and the peak amplitude, from the tables that measured
+    # them, so the caption cannot outlive a re-run of CV-S10.
+    n_dense = read_rows(cv, "SELECT count(DISTINCT nights) n FROM p4_run "
+                            "WHERE kind='run'")[0]["n"]
+    n_quiet = read_rows(cv, "SELECT count(DISTINCT nights) n FROM p4_run "
+                            "WHERE kind='run' AND upper(state)='QUIESCENT'"
+                        )[0]["n"]
+    n_burst = read_rows(cv, "SELECT count(DISTINCT night) n FROM p4_outburst"
+                        )[0]["n"]
+    ob_amp = read_rows(cv, "SELECT max(amp_above_quiescence) a FROM "
+                           "p4_outburst")[0]["a"] or float("nan")
+
     spec = FigureSpec(
         fig_id="fig10", label="fig:yzcncseason",
         title="YZ Cnc season overview with dense-run insets",
@@ -1702,14 +1858,23 @@ def fig10_yzcnc_season(cv):
             "made from AAVSO photometry alone and survives deleting every "
             "RLMT row from the AAVSO archive, so it is an INPUT to this "
             "paper's YZ Cnc branch and not a conclusion of it. (bottom) "
-            "Three dense runs at full cadence: nine such runs exist, three "
-            "quiescent and six inside normal outbursts, and the brightest "
-            "reaches 1.86 mag above quiescence against the roughly 3.0 mag "
-            "a superoutburst attains."),
+            f"Three dense runs at full cadence: {n_dense} such runs exist, "
+            f"{n_quiet} quiescent and {n_burst} inside normal outbursts, "
+            f"and the brightest reaches {ob_amp:.2f} mag above quiescence "
+            "against the roughly 3 mag a superoutburst attains."),
         tables=("cv_lightcurve", "cv_frames", "cv_ext_nightly",
                 "p4_outburst", "p4_run"),
         width_in=COL_DOUBLE)
     return fig, spec
+
+
+def _scope_label(run) -> str:
+    """``yzcnc|e7|I|2024-02-20`` -> ``the 2024-02-20 $I$ run``."""
+    if run is None:
+        return "none"
+    band = series_parts(run["series_key"])[2]
+    night = str(run["utc_nights"] or run["nights"]).split("+")[0]
+    return f"the {night} ${band}$ run"
 
 
 def fig11_yzcnc_fallback(cv):
@@ -1792,6 +1957,18 @@ def fig11_yzcnc_fallback(cv):
     ax2.set_title("(b) flickering over a measured floor", fontsize=7,
                   loc="left")
 
+    # How many scopes the hump actually clears the INSTRUMENTAL contour on.
+    # The panel already draws this correctly -- the I-band High Gain row
+    # has its filled marker to the LEFT of the green tick -- and an earlier
+    # revision's caption said "everywhere", contradicting its own figure
+    # and erasing the one scope on which a hump of the fitted size could
+    # not have been seen.
+    above = [r for r in runs if r["hump_amp"] is not None
+             and r["amp90_field"] is not None
+             and r["hump_amp"] > r["amp90_field"]]
+    n_above = len(above)
+    below = next((r for r in runs if r not in above), None)
+
     spec = FigureSpec(
         fig_id="fig11", label="fig:yzcncfallback",
         title="YZ Cnc: orbital-hump limits and flickering",
@@ -1801,9 +1978,14 @@ def fig11_yzcnc_fallback(cv):
             "measured on that run's own timestamps: against "
             "magnitude-matched field stars seen through the same frames, "
             "and against the star's own night-rolled residuals, which carry "
-            "its flickering. The hump exceeds the instrumental contour "
-            "everywhere and the red-noise contour nowhere, so it is "
-            "reported as an upper limit and not a detection. (b) "
+            f"its flickering. The hump exceeds the instrumental contour on "
+            f"{n_above} of the {len(runs)} scopes and the red-noise "
+            f"contour on none, so it is reported as an upper limit and not "
+            f"a detection. On the remaining scope "
+            f"({_scope_label(below)}) the fitted hump sits BELOW the "
+            f"instrumental contour, so that run could not have shown a "
+            f"hump of the fitted size at all and is uninformative rather "
+            "than a non-detection. (b) "
             "Flickering as a structure function against timescale, with the "
             "photometric floor measured on the same field stars and "
             "subtracted in quadrature; crosses are bins that did not clear "
@@ -2075,7 +2257,7 @@ def fig13_timing_audit(man):
 #: a traceback three frames deep.
 BUILDERS: dict[str, dict] = {
     "fig01": {"fn": fig01_coverage, "needs": ("cv",)},
-    "fig02": {"fn": fig02_rms_vs_mag, "needs": ("ch",)},
+    "fig02": {"fn": fig02_rms_vs_mag, "needs": ("ch", "cv", "man")},
     "fig03": {"fn": fig03_linearity, "needs": ("man",)},
     "fig04": {"fn": fig04_periodograms, "needs": ("cv", "ch")},
     "fig05": {"fn": fig05_stlmi_folds, "needs": ("cv",)},

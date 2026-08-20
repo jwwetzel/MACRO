@@ -86,8 +86,14 @@ TABLES WRITTEN (all inside products/phot/cv_timeseries.sqlite)
 ``p3_sigmat``      the sigma_t injection grid and its contour verdict.
 ``p3_edge``        per (series, cycle): the fitted bright-phase edge epoch.
 ``p3_band_pair``   inter-band edge-time differences, per night and pooled.
-``p3_oc``          the O-C points, on the cycle count the next table blesses.
-``p3_cycle_count`` the cycle-count ambiguity analysis, per target.
+``p3_oc``          per-cycle edge residuals: the INPUTS to the O-C, not
+                   publishable epochs -- the injection test does not license
+                   a single cycle's edge as one.
+``p3_oc_night``    the PUBLISHED timing epochs: one per night per band, the
+                   mean of that night's accepted per-cycle edges, with the
+                   error bar the injection budget licenses.
+``p3_cycle_count`` the cycle-count ambiguity analysis, per target, plus the
+                   per-night O-C summary and its refitted ephemeris.
 ``p3_state_night`` per (series, night): the state classification.
 ``p3_state_series``thresholds, separability and duty cycles.
 ``p3_detrend``     the detrend-then-search versus joint-fit demonstration.
@@ -313,6 +319,23 @@ def ensure_tables(con: sqlite3.Connection) -> None:
         oc_sigma_s REAL, phase_offset REAL, count_unique INTEGER,
         PRIMARY KEY (series_key, cycle));
 
+    -- The PUBLISHED timing epochs.  One row per (target, night, band):
+    -- the mean of that night's accepted per-cycle edges in that band.
+    -- CV-S5's injection test demonstrated that a SINGLE cycle's edge does
+    -- not reach the 60 s threshold, so no per-cycle epoch is published on
+    -- its own; p3_oc holds those as the inputs and this table holds what
+    -- the paper is allowed to plot and fit.  Bands are NOT pooled: the
+    -- band-pair stage measures a non-zero offset between the same edge
+    -- timed in two filters, so pooling them would fold a real, measured
+    -- band dependence into the residuals as apparent period noise.
+    CREATE TABLE IF NOT EXISTS p3_oc_night (
+        target_key TEXT, night TEXT, filter TEXT, series_key TEXT,
+        era_id INTEGER, n_cycles INTEGER, cycle_mean REAL,
+        cycle_lo INTEGER, cycle_hi INTEGER, t_mean_bjd REAL,
+        oc_s REAL, oc_sigma_s REAL, sigma_random_s REAL,
+        sigma_floor_s REAL, within_night_rms_s REAL, meets_threshold INTEGER,
+        PRIMARY KEY (target_key, night, filter));
+
     CREATE TABLE IF NOT EXISTS p3_cycle_count (
         target_key TEXT PRIMARY KEY, epoch_bjd REAL, period_d REAL,
         sigma_period_d REAL, sigma_basis TEXT,
@@ -323,7 +346,13 @@ def ensure_tables(con: sqlite3.Connection) -> None:
         oc_mean_s REAL, oc_rms_s REAL, fitted_period_d REAL,
         fitted_period_sigma_d REAL, fitted_epoch_bjd REAL,
         n_epochs INTEGER, phase_spread REAL, one_feature INTEGER,
-        verdict TEXT, note TEXT);
+        verdict TEXT, note TEXT,
+        n_night_epochs INTEGER, n_nights INTEGER, oc_night_rms_s REAL,
+        oc_night_wrms_s REAL, oc_night_chi2nu REAL,
+        sigma_night_median_s REAL, sigma_night_lo_s REAL,
+        sigma_night_hi_s REAL, n_night_at_threshold INTEGER,
+        fitted_period_night_d REAL, fitted_period_night_sigma_d REAL,
+        fitted_epoch_night_bjd REAL, fit_night_chi2nu REAL);
 
     CREATE TABLE IF NOT EXISTS p3_state_night (
         series_key TEXT, night TEXT, target_key TEXT, era_id INTEGER,
@@ -360,6 +389,25 @@ def ensure_tables(con: sqlite3.Connection) -> None:
     CREATE INDEX IF NOT EXISTS ix_p3_edge_target
         ON p3_edge (target_key, night, filter);
     """)
+    # ``CREATE TABLE IF NOT EXISTS`` cannot widen a table that already
+    # exists, and this archive predates the per-night O-C columns.  Add
+    # them one at a time so an archive built by an older revision keeps its
+    # rows instead of being rebuilt from scratch.
+    have = {r[1] for r in con.execute("PRAGMA table_info(p3_cycle_count)")}
+    for col, decl in (("n_night_epochs", "INTEGER"), ("n_nights", "INTEGER"),
+                      ("oc_night_rms_s", "REAL"),
+                      ("oc_night_wrms_s", "REAL"),
+                      ("oc_night_chi2nu", "REAL"),
+                      ("sigma_night_median_s", "REAL"),
+                      ("sigma_night_lo_s", "REAL"),
+                      ("sigma_night_hi_s", "REAL"),
+                      ("n_night_at_threshold", "INTEGER"),
+                      ("fitted_period_night_d", "REAL"),
+                      ("fitted_period_night_sigma_d", "REAL"),
+                      ("fitted_epoch_night_bjd", "REAL"),
+                      ("fit_night_chi2nu", "REAL")):
+        if col not in have:
+            con.execute(f"ALTER TABLE p3_cycle_count ADD COLUMN {col} {decl}")
     con.commit()
 
 
@@ -1314,6 +1362,107 @@ def cmd_edges(args) -> None:
 # ===========================================================================
 # STAGE: oc
 # ===========================================================================
+#: Circular phase scatter above which pooled edges are timing DIFFERENT
+#: features and no O-C may be built from them.
+ONE_FEATURE_BAR_CYCLES = 0.05
+
+#: The strategy's per-epoch timing threshold.  CV-S5's injection grid
+#: measured a median total error above it, which is why a SINGLE cycle's
+#: edge is never published as an epoch and this stage publishes per-night,
+#: per-band means instead.
+TIMING_THRESHOLD_S = 60.0
+
+
+def _era_of(series_key: str):
+    """``stlmi|e76|g`` -> 76.  ``None`` when the key is not in that shape."""
+    parts = str(series_key).split("|")
+    if len(parts) >= 2 and parts[1].startswith("e") and parts[1][1:].isdigit():
+        return int(parts[1][1:])
+    return None
+
+
+def injection_error_budget(con: sqlite3.Connection) -> dict:
+    """The per-epoch timing error the INJECTION test demonstrated, per band.
+
+    The formal and Monte-Carlo error bars attached to an individual edge fit
+    are what the fit believes about itself; ``p3_sigmat`` is what recovering
+    a synthetic edge from the real timestamps and the real residuals
+    actually achieved, and the paper takes the second as governing.  It
+    resolves into two pieces that behave differently under averaging:
+
+    * ``sigma_random`` -- the scatter of the recovered epoch, which falls as
+      ``1/sqrt(n)`` when n cycles of one night are averaged;
+    * ``bias`` -- the systematic offset of the recovered epoch from the
+      injected one, which does NOT average down and is therefore an
+      irreducible floor under any night mean.
+
+    Returns ``{band_or_'*': (sigma_random_s, bias_floor_s)}``.  The grid was
+    run on one night of one target, so the band keys are that target's
+    bands; ``'*'`` is the whole-grid fallback.
+    """
+    out: dict[str, tuple[float, float]] = {}
+    rows = con.execute("SELECT series_key, sigma_t_s, bias_s FROM p3_sigmat "
+                       "WHERE sigma_t_s IS NOT NULL").fetchall()
+    if not rows:
+        return out
+    by_band: dict[str, list[tuple[float, float]]] = {}
+    for r in rows:
+        band = str(r[0]).split("|")[-1].lower()
+        by_band.setdefault(band, []).append(
+            (float(r[1]), abs(float(r[2] or 0.0))))
+        by_band.setdefault("*", []).append(
+            (float(r[1]), abs(float(r[2] or 0.0))))
+    for band, vals in by_band.items():
+        out[band] = (float(np.median([v[0] for v in vals])),
+                     float(np.median([v[1] for v in vals])))
+    return out
+
+
+def night_epochs(rows, budget: dict) -> list[dict]:
+    """Collapse accepted per-cycle edges into one epoch per night per band.
+
+    ``rows`` are the accepted ``p3_edge`` rows of one target as dicts, in
+    time order, each carrying ``series_key``, ``cycle``, ``filter``,
+    ``night`` and ``t_edge_bjd``.
+    Each output row is the mean of the cycles timed in one band on one
+    night, with the error bar the injection test licenses:
+
+        sigma_night = sqrt( sigma_random^2 / n  +  bias^2 )
+
+    An unweighted mean is deliberate.  Weighting by the per-edge formal
+    error would let the fit's own opinion of itself decide which cycles
+    count, and Section 3.1 forbids using a formal error bar at face value
+    anywhere in this paper; within a single night the edges are cycles of
+    the same star through the same sky, so they are of comparable quality
+    by construction.
+    """
+    groups: dict[tuple, list] = {}
+    for r in rows:
+        groups.setdefault((str(r["night"]), str(r["filter"])), []).append(r)
+    out = []
+    for (night, filt), g in sorted(groups.items()):
+        n = len(g)
+        s_rand, s_bias = budget.get(filt.lower(),
+                                    budget.get("*", (float("nan"),
+                                                     float("nan"))))
+        sigma = float(np.hypot(s_rand / np.sqrt(n), s_bias))
+        cyc = np.array([float(x["cycle"]) for x in g])
+        t = np.array([float(x["t_edge_bjd"]) for x in g])
+        out.append({
+            "night": night, "filter": filt,
+            "series_key": str(g[0]["series_key"]),
+            "n_cycles": n, "cycle_mean": float(cyc.mean()),
+            "cycle_lo": int(cyc.min()), "cycle_hi": int(cyc.max()),
+            "t_mean_bjd": float(t.mean()),
+            "sigma_random_s": float(s_rand / np.sqrt(n)),
+            "sigma_floor_s": float(s_bias),
+            "oc_sigma_s": sigma,
+            "meets_threshold": int(sigma <= TIMING_THRESHOLD_S),
+            "_cycles": cyc, "_times": t,
+        })
+    return out
+
+
 def cmd_oc(args) -> None:
     """O-C construction, and the cycle-count analysis that licenses it."""
     con = connect(args.db)
@@ -1321,7 +1470,9 @@ def cmd_oc(args) -> None:
     eph = load_ephemerides(con)
     print(f"database: {args.db}")
     con.execute("DELETE FROM p3_oc")
+    con.execute("DELETE FROM p3_oc_night")
     con.execute("DELETE FROM p3_cycle_count")
+    budget = injection_error_budget(con)
     for tk, e_obj in sorted(eph.items()):
         if not np.isfinite(e_obj.epoch_bjd):
             con.execute("""INSERT OR REPLACE INTO p3_cycle_count
@@ -1372,7 +1523,8 @@ def cmd_oc(args) -> None:
                             if r_len > 1e-12 else 0.5)
         else:
             phase_spread = float("nan")
-        one_feature = bool(np.isfinite(phase_spread) and phase_spread < 0.05)
+        one_feature = bool(np.isfinite(phase_spread)
+                           and phase_spread < ONE_FEATURE_BAR_CYCLES)
         t_edge = np.array([r[4] for r in rows], dtype=float)
         sig_form = np.array([r[5] if r[5] is not None else np.nan
                              for r in rows], dtype=float)
@@ -1413,6 +1565,63 @@ def cmd_oc(args) -> None:
                 int(unique)))
         fitE, fsE, fitP, fsP, chi2nu = p3.fit_linear_ephemeris(
             cyc, t_edge, sigma_s / 86400.0)
+
+        # --- THE PUBLISHED EPOCHS: one per night per band -----------------
+        # Section 4.2 concludes from the injection test that a single
+        # cycle's edge does not reach the 60 s threshold.  This stage
+        # therefore never publishes one.  The per-cycle rows above are the
+        # INPUTS; what the paper plots and fits is their per-night, per-band
+        # mean, whose error bar the injection budget licenses.
+        ne: list[dict] = []
+        if one_feature:
+            edge_dicts = [
+                {"series_key": r[0], "cycle": r[1], "filter": r[2],
+                 "night": r[3], "t_edge_bjd": r[4]} for r in rows]
+            ne = night_epochs(edge_dicts, budget)
+            for row in ne:
+                o_night = float(np.mean(
+                    p3.oc_seconds(row["_times"], row["_cycles"],
+                                  e_obj.period_d, e_obj.epoch_bjd)) - oc_mean)
+                within = (float(np.std(
+                    p3.oc_seconds(row["_times"], row["_cycles"],
+                                  e_obj.period_d, e_obj.epoch_bjd), ddof=1))
+                    if row["n_cycles"] > 1 else None)
+                row["oc_s"] = o_night
+                row["within_night_rms_s"] = within
+                con.execute("""INSERT OR REPLACE INTO p3_oc_night
+                    (target_key, night, filter, series_key, era_id,
+                     n_cycles, cycle_mean, cycle_lo, cycle_hi, t_mean_bjd,
+                     oc_s, oc_sigma_s, sigma_random_s, sigma_floor_s,
+                     within_night_rms_s, meets_threshold)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+                    tk, row["night"], row["filter"], row["series_key"],
+                    _era_of(row["series_key"]), row["n_cycles"],
+                    row["cycle_mean"], row["cycle_lo"], row["cycle_hi"],
+                    row["t_mean_bjd"], o_night, row["oc_sigma_s"],
+                    row["sigma_random_s"], row["sigma_floor_s"],
+                    within, row["meets_threshold"]))
+        if ne:
+            oc_n = np.array([r["oc_s"] for r in ne], dtype=float)
+            sg_n = np.array([r["oc_sigma_s"] for r in ne], dtype=float)
+            w = 1.0 / np.square(sg_n)
+            n_rms = float(np.sqrt(np.mean(np.square(oc_n))))
+            n_wrms = float(np.sqrt(np.sum(w * np.square(oc_n)) / np.sum(w)))
+            n_chi2nu = float(np.sum(np.square(oc_n / sg_n)) / oc_n.size)
+            fitEn, fsEn, fitPn, fsPn, chi2n = p3.fit_linear_ephemeris(
+                np.array([r["cycle_mean"] for r in ne], dtype=float),
+                np.array([r["t_mean_bjd"] for r in ne], dtype=float),
+                sg_n / 86400.0)
+            n_at_thr = int(sum(r["meets_threshold"] for r in ne))
+            n_nights = len({r["night"] for r in ne})
+            sg_med, sg_lo, sg_hi = (float(np.median(sg_n)), float(sg_n.min()),
+                                    float(sg_n.max()))
+        else:
+            oc_n = np.array([])
+            n_rms = n_wrms = n_chi2nu = None
+            fitEn = fsEn = fitPn = fsPn = chi2n = None
+            n_at_thr = n_nights = None
+            sg_med = sg_lo = sg_hi = None
+
         ratio = (sig_p / amb_last.sigma_period_max_d
                  if np.isfinite(sig_p) and amb_last.sigma_period_max_d > 0
                  else float("nan"))
@@ -1421,7 +1630,8 @@ def cmd_oc(args) -> None:
             note = (
                 f"The {len(rows)} accepted edges for this target scatter over "
                 f"{phase_spread:.3f} in orbital phase (circular s.d.), far "
-                f"more than the {0.05:.2f} that would make them one feature. "
+                f"more than the {ONE_FEATURE_BAR_CYCLES:.2f} that would make "
+                f"them one feature. "
                 f"The folded profile is too sparse here to locate the falling "
                 f"edge consistently between filters, so these epochs time "
                 f"DIFFERENT things and pooling them into one O-C would "
@@ -1442,7 +1652,12 @@ def cmd_oc(args) -> None:
                 f"{amb_last.sigma_period_max_d:.2e} d, which is "
                 f"{1.0 / ratio:,.0f}x the quoted precision — so the "
                 f"conclusion holds even if the true published sigma is far "
-                f"larger than the rounding of the last digit.")
+                f"larger than the rounding of the last digit.  The "
+                f"{len(rows)} accepted per-cycle edges are published as "
+                f"{len(ne)} per-night, per-band epochs on {n_nights} nights "
+                f"(p3_oc_night): the injection test does not license a "
+                f"single cycle's edge as an epoch, so none is offered as "
+                f"one.")
         else:
             verdict = "CYCLE COUNT NOT UNIQUE"
             note = (
@@ -1459,8 +1674,14 @@ def cmd_oc(args) -> None:
              n_cycles_last, drift_cycles, unique_count, sigma_period_max_d,
              ratio_to_quoted, oc_mean_s, oc_rms_s, fitted_period_d,
              fitted_period_sigma_d, fitted_epoch_bjd, n_epochs,
-             phase_spread, one_feature, verdict,
-             note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+             phase_spread, one_feature, verdict, note,
+             n_night_epochs, n_nights, oc_night_rms_s, oc_night_wrms_s,
+             oc_night_chi2nu, sigma_night_median_s, sigma_night_lo_s,
+             sigma_night_hi_s, n_night_at_threshold,
+             fitted_period_night_d, fitted_period_night_sigma_d,
+             fitted_epoch_night_bjd, fit_night_chi2nu)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,
+                     ?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
             tk, e_obj.epoch_bjd, e_obj.period_d, sig_p,
             "quoted precision of the VSX period string (VSX publishes no "
             "uncertainty; this is a FLOOR)",
@@ -1472,19 +1693,35 @@ def cmd_oc(args) -> None:
              if oc.size > 1 and one_feature else None),
             fitP if one_feature else None, fsP if one_feature else None,
             fitE if one_feature else None, len(rows),
-            phase_spread, int(one_feature), verdict, note))
-        print(f"  {tk:6s} {len(rows):4d} epochs  n_cycles="
+            phase_spread, int(one_feature), verdict, note,
+            len(ne) or None, n_nights, n_rms, n_wrms, n_chi2nu,
+            sg_med, sg_lo, sg_hi, n_at_thr, fitPn, fsPn, fitEn, chi2n))
+        print(f"  {tk:6s} {len(rows):4d} accepted edges  n_cycles="
               f"{amb_last.n_cycles:,.0f}  drift={amb_last.drift_cycles:.4f}  "
               f"phase spread {phase_spread:.3f}  {verdict}")
-        if one_feature:
-            print(f"         O-C rms {np.std(oc - oc_mean, ddof=1):.1f}s  "
-                  f"fitted P={fitP:.8f} +/- {fsP:.2e} d "
+        if ne:
+            print(f"         {len(ne)} per-night/band epochs on "
+                  f"{n_nights} nights: O-C rms {n_rms:.1f}s, "
+                  f"sigma_night {sg_lo:.0f}-{sg_hi:.0f}s (median "
+                  f"{sg_med:.0f}s), chi2/nu about zero {n_chi2nu:.2f}, "
+                  f"{n_at_thr} at or inside the "
+                  f"{TIMING_THRESHOLD_S:.0f} s threshold")
+            print(f"         fitted P={fitPn:.8f} +/- {fsPn:.2e} d "
                   f"(VSX {e_obj.period_d:.8f})")
     con.commit()
     stamp(con, "oc")
     n_uniq = con.execute("SELECT count(*) FROM p3_cycle_count WHERE "
                          "unique_count=1").fetchone()[0]
-    set_meta(con, {"n_cycle_unique": n_uniq})
+    n_night = con.execute("SELECT count(*) FROM p3_oc_night").fetchone()[0]
+    set_meta(con, {"n_cycle_unique": n_uniq,
+                   "n_oc_night_epochs": n_night,
+                   "one_feature_bar_cycles": ONE_FEATURE_BAR_CYCLES,
+                   "timing_threshold_s": TIMING_THRESHOLD_S,
+                   "oc_epoch_rule": (
+                       "one epoch per night per band, the unweighted mean of "
+                       "that night's accepted per-cycle edges; bands are not "
+                       "pooled because p3_band_pair measures a band-dependent "
+                       "edge epoch")})
     con.close()
 
 
