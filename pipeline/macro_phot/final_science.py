@@ -669,6 +669,30 @@ def detection_call(amplitude_mag: float, contour_amp90_mag: float,
     return "NOT DETECTED"
 
 
+def run_night_label(utc_nights, nights) -> str:
+    """The ONE name a dense run is called by in print: its first UTC night.
+
+    ``p4_run.scope`` keys a run by its local OBSERVING night
+    (``yzcnc|e7|I|2024-02-20``) while ``p4_run.utc_nights`` records the UTC
+    night the frames actually carry (``2024-02-21``).  Both conventions are
+    legitimate and the release keeps both, but a paper may use only one:
+    Table 4 named the uninformative YZ Cnc run "the I run of 2024-02-20"
+    while Figure 11's caption and its own axis label called the same run
+    "the 2024-02-21 I run", and a reader comparing the two saw two runs
+    where there is one.
+
+    UTC is the convention that survives into print, because every time in
+    this paper is a BJD_TDB derived from a UTC timestamp and an observing
+    night is a local, site-dependent bookkeeping label.  ``nights`` is the
+    fallback for a row that predates ``utc_nights`` being populated.
+
+    Returns the first night of the run; a block scope spanning several
+    nights is joined with ``+`` upstream and only its first is named.
+    """
+    night = utc_nights if utc_nights else nights
+    return str(night or "").split("+")[0]
+
+
 def capability_verdict(measured: float, bar: float,
                        higher_is_better: bool = True) -> str:
     """One measured number against one stated bar -> one word.

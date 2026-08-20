@@ -137,11 +137,15 @@ def fmt_range(lo: Any, hi: Any, nd: int = 0, dash: str = "--") -> Optional[str]:
 
     A range is one macro, not two, because the paper never wants to split
     them and a split invites one half being updated without the other.
+
+    A degenerate range collapses to the value: every block holding out four
+    check stars must print "4" and not "4--4", which reads as a spread the
+    data do not have.
     """
     a, b = fmt_float(lo, nd), fmt_float(hi, nd)
     if a is None or b is None:
         return None
-    return f"{a}{dash}{b}"
+    return a if a == b else f"{a}{dash}{b}"
 
 
 def fmt_percent(value: Any, nd: int = 0) -> Optional[str]:
@@ -262,6 +266,92 @@ def _median(values, scale: float = 1.0):
 #: spanning more than one orbital period.  It is quoted here so that the
 #: census in §2.2 is reproducible from the release rather than asserted.
 FULL_ORBIT_MIN_POINTS_DEFAULT = 12
+
+#: Instrument-era and target labels, shared by the macro collector and the
+#: table renderers.  Defined up here rather than beside the renderers
+#: because ``collect`` names an era in a macro's note and nothing should
+#: depend on the order two module-level dicts happen to appear in.
+ERA_LABEL = {6: "High Gain StackPro", 7: "High Gain",
+             47: "1MHz HS 16-bit", 72: "1MHz HS 16-bit",
+             76: "Mode0", 78: "Fast", 79: "Fast"}
+
+TARGET_LABEL = {"stlmi": "ST LMi", "vvpup": "VV Pup", "euuma": "EU UMa",
+                "anuma": "AN UMa", "yzcnc": "YZ Cnc"}
+
+def pdot_timescale_yr(period_d: Any, pdot: Any) -> Optional[float]:
+    """``P / |dP/dt|`` in years, with the PERIOD in the numerator.
+
+    This existed inline in the macro table and was written as
+    ``1 / (pdot * 365.25)``, which drops ``P`` entirely.  ``pdot`` is
+    dimensionless (days per day), so that expression is not a time at all;
+    it printed 7.6e5 yr in the abstract and a conclusion where the paper's
+    own P and Pdot give 6.0e4 yr, a factor 12.6, in the paper whose thesis
+    is that a script-emitted number cannot go stale.
+
+    It is a named function rather than an expression so that the regression
+    test in ``test_phase3.py`` can hold the emitter itself to the identity
+    --- halving the period halves the timescale --- instead of skipping.
+    """
+    try:
+        p, d = float(period_d), float(pdot)
+    except (TypeError, ValueError):
+        return None
+    if not (math.isfinite(p) and math.isfinite(d)) or d == 0.0:
+        return None
+    return p / abs(d) / 365.25
+
+
+def dynamic_range_ratios(params: dict) -> tuple:
+    """``(min, max)`` of each 16-bit mode's ceiling over High Gain's.
+
+    ``params`` maps ``(era_group, quantity)`` to a float, as
+    ``detector_params`` supplies it.  Returns ``(None, None)`` when either
+    side is missing.
+
+    THE REASON THIS IS A FUNCTION.  §2.1 called the 2024/2025 dynamic-range
+    step "nearly twenty" and Figure 3's caption "a factor of 16" -- the
+    first being Mode0 over High Gain (18.7) and the second High Gain
+    StackPro over High Gain (16.0), which also happens to equal the NOMINAL
+    bit-depth ratio 2^16/2^12 and so read as though it had been assumed
+    rather than measured.  Both are correct and neither is the whole
+    answer, because "every 16-bit mode" is not one ceiling: the measured
+    16-bit clips run 56,062 to 65,535 ADU.  The paper now quotes the RANGE,
+    from here, in both places.
+    """
+    hg = params.get(("High Gain", "ceiling_adu"))
+    sixteen = [v for (g, q), v in params.items()
+               if q == "ceiling_adu" and params.get((g, "adc_bits")) == 16.0]
+    if not hg or not sixteen:
+        return (None, None)
+    return (min(sixteen) / hg, max(sixteen) / hg)
+
+
+#: WHAT THE HOLD-OUT RULE COVERS, WRITTEN ONCE.
+#:
+#: §3.1 was rewritten to retract the claim that the headline precision is a
+#: held-out measurement: it is a local fit of the scatter--magnitude
+#: relation, over ensemble AND check stars together, evaluated at the CV's
+#: magnitude.  Figure 2's caption -- the caption of the very panel those
+#: numbers are plotted on -- went on asserting the retracted rule for
+#: another revision, and asserted it of the noise floor as well, which is
+#: fitted over the same mixed population.  The clause therefore lives here,
+#: is emitted as ``\NumPrecisionScopeClause`` for §3.1, and is imported by
+#: :mod:`macro_phot.figures_cv` for the caption.  One string, two renderers.
+PRECISION_SCOPE_CLAUSE = (
+    "The crosses at the CV's own magnitude and the noise floor annotated on "
+    "each panel are both LOCAL FITS over the ensemble and check stars "
+    "together, not held-out statistics: the held-out quantities in this "
+    "paper are the check-star scatter $\\sigma_{\\rm chk}$, the "
+    "catalogue-tie accuracy and the error-bar inflation factor")
+
+#: The four panels of Figure 6, as ``(era_id, band_a, band_b)``.  Defined
+#: here and imported by :mod:`macro_phot.figures_cv` so that the tie bars
+#: §3.3 quotes in the text are computed over exactly the panels the figure
+#: draws.  A referee found the text describing a 25--64 mmag choice while
+#: the headline colour panel carried a 200 mmag bar; that can only be
+#: prevented by the text and the panel reading one list.
+COLOUR_PANEL_PAIRS = ((7, "G", "R"), (7, "R", "I"),
+                      (76, "g", "r"), (76, "r", "i"))
 
 #: Which filters count towards a "three-filter" night.  The 2024 High Gain
 #: era wrote G/R/I and the 2025 Sloan era g/r/i for the same three
@@ -549,6 +639,36 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         source="ANALYSIS_STRATEGY §2",
         note="the nominal fraction of the measured clip the photometry "
              "vetoes at; an external choice, not a measurement")
+    # THE DYNAMIC-RANGE RATIO, MEASURED, ONCE.  §2.1 called it "nearly
+    # twenty" and Figure 3's caption "a factor of 16" -- the second being
+    # the nominal bit-depth ratio 2^16/2^12 and not a measured quantity at
+    # all.  In a paper whose Table 1 caption says no threshold was chosen
+    # by eye, the same comparison must not carry two numbers, and neither
+    # of them may be typed.  Both bounds are emitted, because "every 16-bit
+    # mode" is not one ceiling: the 16-bit clips run 56,062 (High Gain
+    # StackPro) to 65,535 (Mode0).
+    _dpar = {(r["era_group"], r["quantity"]): float(r["value"])
+             for r in rows(man, "SELECT era_group, quantity, value FROM "
+                                "detector_params")}
+    _rlo, _rhi = dynamic_range_ratios(_dpar)
+    add("dynamic range ratio min", fmt_float(_rlo, 1),
+        source="detector_params",
+        note="the SMALLEST 16-bit measured ceiling divided by High Gain's "
+             "(High Gain StackPro): every 16-bit mode is at LEAST this far "
+             "above High Gain. It coincides with the nominal bit-depth "
+             "ratio 2^16/2^12 = 16 and is not that ratio -- it is measured")
+    add("dynamic range ratio max", fmt_float(_rhi, 1),
+        source="detector_params",
+        note="the LARGEST 16-bit measured ceiling divided by High Gain's, "
+             "i.e. Mode0 against High Gain: the widest dynamic-range step "
+             "across the 2024/2025 instrument seam")
+    add("dynamic range ratio range", fmt_range(_rlo, _rhi, 1),
+        source="detector_params",
+        note="the measured ratio of each 16-bit mode's ceiling to High "
+             "Gain's, low to high. §2.1 and Figure 3's caption both quote "
+             "it through numbers_cv.dynamic_range_ratios so they cannot "
+             "disagree, and neither may say 'a factor of X' where the "
+             "modes span a range")
 
     # -- §3 Photometry: ensemble, tie, error model ----------------------
     solved = rows(cv, "SELECT * FROM cv_series WHERE status='solved' "
@@ -599,6 +719,13 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         note="constant stars near the target's magnitude that the local "
              "fit uses, per series: comparison and check stars together, "
              "the upper end being VV Pup's crowded low-latitude field")
+    # The scope clause itself, as a macro, so §3.1 and Figure 2's caption
+    # are the same sentence rather than two sentences that have to be kept
+    # in step by hand.  See PRECISION_SCOPE_CLAUSE.
+    add("precision scope clause", PRECISION_SCOPE_CLAUSE,
+        source="ch_noise_series",
+        note="the scope of the hold-out rule, stated once and used by both "
+             "§3.1 and Figure 2's caption")
     cb = rows(ch, "SELECT * FROM ch_check_bias")
     blo2, bhi2 = _minmax([r["bias_ratio"] for r in cb])
     add("check bias ratio range", fmt_range(blo2, bhi2, 2),
@@ -629,9 +756,12 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     add("check stars per series",
         fmt_int(chk[0]) if len(chk) == 1 else fmt_range(chk[0], chk[-1], 0),
         source="cv_series",
-        note="held out of every ensemble solve that produced target "
-             "photometry; the one solved series with none produced no "
-             "target points either")
+        note="SOLVE check stars: held out of every ensemble solve that "
+             "produced target photometry; the one solved series with none "
+             "produced no target points either. These are NOT the tie check "
+             "stars of §3.2, which are catalogue stars held out of the tie "
+             "fit and number 15--513 per block; the paper names the two "
+             "populations differently for exactly that reason")
     add("series no check", fmt_int(one(
         cv, "SELECT count(*) FROM cv_series WHERE status='solved' "
             "AND n_check = 0")), source="cv_series",
@@ -658,6 +788,46 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     add("tie untied", fmt_int(sum(1 for r in tie
                                   if r["verdict"] == "UNTIED")),
         source="cv_cattie")
+    # NAME THE UNTIED BLOCK.  "The one block with no usable tie" was used
+    # in §3.2 for the primary block cv_cattie grades UNTIED (EU UMa's 2026
+    # Fast series) and in §7 for the ST LMi block that has no cv_cattie row
+    # at all -- two different series under one description, in a paper that
+    # already had to separate two senses of "full-orbit night".  Both are
+    # named from the database here so neither sentence can float free.
+    def _blk_label(series_key: str) -> str:
+        tgt, era, filt = str(series_key).split("|")
+        return (f"{TARGET_LABEL.get(tgt, tgt)}'s "
+                f"{ERA_LABEL.get(int(era[1:]), era)} ${filt}$ block")
+    _unt = next((r for r in tie if r["verdict"] == "UNTIED"), None)
+    add("tie untied block",
+        _blk_label(_unt["series_key"]) if _unt else "\\NumMissing",
+        source="cv_cattie",
+        note="THE primary block graded UNTIED, named: this is the block §3.2 "
+             "means by 'does not carry a usable tie'. It is not the ST LMi "
+             "block of §7, which never reached the tie stage and has no "
+             "cv_cattie row at all")
+    # The solved block whose target IS detected but which produced no
+    # catalogue-tied point, and so has no tie row: §7's block.
+    _nozp = rows(cv, """
+        SELECT s.series_key, s.n_target_rows FROM cv_series s
+        LEFT JOIN cv_cattie c ON c.series_key = s.series_key
+                             AND c.is_primary = 1
+        WHERE s.status='solved' AND s.n_target_points = 0
+          AND s.n_target_rows > 0 AND c.series_key IS NULL""")
+    _nz = _nozp[0] if len(_nozp) == 1 else None
+    add("untied block no tie stage",
+        _blk_label(_nz["series_key"]) if _nz else "\\NumMissing",
+        source="cv_series",
+        note="the solved block in which the target IS detected but the "
+             "ensemble produced no zero point, so it carries no "
+             "natural-system magnitude and never entered the tie stage: "
+             "§7's 'block with no usable tie at all'")
+    add("untied block no tie stage rows",
+        fmt_int(_nz["n_target_rows"]) if _nz else None,
+        source="cv_series",
+        note="instrumental target detections in that block, with real "
+             "instrumental magnitudes and errors and no zero point: the "
+             "reason it may not be described as a non-detection")
     # THE TIE ACCURACY, BOTH WAYS.  ``check_rms_clip`` is the check-star
     # RMS after sigma-clipping; ``check_rms`` is the same statistic with
     # every held-out star in it.  They differ by a factor 2.6 in the median
@@ -692,21 +862,92 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     klo, khi = _minmax([r["n_check"] for r in tied])
     add("tie check stars range", fmt_range(klo, khi, 0),
         source="cv_cattie",
-        note="held-out check stars per tied block; a handful of stars "
-             "removed from a sample this size is what moves the accuracy "
-             "by up to a factor of seven")
+        note="TIE check stars per tied block: catalogue stars withheld from "
+             "the tie FIT, an entirely different population from the four "
+             "SOLVE check stars withheld from the ensemble solution. Table 2 "
+             "prints statistics of both, in adjacent columns, and its "
+             "caption says which is which")
+    # TWO DIFFERENT "WORST" BLOCKS, AND THEY ARE NOT THE SAME BLOCK.
+    # §3.2 offered ST LMi's 2024 z block as "the worst case" for the
+    # clipped/unclipped choice.  It is the LARGEST UNCLIPPED VALUE (320
+    # mmag), which is not what "worst case" reads as: the largest
+    # SENSITIVITY to the choice is AN UMa's Mode0 g block, which moves by a
+    # factor 13 on removal of a few stars against the z block's 7.5.  Both
+    # are emitted, each labelled with what it is the maximum of, and each
+    # carries its OWN check-star count -- §3.2 used to print the
+    # whole-survey range "15--513" where that block's 15 belonged.
     worst = max(tied, key=lambda r: (r["check_rms"] or 0.0)) if tied else None
-    add("tie worst unclipped mmag",
-        fmt_float(None if worst is None else 1000.0 * worst["check_rms"], 0),
-        unit="mmag", source="cv_cattie",
-        note=("worst block unclipped ("
-              + (str(worst["series_key"]) if worst else "n/a") + ")"))
-    add("tie worst clipped mmag",
-        fmt_float(None if worst is None
-                  else 1000.0 * worst["check_rms_clip"], 0),
-        unit="mmag", source="cv_cattie",
-        note="the same block after clipping: the largest single move the "
-             "outlier choice makes")
+
+    def _ratio(r):
+        return ((r["check_rms"] or 0.0) / r["check_rms_clip"]
+                if r["check_rms_clip"] else 0.0)
+    worst_ratio = max(tied, key=_ratio) if tied else None
+    for blk, tag, what in (
+            (worst, "tie worst",
+             "the block with the LARGEST UNCLIPPED tie error"),
+            (worst_ratio, "tie most sensitive",
+             "the block MOST SENSITIVE to the clipping choice, i.e. the "
+             "largest ratio of unclipped to clipped tie error")):
+        _lab = (f"{TARGET_LABEL.get(str(blk['series_key']).split('|')[0], '?')}"
+                f" {ERA_LABEL.get(blk['era_id'], '?')} "
+                f"${str(blk['series_key']).split('|')[-1]}$"
+                if blk else "n/a")
+        add(f"{tag} block", _lab, source="cv_cattie",
+            note=what + f" ({blk['series_key'] if blk else 'n/a'})")
+        add(f"{tag} unclipped mmag",
+            fmt_float(None if blk is None else 1000.0 * blk["check_rms"], 0),
+            unit="mmag", source="cv_cattie", note=what + ", unclipped")
+        add(f"{tag} clipped mmag",
+            fmt_float(None if blk is None
+                      else 1000.0 * blk["check_rms_clip"], 0),
+            unit="mmag", source="cv_cattie",
+            note="the same block after clipping")
+        add(f"{tag} check stars",
+            fmt_int(None if blk is None else blk["n_check"]),
+            source="cv_cattie",
+            note="THIS block's own held-out tie check-star count, not the "
+                 "whole-survey range: a sentence about one block that "
+                 "prints '15--513' has printed the wrong number")
+        add(f"{tag} clipped stars",
+            fmt_int(None if blk is None else blk["n_check_outlier"]),
+            source="cv_cattie",
+            note="stars clipped from this block's accuracy statistic")
+        add(f"{tag} ratio",
+            fmt_float(None if blk is None else _ratio(blk), 1),
+            source="cv_cattie",
+            note="unclipped tie error divided by the clipped one for this "
+                 "block: how far the outlier choice moves it")
+    # THE BARS FIGURE 6 ACTUALLY DRAWS.  §3.3 introduces the tie bar on the
+    # headline colour figure and used to leave its size to the picture.
+    # Each panel's bar is the two contributing blocks' check-star residuals
+    # added in quadrature, so it is larger than either block alone and
+    # larger than the medians §3.2 quotes -- the Mode0 g-r panel's
+    # unclipped bar is 200 mmag against a 10--20 mmag goal.  A reader who
+    # meets that bar in the figure without having met it in the text has
+    # been surprised by the paper's largest systematic.
+    _by_sk = {r["series_key"]: r for r in tie}
+    _bars_clip, _bars_raw = [], []
+    for _era, _ba, _bb in COLOUR_PANEL_PAIRS:
+        _a = _by_sk.get(f"stlmi|e{_era}|{_ba}")
+        _b = _by_sk.get(f"stlmi|e{_era}|{_bb}")
+        if not (_a and _b):
+            continue
+        _bars_clip.append(math.hypot(_a["check_rms_clip"] or 0.0,
+                                     _b["check_rms_clip"] or 0.0))
+        _bars_raw.append(math.hypot(_a["check_rms"] or 0.0,
+                                    _b["check_rms"] or 0.0))
+    add("tie bar range clipped mmag",
+        fmt_range(*_minmax(_bars_clip, 1000.0), 0), unit="mmag",
+        source="cv_cattie",
+        note="the sigma-clipped tie bar drawn on Figure 6's four "
+             "colour--phase panels, low to high: each is the two "
+             "contributing blocks' check-star residuals in quadrature")
+    add("tie bar range unclipped mmag",
+        fmt_range(*_minmax(_bars_raw, 1000.0), 0), unit="mmag",
+        source="cv_cattie",
+        note="the same four bars with every held-out check star kept. The "
+             "upper end is the Mode0 g-r panel and is an order of magnitude "
+             "above the calibration goal, which is why §3.3 states it")
     add("tie goal lo mmag", fmt_int(10), unit="mmag",
         source="ANALYSIS_STRATEGY §5", note="the stated accuracy goal")
     add("tie goal hi mmag", fmt_int(20), unit="mmag",
@@ -921,14 +1162,63 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     st_cc = cc.get("stlmi", {})
     add("st lmi oc rms s", fmt_float(st_cc.get("oc_night_rms_s"), 0),
         unit="s", source="p3_cycle_count",
-        note="RMS of the published per-night epochs about the catalogue "
-             "ephemeris")
-    add("st lmi oc chisq", fmt_float(st_cc.get("oc_night_chi2nu"), 2),
+        note="RMS of the published per-night epochs about the FITTED "
+             "constant offset, not about the catalogue epoch's phase zero; "
+             "see the offset macros below")
+    # =====================================================================
+    # THE CONSTANT THAT WAS SUBTRACTED, AND WHAT THAT MAKES THE O-C
+    # ---------------------------------------------------------------------
+    # CV-S9 subtracts the mean of the per-cycle O-C before writing p3_oc,
+    # because the bright-phase edge is not at phase zero of the VSX
+    # ephemeris and the raw residual therefore carries a constant that is a
+    # property of the FEATURE.  The subtraction is standard and it is
+    # right, but until this revision no word of it reached the manuscript,
+    # which said in three places that the residuals were measured "against
+    # the catalogue ephemeris" -- and a reader took that to mean the edge
+    # falls at the catalogue epoch's phase.  It does not: it falls 0.157
+    # cycles later, and that offset was fitted out of the same edges.
+    #
+    # Two consequences, and both are emitted here rather than left for a
+    # reader to find in the products.  (1) The offset is itself a
+    # measurement and is published as one.  (2) One parameter was estimated
+    # from these edges, so the reduced chi-squared has nu = N - 1 degrees
+    # of freedom and not N; the stored oc_night_chi2nu is chi-squared PER
+    # EPOCH and is not the same number.
+    # =====================================================================
+    _Ps = (float(st_cc["period_d"]) * 86400.0
+           if st_cc.get("period_d") else None)
+    add("st lmi oc offset s", fmt_int(st_cc.get("oc_mean_s")), unit="s",
         source="p3_cycle_count",
-        note="chi-squared per epoch of the published O-C about zero, "
-             "against the injection-licensed per-night errors: below one, "
-             "so the residuals are the demonstrated timing error and "
-             "nothing else")
+        note="THE CONSTANT REMOVED FROM THE O-C. The mean of the per-cycle "
+             "residuals against the catalogue ephemeris, subtracted before "
+             "anything is plotted or fitted: the phase of the timed "
+             "bright-phase edge relative to the VSX epoch's phase zero. It "
+             "is a property of the feature and of the catalogue's choice of "
+             "fiducial, not of the clock, and the O-C therefore tests "
+             "whether this interval is CONSTANT, never whether it is zero")
+    add("st lmi oc offset cycles",
+        fmt_float(None if not (_Ps and st_cc.get("oc_mean_s"))
+                  else st_cc["oc_mean_s"] / _Ps, 3),
+        unit="cycles", source="p3_cycle_count",
+        note="the same offset as a fraction of an orbit; it agrees with the "
+             "phase of the steepest faintward gradient of the folded "
+             "profile, measured independently, which is the check that it "
+             "is the feature's own phase and not a clock error")
+    _chi2_sum = sum((r["oc_s"] / r["oc_sigma_s"]) ** 2 for r in ocn
+                    if r["oc_sigma_s"])
+    _dof = len(ocn) - 1                # the one absorbed constant, above
+    add("st lmi oc dof", fmt_int(_dof), source="p3_oc_night",
+        note="degrees of freedom of the O-C: the published epoch count less "
+             "the one constant absorbed from the same edges")
+    add("st lmi oc chisq", fmt_float(_chi2_sum / _dof if _dof else None, 2),
+        source="p3_oc_night",
+        note="REDUCED chi-squared of the published O-C about zero on "
+             f"{_dof} degrees of freedom, against the injection-licensed "
+             "per-night errors. The denominator is the epoch count less "
+             "one, because the constant offset above was estimated from "
+             "these same edges; dividing by the epoch count instead -- "
+             "which is what p3_cycle_count.oc_night_chi2nu stores -- "
+             "understates it")
     add("st lmi sigma night median s",
         fmt_float(st_cc.get("sigma_night_median_s"), 0), unit="s",
         source="p3_cycle_count",
@@ -1045,13 +1335,17 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         source="p3_oc_night",
         note="published epochs in a band the injection grid never saw at "
              "all, which take the whole-grid median instead")
+    _chi2_edge = (sum((r["oc_s"] / r["oc_sigma_edge_s"]) ** 2 for r in ocn)
+                  if all(r["oc_sigma_edge_s"] for r in ocn) else None)
     add("st lmi oc chisq edge",
-        fmt_float(st_cc.get("oc_night_chi2nu_edge"), 2),
-        source="p3_cycle_count",
-        note="THE CHECK ON THE TRANSFER: the same reduced chi-squared "
-             "computed from the edge fits' own Monte-Carlo errors instead "
-             "of the transported injection budget. It agrees, so the null "
-             "does not rest on the transfer")
+        fmt_float(None if not (_chi2_edge and _dof)
+                  else _chi2_edge / _dof, 2),
+        source="p3_oc_night",
+        note="THE CHECK ON THE TRANSFER: the same reduced chi-squared, on "
+             f"the same {_dof} degrees of freedom, computed from the edge "
+             "fits' own Monte-Carlo errors instead of the transported "
+             "injection budget. It agrees, so the null does not rest on "
+             "the transfer")
     add("st lmi sigma night edge median s",
         fmt_float(st_cc.get("sigma_night_edge_median_s"), 0), unit="s",
         source="p3_cycle_count",
@@ -1063,12 +1357,19 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         sub = [r for r in ocn if r["era_id"] == era]
         add(f"st lmi epochs {tag}", fmt_int(len(sub)),
             source="p3_oc_night")
+        # Chi-squared PER EPOCH here, not per degree of freedom: the one
+        # absorbed constant was fitted across the whole edge set and
+        # belongs to neither era, so charging it to one of them (or half
+        # to each) would be arbitrary.  The prose names the denominator.
         add(f"st lmi oc chisq {tag}",
             fmt_float(sum((r["oc_s"] / r["oc_sigma_s"]) ** 2
                           for r in sub) / len(sub) if sub else None, 2),
             source="p3_oc_night",
-            note=f"reduced chi-squared about zero over the {len(sub)} "
-                 f"epochs of this instrument era alone")
+            note=f"chi-squared PER EPOCH about zero over the {len(sub)} "
+                 f"epochs of this instrument era alone. The denominator is "
+                 f"the epoch count, not a degree-of-freedom count: the "
+                 f"absorbed constant is global to the target and is not "
+                 f"attributable to either era")
     # =====================================================================
     # THE PERIOD DERIVATIVE THE NULL BOUNDS
     # ---------------------------------------------------------------------
@@ -1087,6 +1388,17 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         note="3-sigma upper bound on |dP/dt| (dimensionless) from a "
              "weighted quadratic through the published epochs: what the "
              "null actually excludes")
+    # WHICH 3-SIGMA CONVENTION.  ``pdot_limit3`` is |Pdot_fit| + 3 sigma,
+    # not 3 sigma: the two differ by the fitted value, and a reader given
+    # only the phrase "3-sigma bound" cannot tell which was meant. Both are
+    # emitted so §5.1 can name the convention it uses.
+    add("st lmi pdot three sigma",
+        fmt_sci(None if st_cc.get("pdot_sigma") is None
+                else 3.0 * st_cc["pdot_sigma"], 1),
+        source="p3_cycle_count",
+        note="three times the standard error on the fitted Pdot alone, "
+             "WITHOUT the fitted value added: the other convention a reader "
+             "might assume behind the phrase '3-sigma bound'")
     add("st lmi pdot limit s per yr", fmt_float(
         None if st_cc.get("pdot_limit3") is None
         else st_cc["pdot_limit3"] * 365.25 * 86400.0, 2),
@@ -1098,8 +1410,8 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     # all.  It published 7.6e5 yr where the paper's own P and Pdot give
     # 6.0e4 yr, a factor 12.7, in the abstract and a conclusion.
     add("st lmi pdot timescale yr", fmt_sci(
-        None if not (st_cc.get("pdot_limit3") and st_cc.get("period_d"))
-        else st_cc["period_d"] / st_cc["pdot_limit3"] / 365.25, 1), unit="yr",
+        pdot_timescale_yr(st_cc.get("period_d"), st_cc.get("pdot_limit3")),
+        1), unit="yr",
         source="p3_cycle_count",
         note="P / |dP/dt| at the 3-sigma bound: the shortest period-change "
              "timescale these epochs are consistent with")
@@ -1154,21 +1466,49 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
             note=f"largest pooled offset in absolute size "
                  f"(${big['band_a']}-{big['band_b']}$), at "
                  f"{abs(big['delta_s']) / big['sigma_s']:.1f} sigma")
-        # The BOUND: |delta| + 2 sigma, per pooled pair, and the tightest
-        # of them.  This is what a non-detection is worth as a limit.
-        bnd = min(pooled,
-                  key=lambda r: abs(r["delta_s"]) + 2.0 * r["sigma_s"])
-        bound_s = abs(bnd["delta_s"]) + 2.0 * bnd["sigma_s"]
-        add("band offset bound pair",
-            f"${bnd['band_a']}-{bnd['band_b']}$", source="p3_band_pair")
-        add("band offset bound s", fmt_float(bound_s, 0), unit="s",
+        # THE BOUND: |delta| + 2 sigma, per pooled pair.  TWO of them are
+        # emitted, and which one a sentence may use depends on its
+        # quantifier.  "The g-r pair bounds an offset below X" is a
+        # statement about g-r and takes the TIGHTEST.  "Any band-to-band
+        # offset is below X" quantifies over the pairs and must take the
+        # WEAKEST, or it excludes offsets these data do not exclude: the
+        # High Gain G-I pair allows 313 s, 2.3x the g-r figure, and a
+        # 250 s offset in G-I is entirely consistent with this data set.
+        # Figure 9(b) prints all five honestly; the text used to print one.
+        def _bound(r):
+            return abs(r["delta_s"]) + 2.0 * r["sigma_s"]
+        bnd = min(pooled, key=_bound)
+        weak = max(pooled, key=_bound)
+        _Pss = float(_P) * 86400.0 if _P else None
+        for r_, tag_, note_ in (
+                (bnd, "band offset bound",
+                 "TIGHTEST 2-sigma upper bound over the pooled pairs. Use "
+                 "it only where the sentence names this pair; a sentence "
+                 "quantifying over ALL pairs must use the weakest bound "
+                 "below"),
+                (weak, "band offset weakest bound",
+                 "WEAKEST 2-sigma upper bound over the pooled pairs, and "
+                 "therefore the only one that may stand beside the word "
+                 "'any': an offset smaller than this is consistent with "
+                 "every pooled pair, which is what a limit on a "
+                 "band-to-band offset has to mean")):
+            b_ = _bound(r_)
+            add(f"{tag_} pair", f"${r_['band_a']}-{r_['band_b']}$",
+                source="p3_band_pair",
+                note=f"pooled over {int(r_['n_cycles'])} paired cycles in "
+                     f"{ERA_LABEL.get(r_['era_id'], 'era ' + str(r_['era_id']))}")
+            add(f"{tag_} s", fmt_float(b_, 0), unit="s",
+                source="p3_band_pair", note=note_)
+            add(f"{tag_} cycles",
+                fmt_float(b_ / _Pss if _Pss else None, 3), unit="cycles",
+                source="p3_band_pair",
+                note="the same bound as a fraction of an orbit")
+        add("band offset bound era", ERA_LABEL.get(bnd["era_id"], "?"),
             source="p3_band_pair",
-            note="tightest 2-sigma upper bound on the size of a "
-                 "band-to-band edge offset, over the pooled pairs")
-        add("band offset bound cycles",
-            fmt_float(bound_s / (float(_P) * 86400.0) if _P else None, 3),
-            unit="cycles", source="p3_band_pair",
-            note="the same bound as a fraction of an orbit")
+            note="the instrument era the tightest pooled pair belongs to")
+        add("band offset weakest bound era",
+            ERA_LABEL.get(weak["era_id"], "?"), source="p3_band_pair",
+            note="the instrument era the weakest pooled pair belongs to")
         add("band offset pooled range s",
             fmt_range(min(r["delta_s"] for r in pooled),
                       max(r["delta_s"] for r in pooled), 0, dash=" to "),
@@ -1219,8 +1559,53 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     dlo, dhi = _minmax([r["frac_detrend"] for r in det], 100.0)
     add("detrend loss range", fmt_range(dlo, dhi, 0), unit="per cent",
         source="p3_detrend",
-        note="signal a naive detrending removes; the joint fit is used "
-             "instead everywhere in this paper")
+        note="signal a naive detrending removes at these periods, measured "
+             "by injecting a signal and filtering it; the joint fit is used "
+             "instead everywhere in this paper. This is NOT the same "
+             "measurement as the recovery contours below and the two point "
+             "in opposite directions")
+    # THE DIRECTION OF FIGURE 12(a)'s GAP, MEASURED RATHER THAN ASSUMED.
+    # §4.6 and the caption both called the raw-versus-detrended gap "the
+    # sensitivity cost of detrending".  Pairing ch_contour's 'season' and
+    # 'season-dt' scopes period bin by period bin says otherwise: the
+    # detrended contour is LOWER -- a smaller amplitude recovered 90 per
+    # cent of the time, i.e. better sensitivity -- for four of the five
+    # series, because the filter removes red noise along with signal. The
+    # panel shows a trade, not a cost, and the text may not tell a reader
+    # to read it as one.
+    _dt_ratios: list[float] = []
+    _dt_worse = 0
+    for _s in sorted({str(r["scope"]).rsplit("|", 1)[0] for r in rows(
+            ch, "SELECT scope FROM ch_contour WHERE scope LIKE '%|season%'")}):
+        _raw = {r["period_d"]: r["amp90"] for r in rows(
+            ch, "SELECT period_d, amp90 FROM ch_contour WHERE scope=? "
+                "AND amp90 IS NOT NULL", (f"{_s}|season",))}
+        _dtc = {r["period_d"]: r["amp90"] for r in rows(
+            ch, "SELECT period_d, amp90 FROM ch_contour WHERE scope=? "
+                "AND amp90 IS NOT NULL", (f"{_s}|season-dt",))}
+        _shared = sorted(set(_raw) & set(_dtc))
+        if not _shared:
+            continue
+        _med = _median([_dtc[p] / _raw[p] for p in _shared])
+        _dt_ratios.append(_med)
+        _dt_worse += int(_med > 1.0)
+    add("detrend contour ratio range", fmt_range(*_minmax(_dt_ratios), 2),
+        source="ch_contour",
+        note="median over the shared injected periods of the DETRENDED 90 "
+             "per cent recovery amplitude divided by the RAW one, per "
+             "series. Below one means detrending RECOVERS a smaller "
+             "amplitude, i.e. does better, not worse")
+    add("detrend contour series worse", fmt_int(_dt_worse),
+        source="ch_contour",
+        note="series whose detrended contour is worse than their raw one")
+    add("detrend contour series better", fmt_int(len(_dt_ratios) - _dt_worse),
+        source="ch_contour",
+        note="series whose detrended contour is BETTER than their raw one, "
+             "which is the majority and the opposite of what §4.6 and "
+             "Figure 12's caption used to assert")
+    add("detrend contour series", fmt_int(len(_dt_ratios)),
+        source="ch_contour",
+        note="series carrying both a raw and a detrended season contour")
 
     # -- §5 Results: ST LMi's folded morphology -------------------------
     # The one QUALITATIVE claim §5.1 makes about the fold, made checkable.
@@ -1599,14 +1984,6 @@ def _esc(text) -> str:
     return s
 
 
-ERA_LABEL = {6: "High Gain StackPro", 7: "High Gain",
-             47: "1MHz HS 16-bit", 72: "1MHz HS 16-bit",
-             76: "Mode0", 78: "Fast", 79: "Fast"}
-
-TARGET_LABEL = {"stlmi": "ST LMi", "vvpup": "VV Pup", "euuma": "EU UMa",
-                "anuma": "AN UMa", "yzcnc": "YZ Cnc"}
-
-
 def render_series_table(cv: sqlite3.Connection) -> str:
     """The per-series census: what was observed and how well it solved.
 
@@ -1635,25 +2012,67 @@ def render_series_table(cv: sqlite3.Connection) -> str:
                      "WHERE is_primary=1 AND verdict LIKE 'TIED%'")
     _med_clip = _median([r["check_rms_clip"] for r in _tied]) or 0.0
     _med_raw = _median([r["check_rms"] for r in _tied]) or 0.0
+    # THE TWO CHECK-STAR POPULATIONS, NAMED, IN THE TABLE THAT PRINTS BOTH.
+    # $N_{\rm chk}$ is the four stars held out of the ENSEMBLE SOLVE.  The
+    # "Tie acc." column is measured on a different and much larger set: the
+    # catalogue stars held out of the TIE FIT, 15--513 per block.  Adjacent
+    # columns, one name, two counts -- a reader cross-checking §3.2's
+    # "15--513" against this table's "4" cannot reconcile them unless the
+    # caption says they count different stars.
+    _tk = rows(cv, "SELECT n_check FROM cv_cattie WHERE is_primary=1 "
+                   "AND verdict LIKE 'TIED%'")
+    _tk_lo, _tk_hi = _minmax([r["n_check"] for r in _tk])
+    _sk_chk = sorted({r["n_check"] for r in rr if r["n_check"] is not None})
+    # The solved-but-no-tied-points blocks, NAMED.  An earlier caption
+    # described both as "the target is undetected", which is false of
+    # ST LMi's 2024 y block: the star IS detected there on every frame,
+    # and what is missing is the ensemble zero point and therefore the tie.
+    _no_pts = rows(cv, """
+        SELECT s.series_key, s.target_key, s.era_id, s.filter,
+               s.n_target_rows, c.verdict AS tie_verdict
+        FROM cv_series s
+        LEFT JOIN cv_cattie c ON c.series_key = s.series_key
+                             AND c.is_primary = 1
+        WHERE s.n_target_points = 0 AND s.status = 'solved'
+        ORDER BY s.target_key, s.era_id, s.filter""")
+
+    def _blk(r):
+        return (f"{TARGET_LABEL.get(r['target_key'], r['target_key'])}'s "
+                f"{ERA_LABEL.get(r['era_id'], 'e' + str(r['era_id']))} "
+                f"${r['filter']}$ block")
+    _no_pts_txt = "; ".join(
+        f"{_blk(r)} (" + (
+            f"{r['n_target_rows']} instrumental target detections that the "
+            f"solve could not place on a zero point, so the block never "
+            f"reached the tie stage"
+            if (r["n_target_rows"] or 0) > 0 and not r["tie_verdict"]
+            else "the target is not detected in it at all") + ")"
+        for r in _no_pts)
     out = [
         "\\begin{deluxetable*}{llccrrrrrrl}",
         "\\tablecaption{Per-series photometric census: the "
         f"{len(rr)} target--era--filter blocks that produced target "
         "photometry. Every column is a query against "
         "\\texttt{cv\\_series} and \\texttt{cv\\_cattie}; nothing in this "
-        "table was typed. $\\sigma_{\\rm chk}$ is the median scatter of "
-        "the four held-out check stars and $I$ the ratio of achieved "
-        "scatter to the formal error bar. The tie accuracy is the "
-        "SIGMA-CLIPPED RMS of the tie's own held-out check stars "
-        f"(\\texttt{{check\\_rms\\_clip}}); over the tied blocks its median "
-        f"is {1000 * _med_clip:.0f}~mmag against {1000 * _med_raw:.0f}~mmag "
-        "unclipped, and Section~\\ref{sec:tie} quotes both. "
+        "table was typed. "
+        "TWO COLUMNS OF THIS TABLE COUNT DIFFERENT HELD-OUT STARS, and the "
+        "paper uses different names for them throughout. $N_{\\rm chk}$ is "
+        "the number of SOLVE check stars, withheld from the ensemble "
+        f"solution ({fmt_range(_sk_chk[0], _sk_chk[-1], 0) if _sk_chk else '?'}"
+        " in every block here), and $\\sigma_{\\rm chk}$ is their median "
+        "scatter. The `Tie acc.' column is not measured on those stars: it "
+        "is the SIGMA-CLIPPED residual RMS of the TIE check stars "
+        "(\\texttt{check\\_rms\\_clip}), the catalogue stars withheld from "
+        f"the tie fit, of which each block holds out "
+        f"{fmt_range(_tk_lo, _tk_hi, 0)}. Over the tied blocks its median is "
+        f"{1000 * _med_clip:.0f}~mmag against {1000 * _med_raw:.0f}~mmag "
+        "unclipped, and Section~\\ref{sec:tie} quotes both. $I$ is the "
+        "ratio of achieved scatter to the formal error bar. "
         f"The release holds {n_all_series} series in all; the remaining "
         f"{n_all_series - len(rr)} produced no catalogue-tied target "
-        f"measurement at all ({n_unsolved} ensemble solves that did not "
-        f"converge, and {n_all_series - len(rr) - n_unsolved} solved "
-        "series in which the target is undetected, one of them EU~UMa's "
-        "untied 2026 Fast-mode block, Section~\\ref{sec:vvpupeuuma}). "
+        f"measurement ({n_unsolved} ensemble solves that did not converge, "
+        f"and {len(_no_pts)} solved series: {_no_pts_txt}; "
+        "Section~\\ref{sec:vvpupeuuma}). "
         "\\label{tab:series}}",
         "\\tablehead{\\colhead{Target} & \\colhead{Camera} & "
         "\\colhead{Band} & \\colhead{Frames} & \\colhead{Points} & "
@@ -1704,6 +2123,15 @@ def render_anuma_table(cv: sqlite3.Connection) -> str:
         "nights whose SAMPLING covers an orbit, while a folded panel "
         "additionally requires the modulation to be detected in that band, "
         "which is why AN~UMa's six full-orbit $i$ nights yield none. "
+        "The timing capability is graded on TWO rows per band, because it "
+        "fails for two independent reasons and one row can carry only one "
+        "number: the accepted-edge count, graded against a bar of accepted "
+        "\\emph{per-cycle} edges even though Section~\\ref{sec:timing} "
+        "publishes no per-cycle epoch for any target --- the per-cycle "
+        "edges are the inputs a per-night epoch is averaged from, so a "
+        "target with too few of them has no epoch to publish --- and the "
+        "one-feature test of Section~\\ref{sec:oc}, the circular scatter of "
+        "the accepted edges in orbital phase. "
         "\\label{tab:anuma}}",
         "\\tablehead{\\colhead{Capability} & \\colhead{Band} & "
         "\\colhead{Measured} & \\colhead{Bar} & \\colhead{Unit} & "

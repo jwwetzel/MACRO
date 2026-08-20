@@ -26,6 +26,7 @@ happen to say.
 from __future__ import annotations
 
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -397,3 +398,132 @@ def test_table_cell_escaping_survives_a_real_verdict_string():
     assert "\\%" in out and "\\_" in out
     assert "%" not in out.replace("\\%", "")
     assert "_" not in out.replace("\\_", "")
+
+
+# ===========================================================================
+# pdot_envelope_seconds -- the curve Figure 9(a) draws
+# ===========================================================================
+def test_envelope_removes_a_constant_and_a_linear_term():
+    """The envelope is the quadratic AFTER an ephemeris fit absorbs what it
+    can, so a weighted straight line through it must be flat.  Figure 9 used
+    to draw a bare re-centred parabola and call it this."""
+    e = np.linspace(0.0, 1000.0, 40)
+    s = np.full_like(e, 10.0)
+    env = fx.pdot_envelope_seconds(e, e, s, 1e-8, 0.08)
+    w = 1.0 / s ** 2
+    design = np.vstack([np.ones_like(e), e]).T
+    beta = np.linalg.solve(design.T @ (design * w[:, None]),
+                           design.T @ (w * env))
+    assert abs(beta[0]) < 1e-6 and abs(beta[1]) < 1e-9, (
+        "a weighted constant-plus-linear fit to the envelope is not zero, "
+        "so the terms the ephemeris fit absorbs have not been removed")
+
+
+def test_envelope_still_carries_the_curvature():
+    """Removing the linear terms must not remove the signal: the second
+    difference is what a Pdot puts in, and it must survive."""
+    e = np.linspace(0.0, 1000.0, 41)
+    s = np.full_like(e, 10.0)
+    env = fx.pdot_envelope_seconds(e, e, s, 1e-8, 0.08)
+    expect = 0.5 * 1e-8 * 0.08 * 86400.0          # a2, seconds per cycle^2
+    step = e[1] - e[0]
+    second = np.diff(env, 2) / step ** 2
+    assert np.allclose(second, 2.0 * expect, rtol=1e-6)
+
+
+def test_envelope_scales_linearly_with_the_bound():
+    e = np.linspace(0.0, 500.0, 20)
+    s = np.full_like(e, 5.0)
+    a = fx.pdot_envelope_seconds(e, e, s, 1e-9, 0.08)
+    b = fx.pdot_envelope_seconds(e, e, s, 3e-9, 0.08)
+    assert np.allclose(b, 3.0 * a, rtol=1e-9)
+
+
+def test_envelope_falls_back_when_there_is_nothing_to_project_out():
+    """Fewer than three usable epochs cannot define a projection; the
+    function must return a curve rather than raise inside a figure build."""
+    e = np.array([0.0, 10.0])
+    out = fx.pdot_envelope_seconds(e, e, np.array([np.nan, np.nan]),
+                                   1e-9, 0.08)
+    assert np.all(np.isfinite(out))
+
+
+def test_envelope_report_counts_the_epochs_outside():
+    """The caption generator may only state containment when this is zero,
+    and Figure 9's caption asserted containment when it was 27."""
+    rep = fx._envelope_report([10.0, -300.0, 5.0], [8.0, 8.0, 8.0],
+                              [50.0, 50.0, 50.0])
+    assert rep["n"] == 3
+    assert rep["n_outside"] == 1
+    assert rep["n_under_error"] == 0
+    assert rep["env_max"] == pytest.approx(50.0)
+
+
+# ===========================================================================
+# dynamic_range_ratios -- one comparison, one pair of numbers
+# ===========================================================================
+def test_dynamic_range_ratios_span_the_sixteen_bit_modes():
+    """§2.1 said 'nearly twenty' and Figure 3's caption 'a factor of 16'
+    for the same comparison; both come from here now."""
+    params = {("High Gain", "ceiling_adu"): 3496.0,
+              ("High Gain", "adc_bits"): 12.0,
+              ("Mode0", "ceiling_adu"): 65535.0,
+              ("Mode0", "adc_bits"): 16.0,
+              ("High Gain StackPro", "ceiling_adu"): 56062.0,
+              ("High Gain StackPro", "adc_bits"): 16.0}
+    lo, hi = nx.dynamic_range_ratios(params)
+    assert lo == pytest.approx(56062.0 / 3496.0, rel=1e-9)
+    assert hi == pytest.approx(65535.0 / 3496.0, rel=1e-9)
+    assert lo < hi, "the modes span a range and the paper must quote one"
+
+
+def test_dynamic_range_ratios_ignore_twelve_bit_modes():
+    params = {("High Gain", "ceiling_adu"): 3496.0,
+              ("High Gain", "adc_bits"): 12.0,
+              ("Low Gain", "ceiling_adu"): 3000.0,
+              ("Low Gain", "adc_bits"): 12.0,
+              ("Mode0", "ceiling_adu"): 65535.0,
+              ("Mode0", "adc_bits"): 16.0}
+    lo, hi = nx.dynamic_range_ratios(params)
+    assert lo == hi == pytest.approx(65535.0 / 3496.0, rel=1e-9)
+
+
+def test_dynamic_range_ratios_on_missing_input():
+    assert nx.dynamic_range_ratios({}) == (None, None)
+    assert nx.dynamic_range_ratios(
+        {("High Gain", "ceiling_adu"): 3496.0}) == (None, None)
+
+
+# ===========================================================================
+# The scope clause and the panel list, shared between renderers
+# ===========================================================================
+def test_the_precision_scope_clause_retracts_the_hold_out_rule():
+    """Figure 2's caption and §3.1 read this one string; it must not
+    reintroduce the rule §3.1 exists to retract."""
+    clause = nx.PRECISION_SCOPE_CLAUSE
+    assert "not held-out statistics" in clause
+    assert "held-out check stars of a tied solve" not in clause
+    # It is pasted straight into a \caption, so a subscript OUTSIDE maths
+    # mode would end the tectonic run.  Strip the maths spans, then look.
+    outside_maths = re.sub(r"\$[^$]*\$", "", clause).replace("\\_", "")
+    assert "_" not in outside_maths, (
+        "the scope clause carries a subscript outside maths mode and would "
+        "break the build when pasted into a caption")
+    assert clause.count("$") % 2 == 0
+    assert clause.count("{") == clause.count("}")
+
+
+def test_the_colour_panel_pairs_are_the_four_figure_six_draws():
+    assert len(nx.COLOUR_PANEL_PAIRS) == 4
+    assert all(len(p) == 3 for p in nx.COLOUR_PANEL_PAIRS)
+    assert {p[0] for p in nx.COLOUR_PANEL_PAIRS} == {7, 76}
+
+
+def test_fmt_range_collapses_a_degenerate_range():
+    """Table 2's caption printed '4--4 in every block', which reads as a
+    spread these data do not have."""
+    assert nx.fmt_range(4, 4, 0) == "4"
+    assert nx.fmt_range(4, 5, 0) == "4--5"
+    assert nx.fmt_range(0.10, 0.104, 2) == "0.10", (
+        "two values that round to the same printed number are the same "
+        "printed number")

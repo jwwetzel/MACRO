@@ -1091,6 +1091,12 @@ def cmd_anuma(args) -> None:
     edge_ok_lo, edge_ok_hi, n_edge_ok = (_eo[0] or float("nan"),
                                          _eo[1] or float("nan"),
                                          int(_eo[2] or 0))
+    # The one-feature bar, from the stage that applied it rather than typed
+    # here: CV-S9 stores it in p3_meta and grades every target against it,
+    # and a second copy in this file is a second bar waiting to drift.
+    _ofb = con.execute("SELECT value FROM p3_meta WHERE "
+                       "key='one_feature_bar_cycles'").fetchone()
+    one_feature_bar = float(_ofb[0]) if _ofb else float("nan")
     # Seasons actually observed, from the nights themselves — the rate that
     # converts a shortfall in nights into a number of observing seasons.
     all_nights = sorted({n for v in per_filter_nights.values() for n in v})
@@ -1204,6 +1210,44 @@ def cmd_anuma(args) -> None:
                      "raises the number of sampled edges but not the "
                      "signal-to-noise of any one of them, so on its own it "
                      "would not convert a rejection into an acceptance."),)
+        # ---- 2b. the ONE-FEATURE test, as its own row --------------------
+        # §5.3 says the timing failure has "two independent reasons ...
+        # both of which Table 3 carries", and until this revision the table
+        # carried one: the accepted-edge count.  The one-feature result sat
+        # in p4_anuma.deciding_number, which is in the release and not in
+        # the table the sentence points at.  It is a measured number
+        # against a stated bar like every other row here, so it gets a row.
+        # It is a property of the TARGET, not of one filter -- the test
+        # pools every accepted edge of every band, which is the point of it
+        # -- so the same value repeats on each filter's row, exactly as the
+        # three-filter colour goal below already does.
+        spread = (float(cyc["phase_spread"]) if cyc
+                  and cyc["phase_spread"] is not None else float("nan"))
+        v = fs.capability_verdict(spread, one_feature_bar,
+                                  higher_is_better=False)
+        rows.append((filt, "bright-phase timing (one feature)", 3,
+                     _f(spread) or float("nan"),
+                     float(one_feature_bar), "cycles of phase scatter",
+                     v,
+                     f"The {n_edge_ok} accepted edges of this target, pooled "
+                     f"across all three filters, scatter over {spread:.3f} in "
+                     f"orbital phase (circular s.d.) against the "
+                     f"{one_feature_bar:.2f} bar, so CV-S9's "
+                     f"cycle-count verdict is "
+                     f"{cyc['verdict'] if cyc else 'n/a'}. This is the SECOND "
+                     f"and independent reason no per-night epoch is "
+                     f"constructible: even were there enough accepted edges, "
+                     f"they do not time the same feature and pooling them "
+                     f"would produce a scatter that reads as a period error "
+                     f"and is not one",
+                     "An O-C pools epochs from every filter and every era "
+                     "into one diagram, which is legitimate only if they all "
+                     "time the SAME edge. The test is on the target, not on "
+                     "a filter, so the value repeats across the three rows.",
+                     "A folded profile good enough to locate the falling "
+                     "edge consistently between filters -- which is the same "
+                     "remedy as the row above, depth on one edge, and not "
+                     "more nights of the same kind"))
         # ---- 3. relative state history ---------------------------------
         st = con.execute("SELECT * FROM p3_state_series WHERE series_key=?",
                          (sk,)).fetchone()
@@ -1211,7 +1255,7 @@ def cmd_anuma(args) -> None:
             float("nan")
         v = fs.capability_verdict(sep, ANUMA_BARS["separability"])
         rows.append((filt, "relative state history",
-                     3, _f(sep) or float("nan"),
+                     4, _f(sep) or float("nan"),
                      float(ANUMA_BARS["separability"]), "Otsu separability",
                      v,
                      f"Otsu separability {sep:.2f} on {int(st['n_used'])} "
@@ -1232,7 +1276,7 @@ def cmd_anuma(args) -> None:
                                   higher_is_better=False)
         n_need = int(math.ceil(0.25 / (ANUMA_BARS["duty_halfwidth_pp"]
                                        / 100.0) ** 2))
-        rows.append((filt, "absolute duty cycle", 4,
+        rows.append((filt, "absolute duty cycle", 5,
                      _f(half) or float("nan"),
                      float(ANUMA_BARS["duty_halfwidth_pp"]),
                      "percentage points", v,
@@ -1249,7 +1293,7 @@ def cmd_anuma(args) -> None:
         # ---- 5. the colour goal, restated ------------------------------
         v = fs.capability_verdict(len(three),
                                   ANUMA_BARS["three_filter_nights"])
-        rows.append((filt, "three-filter colour curves (Q5)", 5,
+        rows.append((filt, "three-filter colour curves (Q5)", 6,
                      float(len(three)),
                      float(ANUMA_BARS["three_filter_nights"]), "nights", v,
                      f"{len(three)} nights carry a full orbit in ALL THREE "
@@ -1328,12 +1372,18 @@ def cmd_verdict(args) -> None:
     # caption and Section 5.4, which already do.
     n_above = int(one(f"SELECT count(*) FROM p4_run WHERE {testable} AND "
                       "hump_amp > amp90_field"))
+    # NAMED BY ITS UTC NIGHT, through the one helper Figure 11's caption
+    # and axis labels also use.  This row used to name the run by its local
+    # observing night while the figure named it by its UTC night, so Table 4
+    # and Figure 11 appeared to be discussing different runs.
     below = con.execute(
-        f"SELECT nights, filter FROM p4_run WHERE {testable} AND "
+        f"SELECT nights, utc_nights, filter FROM p4_run WHERE {testable} AND "
         "hump_amp <= amp90_field ORDER BY nights, filter").fetchall()
     below_txt = ("; on the remaining "
-                 + (", ".join(f"{r['filter']} run of {r['nights']}"
-                              for r in below))
+                 + (", ".join(
+                     f"{r['filter']} run of "
+                     f"{fs.run_night_label(r['utc_nights'], r['nights'])}"
+                     for r in below))
                  + " it does not, so that scope is uninformative rather "
                    "than a non-detection") if below else ""
     # ---- YZ Cnc: flickering ------------------------------------------

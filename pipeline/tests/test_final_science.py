@@ -378,3 +378,29 @@ def test_log_tau_edges_are_log_spaced_and_bracket_the_range():
     assert e[0] == pytest.approx(60.0) and e[-1] == pytest.approx(14_400.0)
     ratios = e[1:] / e[:-1]
     assert np.allclose(ratios, ratios[0])
+
+
+# ---------------------------------------------------------------------------
+# run_night_label -- one run, one name, in Table 4 and in Figure 11
+# ---------------------------------------------------------------------------
+def test_run_night_label_prefers_the_utc_night():
+    """p4_run.scope keys a run by its LOCAL observing night and utc_nights
+    records the UTC one.  Table 4 named the uninformative YZ Cnc run
+    2024-02-20 and Figure 11 named the same run 2024-02-21."""
+    assert fs.run_night_label("2024-02-21", "2024-02-20") == "2024-02-21"
+
+
+def test_run_night_label_falls_back_to_the_observing_night():
+    """A row written before utc_nights was populated must still get a name
+    rather than an empty string in a caption."""
+    assert fs.run_night_label(None, "2024-02-20") == "2024-02-20"
+    assert fs.run_night_label("", "2024-02-20") == "2024-02-20"
+
+
+def test_run_night_label_names_a_multi_night_block_by_its_first_night():
+    assert fs.run_night_label("2024-05-02+2024-05-03", None) == "2024-05-02"
+
+
+def test_run_night_label_on_nothing_is_empty_not_none():
+    """A caption concatenates this; None would print as the word 'None'."""
+    assert fs.run_night_label(None, None) == ""

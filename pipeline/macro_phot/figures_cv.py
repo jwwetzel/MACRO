@@ -92,6 +92,14 @@ import matplotlib.pyplot as plt              # noqa: E402
 from matplotlib.figure import Figure         # noqa: E402
 from matplotlib.lines import Line2D          # noqa: E402
 
+# The macro emitter, for the strings and lists a caption and the prose must
+# SHARE rather than keep in step by hand: the scope of the hold-out rule
+# (§3.1 and Figure 2's caption), and which colour pairs Figure 6 draws
+# (§3.3's tie bars).  numbers_cv imports nothing from here, so this is not
+# a cycle.
+from . import numbers_cv as _nx              # noqa: E402
+from . import final_science as _fs           # noqa: E402
+
 # ===========================================================================
 # Page geometry and style
 # ===========================================================================
@@ -393,6 +401,64 @@ def quadratic_oc_seconds(cycles, dpdt_dimensionless: float, period_d: float):
     """
     e = np.asarray(cycles, dtype=float)
     return 0.5 * float(dpdt_dimensionless) * float(period_d) * 86400.0 * e**2
+
+
+def pdot_envelope_seconds(cycles_at, cycles_fit, sigma_fit,
+                          dpdt_dimensionless: float, period_d: float):
+    """The O--C a steady ``dP/dt`` LEAVES BEHIND after an ephemeris refit.
+
+    A period derivative puts ``0.5 (dP/dt) P E^2`` into an O--C, but a
+    constant and a linear term in ``E`` are degenerate with the epoch and
+    the period, so a fit that solves for those absorbs part of any real
+    curvature.  What a data set can detect is therefore not the raw
+    parabola but its residual after that absorption, and drawing the raw
+    parabola overstates the signal at one end of the baseline and
+    understates it at the other.
+
+    ``cycles_fit`` and ``sigma_fit`` are the epochs and their errors, whose
+    inverse-variance weights define the projection -- the same weights
+    :func:`run_cv_phase3.pdot_bound` uses.  ``cycles_at`` is where the
+    curve is wanted, which for a smooth plot is a dense grid.
+
+    Returns the signed residual curve in seconds; a caller drawing a
+    two-sided envelope plots plus and minus its absolute value.
+    """
+    ea = np.asarray(cycles_at, dtype=float)
+    ef = np.asarray(cycles_fit, dtype=float)
+    sf = np.asarray(sigma_fit, dtype=float)
+    ok = np.isfinite(ef) & np.isfinite(sf) & (sf > 0)
+    if int(ok.sum()) < 3:
+        return quadratic_oc_seconds(ea - float(np.mean(ef)),
+                                    dpdt_dimensionless, period_d)
+    ef, sf = ef[ok], sf[ok]
+    w = 1.0 / np.square(sf)
+    sig_fit = quadratic_oc_seconds(ef, dpdt_dimensionless, period_d)
+    design = np.vstack([np.ones_like(ef), ef]).T
+    beta = np.linalg.solve(design.T @ (design * w[:, None]),
+                           design.T @ (w * sig_fit))
+    return (quadratic_oc_seconds(ea, dpdt_dimensionless, period_d)
+            - np.vstack([np.ones_like(ea), ea]).T @ beta)
+
+
+def _envelope_report(oc_s, sigma_s, envelope_s) -> dict:
+    """How the epochs actually stand against the drawn envelope.
+
+    Returns the counts and sizes a caption may state, so that the caption
+    describes the curve the code drew rather than the curve its author
+    remembered.  ``n_outside`` is the number of epochs whose residual
+    exceeds the envelope; a caption may only claim containment when it is
+    zero, and :func:`fig09_oc` does not claim it at all.
+    """
+    y = np.abs(np.asarray(oc_s, dtype=float))
+    s = np.asarray(sigma_s, dtype=float)
+    e = np.abs(np.asarray(envelope_s, dtype=float))
+    return {
+        "n": int(y.size),
+        "n_outside": int(np.sum(y > e)),
+        "n_under_error": int(np.sum(e < s)),
+        "env_max": float(e.max()) if e.size else float("nan"),
+        "sigma_median": float(np.median(s)) if s.size else float("nan"),
+    }
 
 
 def robust_ylim(y, pad_frac: float = 0.08, k: float = 6.0):
@@ -887,10 +953,17 @@ def fig02_rms_vs_mag(ch, cv, man):
             "CV's own magnitude, which is where the model has to be "
             "believed. The scatter of individual field stars well above the "
             "band is the field's own variability and blending, not the "
-            "instrument's. Only catalogue-tied series appear: the abscissa "
-            "is a tied magnitude, and the floor annotated on each panel is "
-            "a precision statement, which this paper permits only on the "
-            "held-out check stars of a tied solve. EU~UMa's untied 2026 "
+            "instrument's. "
+            # THE SCOPE OF THE HOLD-OUT RULE, FROM THE SAME STRING §3.1
+            # USES.  This caption used to assert that a precision statement
+            # "is permitted only on the held-out check stars of a tied
+            # solve" -- a rule §3.1 had already been rewritten to retract,
+            # on the panel whose crosses are the counter-example, and false
+            # of the annotated floor as well, which is fitted over
+            # comparison AND check stars exactly as the crosses are.
+            + _nx.PRECISION_SCOPE_CLAUSE + ". "
+            "Only catalogue-tied series appear, because the abscissa is a "
+            "tied magnitude: EU~UMa's untied 2026 "
             "Fast-mode block therefore has no panel here, and the Fast "
             "readout mode no measured floor "
             "(Section~\\ref{sec:vvpupeuuma})."),
@@ -1013,10 +1086,12 @@ def fig03_linearity(man):
                                    "detector_params")}
     hg_bits = _dp.get(("High Gain", "adc_bits"), float("nan"))
     hg_clip = _dp.get(("High Gain", "ceiling_adu"), float("nan"))
-    _sixteen = [v for (g, q), v in _dp.items() if q == "ceiling_adu"
-                and _dp.get((g, "adc_bits")) == 16.0]
-    hg_ratio = (min(_sixteen) / hg_clip if _sixteen and hg_clip
-                else float("nan"))
+    # Through the shared helper, and as a RANGE.  This caption used to
+    # print the minimum ratio alone as "a factor of 16 below every 16-bit
+    # mode" while §2.1 printed the maximum as "nearly twenty" -- two
+    # numbers for one comparison, and the smaller of them indistinguishable
+    # from the nominal bit-depth ratio it is not.
+    r_lo, r_hi = _nx.dynamic_range_ratios(_dp)
 
     spec = FigureSpec(
         fig_id="fig03", label="fig:linearity",
@@ -1033,9 +1108,12 @@ def fig03_linearity(man):
             f"defines the ceiling, and the veto, which is 0.92 of the "
             f"ceiling rounded down to the nearest 100 ADU. "
             f"High Gain's {hg_bits:.0f}-bit ceiling of {hg_clip:,.0f} ADU "
-            f"is a factor of {hg_ratio:.0f} below every 16-bit mode, which "
-            "is why its vetoes cannot "
-            "be shared with the Sloan-era data."),
+            f"sits a MEASURED factor of {r_lo:.1f}--{r_hi:.1f} below the "
+            "16-bit modes --- the spread is real, because their ceilings "
+            "are measured pileup clips and not the same number --- which "
+            "is why its vetoes cannot be shared with the Sloan-era data. "
+            "The bit depths would suggest a flat factor of 16; that is a "
+            "nominal ratio and not one of this figure's measurements."),
         tables=("s2_linearity_ladders", "s2_linearity_rungs",
                 "s2_ceiling_modes"),
         width_in=COL_DOUBLE)
@@ -1260,8 +1338,15 @@ def fig06_colour_phase(cv, max_dt_s=600.0):
     """Figure 6 -- colour against orbital phase.  SUBSTITUTE: ST LMi only."""
     eph = read_ephemeris(cv)["stlmi"]
     period, epoch = float(eph["period_d"]), float(eph["epoch_bjd"])
-    eras = [(7, ("G", "R"), ("R", "I"), "High Gain (2024)"),
-            (76, ("g", "r"), ("r", "i"), "Mode0 (2025)")]
+    # The panel list lives in numbers_cv.COLOUR_PANEL_PAIRS, because §3.3
+    # quotes the range of tie bars THESE panels carry and the two must be
+    # computed over the same four pairs.
+    _pp: dict[int, list] = {}
+    for _e, _a, _b in _nx.COLOUR_PANEL_PAIRS:
+        _pp.setdefault(_e, []).append((_a, _b))
+    eras = [(e, _pp[e][0], _pp[e][1],
+             f"{ERA_LABEL.get(e, e)} ({'2024' if e == 7 else '2025'})")
+            for e in sorted(_pp)]
     fig, axes = plt.subplots(2, 2, figsize=(COL_DOUBLE, 4.2), sharex=True,
                              squeeze=False)
 
@@ -1335,7 +1420,6 @@ def fig06_colour_phase(cv, max_dt_s=600.0):
     # The census that justifies the substitution, printed INSIDE the figure
     # and computed by the SAME function the manuscript's census macros use,
     # so the figure cannot state one coverage and §2.2 another.
-    from . import numbers_cv as _nx
     _mp = _nx.one(cv, "SELECT value FROM p4_meta WHERE "
                       "key='full_orbit_min_points'")
     _mp = int(_mp) if _mp is not None else _nx.FULL_ORBIT_MIN_POINTS_DEFAULT
@@ -1660,31 +1744,54 @@ def fig09_oc(cv):
         for sgn in (-1, 1):
             ax.axhline(sgn * thr, lw=0.7, ls="-.",
                        color=OKABE_ITO["vermilion"])
+        # Reduced chi-squared on nu = N - 1: one constant, the edge's own
+        # phase offset from the catalogue epoch, was fitted out of these
+        # same edges (see the caption), so the denominator is not N.
+        _nu = max(len(oc) - 1, 1)
+        _chi2 = sum((r["oc_s"] / r["oc_sigma_s"]) ** 2 for r in oc
+                    if r["oc_sigma_s"])
         ax.text(0.012, 0.025,
                 f"per-CYCLE {s_cycle:.0f} s (outer band): fails {thr:.0f} s\n"
                 f"per-NIGHT {s_night:.0f} s (inner band); rms "
                 f"{float(cc[0]['oc_night_rms_s']):.0f} s, "
-                f"$\\chi^2$/epoch {float(cc[0]['oc_night_chi2nu']):.2f}",
+                f"$\\chi^2/\\nu$ = {_chi2 / _nu:.2f} ($\\nu$ = {_nu})",
                 transform=ax.transAxes, fontsize=5.6, va="bottom",
                 color=OKABE_ITO["black"])
         # THE BOUND THE NULL BUYS.  A null is worth what it excludes, so
         # draw the O-C a period derivative at the 3-sigma limit would have
-        # produced.  The epochs sit inside it by construction; the point is
-        # that a reader can see how much curvature this baseline could have
-        # carried without being noticed.
+        # left BEHIND in these residuals: the quadratic a2*E^2 with the
+        # constant and linear terms removed the way the fit removes them --
+        # by weighted least squares under the fit's own 1/sigma^2 weights,
+        # since those two terms are degenerate with the epoch and the
+        # period and a real Pdot would be partly absorbed into both.
+        #
+        # It was drawn as a bare re-centred parabola, which is NOT what the
+        # fit absorbs, and the caption then called it a region the epochs
+        # "sit inside".  They do not and cannot: the envelope is a SIGNAL
+        # SHAPE, and the epochs scatter about zero by their own 84 s error,
+        # which is larger than the envelope over most of the baseline --
+        # that being precisely why no such curvature is detectable.  The
+        # caption is now generated from the drawn curve (see
+        # ``_envelope_report``) and refuses to assert containment.
         lim = cc[0]["pdot_limit3"] if "pdot_limit3" in cc[0].keys() else None
         per_d = cc[0]["period_d"]
+        env_report = None
         if lim and per_d and oc:
-            e_ax = np.linspace(min(r["cycle_mean"] for r in oc),
-                               max(r["cycle_mean"] for r in oc), 200)
-            e0 = float(np.mean([r["cycle_mean"] for r in oc]))
-            env = quadratic_oc_seconds(e_ax - e0, float(lim), float(per_d))
+            e_ep = np.array([r["cycle_mean"] for r in oc], dtype=float)
+            s_ep = np.array([r["oc_sigma_s"] for r in oc], dtype=float)
+            y_ep = np.array([r["oc_s"] for r in oc], dtype=float)
+            e_ax = np.linspace(e_ep.min(), e_ep.max(), 400)
+            env_ax = pdot_envelope_seconds(e_ax, e_ep, s_ep, float(lim),
+                                           float(per_d))
+            env_ep = pdot_envelope_seconds(e_ep, e_ep, s_ep, float(lim),
+                                           float(per_d))
             for sgn in (-1.0, 1.0):
-                ax.plot(e_ax, sgn * (env - env.min()), lw=0.8, ls=":",
+                ax.plot(e_ax, sgn * np.abs(env_ax), lw=0.8, ls=":",
                         color=OKABE_ITO["green"], zorder=1)
             ax.plot([], [], lw=0.8, ls=":", color=OKABE_ITO["green"],
                     label=f"$|\\dot{{P}}|$ = {float(lim):.1e} (3$\\sigma$ "
                           f"limit)")
+            env_report = _envelope_report(y_ep, s_ep, env_ep)
     ax.set_xlabel("cycle number since the catalogue epoch")
     ax.set_ylabel("O$-$C (s)")
     ax.grid(color="#f2f2f2")
@@ -1776,8 +1883,61 @@ def fig09_oc(cv):
              and r["sigma_s"]]
     _top = (max(_pool, key=lambda r: abs(r["delta_s"]) / r["sigma_s"])
             if _pool else None)
-    _bnd = (min(_pool, key=lambda r: abs(r["delta_s"]) + 2 * r["sigma_s"])
-            if _pool else None)
+    # BOTH ENDS of the pooled bound.  The caption used to quote the
+    # tightest beside the words "any such offset", which is a universal
+    # quantifier carrying the most favourable of five numbers; the panel
+    # itself prints all five honestly, so the caption disagreed with the
+    # figure it describes.
+    def _b2(r):
+        return abs(r["delta_s"]) + 2 * r["sigma_s"]
+    _bnd = min(_pool, key=_b2) if _pool else None
+    _weak = max(_pool, key=_b2) if _pool else None
+    # WHAT THESE RESIDUALS ARE MEASURED AGAINST, SAID IN THE CAPTION.
+    # CV-S9 subtracts the mean per-cycle O-C before writing p3_oc: the
+    # bright-phase edge is not at phase zero of the VSX ephemeris, so the
+    # raw residual carries a constant that belongs to the feature.  The
+    # subtraction is right and it was invisible -- the caption opened
+    # "residuals against the catalogue ephemeris", which a reader takes to
+    # mean the edge falls at the catalogue epoch's phase.  It does not.
+    _off_s = _cc0["oc_mean_s"] if "oc_mean_s" in _cc0.keys() else None
+    _per_s = (float(_cc0["period_d"]) * 86400.0
+              if "period_d" in _cc0.keys() and _cc0["period_d"] else None)
+    _offset_txt = ""
+    if _off_s and _per_s:
+        _offset_txt = (
+            f"The timed bright-phase edge does not fall at the catalogue "
+            f"epoch's phase zero: it sits {float(_off_s):,.0f}~s "
+            f"({float(_off_s) / _per_s:.3f} of a cycle) after it, that "
+            f"constant is a property of the FEATURE and of the "
+            f"catalogue's choice of fiducial rather than of the clock, and "
+            f"it is removed before anything here is plotted or fitted. "
+            f"What this panel therefore tests is whether that interval is "
+            f"CONSTANT, never whether it is zero.")
+
+    # WHAT THE DOTTED ENVELOPE IS, FROM THE CURVE THE CODE DREW.  The
+    # previous caption ended "and the epochs sit inside it"; 23 of the 36
+    # lie outside, because the envelope is a signal shape and not an error
+    # band.  ``_envelope_report`` measures the relation and this clause
+    # states it; there is no branch here that can assert containment.
+    _env_txt = ""
+    if env_report:
+        _env_txt = (
+            "The dotted envelope is not an error band and the epochs are "
+            "not expected to lie within it: it is the O$-$C a steady "
+            "period derivative at this data set's 3$\\sigma$ upper bound "
+            "would still have left behind after the constant and linear "
+            "terms are absorbed as the ephemeris fit absorbs them, i.e. "
+            "the CURVATURE the epochs would have had to follow. It reaches "
+            f"only {env_report['env_max']:.0f}~s at the ends of the "
+            f"baseline and is smaller than a single epoch's error bar on "
+            f"{env_report['n_under_error']} of the {env_report['n']} "
+            f"epochs, against a median epoch error of "
+            f"{env_report['sigma_median']:.0f}~s; "
+            f"{env_report['n_outside']} of the {env_report['n']} epochs "
+            "scatter further from zero than the envelope does. That the "
+            "scatter is larger than the signal, and shows no curvature, is "
+            "exactly why no such $\\dot{P}$ can be distinguished.")
+
     _drop_txt = ""
     if dropped:
         _drop_txt = (
@@ -1793,17 +1953,25 @@ def fig09_oc(cv):
             f"pooled pair is ${_top['band_a']}-{_top['band_b']}$ at "
             f"{_top['delta_s']:+.0f}$\\pm${_top['sigma_s']:.0f}~s "
             f"({abs(_top['delta_s']) / _top['sigma_s']:.1f}$\\sigma$ over "
-            f"{int(_top['n_cycles'])} paired cycles), and the tightest "
-            f"pooled pair bounds any such offset below "
-            f"{abs(_bnd['delta_s']) + 2 * _bnd['sigma_s']:.0f}~s at "
-            f"2$\\sigma$. This panel is a NON-DETECTION and is reported as "
-            "one.")
+            f"{int(_top['n_cycles'])} paired cycles). What the pairs bound "
+            f"at 2$\\sigma$ spans a factor of "
+            f"{_b2(_weak) / _b2(_bnd):.1f}: the tightest, "
+            f"${_bnd['band_a']}-{_bnd['band_b']}$ in "
+            f"{ERA_LABEL.get(_bnd['era_id'], _bnd['era_id'])}, excludes "
+            f"offsets above {_b2(_bnd):.0f}~s, while the weakest, "
+            f"${_weak['band_a']}-{_weak['band_b']}$ in "
+            f"{ERA_LABEL.get(_weak['era_id'], _weak['era_id'])}, excludes "
+            f"only those above {_b2(_weak):.0f}~s --- so an offset present "
+            f"in EVERY pair is bounded at {_b2(_weak):.0f}~s and not at "
+            f"{_b2(_bnd):.0f}~s. This panel is a NON-DETECTION and is "
+            "reported as one.")
     spec = FigureSpec(
         fig_id="fig09", label="fig:oc",
         title="ST LMi O$-$C and the inter-band edge-offset null",
         caption=(
             "(a) Bright-phase timing residuals against the catalogue "
-            "ephemeris. Symbols with error bars are the PUBLISHED epochs: "
+            "PERIOD. " + _offset_txt +
+            " Symbols with error bars are the PUBLISHED epochs: "
             "one per night per band, each the mean of that night's "
             "accepted per-cycle edges, open for the 2024 High Gain era and "
             "filled for the 2025 Mode0 era. Pale dots behind them are the "
@@ -1820,11 +1988,7 @@ def fig09_oc(cv):
             "Section~\\ref{sec:timing} gives the reduced chi-squared "
             "recomputed under the edge fits' own errors as the check on "
             "that. The outer shaded band is the per-cycle error, the inner "
-            "the median error of a per-night epoch. The dotted envelope is "
-            "the O$-$C a steady period derivative at this data set's "
-            "3$\\sigma$ upper bound would have produced, with the constant "
-            "and linear terms absorbed as the fit absorbs them: it is what "
-            "the null excludes, and the epochs sit inside it. (b) "
+            "the median error of a per-night epoch. " + _env_txt + " (b) "
             "Band-to-band "
             "offsets of the same edge on the same cycle, shown rather than "
             "averaged away, one row per band pair with the pooled estimate "
@@ -1979,12 +2143,17 @@ def fig10_yzcnc_season(cv):
 
 
 def _scope_label(run) -> str:
-    """``yzcnc|e7|I|2024-02-20`` -> ``the 2024-02-20 $I$ run``."""
+    """``yzcnc|e7|I|2024-02-20`` -> ``the 2024-02-21 $I$ run``.
+
+    The night comes from :func:`final_science.run_night_label`, which is
+    also what ``run_cv_final``'s verdict strings use, so Table 4 and this
+    caption cannot name the same run by two different dates.
+    """
     if run is None:
         return "none"
     band = series_parts(run["series_key"])[2]
-    night = str(run["utc_nights"] or run["nights"]).split("+")[0]
-    return f"the {night} ${band}$ run"
+    return (f"the {_fs.run_night_label(run['utc_nights'], run['nights'])} "
+            f"${band}$ run")
 
 
 def fig11_yzcnc_fallback(cv):
@@ -2015,7 +2184,7 @@ def fig11_yzcnc_fallback(cv):
         ax.plot([s90], [i], "|", ms=7, color=OKABE_ITO["vermilion"], mew=1.2,
                 zorder=3)
     ax.set_yticks(y)
-    ax.set_yticklabels([f"{str(r['utc_nights']).split('+')[0]} "
+    ax.set_yticklabels([f"{_fs.run_night_label(r['utc_nights'], r['nights'])} "
                         f"{series_parts(r['series_key'])[2]}"
                         for r in runs], fontsize=5.6)
     ax.set_xscale("log")
@@ -2109,6 +2278,38 @@ def fig11_yzcnc_fallback(cv):
     return fig, spec
 
 
+def _detrend_gap_direction(by_key) -> tuple:
+    """``(median ratio, series where detrending is worse, series compared)``.
+
+    Pairs each series' ``season`` contour against its ``season-dt`` one at
+    the injected periods both carry, and returns the median of the
+    detrended-over-raw amplitude ratio across series.  Below one means
+    detrending RECOVERS a smaller amplitude, which is better sensitivity
+    and the opposite of the "cost" Figure 12(a)'s caption used to assert.
+    """
+    raw: dict[str, dict] = {}
+    dtd: dict[str, dict] = {}
+    for (scope, score), rr in by_key.items():
+        if score != "known":
+            continue
+        regime = rr[0]["regime"]
+        if regime not in ("season", "season-dt"):
+            continue
+        book = raw if regime == "season" else dtd
+        book[rr[0]["series_key"]] = {r["period_d"]: r["amp90"] for r in rr
+                                     if r["amp90"]}
+    meds = []
+    for sk in sorted(set(raw) & set(dtd)):
+        shared = sorted(set(raw[sk]) & set(dtd[sk]))
+        if shared:
+            meds.append(float(np.median([dtd[sk][p] / raw[sk][p]
+                                         for p in shared])))
+    if not meds:
+        return (float("nan"), 0, 0)
+    return (float(np.median(meds)), int(sum(m > 1.0 for m in meds)),
+            len(meds))
+
+
 def fig12_injection(ch, cv):
     """Figure 12 -- 90 per cent recovery contours at the real timestamps."""
     fig, axes = plt.subplots(1, 2, figsize=(COL_DOUBLE, 2.9), sharey=True)
@@ -2151,9 +2352,18 @@ def fig12_injection(ch, cv):
                                        hi[o][good], color=col, alpha=0.10,
                                        lw=0)
 
-    # (a) what detrending costs: the same series, raw and detrended.
+    # (a) THE TRADE detrending makes, not its cost.  The panel was labelled
+    # "the cost of detrending" and the caption told a reader that the gap
+    # between a pair of curves IS that cost.  Measured, the dashed curves
+    # mostly sit BELOW the solid ones -- a smaller amplitude recovered 90
+    # per cent of the time, i.e. better sensitivity -- because the filter
+    # removes red noise along with signal.  The 25--123 per cent injected-
+    # signal loss that forbids filtering is a different measurement
+    # (p3_detrend), and the two point opposite ways.  The direction is
+    # measured here and stated, never left to the eye.
     _draw(ax, "season", "known", "-", "{t} (raw)")
     _draw(ax, "season-dt", "known", "--", "{t} (detrended)", shade=False)
+    _dt_med, _dt_worse, _dt_n = _detrend_gap_direction(by_key)
     # (b) what a single night can do, and what a BLIND search costs on it.
     _draw(ax2, "night", "known", "-", "{t} (period known)")
     _draw(ax2, "night", "period", "--", "{t} (blind search)", shade=False)
@@ -2166,7 +2376,7 @@ def fig12_injection(ch, cv):
         a_.legend(fontsize=5.0, loc="upper left", ncol=2,
                   columnspacing=0.8, handletextpad=0.4, handlelength=1.6)
     ax.set_ylabel("semi-amplitude at 90% recovery (mmag)")
-    ax.set_title("(a) whole season: the cost of detrending", fontsize=7,
+    ax.set_title("(a) whole season: raw against detrended", fontsize=7,
                  loc="left")
     ax2.set_title("(b) one night: the cost of a blind search", fontsize=7,
                   loc="left")
@@ -2193,9 +2403,19 @@ def fig12_injection(ch, cv):
             "computed by injecting into the ACTUAL timestamps and the "
             "actual residuals of each series rather than into a simulated "
             "cadence. (a) Whole-season injections with the period known in "
-            "advance: solid for the raw series, dashed after detrending, "
-            "so the vertical gap between a pair of curves is exactly what "
-            "the detrending costs in sensitivity. (b) Single-night "
+            "advance: solid for the raw series, dashed after detrending. "
+            "The gap between a pair of curves is NOT a sensitivity cost, "
+            "and this panel is the measurement that says so: the detrended "
+            f"contour is the LOWER of the two --- a smaller amplitude "
+            f"recovered 90 per cent of the time --- for "
+            f"{_dt_n - _dt_worse} of the {_dt_n} series, at a median "
+            f"detrended/raw ratio of {_dt_med:.2f}, because the filter "
+            "removes red noise along with signal. What forbids filtering "
+            "first is a different measurement, the 25--123 per cent of an "
+            "injected signal a naive filter destroys at these periods "
+            "(Section~\\ref{sec:analysis}); the two point opposite ways, "
+            "and the joint fit is what avoids having to choose. (b) "
+            "Single-night "
             "injections, solid when the period is known and dashed for a "
             "blind search over the same band; the gap is the price of not "
             "knowing where to look. The grey band is the blind-search "
