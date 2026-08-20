@@ -158,6 +158,24 @@ FORCED_MAX_RMS_PX = 1.5
 #: would overlap.
 FORCED_DETECT_SNR = 3.0
 
+#: A block may publish upper limits only if its forced POSITION has been
+#: validated on frames where the target was actually detected: at least this
+#: many such frames, closing to at most :data:`CLOSURE_MAX_MEDIAN_PX`.
+#:
+#: This gate exists because the first production run produced 66 "forced
+#: detections" of EU UMa in the merged 2026 Fast block (era 78) — the block
+#: the characterization already flags as carrying five comparison stars,
+#: zero check stars and no error validation at all.  Its frame-to-reference
+#: transforms closed to 645-1,650 pixels on 87 of 153 attempts, and where
+#: they closed tightly the measured signal-to-noise alternated between 3 and
+#: 55 frame to frame — an aperture landing on a bright neighbour on half the
+#: frames.  That block has never detected its target, so there is no frame
+#: on which the forced position can be checked, and a limit measured at an
+#: unverifiable position is not a limit, it is a number.  The gate refuses
+#: it by rule rather than leaving a reader to notice.
+CLOSURE_MIN_FRAMES = 10
+CLOSURE_MAX_MEDIAN_PX = 1.0
+
 #: Instrumental-magnitude zero offset, copied from
 #: ``macro_phot.photometry.INST_MAG_OFFSET`` so that a forced magnitude
 #: lands on the same scale as a detected one.  Duplicated as a named
@@ -1178,6 +1196,17 @@ def forced_aperture(image: np.ndarray, x: float, y: float, r_ap: float,
     """
     img = np.asarray(image, dtype=float)
     ny, nx = img.shape
+    nan = float("nan")
+    # The APERTURE must lie wholly inside the frame.  A partially clipped
+    # aperture is the most dangerous possible failure for this task: it
+    # under-counts the flux AND under-counts the pixels, so the noise it
+    # reports is too small and the upper limit derived from it is too DEEP
+    # — a fabricated constraint rather than a missing one.  Refusing is the
+    # only safe answer.  (The sky annulus is allowed to clip: it is a
+    # median over hundreds of pixels and loses only precision.)
+    if not (x - r_ap >= 0 and y - r_ap >= 0
+            and x + r_ap <= nx - 1 and y + r_ap <= ny - 1):
+        return ForcedMeasurement(nan, nan, nan, nan, nan, 0, nan)
     lo_x = max(0, int(math.floor(x - r_out - 2)))
     hi_x = min(nx, int(math.ceil(x + r_out + 2)))
     lo_y = max(0, int(math.floor(y - r_out - 2)))

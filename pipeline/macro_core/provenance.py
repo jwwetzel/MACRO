@@ -745,6 +745,108 @@ _reg(ResourceSpec(
 # (the two FILE resources this stage reads and writes are declared with the
 #  other published artifacts below, where _f is in scope)
 
+# ---- CV-S8 outputs (Phase-2 completion) -----------------------------------
+# The four tasks the Phase-2 photometry plan still had open: the cloud veto
+# that has to be primary because ZMAG does not exist for the polars, the
+# second-order colour-extinction terms, the cross-era transformation
+# metadata plus the discipline assertions, and the faint-phase upper limits.
+# All four are DECISIONS about what may be published, so all four sit in the
+# graph: a stale cloud threshold silently changes which frames a period
+# search sees, and a stale limit set silently changes every duty cycle.
+_reg(ResourceSpec(
+    key="db:cvphot:p2_cloud_series", kind="db", name="p2_cloud_series",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="series_key",
+    columns=("series_key", "printf('%.4f', coalesce(threshold,-1))",
+             "coalesce(n_frames,-1)", "coalesce(n_vetoed,-1)"),
+    why=("The veto census per series, with the threshold that produced it. "
+         "Hashed rather than counted because the row count is the number of "
+         "series and never moves: what moves is how many frames each series "
+         "loses, and every downstream period search, colour measurement and "
+         "duty cycle is computed on the survivors.  The THRESHOLD is in the "
+         "fingerprint because it is calibrated against the ZMAG-bearing "
+         "frames, and a re-run that moves it from 0.92 to 0.95 changes the "
+         "input to everything after it while leaving the row count "
+         "identical.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p2_cloud_bias", kind="db", name="p2_cloud_bias",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="series_key",
+    columns=("series_key", "coalesce(verdict,'')"),
+    why=("The sculpting test's verdict per series — whether the cloud veto "
+         "preferentially removes the target's faint phases.  The cheapest "
+         "possible hash, because the verdict IS the deliverable: a series "
+         "moving from NO SCULPTING DETECTED to FAINT-PHASE VETO EXCESS "
+         "means the light curve behind every later figure was edited by a "
+         "cut, and nothing else in this product would say so.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p2_extinction", kind="db", name="p2_extinction",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="era_id, filter",
+    columns=("era_id", "filter", "printf('%.6f', coalesce(kpp,-999))",
+             "printf('%.6f', coalesce(kpp_err,-999))",
+             "coalesce(verdict,'')"),
+    why=("The second-order colour-extinction coefficient per (era, filter), "
+         "its uncertainty and its verdict.  The uncertainty is in the "
+         "fingerprint alongside the value because the DECISION is 'apply or "
+         "bound', and that decision turns on the error, not on the "
+         "coefficient — the published error is the larger of the formal one "
+         "and a star bootstrap, and a change of bootstrap seed or replicate "
+         "count can move a term across the significance bar without moving "
+         "k'' at all.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p2_transform", kind="db", name="p2_transform",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="target_key, era_from, band_from, era_to, band_to",
+    columns=("target_key", "band_from", "band_to",
+             "printf('%.6f', coalesce(a,-999))",
+             "printf('%.6f', coalesce(b,-999))",
+             "coalesce(applied_to_targets,-1)"),
+    why=("The published cross-era transformation coefficients.  These are "
+         "DATA-RELEASE METADATA: anyone converting a magnitude of this "
+         "campaign between the G/R/I and g/r/i natural systems uses these "
+         "two numbers, so a change to either changes somebody else's "
+         "answer.  `applied_to_targets` is hashed as well, because the one "
+         "thing that must never change about this table is that it stays "
+         "zero.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p2_discipline", kind="db", name="p2_discipline",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="check_id",
+    columns=("check_id", "coalesce(verdict,'')",
+             "coalesce(n_violation,-1)"),
+    why=("The four assertions that carry the paper's cross-era discipline: "
+         "no series mixes eras, every series key names its own era, no "
+         "target magnitude was colour-transformed, and the transformation "
+         "coefficients were applied to nothing.  A verdict moving from "
+         "HOLDS to VIOLATED is the single most serious thing this product "
+         "can report, so the verdict is hashed and so is the violation "
+         "count — 'HOLDS with 3 violations' must be impossible to store "
+         "quietly.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p2_limit_series", kind="db", name="p2_limit_series",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="series_key",
+    columns=("series_key", "coalesce(n_limits,-1)",
+             "coalesce(n_recovered,-1)", "coalesce(blocked,'')"),
+    why=("How many undetected epochs each series gained as a bounded upper "
+         "limit, how many turned out to be detections that source "
+         "detection had missed, and which series were REFUSED limits "
+         "because their forced position could not be validated.  The "
+         "refusal string is in the fingerprint deliberately: EU UMa's "
+         "era-78 block is the one this gate exists for, and a re-run that "
+         "silently starts publishing limits for it would change a duty "
+         "cycle from 'unmeasurable' to a number.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p2_limits", kind="db", name="p2_limits",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="rowid", columns=("count",),
+    why=("Row count of the forced measurements.  Counted rather than "
+         "hashed, for the same reason as cv_frames: it is one row per "
+         "undetected epoch with a dozen floats on it, and the identity of "
+         "what was measured and what was refused lives in "
+         "p2_limit_series above.")))
+
 # ---- G outputs ------------------------------------------------------------
 _reg(_t(
     "table:g_extractions", "g_extractions", "obs_rowid, method",
@@ -760,6 +862,119 @@ _reg(_t(
 def _f(key: str, path: str, why: str) -> None:
     _reg(ResourceSpec(key=key, kind="file", name=path, why=why))
 
+
+# ---- CV-S9 outputs (Phase-3 time-series analysis) -------------------------
+# The six questions Phase 3 exists to answer.  All six are DECISIONS about
+# what may be published, so all six sit in the graph: a moved period moves
+# every phase, cycle count and phase-coverage gate downstream; a moved
+# sigma_t moves whether per-cycle timing is publishable at all; a moved
+# state threshold moves every duty cycle.
+_reg(ResourceSpec(
+    key="db:cvphot:p3_ephemeris", kind="db", name="p3_ephemeris",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="target_key",
+    columns=("target_key", "coalesce(period_str,'')",
+             "coalesce(epoch_str,'')", "coalesce(source,'')"),
+    why=("The published ephemerides every Phase-3 result is compared "
+         "against, hashed on the STRINGS as fetched rather than on the "
+         "parsed floats.  The string is the claim: its digit count is what "
+         "the cycle-count analysis uses as the period-uncertainty floor, "
+         "because VSX publishes no uncertainty, and a catalogue revision "
+         "that added a digit would change the O-C verdict without changing "
+         "the value.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p3_period", kind="db", name="p3_period",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="series_key",
+    columns=("series_key", "printf('%.9f', coalesce(period_d,-1))",
+             "printf('%.4f', coalesce(alias_frac_max,-1))",
+             "coalesce(family_code,'')", "coalesce(agrees,-1)",
+             "coalesce(detected,-1)"),
+    why=("The period verification per series.  The ALIAS FRACTION and the "
+         "FAMILY CODE are in the fingerprint beside the period because they "
+         "carry the actual claim: a period is only a measurement if the "
+         "periodogram could select it, and in this archive none can.  A "
+         "re-run that moved a series from PRIOR to DATA would change what "
+         "the paper is allowed to say while leaving the period identical.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p3_sigmat", kind="db", name="p3_sigmat",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="series_key, inject_factor, shape_error, depth_error",
+    columns=("series_key", "printf('%.1f', coalesce(inject_width_s,-1))",
+             "printf('%.1f', coalesce(shape_error,-1))",
+             "printf('%.2f', coalesce(depth_error,-9))",
+             "printf('%.2f', coalesce(total_error_s,-1))",
+             "coalesce(passes,-1)"),
+    why=("The timing Monte Carlo grid.  The INJECTED WIDTH is in the "
+         "fingerprint because it turned out to decide the verdict: a "
+         "profile-bin estimate of 547 s gave CONDITIONAL, and the correctly "
+         "fitted 29-48 s gave NOT PUBLISHABLE.  A re-run that changed how "
+         "the edge width is measured would flip the conclusion of the whole "
+         "section without touching a single photometric measurement.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p3_edge", kind="db", name="p3_edge",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="series_key, cycle",
+    columns=("series_key", "cycle", "printf('%.7f', coalesce(t_edge_bjd,-1))",
+             "coalesce(accepted,-1)"),
+    why=("Every fitted bright-phase edge epoch and whether it was accepted. "
+         "The accept flag is hashed because the gates -- step signal-to-"
+         "noise, bracket width against the cadence, grid-edge solutions -- "
+         "are what separate a measured epoch from an interpolation between "
+         "two levels, and they feed both the inter-band differences and the "
+         "O-C.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p3_band_pair", kind="db", name="p3_band_pair",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="target_key, era_id, night, band_a, band_b",
+    columns=("target_key", "night", "band_a", "band_b",
+             "printf('%.2f', coalesce(delta_s,-999))",
+             "printf('%.2f', coalesce(sigma_s,-1))",
+             "coalesce(significant,-1)"),
+    why=("The inter-band edge-time differences -- the cyclotron result the "
+         "colour section is for.  The ERROR is hashed with the value "
+         "because the claim is a bound, not a detection, and the bound is "
+         "set by the injection Monte Carlo floor rather than by the "
+         "scatter.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p3_cycle_count", kind="db", name="p3_cycle_count",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="target_key",
+    columns=("target_key", "printf('%.4f', coalesce(drift_cycles,-1))",
+             "coalesce(unique_count,-1)", "coalesce(one_feature,-1)",
+             "coalesce(verdict,'')"),
+    why=("Whether an O-C is licensed at all.  Two independent gates are "
+         "hashed: UNIQUE_COUNT (does the period pin the integer cycle "
+         "number over tens of thousands of cycles?) and ONE_FEATURE (do the "
+         "epochs being pooled time the same edge?).  An O-C published "
+         "against a failed gate is a fabricated result rather than a noisy "
+         "one, which is why the flags and not just the numbers are in the "
+         "fingerprint.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p3_state_series", kind="db", name="p3_state_series",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="series_key",
+    columns=("series_key", "printf('%.3f', coalesce(threshold_mag,-1))",
+             "printf('%.3f', coalesce(separability,-1))",
+             "coalesce(bimodal,-1)",
+             "printf('%.4f', coalesce(duty_with_limits,-1))"),
+    why=("The accretion-state thresholds and duty cycles.  SEPARABILITY is "
+         "hashed with the threshold because it is what says whether the "
+         "threshold split two populations or bisected one: the duty cycle "
+         "of a unimodal series is arithmetic, not astronomy, and only the "
+         "separability distinguishes the two cases.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p3_detrend", kind="db", name="p3_detrend",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="series_key, window_periods",
+    columns=("series_key", "printf('%.2f', window_periods)",
+             "printf('%.4f', coalesce(frac_detrend,-1))",
+             "printf('%.4f', coalesce(frac_joint,-1))"),
+    why=("The measurement that licenses the nuisance model every "
+         "periodogram in this phase uses: how much of a known injected "
+         "signal survives detrend-then-search versus a joint GP fit.  If "
+         "these two columns ever converge, the argument for the joint fit "
+         "has to be remade rather than inherited.")))
 
 _f("file:docs/pipeline/s0_manifest.html", "docs/pipeline/s0_manifest.html",
    "S0 chain-of-evidence page: published dedup, alias, era and pointing "
@@ -801,6 +1016,40 @@ _f("file:docs/CV_TimeSeries/cv_external_context.html",
    "overlaid, the per-target survey coverage, the branch decision and the "
    "explicit statement of what the external record cannot do.  Whole-file "
    "hash — every byte of a published page is the claim.")
+_f("file:docs/CV_TimeSeries/cv_phase2_completion.html",
+   "docs/CV_TimeSeries/cv_phase2_completion.html",
+   "CV-S8 Phase-2 completion page: the ensemble-flux-ratio cloud veto with "
+   "its ZMAG calibration and its sculpting test, the second-order "
+   "colour-extinction coefficients with the star-bootstrap uncertainties "
+   "that decide whether any of them survive, the cross-era transformation "
+   "metadata with the discipline assertions, and the faint-phase upper "
+   "limits with the state statistics recomputed both ways.  Whole-file "
+   "hash — every byte of a published page is the claim.")
+_f("file:pipeline/macro_phot/phase2.py", "pipeline/macro_phot/phase2.py",
+   "The Phase-2 completion arithmetic: the cloud statistic and its veto "
+   "rule, the airmass window that refuses impossible AIRMASS cards, the "
+   "two-way centring the colour-extinction fit rests on, the significance "
+   "bar, the upper-limit convention, and the position-closure gate that "
+   "decides which blocks may publish limits at all.  Every constant in it "
+   "changes a published number, so it is an INPUT to the stage and to its "
+   "page.")
+_f("file:docs/CV_TimeSeries/cv_timeseries_analysis.html",
+   "docs/CV_TimeSeries/cv_timeseries_analysis.html",
+   "CV-S9 Phase-3 page: the period verification with the spectral window "
+   "beside every periodogram, the sigma_t injection contour against the "
+   "60 s threshold, the per-band bright-phase edge timing, the O-C with its "
+   "cycle-count and one-feature gates, the accretion-state duty cycles "
+   "computed with the Phase-2 limits, and the detrend-versus-joint-fit "
+   "demonstration.  Whole-file hash -- every byte of a published page is "
+   "the claim.")
+_f("file:pipeline/macro_phot/phase3.py", "pipeline/macro_phot/phase3.py",
+   "The Phase-3 arithmetic: the block-floating-mean periodogram and the "
+   "alias-decidability bar, the edge fit and its chi2_nu error rescaling, "
+   "the sigma_t injection and its total-error convention, the cycle-count "
+   "ambiguity, the Otsu threshold and its separability, and the joint "
+   "GP+signal fit with the celerite2 kernel epsilon pinned.  Every constant "
+   "in it changes a published number, so it is an INPUT to the stage and "
+   "to its page.")
 _f("file:pipeline/macro_phot/external.py", "pipeline/macro_phot/external.py",
    "The external-record arithmetic: the amplitude ladder, the plateau rule "
    "that separates a superoutburst from a normal outburst, the independence "
@@ -1216,6 +1465,96 @@ STAGES: tuple[Stage, ...] = (
                "file:pipeline/macro_phot/external.py"),
         writes=("file:docs/CV_TimeSeries/cv_external_context.html",),
         build_cmd="python pipeline/scripts/run_cv_external.py report"),
+    Stage(
+        key="CV-S8", title="CV Phase-2 completion (cloud veto, colour "
+                           "extinction, cross-era metadata, faint limits)",
+        code_version="PHASE2_CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_phase2.py",
+        version_symbol="PHASE2_CODE_VERSION",
+        # Reads the photometry product it judges (the frames it vetoes, the
+        # light curves it fits and forces), the catalogue tie whose colours
+        # and zero points every one of the four tasks consumes, and the pure
+        # module whose constants set every threshold.  The manifest's `zmag`
+        # column is the cloud calibration's independent channel and arrives
+        # through table:frames@cv.
+        reads=("db:cvphot:cv_selection", "db:cvphot:cv_frames",
+               "db:cvphot:cv_cattie", "table:frames@cv",
+               "file:pipeline/macro_phot/phase2.py"),
+        writes=("db:cvphot:p2_cloud_series", "db:cvphot:p2_cloud_bias",
+                "db:cvphot:p2_extinction", "db:cvphot:p2_transform",
+                "db:cvphot:p2_discipline", "db:cvphot:p2_limit_series",
+                "db:cvphot:p2_limits"),
+        meta_table="p2_meta",
+        meta_version_key="phase2_code_version",
+        build_cmd=("python pipeline/scripts/run_cv_phase2.py cloud\n"
+                   "python pipeline/scripts/run_cv_phase2.py extinction\n"
+                   "python pipeline/scripts/run_cv_phase2.py crossera\n"
+                   "python pipeline/scripts/run_cv_phase2.py forced\n"
+                   "python pipeline/scripts/run_cv_phase2.py report"),
+        note="Writes NO column on cv_lightcurve.  That is a design "
+             "commitment, not an omission: the cloud veto is published as "
+             "a per-frame FLAG that a later stage may honour or argue "
+             "with, and the transformation coefficients are metadata that "
+             "must never touch a target magnitude.  A stage that silently "
+             "edited the light curve would make both claims unfalsifiable."),
+    Stage(
+        key="R-CV-S8", title="Report: CV Phase-2 completion page",
+        code_version="PHASE2_CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_phase2.py",
+        version_symbol="PHASE2_CODE_VERSION",
+        reads=("db:cvphot:p2_cloud_series", "db:cvphot:p2_cloud_bias",
+               "db:cvphot:p2_extinction", "db:cvphot:p2_transform",
+               "db:cvphot:p2_discipline", "db:cvphot:p2_limit_series",
+               "file:pipeline/macro_phot/phase2.py"),
+        writes=("file:docs/CV_TimeSeries/cv_phase2_completion.html",),
+        build_cmd="python pipeline/scripts/run_cv_phase2.py report"),
+    Stage(
+        key="CV-S9", title="CV Phase-3 time-series analysis (periods, "
+                           "sigma_t, edge timing, O-C, states, detrending)",
+        code_version="PHASE3_CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_phase3.py",
+        version_symbol="PHASE3_CODE_VERSION",
+        # Reads the light curves it searches and times, the Phase-2 cloud
+        # flag it honours frame by frame, the Phase-2 limits its duty cycles
+        # are computed with, the measured error model every bar is inflated
+        # by, and the pure module whose constants set every threshold.
+        reads=("db:cvphot:p3_ephemeris", "db:cvphot:p2_cloud_series",
+               "db:cvphot:p2_limit_series", "db:cvphot:cv_frames",
+               "db:cvphot:cv_cattie",
+               "file:pipeline/macro_phot/phase3.py"),
+        writes=("db:cvphot:p3_period", "db:cvphot:p3_sigmat",
+                "db:cvphot:p3_edge", "db:cvphot:p3_band_pair",
+                "db:cvphot:p3_cycle_count", "db:cvphot:p3_state_series",
+                "db:cvphot:p3_detrend"),
+        meta_table="p3_meta",
+        meta_version_key="phase3_code_version",
+        build_cmd=("python pipeline/scripts/run_cv_phase3.py ephem\n"
+                   "python pipeline/scripts/run_cv_phase3.py periods\n"
+                   "python pipeline/scripts/run_cv_phase3.py sigmat\n"
+                   "python pipeline/scripts/run_cv_phase3.py edges\n"
+                   "python pipeline/scripts/run_cv_phase3.py oc\n"
+                   "python pipeline/scripts/run_cv_phase3.py states\n"
+                   "python pipeline/scripts/run_cv_phase3.py detrend\n"
+                   "python pipeline/scripts/run_cv_phase3.py report"),
+        note="Writes NO column on cv_lightcurve, and applies NO period of "
+             "its own.  Every phase, cycle count and coverage gate "
+             "downstream uses the PUBLISHED ephemeris, because section 1 "
+             "measured that no series in this archive has a spectral window "
+             "clean enough to select its own period -- the recovered values "
+             "are confirmations, not determinations, and using one as an "
+             "input would launder a prior into a measurement."),
+    Stage(
+        key="R-CV-S9", title="Report: CV Phase-3 time-series analysis page",
+        code_version="PHASE3_CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_phase3.py",
+        version_symbol="PHASE3_CODE_VERSION",
+        reads=("db:cvphot:p3_period", "db:cvphot:p3_sigmat",
+               "db:cvphot:p3_edge", "db:cvphot:p3_band_pair",
+               "db:cvphot:p3_cycle_count", "db:cvphot:p3_state_series",
+               "db:cvphot:p3_detrend", "db:cvphot:p3_ephemeris",
+               "file:pipeline/macro_phot/phase3.py"),
+        writes=("file:docs/CV_TimeSeries/cv_timeseries_analysis.html",),
+        build_cmd="python pipeline/scripts/run_cv_phase3.py report"),
     Stage(
         key="G", title="Grism extraction + identity gate (T CrB)",
         code_version="G_CODE_VERSION",

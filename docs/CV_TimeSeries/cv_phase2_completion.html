@@ -1,0 +1,650 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CV Time Series &mdash; Phase 2 Completion</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+
+<header>
+  <h1>Cataclysmic-Variable Time Series &mdash; closing out Phase&nbsp;2
+  photometry</h1>
+  <p>The cloud veto that had to be built because ZMAG does not exist for the
+  polars &middot; the colour-extinction terms measured rather than assumed
+  &middot; the cross-era transformation published as metadata and applied to
+  nothing &middot; the faint-phase epochs bounded instead of dropped
+  &middot; 850 frames flagged, 111 upper limits &middot;
+  built 2026-08-20T04:31Z
+  (CV-S8 v1.0 (2026-08-19, Phase-2 completion),
+  commit <code>f32d412-dirty</code>)
+  &middot; <a href="cv_catalogue_tie.html">the catalogue tie this rests
+  on</a> &middot; <a href="cv_characterization.html">the characterization
+  that set these thresholds</a> &middot;
+  <a href="index.html">project hub</a> &middot;
+  <a href="../index.html">all reports</a></p>
+</header>
+
+<nav>
+  <a href="#intro">0 The four holes</a> &middot;
+  <a href="#cloud">1 Cloud veto</a> &middot;
+  <a href="#extinction">2 Colour extinction</a> &middot;
+  <a href="#crossera">3 Cross-era discipline</a> &middot;
+  <a href="#limits">4 Faint-phase limits</a>
+</nav>
+
+
+<section id="intro">
+<div class="bhead"><h2>0 &middot; What Phase&nbsp;2 already had, and the four
+holes left in it</h2></div>
+
+<p>Phase&nbsp;2 measured 3,174,618 light-curve rows across 27 solved
+(target, era, filter) series and tied them to ATLAS-REFCAT2.  It also
+measured what it can actually do, and the answer is smaller than the
+strategy hoped: per-point precision runs
+<b>9&ndash;75&nbsp;mmag</b> depending on the series
+(CV-S5 characterization, precision at each target's own brightness), and chi&sup2; inflation runs
+<b>0.92&ndash;3.02</b>.  Every threshold on this page is
+set against those numbers, not against the ones the plan started with.</p>
+
+<div class="decision"><b>Why these four tasks and not others.</b> Each one is
+a place where a light curve that <i>looks</i> finished is quietly wrong.
+Cloud that was never removed becomes structure.  A colour-dependent
+extinction term that was never measured becomes a systematic nobody
+budgeted.  A transformation that was assumed rather than measured becomes a
+stitched light curve.  And undetected epochs that were dropped rather than
+bounded become a duty cycle computed over exactly the epochs where the
+target was bright enough to see &mdash; a tautology wearing a
+measurement's clothes.</div>
+
+<div class="decision"><b>The fact that forces task&nbsp;1's design.</b> The
+acquisition software writes a per-image photometric zero point
+(<code>ZMAG</code>) into every frame header, and the original cloud cut
+leaned on it.  Of the 7,780 CV frames this stage examined,
+<b>2,736</b> carry a usable one &mdash; and <i>none</i> of them are
+Sloan-era polar frames.  VV&nbsp;Pup: 0 of 1,353.  EU&nbsp;UMa era 78: 0 of
+208.  For the polars the primary cloud channel cannot be ZMAG, so it has to
+be the comparison ensemble's own summed flux.  The 2,736 frames that
+<i>do</i> carry ZMAG are not wasted, though: they are exactly what the new
+channel's threshold is calibrated against.</div>
+
+<p>The four sections below each run <b>Question &rarr; Evidence &rarr;
+Decision &rarr; Consequence</b>, in that order, and refuse to state a
+decision before the evidence that carries it.</p>
+</section>
+<section id="cloud">
+<div class="bhead"><h2>1 &middot; The ensemble-flux-ratio cloud veto</h2>
+<span class="tag">CV-P2-cloud-veto</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">What does a cloud do to a differential light curve, and how
+would we know it happened, on frames that carry no independent record of
+the sky?</p>
+<p>A Honeycutt ensemble is differential, so first order the answer is
+&ldquo;nothing&rdquo;: cloud dims the target and the comparison stars
+together and the ratio survives.  Second order it is not nothing.  A cloud
+that costs half a magnitude also costs half a magnitude of
+signal-to-noise on every star, drops the faint end of the ensemble below
+detection, and changes which stars the zero point is averaged over.  The
+result is not a shifted point, it is a NOISIER point with a zero point
+computed from a different set of stars &mdash; and on a 14&ndash;18
+point-per-cycle cadence, a handful of those is a spurious feature.</p>
+<p>The channel the strategy assumed &mdash; the header <code>ZMAG</code>
+&mdash; does not exist for the targets that need it most.  So the veto has
+to be built from the only thing measured on every frame by construction:
+the comparison ensemble's own summed flux.</p></div>
+
+<div class="stage"><h3>Evidence</h3>
+<p class="sub">The statistic, then the calibration, then the census.</p>
+<p>For every night of every series, the stars measured on at least
+80% of that night's frames form a
+<b>core ensemble</b> (membership fixed, so that a cloud cannot shrink the
+sum by removing contributors as well as by dimming them).  Each frame's
+statistic is the core's summed flux <i>rate</i> &mdash; flux per second, so
+that a night mixing 60&nbsp;s and 240&nbsp;s exposures is not read as a
+night mixing clear and cloudy sky &mdash; divided by the same subset's
+median.  That ratio is then divided by its own running median over
+&plusmn;10 frames.  Dividing by a <i>running</i> median
+rather than the night's median is what makes this a cloud detector instead
+of an airmass detector: extinction falls smoothly across a night and is
+already absorbed exactly by the ensemble zero point, while a cloud is a
+departure from the local normal on a timescale of minutes.</p>
+
+<figure><a href="figures/cv_phase2/cloud_calibration.png"><img src="figures/cv_phase2/cloud_calibration.png" alt=""></a><figcaption>LEFT: the calibration.  Every candidate threshold, scored on the frames that carry an independent ZMAG: how many independently-CLEAR frames it would throw away (red, the cost) against how many independently-ATTENUATED frames it would catch (green, the benefit).  The threshold is the highest one whose cost stays inside the declared budget.  RIGHT: the two channels frame by frame.  They are independent measurements &mdash; one from the acquisition software's own plate solve, one from our comparison ensemble.</figcaption></figure>
+
+<p><b>The two exemplar nights</b>, chosen by the INDEPENDENT channel (the
+spread of the header zero point) so that the exemplars are not selected by
+the statistic being tested:</p>
+<table class="data">
+<tr><th></th><th>series</th><th>night</th><th>frames</th><th>ZMAG MAD</th><th>ZMAG span</th><th>ratio MAD</th><th>worst ratio</th><th>vetoed</th></tr>
+<tr><td>CLEAR</td><td>YZ Cnc e72 <i>g</i></td><td>2024-05-02</td><td>51</td><td>0.033</td><td>0.253</td><td>0.0041</td><td>0.837</td><td>2</td></tr>
+<tr><td>CLOUDY</td><td>ST LMi e7 <i>I</i></td><td>2024-02-03</td><td>26</td><td>0.090</td><td>2.114</td><td>0.0576</td><td>0.201</td><td>5</td></tr>
+</table>
+
+<p><b>The calibration table</b> &mdash; the whole argument for the number,
+in one place:</p>
+<table class="data">
+<tr><th>threshold</th><th>clear frames</th><th>of which vetoed</th><th>false-veto rate</th><th>attenuated frames</th><th>of which vetoed</th><th>recall</th><th>chosen</th></tr>
+<tr><td>0.85</td><td>823</td><td>0</td><td>0.00%</td><td>221</td><td>146</td><td>66.1%</td><td></td></tr>
+<tr><td>0.86</td><td>823</td><td>0</td><td>0.00%</td><td>221</td><td>153</td><td>69.2%</td><td></td></tr>
+<tr><td>0.87</td><td>823</td><td>0</td><td>0.00%</td><td>221</td><td>163</td><td>73.8%</td><td></td></tr>
+<tr><td>0.88</td><td>823</td><td>1</td><td>0.12%</td><td>221</td><td>171</td><td>77.4%</td><td></td></tr>
+<tr><td>0.89</td><td>823</td><td>1</td><td>0.12%</td><td>221</td><td>178</td><td>80.5%</td><td></td></tr>
+<tr><td>0.90</td><td>823</td><td>2</td><td>0.24%</td><td>221</td><td>185</td><td>83.7%</td><td></td></tr>
+<tr><td>0.91</td><td>823</td><td>3</td><td>0.36%</td><td>221</td><td>186</td><td>84.2%</td><td></td></tr>
+<tr><td>0.92</td><td>823</td><td>5</td><td>0.61%</td><td>221</td><td>188</td><td>85.1%</td><td>&#10004;</td></tr>
+<tr><td>0.93</td><td>823</td><td>11</td><td>1.34%</td><td>221</td><td>191</td><td>86.4%</td><td></td></tr>
+<tr><td>0.94</td><td>823</td><td>18</td><td>2.19%</td><td>221</td><td>197</td><td>89.1%</td><td></td></tr>
+<tr><td>0.95</td><td>823</td><td>23</td><td>2.79%</td><td>221</td><td>204</td><td>92.3%</td><td></td></tr>
+<tr><td>0.96</td><td>823</td><td>32</td><td>3.89%</td><td>221</td><td>207</td><td>93.7%</td><td></td></tr>
+<tr><td>0.97</td><td>823</td><td>48</td><td>5.83%</td><td>221</td><td>208</td><td>94.1%</td><td></td></tr>
+<tr><td>0.98</td><td>823</td><td>81</td><td>9.84%</td><td>221</td><td>211</td><td>95.5%</td><td></td></tr>
+<tr><td>0.99</td><td>823</td><td>146</td><td>17.74%</td><td>221</td><td>213</td><td>96.4%</td><td></td></tr>
+<tr><td>1.00</td><td>823</td><td>329</td><td>39.98%</td><td>221</td><td>215</td><td>97.3%</td><td></td></tr>
+</table>
+</div>
+
+<div class="stage"><h3>Decision</h3>
+<div class="decision"><b>Threshold 0.92.</b> highest threshold whose false-veto rate stays within 1.0%: 5/823 independently-clear frames vetoed (0.61%), catching 188/221 independently-attenuated frames (85.1%)<br>
+Applied, it vetoes <b>850</b> of <b>7,780</b> frames
+(10.93%).  That rate is much larger than the
+false-veto rate because most vetoed frames sit in the band the independent
+labels deliberately leave unclassified: a frame that has lost
+0.09&ndash;0.15&nbsp;mag is neither &ldquo;clear&rdquo; nor
+&ldquo;attenuated&rdquo; by the ZMAG rule, but it is a frame the veto
+correctly removes.  The labels are deliberately narrow (see
+<code>phase2.ZMAG_CLEAR_MAG</code> and
+<code>phase2.ZMAG_ATTEN_MAG</code>) precisely so that neither class is
+manufactured.</div>
+<table class="data">
+<tr><th>series</th><th>frames</th><th>nights</th><th>core stars</th><th>vetoed</th><th>%</th><th>MAD of ratio</th><th>worst ratio</th><th>frames with ZMAG</th><th>note</th></tr>
+<tr class="warn"><td>VV Pup e76 <i>i</i></td><td>124</td><td>9</td><td>647</td><td>33</td><td>26.61%</td><td>0.0458</td><td>0.023</td><td>0</td><td></td></tr>
+<tr><td>VV Pup e76 <i>r</i></td><td>186</td><td>11</td><td>1,116</td><td>32</td><td>17.20%</td><td>0.0373</td><td>0.052</td><td>0</td><td></td></tr>
+<tr><td>EU UMa e76 <i>g</i></td><td>221</td><td>10</td><td>112</td><td>33</td><td>14.93%</td><td>0.0228</td><td>0.054</td><td>0</td><td></td></tr>
+<tr><td>ST LMi e7 <i>G</i></td><td>296</td><td>16</td><td>152</td><td>43</td><td>14.53%</td><td>0.0271</td><td>0.297</td><td>294</td><td></td></tr>
+<tr><td>VV Pup e76 <i>g</i></td><td>359</td><td>14</td><td>1,854</td><td>51</td><td>14.21%</td><td>0.0238</td><td>0.025</td><td>0</td><td></td></tr>
+<tr><td>AN UMa e76 <i>r</i></td><td>410</td><td>11</td><td>117</td><td>55</td><td>13.41%</td><td>0.0172</td><td>0.078</td><td>0</td><td></td></tr>
+<tr><td>YZ Cnc e7 <i>R</i></td><td>443</td><td>17</td><td>256</td><td>58</td><td>13.09%</td><td>0.0200</td><td>0.158</td><td>442</td><td></td></tr>
+<tr><td>VV Pup e72 <i>i</i></td><td>94</td><td>1</td><td>1,718</td><td>12</td><td>12.77%</td><td>0.0209</td><td>0.674</td><td>0</td><td></td></tr>
+<tr><td>AN UMa e76 <i>g</i></td><td>451</td><td>10</td><td>96</td><td>56</td><td>12.42%</td><td>0.0240</td><td>0.265</td><td>0</td><td></td></tr>
+<tr><td>ST LMi e7 <i>R</i></td><td>346</td><td>16</td><td>200</td><td>41</td><td>11.85%</td><td>0.0261</td><td>0.210</td><td>346</td><td></td></tr>
+<tr><td>YZ Cnc e7 <i>G</i></td><td>431</td><td>20</td><td>204</td><td>49</td><td>11.37%</td><td>0.0206</td><td>0.415</td><td>430</td><td></td></tr>
+<tr><td>EU UMa e76 <i>i</i></td><td>349</td><td>11</td><td>154</td><td>38</td><td>10.89%</td><td>0.0125</td><td>0.070</td><td>0</td><td></td></tr>
+<tr><td>ST LMi e76 <i>i</i></td><td>550</td><td>10</td><td>99</td><td>59</td><td>10.73%</td><td>0.0135</td><td>0.050</td><td>0</td><td></td></tr>
+<tr><td>ST LMi e7 <i>I</i></td><td>340</td><td>17</td><td>209</td><td>34</td><td>10.00%</td><td>0.0175</td><td>0.201</td><td>339</td><td></td></tr>
+<tr><td>VV Pup e72 <i>r</i></td><td>190</td><td>4</td><td>1,593</td><td>19</td><td>10.00%</td><td>0.0329</td><td>0.800</td><td>0</td><td></td></tr>
+<tr><td>YZ Cnc e7 <i>I</i></td><td>423</td><td>18</td><td>240</td><td>40</td><td>9.46%</td><td>0.0150</td><td>0.635</td><td>423</td><td></td></tr>
+<tr><td>ST LMi e76 <i>g</i></td><td>745</td><td>16</td><td>120</td><td>65</td><td>8.72%</td><td>0.0117</td><td>0.025</td><td>0</td><td></td></tr>
+<tr><td>AN UMa e76 <i>i</i></td><td>257</td><td>8</td><td>113</td><td>22</td><td>8.56%</td><td>0.0175</td><td>0.553</td><td>0</td><td></td></tr>
+<tr><td>ST LMi e76 <i>r</i></td><td>596</td><td>13</td><td>124</td><td>51</td><td>8.56%</td><td>0.0103</td><td>0.060</td><td>0</td><td></td></tr>
+<tr><td>EU UMa e78 <i>g</i></td><td>208</td><td>10</td><td>5</td><td>17</td><td>8.17%</td><td>0.0394</td><td>0.660</td><td>0</td><td></td></tr>
+<tr><td>YZ Cnc e72 <i>g</i></td><td>114</td><td>3</td><td>228</td><td>9</td><td>7.89%</td><td>0.0105</td><td>0.760</td><td>113</td><td></td></tr>
+<tr><td>YZ Cnc e72 <i>r</i></td><td>144</td><td>3</td><td>268</td><td>11</td><td>7.64%</td><td>0.0134</td><td>0.751</td><td>144</td><td></td></tr>
+<tr><td>VV Pup e72 <i>g</i></td><td>196</td><td>3</td><td>1,476</td><td>11</td><td>5.61%</td><td>0.0170</td><td>0.794</td><td>0</td><td></td></tr>
+<tr><td>EU UMa e76 <i>r</i></td><td>100</td><td>4</td><td>116</td><td>5</td><td>5.00%</td><td>0.0124</td><td>0.621</td><td>0</td><td></td></tr>
+<tr><td>YZ Cnc e72 <i>i</i></td><td>112</td><td>2</td><td>267</td><td>5</td><td>4.46%</td><td>0.0096</td><td>0.826</td><td>112</td><td></td></tr>
+<tr><td>ST LMi e47 <i>z</i></td><td>60</td><td>1</td><td>46</td><td>1</td><td>1.67%</td><td>0.0081</td><td>0.600</td><td>59</td><td></td></tr>
+<tr><td>ST LMi e47 <i>y</i></td><td>35</td><td>1</td><td>41</td><td>0</td><td>0.00%</td><td>0.0069</td><td>0.956</td><td>34</td><td></td></tr>
+</table>
+</div>
+
+<div class="stage"><h3>Consequence &mdash; and the test that had to pass
+first</h3>
+<p class="sub">Does the veto preferentially remove the target's FAINT
+phases?  If it did, it would carve the bottom out of every eclipse and
+every low state, invisibly, because the survivors would still look like a
+clean light curve.</p>
+<p>Two independent readings, both two-sided: a Mann-Whitney&nbsp;U on the
+target magnitudes of vetoed against kept frames, and a two-proportion
+z&nbsp;test on the veto rate in the target's faintest quartile against its
+brightest.  A third column reports the veto rate on epochs where the target
+was not detected at all &mdash; the faintest epochs of the series by
+definition, and the ones no magnitude-based test can see.</p>
+
+<figure><a href="figures/cv_phase2/cloud_sculpting.png"><img src="figures/cv_phase2/cloud_sculpting.png" alt=""></a><figcaption>Veto rate in the target's brightest quartile (blue) against its faintest quartile (yellow), per series.  Sculpting would show as yellow systematically longer than blue.</figcaption></figure>
+
+<table class="data">
+<tr><th>series</th><th>measured epochs</th><th>vetoed</th><th>median mag (vetoed)</th><th>median mag (kept)</th><th>p (Mann-Whitney)</th><th>veto rate, faint quartile</th><th>veto rate, bright quartile</th><th>p (two-proportion)</th><th>veto rate, undetected epochs</th><th>veto rate, detected epochs</th><th>verdict</th></tr>
+<tr><td>AN UMa e76 <i>g</i></td><td>425</td><td>41</td><td>19.590</td><td>19.566</td><td>0.5348</td><td>10.3%</td><td>13.1%</td><td>0.5232</td><td>57.7%</td><td>9.6%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>AN UMa e76 <i>i</i></td><td>253</td><td>21</td><td>20.830</td><td>20.964</td><td>0.3970</td><td>12.5%</td><td>17.2%</td><td>0.4558</td><td>25.0%</td><td>8.3%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>AN UMa e76 <i>r</i></td><td>366</td><td>29</td><td>20.159</td><td>20.221</td><td>0.9351</td><td>8.7%</td><td>6.5%</td><td>0.5781</td><td>59.1%</td><td>7.9%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>EU UMa e76 <i>g</i></td><td>172</td><td>3</td><td>22.479</td><td>22.227</td><td>0.2129</td><td>2.3%</td><td>0.0%</td><td>0.3145</td><td>61.2%</td><td>1.7%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>EU UMa e76 <i>i</i></td><td>24</td><td>1</td><td>25.056</td><td>25.542</td><td>&mdash;</td><td>0.0%</td><td>0.0%</td><td>&mdash;</td><td>11.4%</td><td>4.2%</td><td>NOT TESTABLE — no finite test statistic</td></tr>
+<tr><td>EU UMa e76 <i>r</i></td><td>45</td><td>1</td><td>22.853</td><td>23.828</td><td>&mdash;</td><td>0.0%</td><td>8.3%</td><td>0.3070</td><td>7.3%</td><td>2.2%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>EU UMa e78 <i>g</i></td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>8.2%</td><td>&mdash;</td><td>NOT TESTABLE — fewer than 8 measured epochs, or nothing vetoed, or everything vetoed</td></tr>
+<tr><td>ST LMi e47 <i>y</i></td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>0.0%</td><td>&mdash;</td><td>NOT TESTABLE — fewer than 8 measured epochs, or nothing vetoed, or everything vetoed</td></tr>
+<tr><td>ST LMi e47 <i>z</i></td><td>57</td><td>1</td><td>21.582</td><td>21.259</td><td>&mdash;</td><td>0.0%</td><td>0.0%</td><td>&mdash;</td><td>0.0%</td><td>1.8%</td><td>NOT TESTABLE — no finite test statistic</td></tr>
+<tr><td>ST LMi e76 <i>g</i></td><td>720</td><td>45</td><td>19.108</td><td>19.139</td><td>0.6031</td><td>7.8%</td><td>5.0%</td><td>0.2812</td><td>80.0%</td><td>6.2%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>ST LMi e76 <i>i</i></td><td>513</td><td>30</td><td>20.531</td><td>20.601</td><td>0.5861</td><td>7.0%</td><td>7.0%</td><td>1.0000</td><td>78.4%</td><td>5.8%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>ST LMi e76 <i>r</i></td><td>568</td><td>31</td><td>19.637</td><td>19.754</td><td>0.0581</td><td>4.2%</td><td>7.0%</td><td>0.3033</td><td>71.4%</td><td>5.5%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>ST LMi e7 <i>G</i></td><td>278</td><td>42</td><td>19.434</td><td>19.508</td><td>0.1731</td><td>5.7%</td><td>12.9%</td><td>0.1454</td><td>5.6%</td><td>15.1%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>ST LMi e7 <i>I</i></td><td>315</td><td>29</td><td>19.405</td><td>19.720</td><td>0.3509</td><td>6.3%</td><td>10.1%</td><td>0.3851</td><td>20.0%</td><td>9.2%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>ST LMi e7 <i>R</i></td><td>308</td><td>33</td><td>19.354</td><td>19.470</td><td>0.3233</td><td>6.5%</td><td>9.1%</td><td>0.5477</td><td>21.1%</td><td>10.7%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>VV Pup e72 <i>g</i></td><td>194</td><td>11</td><td>20.323</td><td>20.263</td><td>0.0493</td><td>14.3%</td><td>6.1%</td><td>0.1819</td><td>0.0%</td><td>5.7%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>VV Pup e72 <i>i</i></td><td>75</td><td>1</td><td>20.557</td><td>20.961</td><td>&mdash;</td><td>0.0%</td><td>5.3%</td><td>0.3109</td><td>57.9%</td><td>1.3%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>VV Pup e72 <i>r</i></td><td>180</td><td>12</td><td>20.503</td><td>20.388</td><td>0.3710</td><td>6.7%</td><td>4.4%</td><td>0.6454</td><td>70.0%</td><td>6.7%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>VV Pup e76 <i>g</i></td><td>323</td><td>30</td><td>18.378</td><td>18.540</td><td>0.1006</td><td>4.9%</td><td>12.3%</td><td>0.0934</td><td>58.3%</td><td>9.3%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>VV Pup e76 <i>i</i></td><td>51</td><td>1</td><td>22.226</td><td>22.395</td><td>&mdash;</td><td>0.0%</td><td>7.7%</td><td>0.3078</td><td>43.8%</td><td>2.0%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>VV Pup e76 <i>r</i></td><td>143</td><td>13</td><td>20.958</td><td>21.226</td><td>0.0127</td><td>5.6%</td><td>22.2%</td><td>0.0409</td><td>44.2%</td><td>9.1%</td><td>BRIGHT-PHASE VETO EXCESS</td></tr>
+<tr><td>YZ Cnc e72 <i>g</i></td><td>114</td><td>9</td><td>16.971</td><td>16.890</td><td>0.4781</td><td>6.9%</td><td>6.9%</td><td>1.0000</td><td>&mdash;</td><td>7.9%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>YZ Cnc e72 <i>i</i></td><td>112</td><td>5</td><td>17.512</td><td>17.523</td><td>0.5588</td><td>7.1%</td><td>3.6%</td><td>0.5529</td><td>&mdash;</td><td>4.5%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>YZ Cnc e72 <i>r</i></td><td>144</td><td>11</td><td>16.686</td><td>16.865</td><td>0.0273</td><td>0.0%</td><td>16.7%</td><td>0.0105</td><td>&mdash;</td><td>7.6%</td><td>BRIGHT-PHASE VETO EXCESS</td></tr>
+<tr><td>YZ Cnc e7 <i>G</i></td><td>431</td><td>49</td><td>15.924</td><td>15.819</td><td>0.6261</td><td>12.0%</td><td>18.5%</td><td>0.1855</td><td>&mdash;</td><td>11.4%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>YZ Cnc e7 <i>I</i></td><td>423</td><td>40</td><td>16.846</td><td>16.889</td><td>0.1711</td><td>11.3%</td><td>16.0%</td><td>0.3176</td><td>&mdash;</td><td>9.5%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>YZ Cnc e7 <i>R</i></td><td>442</td><td>57</td><td>16.359</td><td>16.174</td><td>0.9739</td><td>16.2%</td><td>19.8%</td><td>0.4849</td><td>100.0%</td><td>12.9%</td><td>NO SCULPTING DETECTED</td></tr>
+</table>
+
+<div class="decision"><b>21 series show no sculpting; 0 show a
+FAINT-side excess; 2 show a BRIGHT-side excess.</b>
+The direction is part of the answer and the verdict names it, because a
+significant asymmetry in which the BRIGHT quartile is vetoed more often
+cannot carve a low state out of a light curve.  Collapsing both directions
+into one alarm would have reported
+2 &ldquo;suspected&rdquo; series and trained the reader
+to ignore the word.  <b>The veto is safe to apply as a cleaning step</b> on
+this evidence, and the per-frame flag is published rather than applied, so
+a later stage can honour it or argue with it.</div>
+
+<div class="decision"><b>What this stage deliberately does NOT do.</b> It
+writes no column on <code>cv_lightcurve</code>.  The veto is a per-frame
+FLAG in <code>p2_cloud_frame</code>.  A stage that silently deleted rows
+would make the sculpting test above unfalsifiable &mdash; there would be
+nothing left to test it on.</div>
+</div>
+</section>
+<section id="extinction">
+<div class="bhead"><h2>2 &middot; Second-order colour-extinction terms</h2>
+<span class="tag">CV-P2-extinction</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">The ensemble already removes extinction.  What is left?</p>
+<p>The Honeycutt model is <code>m<sub>sj</sub> = M<sub>s</sub> +
+ZP<sub>j</sub></code>.  Anything common to a whole frame lands in
+<code>ZP<sub>j</sub></code>, so first-order extinction
+<code>k&prime;&middot;X</code> is removed <i>exactly</i> and there is
+nothing to measure.  What the model cannot absorb is the part that differs
+between stars in the SAME frame: the colour-dependent term
+<code>k&Prime;&middot;(C&minus;C<sub>ref</sub>)&middot;(X&minus;X<sub>ref</sub>)</code>.
+If that term is real and unmodelled, it puts an airmass-shaped systematic
+on every star whose colour differs from the ensemble mean &mdash; and a
+cataclysmic variable's colour differs from the ensemble mean by
+construction.</p></div>
+
+<div class="stage"><h3>Evidence</h3>
+<p class="sub">One coefficient per (era, filter), fitted on comparison
+stars, with the uncertainty that matters rather than the one that is easy.</p>
+<p>Three choices carry this fit, and each was forced by something the data
+did:</p>
+<ol>
+<li><b>The design column is two-way centred.</b> The solver has already
+projected out a free constant per star and per frame, so a design column
+still containing star means and frame means lives partly in the space the
+solver removed and returns a diluted coefficient.  The column is projected
+the same way the data were &mdash; iteratively, because the tables are
+sparse and the two projections do not commute.</li>
+<li><b>Impossible airmasses are refused.</b> 62 matched CV frames carry
+header <code>AIRMASS</code> between 5 and 6,877.  VV&nbsp;Pup, at
+dec&nbsp;&minus;19, cannot exceed airmass&nbsp;2.1 from this site at any
+hour of any night.  Because the design column is proportional to
+<code>(X&minus;X<sub>ref</sub>)</code>, one <code>X&nbsp;=&nbsp;6,877</code>
+point carries 40,000&times; the leverage of a real one; the first run of
+this stage returned
+<code>k&Prime;&nbsp;=&nbsp;&minus;4&times;10<sup>&minus;5</sup></code> for
+era&nbsp;76 for exactly that reason, which is how the defect was found.
+The window is now
+[1,&nbsp;3].</li>
+<li><b>The published error is a star bootstrap, not the formal one.</b> The
+formal weighted-least-squares error treats every (star, frame) measurement
+as an independent draw.  They are not: a comparison star whose catalogue
+colour is 0.05&nbsp;mag wrong contributes the same wrong colour to all
+1,600 of its measurements.  Resampling whole STARS &mdash; the unit that
+actually varies independently &mdash; gives errors 3&ndash;35&times; larger,
+and the published uncertainty is the larger of the two.</li>
+</ol>
+
+<figure><a href="figures/cv_phase2/extinction.png"><img src="figures/cv_phase2/extinction.png" alt=""></a><figcaption>LEFT: the coefficient with both error bars.  The wide blue bar is the published (bootstrap) uncertainty; the short red bar is the formal one, which assumes every measurement is independent.  The difference between them is the whole reason this section reaches the conclusion it does.  RIGHT: the SIZE of each effect or of its bound, against the per-point precision this campaign actually achieves.</figcaption></figure>
+
+<table class="data">
+<tr><th>era, filter</th><th>colour</th><th>points</th><th>stars</th><th>frames</th><th>colour range</th><th>airmass range</th><th>k&Prime; (published)</th><th>formal &sigma;</th><th>bootstrap &sigma;</th><th>t</th><th>&chi;&sup2;/&nu;</th><th>effect p95 (mmag)</th><th>bound (mmag)</th><th>verdict</th></tr>
+<tr class="warn"><td>era 7 <i>G</i></td><td>g-r</td><td>49,769</td><td>170</td><td>727</td><td>-0.29 &hellip; 1.22</td><td>1.00 &hellip; 2.68</td><td>-0.01710&thinsp;&plusmn;&thinsp;0.00395</td><td>0.00210</td><td>0.00395</td><td>-4.32</td><td>1.39</td><td>1.94</td><td>1.98</td><td>SIGNIFICANT</td></tr>
+<tr><td>era 7 <i>I</i></td><td>r-i</td><td>68,235</td><td>228</td><td>763</td><td>-1.31 &hellip; 1.96</td><td>1.00 &hellip; 2.78</td><td>-0.00407&thinsp;&plusmn;&thinsp;0.00172</td><td>0.00121</td><td>0.00172</td><td>-2.36</td><td>1.28</td><td>0.66</td><td>1.20</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr><td>era 7 <i>R</i></td><td>g-r</td><td>72,242</td><td>235</td><td>787</td><td>-0.29 &hellip; 1.32</td><td>1.00 &hellip; 2.67</td><td>-0.00463&thinsp;&plusmn;&thinsp;0.00277</td><td>0.00170</td><td>0.00277</td><td>-1.67</td><td>1.38</td><td>0.64</td><td>1.56</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr><td>era 47 <i>y</i></td><td></td><td>0</td><td>0</td><td>0</td><td>&mdash; &hellip; &mdash;</td><td>&mdash; &hellip; &mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NOT FITTED</td></tr>
+<tr><td>era 47 <i>z</i></td><td>i-z</td><td>2,359</td><td>46</td><td>58</td><td>0.00 &hellip; 0.64</td><td>1.03 &hellip; 1.33</td><td>+0.04347&thinsp;&plusmn;&thinsp;0.15733</td><td>0.01543</td><td>0.15733</td><td>0.28</td><td>1.65</td><td>1.06</td><td>14.74</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr><td>era 72 <i>g</i></td><td>g-r</td><td>18,919</td><td>313</td><td>116</td><td>0.00 &hellip; 1.23</td><td>1.13 &hellip; 2.35</td><td>-0.00360&thinsp;&plusmn;&thinsp;0.01130</td><td>0.00144</td><td>0.01130</td><td>-0.32</td><td>2.52</td><td>0.45</td><td>5.52</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr><td>era 72 <i>i</i></td><td>r-i</td><td>19,227</td><td>176</td><td>112</td><td>-0.02 &hellip; 1.52</td><td>1.13 &hellip; 2.33</td><td>-0.05454&thinsp;&plusmn;&thinsp;0.05604</td><td>0.00164</td><td>0.05604</td><td>-0.97</td><td>3.77</td><td>8.37</td><td>36.17</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr><td>era 72 <i>r</i></td><td>g-r</td><td>26,175</td><td>328</td><td>146</td><td>-0.08 &hellip; 1.23</td><td>1.13 &hellip; 2.34</td><td>+0.01044&thinsp;&plusmn;&thinsp;0.01444</td><td>0.00110</td><td>0.01444</td><td>0.72</td><td>3.00</td><td>1.64</td><td>9.11</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr class="warn"><td>era 76 <i>g</i></td><td>g-r</td><td>503,057</td><td>1,827</td><td>1,608</td><td>-0.10 &hellip; 2.59</td><td>1.00 &hellip; 2.96</td><td>-0.02474&thinsp;&plusmn;&thinsp;0.00500</td><td>0.00069</td><td>0.00500</td><td>-4.94</td><td>7.36</td><td>1.38</td><td>2.50</td><td>SIGNIFICANT</td></tr>
+<tr><td>era 76 <i>i</i></td><td>r-i</td><td>124,643</td><td>1,202</td><td>1,185</td><td>-1.31 &hellip; 1.55</td><td>1.00 &hellip; 2.85</td><td>-0.01080&thinsp;&plusmn;&thinsp;0.00596</td><td>0.00079</td><td>0.00596</td><td>-1.81</td><td>4.35</td><td>1.39</td><td>5.32</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr><td>era 76 <i>r</i></td><td>g-r</td><td>204,541</td><td>1,618</td><td>1,092</td><td>-0.10 &hellip; 2.59</td><td>1.00 &hellip; 2.96</td><td>-0.00260&thinsp;&plusmn;&thinsp;0.00207</td><td>0.00045</td><td>0.00207</td><td>-1.25</td><td>4.95</td><td>0.31</td><td>1.79</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr><td>era 78 <i>g</i></td><td>g-r</td><td>0</td><td>0</td><td>0</td><td>&mdash; &hellip; &mdash;</td><td>&mdash; &hellip; &mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NOT FITTED</td></tr>
+</table>
+</div>
+
+<div class="stage"><h3>Decision</h3>
+<div class="decision"><b>2 of 10 fitted (era, filter) groups show
+a second-order colour-extinction term at
+3&nbsp;&sigma;, and even those move a real
+measurement by at most 1.94&nbsp;mmag.</b>  The campaign's
+achieved per-point precision is 9&ndash;75&nbsp;mmag.
+<b>No term is applied.</b>  Applying a correction an order of magnitude below the noise it
+sits in adds the correction's own uncertainty to every point and buys
+nothing measurable.</div>
+<div class="decision"><b>The bound goes into the error budget instead.</b>
+For every group the table above carries
+<code>3&sigma;&nbsp;&times;&nbsp;&sigma;<sub>k&Prime;</sub>&nbsp;&times;&nbsp;(&Delta;C/2)&nbsp;&times;&nbsp;(&Delta;X/2)</code>
+&mdash; the largest systematic the data still allow this omission to cost.
+The worst of them is <b>36.17&nbsp;mmag</b>, on a group whose own
+per-point precision is far larger.  That is the honest form of the answer:
+not &ldquo;the term is zero&rdquo;, which we cannot show, but &ldquo;the
+term cannot cost more than this, and this is small compared with what we
+can measure&rdquo;.</div>
+<ul style="font-size:13px;color:#9aa4b2;max-width:1100px"><li><b>era 7 <i>G</i></b> &mdash; significant at 4.3 sigma; the term moves a real measurement by up to 1.9 mmag (95th percentile of |k''z| over the fitted points); uncertainty published is the larger of the formal 0.00210 and the 24-replicate star bootstrap 0.00395; 950 points clipped at 4 sigma</li><li><b>era 7 <i>I</i></b> &mdash; consistent with zero (2.4 sigma); |k''| &lt; 0.0052 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 1.2 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00121 and the 24-replicate star bootstrap 0.00172; 1,290 points clipped at 4 sigma</li><li><b>era 7 <i>R</i></b> &mdash; consistent with zero (1.7 sigma); |k''| &lt; 0.0083 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 1.6 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00170 and the 24-replicate star bootstrap 0.00277; 1,183 points clipped at 4 sigma</li><li><b>era 47 <i>y</i></b> &mdash; fewer than 200 comparison measurements carrying both a catalogue colour and a usable airmass</li><li><b>era 47 <i>z</i></b> &mdash; consistent with zero (0.3 sigma); |k''| &lt; 0.4720 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 14.7 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.01543 and the 24-replicate star bootstrap 0.15733; 57 points clipped at 4 sigma</li><li><b>era 72 <i>g</i></b> &mdash; consistent with zero (0.3 sigma); |k''| &lt; 0.0339 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 5.5 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00144 and the 24-replicate star bootstrap 0.01130; 499 points clipped at 4 sigma</li><li><b>era 72 <i>i</i></b> &mdash; consistent with zero (1.0 sigma); |k''| &lt; 0.1681 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 36.2 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00164 and the 24-replicate star bootstrap 0.05604; 427 points clipped at 4 sigma</li><li><b>era 72 <i>r</i></b> &mdash; consistent with zero (0.7 sigma); |k''| &lt; 0.0433 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 9.1 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00110 and the 24-replicate star bootstrap 0.01444; 611 points clipped at 4 sigma</li><li><b>era 76 <i>g</i></b> &mdash; significant at 4.9 sigma; the term moves a real measurement by up to 1.4 mmag (95th percentile of |k''z| over the fitted points); uncertainty published is the larger of the formal 0.00069 and the 24-replicate star bootstrap 0.00500; 18 frames refused for an AIRMASS card outside [1, 3]; 20,444 points clipped at 4 sigma</li><li><b>era 76 <i>i</i></b> &mdash; consistent with zero (1.8 sigma); |k''| &lt; 0.0179 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 5.3 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00079 and the 24-replicate star bootstrap 0.00596; 26 frames refused for an AIRMASS card outside [1, 3]; 6,078 points clipped at 4 sigma</li><li><b>era 76 <i>r</i></b> &mdash; consistent with zero (1.3 sigma); |k''| &lt; 0.0062 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 1.8 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00045 and the 24-replicate star bootstrap 0.00207; 43 frames refused for an AIRMASS card outside [1, 3]; 10,193 points clipped at 4 sigma</li><li><b>era 78 <i>g</i></b> &mdash; fewer than 200 comparison measurements carrying both a catalogue colour and a usable airmass</li></ul>
+</div>
+
+<div class="stage"><h3>Consequence</h3>
+<p>Nothing in <code>cv_lightcurve</code> changes.  What changes is that the
+CV error budget now carries a NAMED, MEASURED line for colour-dependent
+extinction instead of an unexamined assumption, and any future claim at the
+few-mmag level has a number to check itself against.  Two groups could not
+be fitted at all and the table says which and why rather than omitting
+them: EU&nbsp;UMa's merged era-78 Fast block carries no per-star catalogue
+tie (it is the block with five comparison stars and no check stars), and
+ST&nbsp;LMi's era-47 <i>y</i> block carries no catalogue tie of any kind,
+because ATLAS-REFCAT2 does not publish a <i>y</i> band.</p>
+</div>
+</section>
+<section id="crossera">
+<div class="bhead"><h2>3 &middot; Cross-era discipline and transformation
+metadata</h2><span class="tag">CV-P2-cross-era</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">ST&nbsp;LMi was observed in G/R/I in 2024 and in g/r/i in
+2025&ndash;26, and the two seasons do not overlap in time.  What is the cost
+of pretending they are one data set &mdash; and can we prove we did not?</p>
+<p>Two separate obligations sit here and they are easy to confuse.  The
+first is <b>metadata</b>: a data release has to publish the transformation
+between its own natural systems, derived from stars, with uncertainties, so
+that somebody else can convert a magnitude.  The second is
+<b>discipline</b>: the paper compares two within-era analyses and never
+stitches them, and that promise is worth nothing unless the products are
+checked against it.  Publishing the coefficients and applying them are
+opposite acts.</p></div>
+
+<div class="stage"><h3>Evidence &mdash; part one, the coefficients</h3>
+<p class="sub">Fitted on comparison stars common to both eras, matched
+through the same ATLAS-REFCAT2 row, with both magnitudes first put on
+their own era's catalogue zero point so that what is left is bandpass.</p>
+<p>The model is
+<code>m<sub>to</sub> &minus; m<sub>from</sub> = a + b&middot;(C &minus;
+C<sub>ref</sub>)</code>, centred on the median colour of the tie stars so
+that <code>a</code> is the offset AT THE COLOUR THE STARS ACTUALLY HAVE
+&mdash; decorrelated from <code>b</code>, rather than an extrapolation to
+zero colour, which no star in this campaign occupies.</p>
+<p>One row is a <b>control</b>: VV&nbsp;Pup g&rarr;g, r&rarr;r, i&rarr;i
+compares two eras wearing the SAME filter labels through two different
+cameras.  If the method works, the control measures the detector change and
+nothing else, and it does so with an order of magnitude more stars than the
+science rows.</p>
+<p>And there is an independent prediction to check against.  The catalogue
+tie already measured, for each era separately, how far that era's bandpass
+sits from the catalogue's &mdash; that is its colour term <code>k</code>.
+If the two eras' natural systems differ only in bandpass, then the slope
+measured here star-by-star must equal
+<code>k<sub>to</sub> &minus; k<sub>from</sub></code>, which was measured a
+completely different way.</p>
+
+<figure><a href="figures/cv_phase2/transform.png"><img src="figures/cv_phase2/transform.png" alt=""></a><figcaption>LEFT: the colour slope measured star-by-star here (blue circles) against the slope the two eras' catalogue colour terms predict (yellow squares).  Two independent routes to the same number.  RIGHT: the zero-point step between eras at the reference colour &mdash; what stitching would cost before any colour term is even considered.</figcaption></figure>
+
+<table class="data">
+<tr><th>target</th><th>transformation</th><th>kind</th><th>colour</th><th>stars</th><th>colour range</th><th>C<sub>ref</sub></th><th>a (offset)</th><th>b (slope)</th><th>b predicted by the ties</th><th>tension (&sigma;)</th><th>rms (mmag)</th><th>&chi;&sup2;/&nu;</th></tr>
+<tr><td>ST LMi</td><td>e7 <i>G</i> &rarr; e76 <i>g</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>g-r</td><td>64</td><td>0.15 &hellip; 1.22</td><td>0.458</td><td>+0.0056&thinsp;&plusmn;&thinsp;0.0029</td><td>+0.0186&thinsp;&plusmn;&thinsp;0.0085</td><td>-0.0052&thinsp;&plusmn;&thinsp;0.0119</td><td>1.6</td><td>21.3</td><td>7.32</td></tr>
+<tr><td>ST LMi</td><td>e7 <i>I</i> &rarr; e76 <i>i</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>r-i</td><td>66</td><td>-1.31 &hellip; 1.41</td><td>0.220</td><td>+0.0171&thinsp;&plusmn;&thinsp;0.0042</td><td>-0.0022&thinsp;&plusmn;&thinsp;0.0086</td><td>-0.0012&thinsp;&plusmn;&thinsp;0.0126</td><td>-0.1</td><td>31.4</td><td>14.60</td></tr>
+<tr><td>ST LMi</td><td>e7 <i>R</i> &rarr; e76 <i>r</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>g-r</td><td>88</td><td>0.15 &hellip; 1.26</td><td>0.583</td><td>+0.0088&thinsp;&plusmn;&thinsp;0.0030</td><td>+0.0178&thinsp;&plusmn;&thinsp;0.0080</td><td>+0.0150&thinsp;&plusmn;&thinsp;0.0112</td><td>0.2</td><td>26.9</td><td>11.23</td></tr>
+<tr><td>VV Pup</td><td>e72 <i>g</i> &rarr; e76 <i>g</i></td><td>control: Sloan -&gt; Sloan, different camera era</td><td>g-r</td><td>1,256</td><td>-0.10 &hellip; 1.24</td><td>0.420</td><td>+0.0039&thinsp;&plusmn;&thinsp;0.0007</td><td>+0.0500&thinsp;&plusmn;&thinsp;0.0038</td><td>+0.0577&thinsp;&plusmn;&thinsp;0.0091</td><td>-0.8</td><td>24.7</td><td>9.56</td></tr>
+<tr><td>VV Pup</td><td>e72 <i>i</i> &rarr; e76 <i>i</i></td><td>control: Sloan -&gt; Sloan, different camera era</td><td>r-i</td><td>932</td><td>-0.15 &hellip; 1.38</td><td>0.152</td><td>+0.0132&thinsp;&plusmn;&thinsp;0.0011</td><td>+0.0483&thinsp;&plusmn;&thinsp;0.0076</td><td>+0.0465&thinsp;&plusmn;&thinsp;0.0136</td><td>0.1</td><td>33.7</td><td>13.90</td></tr>
+<tr><td>VV Pup</td><td>e72 <i>r</i> &rarr; e76 <i>r</i></td><td>control: Sloan -&gt; Sloan, different camera era</td><td>g-r</td><td>1,329</td><td>-0.10 &hellip; 1.29</td><td>0.438</td><td>+0.0103&thinsp;&plusmn;&thinsp;0.0008</td><td>+0.0250&thinsp;&plusmn;&thinsp;0.0039</td><td>+0.0210&thinsp;&plusmn;&thinsp;0.0092</td><td>0.4</td><td>30.7</td><td>12.87</td></tr>
+<tr><td>YZ Cnc</td><td>e7 <i>G</i> &rarr; e72 <i>g</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>g-r</td><td>86</td><td>0.26 &hellip; 1.19</td><td>0.455</td><td>+0.0075&thinsp;&plusmn;&thinsp;0.0026</td><td>-0.0383&thinsp;&plusmn;&thinsp;0.0133</td><td>-0.0439&thinsp;&plusmn;&thinsp;0.0130</td><td>0.3</td><td>23.3</td><td>8.97</td></tr>
+<tr><td>YZ Cnc</td><td>e7 <i>I</i> &rarr; e72 <i>i</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>r-i</td><td>100</td><td>0.07 &hellip; 1.52</td><td>0.174</td><td>+0.0068&thinsp;&plusmn;&thinsp;0.0024</td><td>-0.0498&thinsp;&plusmn;&thinsp;0.0115</td><td>-0.0559&thinsp;&plusmn;&thinsp;0.0118</td><td>0.4</td><td>22.7</td><td>8.32</td></tr>
+<tr><td>YZ Cnc</td><td>e7 <i>R</i> &rarr; e72 <i>r</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>g-r</td><td>98</td><td>0.26 &hellip; 1.23</td><td>0.457</td><td>+0.0038&thinsp;&plusmn;&thinsp;0.0025</td><td>-0.0038&thinsp;&plusmn;&thinsp;0.0116</td><td>-0.0003&thinsp;&plusmn;&thinsp;0.0105</td><td>-0.2</td><td>23.1</td><td>8.84</td></tr>
+</table>
+
+<div class="decision"><b>Every one of the 9 transformations agrees
+with the independent prediction from the catalogue colour terms to within
+1.6&nbsp;&sigma;.</b>  That is the strongest available statement
+that these coefficients mean what they say: the same bandpass difference,
+measured twice by methods that share no arithmetic &mdash; one a regression
+of ensemble magnitude against catalogue magnitude, the other a differencing
+of two ensembles star by star.</div>
+</div>
+
+<div class="stage"><h3>Evidence &mdash; part two, the discipline</h3>
+<p class="sub">Four assertions about the PRODUCTS, not about our
+intentions.</p>
+<table class="data">
+<tr><th>check</th><th>statement</th><th>checked</th><th>violations</th><th>verdict</th><th>detail</th></tr>
+<tr><td><code>no-era-mixing</code></td><td>Every frame in a series belongs to that series' era.</td><td>8,716</td><td>0</td><td><b>HOLDS</b></td><td></td></tr>
+<tr><td><code>no-target-transform</code></td><td>Every calibrated target magnitude equals mag - zp exactly: a zero-point shift and no colour transformation.</td><td>6,676</td><td>0</td><td><b>HOLDS</b></td><td></td></tr>
+<tr><td><code>series-key-honest</code></td><td>Every series key names the era its own row records.</td><td>33</td><td>0</td><td><b>HOLDS</b></td><td></td></tr>
+<tr><td><code>transform-is-metadata</code></td><td>The cross-era transformation coefficients are published as metadata and applied to no light-curve point.</td><td>9</td><td>0</td><td><b>HOLDS</b></td><td>cv_lightcurve.mag and cal_mag are written only by CV-S4 and CV-S6; this stage writes no column on cv_lightcurve at all.</td></tr>
+</table>
+</div>
+
+<div class="stage"><h3>Decision</h3>
+<div class="decision"><b>The coefficients are published as data-release
+metadata and applied to nothing.</b>  The largest zero-point step between
+eras is <b>17.1&nbsp;mmag</b> at the
+reference colour and the largest colour slope is
+<b>0.0500&nbsp;mag/mag</b>.  A stitched ST&nbsp;LMi light curve
+would therefore carry a step of that size plus a colour-dependent term, on
+a target whose colour swings through the orbit &mdash; which is precisely
+why the paper runs two within-era analyses instead.  The
+<code>applied_to_targets</code> column of <code>p2_transform</code> is 0 on
+every row and is part of that table's provenance fingerprint, so it cannot
+quietly become 1.</div>
+<div class="decision"><b>4 of 4 assertions hold.</b>  In
+particular every calibrated target magnitude equals <code>mag &minus;
+zp</code> exactly: a zero-point shift and no colour transformation.  That
+matters because these targets are cataclysmic variables &mdash; blue,
+variable, and routinely outside the colour range over which any
+transformation was calibrated.  Transforming them would swap a bandpass
+error of known size for an extrapolation error of unknown size.</div>
+</div>
+
+<div class="stage"><h3>Consequence</h3>
+<p>The control row is the most interesting number on this page for anyone
+planning future observations: VV&nbsp;Pup's <i>g</i>&rarr;<i>g</i> slope
+across the era&nbsp;72&nbsp;&rarr;&nbsp;76 camera change is
+<b>0.0500</b>&nbsp;mag/mag,
+<i>larger</i> than ST&nbsp;LMi's G&rarr;g slope across the filter-label
+change.  The dominant bandpass difference in this archive is the DETECTOR
+ERA, not the filter label.  Any future analysis that groups by filter name
+and ignores the era is making a bigger error than the one it thinks it is
+avoiding.</p>
+</div>
+</section>
+<section id="limits">
+<div class="bhead"><h2>4 &middot; Faint-phase forced photometry and upper
+limits</h2><span class="tag">CV-P2-faint-limits</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">A polar in a low state drops below detection.  What does
+dropping those epochs do to every statistic computed afterwards?</p>
+<p>It censors exactly the faint half of the distribution.  A duty cycle
+computed from detections alone is the duty cycle of the epochs on which the
+target was bright enough to be seen &mdash; a tautology, not a measurement,
+and one that is biased in a known direction and by an unknown amount.  The
+repair is not to guess the missing magnitudes; it is to MEASURE at the
+target's position on those frames and publish what the noise there allows
+us to say.</p></div>
+
+<div class="stage"><h3>Evidence</h3>
+<p class="sub">Where the aperture went, how we know, what it measured, and
+which blocks were refused.</p>
+<p>The target's position on a frame that never detected it comes from the
+frame's own matched comparison stars: a four-parameter similarity fitted
+from the 6+ stars the photometry already matched on
+that frame, mapping the reference grid onto this one, evaluated at the
+target's reference position.  Four parameters and not six, because a full
+affine would absorb a genuine mismatch into a shear and report a small
+residual while putting the aperture in the wrong place.</p>
+<p>Two independent checks on that position, both in the table below:</p>
+<ul>
+<li><b>Catalogue cross-check</b> &mdash; the distance between the target's
+identified reference-star position and an independent plate model fitted to
+the ATLAS-REFCAT2 positions of the same field.  This matters more than it
+looks: EU&nbsp;UMa's era-78 block sat 5.27&nbsp;arcsec (11.7&nbsp;px) from
+the catalogue, and the tie removed that rigid offset before matching, so a
+plate model fitted through the stored sky coordinates instead of the
+catalogue's would have landed an aperture on blank sky.</li>
+<li><b>Position closure</b> &mdash; the same machinery run on up to 60
+frames where the target WAS detected, with the target itself excluded from
+the transform.  The median distance between where the method predicts the
+target and where it actually is, in pixels.  This is the validation that
+costs nothing and settles everything: it exercises exactly the code the
+undetected frames use, on frames where the right answer is known.</li>
+</ul>
+<div class="decision"><b>The gate.</b> A block that cannot demonstrate
+closure &mdash; at least 10 frames with a detected
+target, closing to a median of
+1&nbsp;px or better &mdash; does not publish
+limits.  This is not a formality.  The first production run produced 66
+&ldquo;forced detections&rdquo; of EU&nbsp;UMa in the merged 2026 Fast
+block, whose frame transforms closed to 645&ndash;1,650&nbsp;px on 87 of
+153 attempts and whose measured signal-to-noise alternated between 3 and 55
+frame to frame &mdash; an aperture landing on a bright neighbour on half
+the frames.  That block has never detected its target, so there is no frame
+on which its forced position can be checked, and a limit measured at an
+unverifiable position is not a limit, it is a number.</div>
+
+<figure><a href="figures/cv_phase2/limits.png"><img src="figures/cv_phase2/limits.png" alt=""></a><figcaption>LEFT: what happened to the epochs that carried no magnitude before this stage.  Green are epochs recovered as real detections (source detection needs 5σ per pixel over 5 connected pixels, which is far stricter than a 3σ integrated aperture); blue are epochs bounded by an upper limit; red could not be measured.  RIGHT: the detections and the limits on the same natural-system axis.  A limit is only worth publishing when it reaches at least as deep as the detections it sits among.</figcaption></figure>
+
+<table class="data">
+<tr><th>series</th><th>matched frames</th><th>detected</th><th>undetected</th><th>recovered</th><th>limits</th><th>failed</th><th>median limit (ensemble gauge)</th><th>median limit (natural system)</th><th>faintest detection</th><th>position from</th><th>catalogue cross-check (px)</th><th>closure frames</th><th>closure median (px)</th><th>closure p95 (px)</th><th>refused</th></tr>
+<tr><td>EU UMa e76 <i>i</i></td><td>349</td><td>24</td><td>325</td><td>298</td><td>27</td><td>0</td><td>21.63</td><td>17.22</td><td>30.39</td><td>ref_star</td><td>1.34</td><td>24</td><td>0.67</td><td>0.91</td><td></td></tr>
+<tr class="warn"><td>EU UMa e78 <i>g</i></td><td>208</td><td>0</td><td>208</td><td>0</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>plate_model</td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>forced position could not be validated: 0 frames with a detected target (need 10), median closure n/a (need &lt;= 1 px)</td></tr>
+<tr><td>VV Pup e76 <i>i</i></td><td>124</td><td>51</td><td>73</td><td>51</td><td>21</td><td>1</td><td>21.87</td><td>17.10</td><td>22.63</td><td>ref_star</td><td>4.48</td><td>51</td><td>0.43</td><td>0.68</td><td></td></tr>
+<tr><td>EU UMa e76 <i>r</i></td><td>100</td><td>45</td><td>55</td><td>55</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>27.18</td><td>ref_star</td><td>1.34</td><td>45</td><td>0.72</td><td>1.02</td><td></td></tr>
+<tr><td>EU UMa e76 <i>g</i></td><td>221</td><td>172</td><td>49</td><td>35</td><td>14</td><td>0</td><td>20.40</td><td>17.22</td><td>25.34</td><td>ref_star</td><td>1.34</td><td>60</td><td>0.46</td><td>0.68</td><td></td></tr>
+<tr><td>AN UMa e76 <i>r</i></td><td>410</td><td>366</td><td>44</td><td>39</td><td>5</td><td>0</td><td>19.44</td><td>15.89</td><td>21.13</td><td>ref_star</td><td>2.56</td><td>60</td><td>0.95</td><td>1.12</td><td></td></tr>
+<tr><td>VV Pup e76 <i>r</i></td><td>186</td><td>143</td><td>43</td><td>30</td><td>9</td><td>3</td><td>19.36</td><td>15.73</td><td>21.63</td><td>ref_star</td><td>4.48</td><td>60</td><td>0.15</td><td>0.35</td><td></td></tr>
+<tr><td>ST LMi e7 <i>R</i></td><td>346</td><td>308</td><td>38</td><td>38</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>20.14</td><td>ref_star</td><td>1.51</td><td>60</td><td>0.14</td><td>0.26</td><td></td></tr>
+<tr><td>ST LMi e76 <i>i</i></td><td>550</td><td>513</td><td>37</td><td>25</td><td>6</td><td>6</td><td>19.92</td><td>15.45</td><td>21.31</td><td>ref_star</td><td>2.36</td><td>60</td><td>0.30</td><td>0.94</td><td></td></tr>
+<tr><td>VV Pup e76 <i>g</i></td><td>359</td><td>323</td><td>36</td><td>22</td><td>12</td><td>2</td><td>20.67</td><td>17.84</td><td>20.70</td><td>ref_star</td><td>4.48</td><td>60</td><td>0.13</td><td>0.31</td><td></td></tr>
+<tr class="warn"><td>ST LMi e47 <i>y</i></td><td>35</td><td>0</td><td>35</td><td>0</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>ref_star</td><td>0.97</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>forced position could not be validated: 0 frames with a detected target (need 10), median closure n/a (need &lt;= 1 px)</td></tr>
+<tr><td>ST LMi e76 <i>r</i></td><td>596</td><td>568</td><td>28</td><td>23</td><td>5</td><td>0</td><td>18.92</td><td>15.59</td><td>23.28</td><td>ref_star</td><td>2.36</td><td>60</td><td>0.13</td><td>0.38</td><td></td></tr>
+<tr><td>AN UMa e76 <i>g</i></td><td>451</td><td>425</td><td>26</td><td>22</td><td>4</td><td>0</td><td>19.21</td><td>16.33</td><td>20.42</td><td>ref_star</td><td>2.56</td><td>60</td><td>0.87</td><td>1.07</td><td></td></tr>
+<tr><td>ST LMi e76 <i>g</i></td><td>745</td><td>720</td><td>25</td><td>16</td><td>3</td><td>6</td><td>18.10</td><td>15.47</td><td>19.79</td><td>ref_star</td><td>2.36</td><td>60</td><td>0.16</td><td>1.28</td><td></td></tr>
+<tr><td>ST LMi e7 <i>I</i></td><td>340</td><td>315</td><td>25</td><td>25</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>20.36</td><td>ref_star</td><td>1.51</td><td>60</td><td>0.13</td><td>0.33</td><td></td></tr>
+<tr><td>VV Pup e72 <i>i</i></td><td>94</td><td>75</td><td>19</td><td>18</td><td>0</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>21.23</td><td>ref_star</td><td>2.14</td><td>60</td><td>0.16</td><td>0.32</td><td></td></tr>
+<tr><td>ST LMi e7 <i>G</i></td><td>296</td><td>278</td><td>18</td><td>18</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>20.01</td><td>ref_star</td><td>1.51</td><td>60</td><td>0.09</td><td>0.43</td><td></td></tr>
+<tr><td>VV Pup e72 <i>r</i></td><td>190</td><td>180</td><td>10</td><td>8</td><td>2</td><td>0</td><td>19.73</td><td>16.95</td><td>20.89</td><td>ref_star</td><td>2.14</td><td>60</td><td>0.13</td><td>1.06</td><td></td></tr>
+<tr><td>AN UMa e76 <i>i</i></td><td>257</td><td>253</td><td>4</td><td>4</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>21.63</td><td>ref_star</td><td>2.56</td><td>60</td><td>0.84</td><td>1.38</td><td></td></tr>
+<tr><td>ST LMi e47 <i>z</i></td><td>60</td><td>57</td><td>3</td><td>0</td><td>1</td><td>0</td><td>22.58</td><td>16.65</td><td>21.77</td><td>ref_star</td><td>0.97</td><td>57</td><td>0.08</td><td>0.18</td><td></td></tr>
+<tr><td>VV Pup e72 <i>g</i></td><td>196</td><td>194</td><td>2</td><td>0</td><td>2</td><td>0</td><td>20.04</td><td>17.50</td><td>20.45</td><td>ref_star</td><td>2.14</td><td>60</td><td>0.14</td><td>0.44</td><td></td></tr>
+<tr><td>YZ Cnc e7 <i>R</i></td><td>443</td><td>442</td><td>1</td><td>1</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>17.51</td><td>ref_star</td><td>2.48</td><td>60</td><td>0.14</td><td>0.25</td><td></td></tr>
+</table>
+
+<p><b>Blocks refused limits, and why:</b></p>
+<ul style="font-size:13px;color:#9aa4b2;max-width:1100px"><li><b>EU UMa e78 <i>g</i></b> &mdash; forced position could not be validated: 0 frames with a detected target (need 10), median closure n/a (need &lt;= 1 px)</li><li><b>ST LMi e47 <i>y</i></b> &mdash; forced position could not be validated: 0 frames with a detected target (need 10), median closure n/a (need &lt;= 1 px)</li></ul>
+</div>
+
+<div class="stage"><h3>Decision</h3>
+<div class="decision"><b>728 epochs recovered as detections,
+111 epochs bounded by a
+3&sigma; upper limit, 3 measured but unusable for
+lack of a frame zero point, 19 unmeasurable.</b>
+The limit convention is stated on every row of the product:
+<code>3&nbsp;&times;</code> the measured aperture noise
+(sky shot noise inside the aperture plus the uncertainty of the sky level
+itself), one-sided Gaussian, 99.87%.  It is deliberately NOT
+<code>flux&nbsp;+&nbsp;3&sigma;</code>: the chosen form
+states the SENSITIVITY of the frame &mdash; &ldquo;a source brighter than
+this would have been seen&rdquo; &mdash; which is what a duty-cycle
+statistic needs, while the other form is systematically fainter on half the
+frames by construction.</div>
+<p>Note what the recovered detections are NOT: they are not written into
+<code>cv_lightcurve</code>.  They live in <code>p2_limits</code> with their
+own position, noise and provenance, so that a later stage can adopt them
+deliberately rather than inherit them silently.</p>
+</div>
+
+<div class="stage"><h3>Consequence &mdash; the state statistics, twice</h3>
+<p class="sub">Every statistic below is computed the censored way and the
+limit-aware way.  The pair is the deliverable: a single &ldquo;corrected&rdquo;
+number would hide the size of the correction, and the size of the
+correction IS the finding.</p>
+<table class="data">
+<tr><th>series</th><th>epochs (detections only)</th><th>epochs (with limits)</th><th>detected fraction</th><th>faint-state fraction</th><th>median mag (detections only)</th><th>median mag (Kaplan-Meier)</th></tr>
+<tr><td>VV Pup e76 <i>i</i></td><td>51</td><td>123</td><td>82.9%</td><td>17.1%</td><td>22.31</td><td>22.35</td></tr>
+<tr><td>EU UMa e76 <i>i</i></td><td>24</td><td>349</td><td>92.3%</td><td>7.7%</td><td>22.31</td><td>22.31</td></tr>
+<tr><td>EU UMa e76 <i>g</i></td><td>172</td><td>221</td><td>93.7%</td><td>6.3%</td><td>22.05</td><td>22.05</td></tr>
+<tr><td>VV Pup e76 <i>r</i></td><td>143</td><td>182</td><td>95.1%</td><td>4.9%</td><td>21.22</td><td>21.22</td></tr>
+<tr><td>VV Pup e76 <i>g</i></td><td>323</td><td>357</td><td>96.6%</td><td>3.4%</td><td>19.52</td><td>19.76</td></tr>
+<tr><td>ST LMi e47 <i>z</i></td><td>57</td><td>58</td><td>98.3%</td><td>1.7%</td><td>21.33</td><td>21.33</td></tr>
+<tr><td>AN UMa e76 <i>r</i></td><td>366</td><td>410</td><td>98.8%</td><td>1.2%</td><td>20.21</td><td>20.21</td></tr>
+<tr><td>ST LMi e76 <i>i</i></td><td>513</td><td>544</td><td>98.9%</td><td>1.1%</td><td>20.59</td><td>20.59</td></tr>
+<tr><td>VV Pup e72 <i>r</i></td><td>180</td><td>190</td><td>98.9%</td><td>1.1%</td><td>20.39</td><td>20.39</td></tr>
+<tr><td>VV Pup e72 <i>g</i></td><td>194</td><td>196</td><td>99.0%</td><td>1.0%</td><td>20.27</td><td>20.27</td></tr>
+<tr><td>AN UMa e76 <i>g</i></td><td>425</td><td>451</td><td>99.1%</td><td>0.9%</td><td>19.56</td><td>19.56</td></tr>
+<tr><td>ST LMi e76 <i>r</i></td><td>568</td><td>596</td><td>99.2%</td><td>0.8%</td><td>19.74</td><td>19.74</td></tr>
+<tr><td>ST LMi e76 <i>g</i></td><td>720</td><td>739</td><td>99.6%</td><td>0.4%</td><td>19.13</td><td>19.13</td></tr>
+</table>
+<div class="decision"><b>The detected fraction is 1.000 by construction
+before this stage and is not afterwards.</b>  That single column is the
+whole bias: any duty cycle, any state-occupancy fraction and any mean
+magnitude computed on the old light curve was computed over a sample
+selected on the quantity being measured.  The largest single change is
+<b>EU UMa e76 <i>i</i></b>, which goes
+from 24 to
+349 constrained epochs.</div>
+<div class="decision"><b>The Kaplan-Meier median returns NaN where more
+than half the epochs are limits, and that is the correct answer.</b>  A
+series whose survival curve never reaches 0.5 has no estimable median, and
+producing one from the detections alone is exactly the bias this task
+exists to remove.</div>
+
+<h3>How much do these limits actually constrain?</h3>
+<p class="sub">The question a referee asks next, measured rather than
+assumed.</p>
+<table class="data">
+<tr><th>series</th><th>median detection (natural system)</th><th>median 3&sigma; limit</th><th>limit &minus; detection</th><th>reading</th></tr>
+<tr><td>AN UMa e76 <i>g</i></td><td>16.68</td><td>16.33</td><td>-0.35</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
+<tr><td>AN UMa e76 <i>r</i></td><td>16.67</td><td>15.89</td><td>-0.77</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
+<tr><td>EU UMa e76 <i>g</i></td><td>19.06</td><td>17.22</td><td>-1.84</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
+<tr><td>EU UMa e76 <i>i</i></td><td>21.11</td><td>17.22</td><td>-3.90</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
+<tr><td>ST LMi e47 <i>z</i></td><td>15.40</td><td>16.65</td><td>1.25</td><td>deeper than the detections</td></tr>
+<tr><td>ST LMi e76 <i>g</i></td><td>16.50</td><td>15.47</td><td>-1.03</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
+<tr><td>ST LMi e76 <i>i</i></td><td>16.13</td><td>15.45</td><td>-0.68</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
+<tr><td>ST LMi e76 <i>r</i></td><td>16.42</td><td>15.59</td><td>-0.83</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
+<tr><td>VV Pup e72 <i>g</i></td><td>17.74</td><td>17.50</td><td>-0.23</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
+<tr><td>VV Pup e72 <i>r</i></td><td>17.61</td><td>16.95</td><td>-0.66</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
+<tr><td>VV Pup e76 <i>g</i></td><td>15.69</td><td>17.84</td><td>2.15</td><td>deeper than the detections</td></tr>
+<tr><td>VV Pup e76 <i>i</i></td><td>17.63</td><td>17.10</td><td>-0.53</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
+<tr><td>VV Pup e76 <i>r</i></td><td>17.59</td><td>15.73</td><td>-1.86</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
+</table>
+<div class="decision"><b>11 of 13 series have
+limits SHALLOWER than their own typical detection.</b>  That is the honest
+reading of this task's result and it constrains how the faint-state
+fractions above may be used: on most series the undetected epochs are
+predominantly LOW-SENSITIVITY FRAMES &mdash; short exposures, poor seeing,
+the cloud the previous section vetoes &mdash; not epochs on which the
+target was demonstrably faint.  The faint-state fractions are therefore
+<i>upper bounds</i> on a low-state duty cycle, not measurements of one.
+What the limits do establish unambiguously is the direction and the size of
+the censoring bias, and that a duty cycle quoted from detections alone was
+never a measurement at all.</div>
+</div>
+</section>
+
+<footer>Generated by <code>macro_phot.report_phase2</code> from
+<code>products/phot/cv_timeseries.sqlite</code>.  Every number in a table,
+figure or verdict is the result of a query run at render time or a constant
+imported from <code>macro_phot.phase2</code>.  The exceptions, named rather
+than claimed away: the VV&nbsp;Pup declination and maximum airmass quoted in
+section&nbsp;2 (computed from the target's catalogued position, not from
+this database), the 5-sigma-per-pixel-over-5-connected-pixels description of
+<code>sep</code>'s detection rule in section&nbsp;4 (a property of the
+extraction library, recorded in
+<code>macro_phot.photometry.DETECT_SIGMA</code> and
+<code>DETECT_MINAREA</code>), and the descriptive prose throughout.
+Regenerate with <code>pipeline/scripts/run_cv_phase2.py report</code>.
+</footer>
+</body></html>

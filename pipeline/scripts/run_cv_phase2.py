@@ -252,6 +252,7 @@ def ensure_tables(con: sqlite3.Connection) -> None:
         outcome TEXT, limit_flux_adu REAL, limit_mag REAL,
         forced_mag REAL, forced_mag_err REAL,
         confidence TEXT, method TEXT, status TEXT, note TEXT,
+        limit_cal_mag REAL, forced_cal_mag REAL, zp_tie REAL,
         PRIMARY KEY (series_key, frame_id));
 
     CREATE TABLE IF NOT EXISTS p2_limit_series (
@@ -260,7 +261,9 @@ def ensure_tables(con: sqlite3.Connection) -> None:
         n_candidates INTEGER, n_forced INTEGER, n_limits INTEGER,
         n_recovered INTEGER, n_failed INTEGER,
         median_limit_mag REAL, faintest_detection REAL,
-        pos_method TEXT, note TEXT);
+        pos_method TEXT, note TEXT,
+        pos_crosscheck_px REAL, n_closure INTEGER,
+        closure_median_px REAL, closure_p95_px REAL);
 
     CREATE TABLE IF NOT EXISTS p2_state_stats (
         series_key TEXT, statistic TEXT, censored_value REAL,
@@ -278,6 +281,14 @@ def ensure_tables(con: sqlite3.Connection) -> None:
                     {"colour_term_from": "REAL", "colour_term_to": "REAL",
                      "b_expected": "REAL", "b_expected_err": "REAL",
                      "b_tension_sigma": "REAL"})
+    _ensure_columns(con, "p2_limit_series",
+                    {"pos_crosscheck_px": "REAL", "n_closure": "INTEGER",
+                     "closure_median_px": "REAL",
+                     "closure_p95_px": "REAL",
+                     "median_limit_cal_mag": "REAL", "blocked": "TEXT"})
+    _ensure_columns(con, "p2_limits",
+                    {"limit_cal_mag": "REAL", "forced_cal_mag": "REAL",
+                     "zp_tie": "REAL"})
     con.commit()
 
 
@@ -1023,47 +1034,139 @@ def _verify_discipline(con: sqlite3.Connection) -> None:
 # ===========================================================================
 # Stage: forced — forced photometry and upper limits
 # ===========================================================================
-def _target_ref_xy(con, target_key: str, era_id: int,
-                   target_star_id) -> tuple[float, float, str, int, float]:
+def _plate_model_xy(con, target_key: str, era_id: int, ra_deg: float,
+                    dec_deg: float) -> tuple[float, float, int, float]:
+    """Target pixel position from a plate model fitted to the CATALOGUE.
+
+    The pairs are ``(cat_ra, cat_dec)`` from ``cv_cat_match`` against the
+    reference stars' measured pixel positions, NOT the ``ra_deg`` column of
+    ``cv_ref_stars``.  That choice is load-bearing and was made after
+    reading ``cv_cat_astrom``: EU UMa's era-78 block sat 5.27 arcsec away
+    from the catalogue and the tie REMOVED that rigid offset before
+    matching.  Which frame the stored ``ra_deg`` column lives in — before
+    or after that removal — is not recorded, and 5.27 arcsec is 11.7 pixels
+    at this plate scale, or more than an aperture radius.  The catalogue
+    positions are unambiguous: they are the frame the target's own
+    catalogued position lives in, so a model fitted through them lands the
+    target where the catalogue says it is, whatever the block's own
+    astrometry was doing.
+    """
+    pairs = con.execute(
+        """SELECT m.cat_ra, m.cat_dec, s.x, s.y
+           FROM cv_cat_match m
+           JOIN cv_ref_stars s ON s.target_key=m.target_key
+                AND s.era_id=m.era_id AND s.star_id=m.star_id
+           WHERE m.catalogue='refcat2' AND m.target_key=? AND m.era_id=?
+             AND m.cat_ra IS NOT NULL""", (target_key, era_id)).fetchall()
+    if len(pairs) < 8:
+        return float("nan"), float("nan"), len(pairs), float("nan")
+    ra = np.array([p[0] for p in pairs], dtype=float)
+    dec = np.array([p[1] for p in pairs], dtype=float)
+    xy = np.array([[p[2], p[3]] for p in pairs], dtype=float)
+    ra0, dec0 = float(np.median(ra)), float(np.median(dec))
+    xi, eta = p2.gnomonic_project(ra, dec, ra0, dec0)
+    mat, rms = p2.affine_from_pairs(np.column_stack([xi, eta]), xy)
+    if not math.isfinite(rms):
+        return float("nan"), float("nan"), len(pairs), float("nan")
+    txi, teta = p2.gnomonic_project([ra_deg], [dec_deg], ra0, dec0)
+    v = mat @ np.array([txi[0], teta[0], 1.0])
+    return float(v[0]), float(v[1]), len(pairs), float(rms)
+
+
+def _target_ref_xy(con, target_key: str, era_id: int, target_star_id
+                   ) -> tuple[float, float, str, int, float, float]:
     """Where the target sits on this block's REFERENCE frame.
 
-    Two routes, in order of trust:
+    Returns ``(x, y, method, n, rms_px, crosscheck_px)``.
+
+    Two routes, and BOTH are computed whenever both are available:
 
     1.  the target is itself a reference star — the ensemble identified it,
-        so its pixel position is a measurement;
-    2.  the block has no identified target star (EU UMa era 78, whose field
-        tie died on an HTTP error), so a plate model is fitted to the
-        reference stars that DO carry sky coordinates and evaluated at the
-        target's catalogued position.  The fit residual is returned so the
-        row can say how well that position is known.
+        so its pixel position is a measurement, and this is the position
+        used;
+    2.  a plate model fitted to the catalogue (:func:`_plate_model_xy`),
+        which is the only route for a block with no identified target star
+        — EU UMa era 78, whose field tie died on an HTTP error.
+
+    ``crosscheck_px`` is the distance between the two when both exist.  It
+    is the cheapest possible audit of the whole faint-limit task: if the
+    catalogue says the target is 12 pixels from where the ensemble put it,
+    then either the identification or the astrometry is wrong, and every
+    upper limit derived from that position is measuring blank sky.
     """
+    tie = con.execute(
+        "SELECT target_ra, target_dec FROM cv_field_tie WHERE target_key=? "
+        "AND era_id=?", (target_key, era_id)).fetchone()
+    px = py = float("nan")
+    n_plate, plate_rms = 0, float("nan")
+    if tie and tie[0] is not None:
+        px, py, n_plate, plate_rms = _plate_model_xy(
+            con, target_key, era_id, float(tie[0]), float(tie[1]))
     if target_star_id is not None:
         r = con.execute(
             "SELECT x, y FROM cv_ref_stars WHERE target_key=? AND era_id=? "
             "AND star_id=?", (target_key, era_id, target_star_id)).fetchone()
         if r:
-            return float(r[0]), float(r[1]), "ref_star", 1, 0.0
-    tie = con.execute(
-        "SELECT target_ra, target_dec FROM cv_field_tie WHERE target_key=? "
-        "AND era_id=?", (target_key, era_id)).fetchone()
-    if not tie or tie[0] is None:
-        return (float("nan"), float("nan"), "none", 0, float("nan"))
-    stars = con.execute(
-        "SELECT ra_deg, dec_deg, x, y FROM cv_ref_stars WHERE target_key=? "
-        "AND era_id=? AND ra_deg IS NOT NULL", (target_key, era_id)).fetchall()
-    if len(stars) < 8:
-        return (float("nan"), float("nan"), "none", len(stars), float("nan"))
-    ra = np.array([s[0] for s in stars], dtype=float)
-    dec = np.array([s[1] for s in stars], dtype=float)
-    xy = np.array([[s[2], s[3]] for s in stars], dtype=float)
-    ra0, dec0 = float(np.median(ra)), float(np.median(dec))
-    xi, eta = p2.gnomonic_project(ra, dec, ra0, dec0)
-    mat, rms = p2.affine_from_pairs(np.column_stack([xi, eta]), xy)
-    if not math.isfinite(rms):
-        return (float("nan"), float("nan"), "none", len(stars), float("nan"))
-    txi, teta = p2.gnomonic_project([tie[0]], [tie[1]], ra0, dec0)
-    v = mat @ np.array([txi[0], teta[0], 1.0])
-    return float(v[0]), float(v[1]), "plate_model", len(stars), float(rms)
+            cross = (math.hypot(float(r[0]) - px, float(r[1]) - py)
+                     if math.isfinite(px) else float("nan"))
+            return (float(r[0]), float(r[1]), "ref_star", 1, 0.0, cross)
+    if math.isfinite(px):
+        return px, py, "plate_model", n_plate, plate_rms, float("nan")
+    return (float("nan"), float("nan"), "none", n_plate, plate_rms,
+            float("nan"))
+
+
+def _position_closure(con, skey: str, tkey: str, era: int, target_star_id,
+                      ref_x: float, ref_y: float, n_max: int = 60
+                      ) -> tuple[int, float, float]:
+    """How close does the forced position land to the real target?
+
+    Takes up to ``n_max`` frames on which the target WAS detected, rebuilds
+    the frame transform from the OTHER matched stars only, predicts where
+    the target should be, and compares with where it actually was measured.
+
+    This is the validation the whole task needs and the one that costs
+    nothing: it exercises exactly the machinery the undetected frames use,
+    on frames where the right answer is known.  Returns
+    ``(n, median_px, p95_px)``.  A block whose target was never detected —
+    EU UMa era 78 — returns ``(0, nan, nan)``, which the report states
+    rather than hides.
+    """
+    if target_star_id is None:
+        return 0, float("nan"), float("nan")
+    refs = {int(r[0]): (float(r[1]), float(r[2])) for r in con.execute(
+        "SELECT star_id, x, y FROM cv_ref_stars WHERE target_key=? "
+        "AND era_id=?", (tkey, era))}
+    frames = [int(r[0]) for r in con.execute(
+        """SELECT frame_id FROM cv_lightcurve WHERE series_key=?
+           AND role='target' AND mag IS NOT NULL
+           ORDER BY frame_id LIMIT ?""", (skey, n_max))]
+    offs = []
+    for fid in frames:
+        dets = con.execute(
+            "SELECT star_id, x, y FROM cv_detections WHERE frame_id=? "
+            "AND star_id IS NOT NULL", (fid,)).fetchall()
+        truth = None
+        src, dst = [], []
+        for sid, dx, dy in dets:
+            if int(sid) == int(target_star_id):
+                truth = (float(dx), float(dy))
+                continue                      # never fit on the target
+            rp = refs.get(int(sid))
+            if rp is not None:
+                src.append(list(rp))
+                dst.append([float(dx), float(dy)])
+        if truth is None or len(src) < p2.FORCED_MIN_STARS:
+            continue
+        t = p2.similarity_from_pairs(np.array(src), np.array(dst))
+        if t.n < p2.FORCED_MIN_STARS or not math.isfinite(t.rms_px):
+            continue
+        x, y = p2.apply_similarity(t, ref_x, ref_y)
+        offs.append(math.hypot(x - truth[0], y - truth[1]))
+    if not offs:
+        return 0, float("nan"), float("nan")
+    a = np.asarray(offs)
+    return len(offs), float(np.median(a)), float(np.percentile(a, 95))
 
 
 def _forced_worklist(con, skey: str) -> list[int]:
@@ -1162,14 +1265,43 @@ def cmd_forced(args) -> None:
         con.commit()
 
     jobs: list[dict] = []
-    pos_note: dict[str, tuple[str, int, float]] = {}
+    pos_note: dict[str, dict] = {}
     for skey, tkey, era, filt, tstar, _n in series:
-        rx, ry, method, n_pos, pos_rms = _target_ref_xy(con, tkey, era, tstar)
-        pos_note[skey] = (method, n_pos, pos_rms)
+        rx, ry, method, n_pos, pos_rms, cross = _target_ref_xy(
+            con, tkey, era, tstar)
+        n_cl, cl_med, cl_p95 = _position_closure(con, skey, tkey, era, tstar,
+                                                 rx, ry)
+        pos_note[skey] = {"method": method, "n": n_pos, "rms": pos_rms,
+                          "cross": cross, "n_closure": n_cl,
+                          "closure_med": cl_med, "closure_p95": cl_p95}
+        print(f"    {skey:16s} position via {method:12s} "
+              f"({rx:8.2f}, {ry:8.2f})  "
+              f"catalogue cross-check "
+              f"{('%.2f px' % cross) if math.isfinite(cross) else '   n/a  '}"
+              f"  closure {n_cl:3d} frames, median "
+              f"{('%.2f px' % cl_med) if math.isfinite(cl_med) else ' n/a '}")
         if method == "none":
-            print(f"    {skey:16s} SKIPPED — no target position: the field "
-                  f"tie for {tkey} era {era} left neither an identified "
-                  f"target star nor a usable plate model")
+            pos_note[skey]["blocked"] = (
+                f"no target position: the field tie for {tkey} era {era} "
+                "left neither an identified target star nor a usable plate "
+                "model")
+            print(f"      BLOCKED — {pos_note[skey]['blocked']}")
+            continue
+        # THE GATE.  A block that cannot demonstrate, on frames where the
+        # target WAS detected, that the forced position lands on the target
+        # does not get to publish limits.  See phase2.CLOSURE_MIN_FRAMES.
+        if (n_cl < p2.CLOSURE_MIN_FRAMES
+                or not math.isfinite(cl_med)
+                or cl_med > p2.CLOSURE_MAX_MEDIAN_PX):
+            pos_note[skey]["blocked"] = (
+                f"forced position could not be validated: {n_cl} frames "
+                f"with a detected target (need {p2.CLOSURE_MIN_FRAMES}), "
+                f"median closure "
+                f"{('%.2f px' % cl_med) if math.isfinite(cl_med) else 'n/a'} "
+                f"(need <= {p2.CLOSURE_MAX_MEDIAN_PX:g} px)")
+            print(f"      BLOCKED — {pos_note[skey]['blocked']}")
+            con.execute("DELETE FROM p2_limits WHERE series_key=?", (skey,))
+            con.commit()
             continue
         # The block's reference-star grid, read ONCE per series rather than
         # once per frame: it is the same few hundred rows every time, and
@@ -1177,6 +1309,14 @@ def cmd_forced(args) -> None:
         refs = {int(r[0]): (float(r[1]), float(r[2])) for r in
                 con.execute("SELECT star_id, x, y FROM cv_ref_stars "
                             "WHERE target_key=? AND era_id=?", (tkey, era))}
+        # The catalogue tie's zero point for this series, so every limit can
+        # be published on the natural system as well as on the ensemble's
+        # internal gauge.  NULL when the series carries no primary tie.
+        tie_row = con.execute(
+            "SELECT zp FROM cv_cattie WHERE series_key=? AND is_primary=1",
+            (skey,)).fetchone()
+        zp_tie = float(tie_row[0]) if tie_row and tie_row[0] is not None \
+            else None
         for fid in _forced_worklist(con, skey):
             if (skey, fid) in done:
                 continue
@@ -1210,6 +1350,7 @@ def cmd_forced(args) -> None:
                 "ref_x": rx, "ref_y": ry, "pos_method": method,
                 "ref_xy": ref_xy, "frame_xy": frame_xy,
                 "egain": (float(eg[0]) if eg and eg[0] else None),
+                "zp_tie": zp_tie,
             })
     print(f"  {len(jobs):,} frames to force-photometer "
           f"({len(done):,} already done), {workers} workers")
@@ -1239,7 +1380,7 @@ def cmd_forced(args) -> None:
             if len(buf) >= 200:
                 con.executemany(
                     "INSERT OR REPLACE INTO p2_limits VALUES "
-                    "(" + ",".join("?" * 28) + ")", buf)
+                    "(" + ",".join("?" * 31) + ")", buf)
                 con.commit()
                 buf.clear()
                 rate = i / max(1e-9, time.time() - t0)
@@ -1248,7 +1389,7 @@ def cmd_forced(args) -> None:
                       f"failed {n_fail:,}", flush=True)
     if buf:
         con.executemany("INSERT OR REPLACE INTO p2_limits VALUES "
-                        "(" + ",".join("?" * 28) + ")", buf)
+                        "(" + ",".join("?" * 31) + ")", buf)
         con.commit()
     print(f"  measured {n_ok:,}, of which {n_lim:,} upper limits and "
           f"{n_rec:,} detections source detection had missed; "
@@ -1262,22 +1403,40 @@ def cmd_forced(args) -> None:
 def _limit_row(r: dict) -> tuple:
     """One ``p2_limits`` row from one worker result.
 
-    The OUTCOME column is the honest three-way split this task needs:
-    ``limit`` (measured noise, no source), ``detection`` (forced photometry
-    found what source detection missed), ``failed`` (we could not measure
-    at all, and say so rather than emitting a limit we cannot defend).
+    The OUTCOME column is the honest four-way split this task needs:
+
+    ``limit``         measured noise, no source above it;
+    ``detection``     forced photometry found what source detection missed
+                      (sep's 5-sigma-per-pixel-over-5-connected-pixels bar
+                      is far stricter than a 3-sigma integrated aperture, so
+                      this category is expected and is a real gain);
+    ``no_zeropoint``  the aperture was measured, but the frame carries no
+                      ensemble zero point, so no magnitude of any kind —
+                      limit or detection — can be put on it;
+    ``failed``        we could not measure at all, and say so rather than
+                      emitting a limit we cannot defend.
     """
     conf = f"{p2.LIMIT_SIGMA:g} sigma, one-sided Gaussian (99.87%)"
     method = ("forced aperture at the transformed reference position; "
               f"limit = {p2.LIMIT_SIGMA:g} x aperture noise "
               "(sky shot + sky-level uncertainty)")
+    zp_tie = r.get("zp_tie")
+    head = (r["series_key"], r["frame_id"], r["night"], r["bjd_tdb"],
+            _f(r["x"]), _f(r["y"]), r["pos_method"], r["n_pos"],
+            _f(r["pos_rms"]), _f(r["aper_px"]), _f(r["exptime"]), _f(r["zp"]))
     if r["status"] != "ok":
-        return (r["series_key"], r["frame_id"], r["night"], r["bjd_tdb"],
-                _f(r["x"]), _f(r["y"]), r["pos_method"], r["n_pos"],
-                _f(r["pos_rms"]), _f(r["aper_px"]), _f(r["exptime"]),
-                _f(r["zp"]), None, None, None, None, None, None, None,
-                "failed", None, None, None, None, conf, method,
-                "failed", r["note"])
+        return head + (None, None, None, None, None, None, None,
+                       "failed", None, None, None, None, conf, method,
+                       "failed", r["note"], None, None, _f(zp_tie))
+    meas = (_f(r["flux"]), _f(r["flux_err"]), _f(r["sky"]), _f(r["sky_rms"]),
+            _f(r["n_pix"]), r["n_sky"], _f(r["snr"]))
+    if r["zp"] is None or not math.isfinite(float(r["zp"] or float("nan"))):
+        return head + meas + (
+            "no_zeropoint", _f(p2.limit_flux(r["flux_err"])), None, None,
+            None, conf, method, "ok",
+            "aperture measured, but this frame carries no ensemble zero "
+            "point, so no magnitude can be put on it", None, None,
+            _f(zp_tie))
     lim_flux = p2.limit_flux(r["flux_err"])
     lim_mag = p2.limit_magnitude(lim_flux, r["exptime"], r["zp"])
     snr = r["snr"] if r["snr"] is not None else float("nan")
@@ -1285,14 +1444,19 @@ def _limit_row(r: dict) -> tuple:
     fmag = (p2.limit_magnitude(r["flux"], r["exptime"], r["zp"])
             if detected else float("nan"))
     ferr = ((2.5 / math.log(10.0)) / snr) if detected and snr > 0 else None
-    return (r["series_key"], r["frame_id"], r["night"], r["bjd_tdb"],
-            _f(r["x"]), _f(r["y"]), r["pos_method"], r["n_pos"],
-            _f(r["pos_rms"]), _f(r["aper_px"]), _f(r["exptime"]), _f(r["zp"]),
-            _f(r["flux"]), _f(r["flux_err"]), _f(r["sky"]), _f(r["sky_rms"]),
-            _f(r["n_pix"]), r["n_sky"], _f(snr),
-            "detection" if detected else "limit",
-            _f(lim_flux), _f(lim_mag), _f(fmag), _f(ferr),
-            conf, method, "ok", "")
+    # The CALIBRATED versions.  `mag` is the ensemble's arbitrary internal
+    # gauge; subtracting the catalogue tie's zero point is what turns it
+    # into a natural-system magnitude anyone outside this repo can read.
+    # Without this column a limit of "23.1" reads as a claim about a 23rd
+    # magnitude source when the real statement is 18.7.
+    lcal = (lim_mag - zp_tie) if (zp_tie is not None
+                                  and math.isfinite(lim_mag)) else None
+    fcal = (fmag - zp_tie) if (zp_tie is not None
+                               and math.isfinite(fmag)) else None
+    return head + meas + (
+        "detection" if detected else "limit",
+        _f(lim_flux), _f(lim_mag), _f(fmag), _f(ferr),
+        conf, method, "ok", "", _f(lcal), _f(fcal), _f(zp_tie))
 
 
 def _summarise_limits(con: sqlite3.Connection, pos_note: dict | None = None
@@ -1325,15 +1489,25 @@ def _summarise_limits(con: sqlite3.Connection, pos_note: dict | None = None
                  SELECT frame_id FROM cv_lightcurve WHERE series_key=?
                  AND role='target' AND mag IS NOT NULL)""",
             (skey, skey)).fetchone()[0]
-        pm = (pos_note or {}).get(skey, ("", 0, float("nan")))
+        lims_cal = [float(r[0]) for r in con.execute(
+            "SELECT limit_cal_mag FROM p2_limits WHERE series_key=? AND "
+            "outcome='limit' AND limit_cal_mag IS NOT NULL", (skey,))]
+        pm = (pos_note or {}).get(skey, {})
+        blocked = pm.get("blocked")
+        note = (blocked if blocked
+                else ("" if lims or rec
+                      else "no undetected epoch could be bounded"))
         con.execute(
             "INSERT OR REPLACE INTO p2_limit_series VALUES "
-            "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "(" + ",".join("?" * 21) + ")",
             (skey, tkey, era, filt, n_matched, len(det), n_cand,
              int(n_forced or 0), len(lims), len(rec), int(n_failed or 0),
              _f(np.median(lims)) if lims else None,
-             _f(max(det)) if det else None, pm[0],
-             "" if lims or rec else "no undetected epoch could be bounded"))
+             _f(max(det)) if det else None, pm.get("method", ""), note,
+             _f(pm.get("cross")), pm.get("n_closure", 0),
+             _f(pm.get("closure_med")), _f(pm.get("closure_p95")),
+             _f(np.median(lims_cal)) if lims_cal else None,
+             blocked or ""))
         # The two versions of every statistic, side by side.
         s = p2.state_statistics(det + rec, lims)
         stats = [

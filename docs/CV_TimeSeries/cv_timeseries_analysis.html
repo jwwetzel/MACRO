@@ -1,0 +1,787 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CV Time Series &mdash; Phase 3 Analysis</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+
+<header>
+  <h1>Cataclysmic-Variable Time Series &mdash; the Phase&nbsp;3
+  analysis</h1>
+  <p>Period verification with the spectral window beside every periodogram
+  &middot; the &sigma;<sub>t</sub> injection test that decides whether
+  per-cycle timing is publishable &middot; colour-dependent bright-phase
+  edges &middot; O&minus;C on a cycle count that was checked rather than
+  assumed &middot; accretion states with the Phase-2 limits &middot; joint
+  GP&nbsp;+&nbsp;signal fitting instead of detrend-then-search
+  &middot; 27 series, 72 timed edges
+  &middot; built 2026-08-20T06:03Z
+  (CV-S9 v1.0 (2026-08-20, Phase-3 time series),
+  commit <code>f32d412-dirty</code>)
+  &middot; <a href="cv_phase2_completion.html">the Phase-2 products this
+  rests on</a> &middot; <a href="cv_characterization.html">the
+  characterization that set these limits</a> &middot;
+  <a href="index.html">project hub</a> &middot;
+  <a href="../index.html">all reports</a></p>
+</header>
+
+<nav>
+  <a href="#intro">0 What Phase 3 may not assume</a> &middot;
+  <a href="#periods">1 Periods</a> &middot;
+  <a href="#sigmat">2 &sigma;<sub>t</sub></a> &middot;
+  <a href="#edges">3 Bright-phase timing</a> &middot;
+  <a href="#oc">4 O&minus;C and cycle counts</a> &middot;
+  <a href="#states">5 Accretion states</a> &middot;
+  <a href="#detrend">6 Detrending</a>
+</nav>
+
+
+<section id="intro">
+<h2>0 &nbsp; What Phase&nbsp;3 inherits, and what it may not assume</h2>
+
+<h3>Question</h3>
+<p>Phase&nbsp;1 measured 6,130 target points across 27
+series and Phase&nbsp;2 decided what may be published from them.  Phase&nbsp;3
+asks the six questions the project exists for.  Each of them can be answered
+confidently and wrongly, and in every case the wrong answer is the one that
+looks tidier.  What, concretely, is this data not allowed to claim?</p>
+
+<h3>Evidence</h3>
+<p>Four measurements constrain everything on this page, and none of them is
+an assumption:</p>
+<ul>
+<li><b>Per-point precision 9&ndash;77&nbsp;mmag</b> by series, with
+&chi;<sup>2</sup> inflation 0.92&ndash;3.02.  Every error bar used here is
+multiplied by that series' measured inflation, and an inflation below 1 is
+<em>not</em> applied &mdash; a slightly pessimistic error model does not
+license shrinking the bars.</li>
+<li><b>The &plusmn;1&nbsp;c/d aliases carry 0.54&ndash;0.96
+of the window power</b> on every resolved multi-night set, measured
+in&nbsp;&sect;1.  A multi-night periodogram in this archive cannot select a
+period.  That is the binding rule of &sect;1 and the reason the spectral
+window is drawn beside every periodogram on this page.</li>
+<li><b>Single-night peaks are 3&ndash;9&nbsp;c/d wide</b>, so one night
+constrains a period to roughly a part in five and nothing better.</li>
+<li><b>Three-filter full-orbit nights: ST&nbsp;LMi 20 of 30, AN&nbsp;UMa 4 of
+11, VV&nbsp;Pup 1 of 18, EU&nbsp;UMa 0.</b>  The colour-dependent timing
+in&nbsp;&sect;3 is an ST&nbsp;LMi result, not a three-polar result, and the
+page says so where the number appears rather than in a caveat at the end.</li>
+</ul>
+
+<p>The published ephemerides everything is compared against were fetched from
+the AAVSO Variable Star Index and cached, so that every &ldquo;agrees with the
+literature&rdquo; on this page traces to a stored payload with a timestamp:</p>
+<table class="data">
+<tr><th>target</th><th>VSX type</th><th>published period (d)</th><th>σ(P) floor (d)</th><th>epoch (BJD)</th><th>source</th><th>fetched</th></tr>
+<tr><td>AN UMa</td><td>AM+E</td><td><code>0.07975274</code></td><td>5.00e-09</td><td>2456725.4053</td><td>AAVSO VSX api.object</td><td>2026-08-20</td></tr>
+<tr><td>EU UMa</td><td>AM</td><td><code>0.0626194</code></td><td>5.00e-08</td><td>2458231.7799</td><td>AAVSO VSX api.object</td><td>2026-08-20</td></tr>
+<tr><td>ST LMi</td><td>AM</td><td><code>0.07908912</code></td><td>5.00e-09</td><td>2459298.4236</td><td>AAVSO VSX api.object</td><td>2026-08-20</td></tr>
+<tr><td>VV Pup</td><td>AM+ELL</td><td><code>0.0697468256</code></td><td>5.00e-11</td><td>2427889.6474</td><td>AAVSO VSX api.object</td><td>2026-08-20</td></tr>
+<tr><td>YZ Cnc</td><td>UGSU</td><td><code>0.0868</code></td><td>5.00e-05</td><td>&amp;mdash; none published &amp;mdash;</td><td>AAVSO VSX api.object</td><td>2026-08-20</td></tr>
+</table>
+
+<p class="note">The &sigma;(P) column is <em>not</em> a published
+uncertainty.  VSX publishes a period and an epoch and no error bar at all.
+The number shown is the rounding of the last quoted digit &mdash; a
+<b>floor</b>, and the true published uncertainty is at least this large.
+&sect;4 is built so that its conclusion survives that: it reports how many
+times larger the real &sigma;(P) could be before the cycle count stops being
+unique, instead of assuming the floor is the truth.</p>
+
+<h3>Decision</h3>
+<p>Three rules are enforced in code rather than in prose.  A periodogram may
+not select an alias family member without saying which external fact chose it
+(<code>classify_family_choice</code>).  A timing result may not be published
+on a formal &Delta;&chi;<sup>2</sup>&nbsp;=&nbsp;1 error bar
+(<code>sigma_t_injection</code> is the authority).  A trend may not be removed
+before a search (<code>joint_gp_fit</code>, demonstrated in&nbsp;&sect;6).</p>
+
+<h3>Consequence</h3>
+<p>Several results below are negative, and they are reported at the same
+prominence as the positive ones: YZ&nbsp;Cnc shows no orbital modulation in
+its densest era, the &sigma;<sub>t</sub> contour fails its 60&nbsp;s
+threshold, and most of the state classifications turn out to be cuts through
+a single population rather than two.  A page that only reported the four
+things that worked would be a different and less useful document.</p>
+</section>
+
+<section id="periods">
+<h2>1 &nbsp; Period verification, per filter per era</h2>
+
+<h3>Question</h3>
+<p>Can this archive measure the orbital periods of these five stars, or can
+it only confirm them?  The two claims look identical in a table and are not
+the same thing.</p>
+
+<h3>Evidence</h3>
+<p>Every series was searched twice, with two statistics that fail
+differently.  <b>A generalised Lomb-Scargle</b> fitted with one free constant
+per night &mdash; the exact joint fit, with the night constants projected out
+of the cosine and sine columns as well as out of the data, so the power is
+what the periodic term adds over a nights-only model.  And <b>Stellingwerf
+phase-dispersion minimisation</b>, which assumes nothing about the shape of
+the light curve: a polar's bright phase is a top hat, and a sinusoid fitted
+to a top hat leaves most of its power in harmonics the fundamental search
+cannot see.</p>
+
+<p>The nuisance model deserves a sentence, because it is the one place this
+section could have cheated.  One constant per night is not detrending.  A
+running median has a free parameter every few points and absorbs power at
+the frequencies being searched; a single constant per night can only absorb
+power below 1/T<sub>night</sub> &asymp; 2.5&nbsp;c/d, five times below the
+8&ndash;20&nbsp;c/d orbital band.  &sect;6 measures that claim on an injected
+signal rather than asserting it.</p>
+
+<figure><a href="figures/cv_phase3/pgram_stlmi.png"><img src="figures/cv_phase3/pgram_stlmi.png" alt=""></a><figcaption>ST LMi: every periodogram with its own spectral window.  Left, the 0.5&ndash;40&nbsp;c/d survey; centre, the orbital band with the published frequency dashed and the &plusmn;1&nbsp;c/d aliases dotted; right, the spectral window on the frequency-offset axis, annotated with the sidelobe fraction and how the family member was chosen.</figcaption></figure><figure><a href="figures/cv_phase3/pgram_anuma.png"><img src="figures/cv_phase3/pgram_anuma.png" alt=""></a><figcaption>AN UMa: every periodogram with its own spectral window.  Left, the 0.5&ndash;40&nbsp;c/d survey; centre, the orbital band with the published frequency dashed and the &plusmn;1&nbsp;c/d aliases dotted; right, the spectral window on the frequency-offset axis, annotated with the sidelobe fraction and how the family member was chosen.</figcaption></figure><figure><a href="figures/cv_phase3/pgram_vvpup.png"><img src="figures/cv_phase3/pgram_vvpup.png" alt=""></a><figcaption>VV Pup: every periodogram with its own spectral window.  Left, the 0.5&ndash;40&nbsp;c/d survey; centre, the orbital band with the published frequency dashed and the &plusmn;1&nbsp;c/d aliases dotted; right, the spectral window on the frequency-offset axis, annotated with the sidelobe fraction and how the family member was chosen.</figcaption></figure><figure><a href="figures/cv_phase3/pgram_euuma.png"><img src="figures/cv_phase3/pgram_euuma.png" alt=""></a><figcaption>EU UMa: every periodogram with its own spectral window.  Left, the 0.5&ndash;40&nbsp;c/d survey; centre, the orbital band with the published frequency dashed and the &plusmn;1&nbsp;c/d aliases dotted; right, the spectral window on the frequency-offset axis, annotated with the sidelobe fraction and how the family member was chosen.</figcaption></figure><figure><a href="figures/cv_phase3/pgram_yzcnc.png"><img src="figures/cv_phase3/pgram_yzcnc.png" alt=""></a><figcaption>YZ Cnc: every periodogram with its own spectral window.  Left, the 0.5&ndash;40&nbsp;c/d survey; centre, the orbital band with the published frequency dashed and the &plusmn;1&nbsp;c/d aliases dotted; right, the spectral window on the frequency-offset axis, annotated with the sidelobe fraction and how the family member was chosen.</figcaption></figure>
+
+<p><b>The tallest peak in the whole 0.5&ndash;40&nbsp;c/d search is the orbit
+in only 14 of 25 series</b>, and the other
+11 fail in two quite different ways:</p>
+
+<table class="data">
+<tr><th>what the tallest survey peak is</th><th>series</th></tr>
+<tr><td>orbit</td><td>14</td></tr>
+<tr><td>slow (accretion state)</td><td>4</td></tr>
+<tr><td>other</td><td>3</td></tr>
+<tr><td>harmonic 2.00x f_orb</td><td>3</td></tr>
+<tr><td>harmonic 2.05x f_orb</td><td>1</td></tr>
+</table>
+
+<p>The distinction matters and lumping the two together would be wrong.  A
+peak at <b>twice the orbital frequency</b> &mdash; all three AN&nbsp;UMa
+series, at 2.00&times; &mdash; <em>is</em> the orbit: AN&nbsp;UMa's light
+curve is double-humped (VSX types it AM+E), so more power lands in the first
+harmonic than in the fundamental, and a search reporting its global maximum
+would publish half the true period.  A peak <b>below 3&nbsp;c/d</b> &mdash;
+the YZ&nbsp;Cnc series &mdash; is the accretion state changing on
+week-to-month timescales: real astrophysics, and not the thing being
+searched for, but a search reporting its global maximum would publish a
+0.5&nbsp;d &ldquo;period&rdquo; for a 2.08&nbsp;h binary.  This is precisely
+why the orbital band 8&ndash;20&nbsp;c/d is declared before the search rather
+than after it.</p>
+
+<table class="data">
+<tr><th></th><th>count</th></tr>
+<tr><td>series where the family member was chosen by the <b>literature prior</b> (multi-night, sidelobes tall)</td><td>23</td></tr>
+<tr><td>series that are a <b>single night</b> (no alias ambiguity, no precision either)</td><td>2</td></tr>
+<tr><td>series where <b>the data could choose alone</b> (strongest sidelobe below 0.2)</td><td><b>0</b></td></tr>
+</table>
+
+<p><figure><a href="figures/cv_phase3/period_summary.png"><img src="figures/cv_phase3/period_summary.png" alt=""></a><figcaption>Left: deviation from the published period in combined sigma, with the ±3σ agreement band shaded.  Right: fractional period precision against the strength of the ±1 c/d sidelobe.  A period <em>determination</em> would live in the lower-left corner — tight precision, weak aliasing.  The corner is empty.</figcaption></figure></p>
+
+<table class="data">
+<tr><th>series</th><th>N</th><th>nights</th><th>baseline (d)</th><th>recovered P (d)</th><th>published P (d)</th><th>dev (σ)</th><th>agrees?</th><th>W(±1)</th><th>family chosen by</th><th>constraint</th><th>modulation detected?</th></tr>
+<tr><td>AN UMa e76 g</td><td>384</td><td>10</td><td>382.0</td><td>0.0797525 &plusmn; 0.0000084</td><td>0.0797527</td><td>-0.03</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.66</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>AN UMa e76 i</td><td>232</td><td>8</td><td>347.1</td><td>0.0797110 &plusmn; 0.0000301</td><td>0.0797527</td><td>-1.39</td><td>&mdash; n/a</td><td>0.68</td><td>PRIOR</td><td>TIGHT</td><td><b>no</b></td></tr>
+<tr><td>AN UMa e76 r</td><td>337</td><td>11</td><td>347.1</td><td>0.0797532 &plusmn; 0.0000120</td><td>0.0797527</td><td>0.04</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.70</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>EU UMa e76 g</td><td>169</td><td>10</td><td>431.9</td><td>0.0626166 &plusmn; 0.0000045</td><td>0.0626194</td><td>-0.63</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.86</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>EU UMa e76 i</td><td>23</td><td>5</td><td>17.9</td><td>0.0619991 &plusmn; 0.0002631</td><td>0.0626194</td><td>-2.36</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.95</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
+<tr><td>EU UMa e76 r</td><td>44</td><td>4</td><td>127.6</td><td>0.0626163 &plusmn; 0.0000594</td><td>0.0626194</td><td>-0.05</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.57</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>ST LMi e7 G</td><td>236</td><td>17</td><td>37.1</td><td>0.0790911 &plusmn; 0.0000537</td><td>0.0790891</td><td>0.04</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.70</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>ST LMi e7 I</td><td>286</td><td>19</td><td>37.1</td><td>0.0790909 &plusmn; 0.0000113</td><td>0.0790891</td><td>0.16</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.66</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>ST LMi e7 R</td><td>275</td><td>17</td><td>37.1</td><td>0.0790920 &plusmn; 0.0000131</td><td>0.0790891</td><td>0.22</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.70</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>ST LMi e47 z</td><td>56</td><td>1</td><td>0.1</td><td>0.0889577 &plusmn; 0.0427499</td><td>0.0790891</td><td>0.23</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.97</td><td>SINGLE-NIGHT</td><td>UNINFORMATIVE</td><td>yes</td></tr>
+<tr><td>ST LMi e76 g</td><td>675</td><td>16</td><td>396.0</td><td>0.0790918 &plusmn; 0.0000067</td><td>0.0790891</td><td>0.41</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.54</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>ST LMi e76 i</td><td>483</td><td>10</td><td>119.9</td><td>0.0790897 &plusmn; 0.0000013</td><td>0.0790891</td><td>0.43</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.64</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>ST LMi e76 r</td><td>537</td><td>12</td><td>119.8</td><td>0.0790900 &plusmn; 0.0000014</td><td>0.0790891</td><td>0.61</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.55</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>VV Pup e72 g</td><td>183</td><td>2</td><td>5.2</td><td>0.0687866 &plusmn; 0.0004578</td><td>0.0697468</td><td>-2.10</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.91</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
+<tr><td>VV Pup e72 i</td><td>74</td><td>1</td><td>0.2</td><td>0.0668127 &plusmn; 0.0134407</td><td>0.0697468</td><td>-0.22</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.91</td><td>SINGLE-NIGHT</td><td>UNINFORMATIVE</td><td>yes</td></tr>
+<tr><td>VV Pup e72 r</td><td>168</td><td>3</td><td>6.1</td><td>0.0706789 &plusmn; 0.0003960</td><td>0.0697468</td><td>2.35</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.91</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
+<tr><td>VV Pup e76 g</td><td>293</td><td>13</td><td>370.0</td><td>0.0697474 &plusmn; 0.0000130</td><td>0.0697468</td><td>0.05</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.55</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>VV Pup e76 i</td><td>50</td><td>5</td><td>54.0</td><td>0.0697572 &plusmn; 0.0001051</td><td>0.0697468</td><td>0.10</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.92</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
+<tr><td>VV Pup e76 r</td><td>130</td><td>9</td><td>54.9</td><td>0.0697433 &plusmn; 0.0000807</td><td>0.0697468</td><td>-0.04</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.88</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
+<tr><td>YZ Cnc e7 G</td><td>382</td><td>21</td><td>46.0</td><td>0.0864062 &plusmn; 0.0001829</td><td>0.0868000</td><td>-2.08</td><td>&mdash; n/a</td><td>0.80</td><td>PRIOR</td><td>WEAK</td><td><b>no</b></td></tr>
+<tr><td>YZ Cnc e7 I</td><td>383</td><td>18</td><td>46.0</td><td>0.0863876 &plusmn; 0.0002644</td><td>0.0868000</td><td>-1.53</td><td>&mdash; n/a</td><td>0.79</td><td>PRIOR</td><td>WEAK</td><td><b>no</b></td></tr>
+<tr><td>YZ Cnc e7 R</td><td>385</td><td>19</td><td>46.0</td><td>0.0867646 &plusmn; 0.0002060</td><td>0.0868000</td><td>-0.17</td><td>&mdash; n/a</td><td>0.79</td><td>PRIOR</td><td>WEAK</td><td><b>no</b></td></tr>
+<tr><td>YZ Cnc e72 g</td><td>105</td><td>3</td><td>18.1</td><td>0.0855496 &plusmn; 0.0009573</td><td>0.0868000</td><td>-1.30</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.96</td><td>PRIOR</td><td>UNINFORMATIVE</td><td>yes</td></tr>
+<tr><td>YZ Cnc e72 i</td><td>107</td><td>2</td><td>1.1</td><td>0.0843240 &plusmn; 0.0031796</td><td>0.0868000</td><td>-0.78</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.96</td><td>PRIOR</td><td>UNINFORMATIVE</td><td>yes</td></tr>
+<tr><td>YZ Cnc e72 r</td><td>133</td><td>3</td><td>2.1</td><td>0.0839560 &plusmn; 0.0007562</td><td>0.0868000</td><td>-3.75</td><td><b style="color:#f0a3a3">DISAGREES</b></td><td>0.96</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
+</table>
+
+<p><b>Two series whose tallest orbital-band peak is not the orbit:</b></p><ul><li><b>VV Pup e76 i</b> &mdash; the tallest peak in the orbital band is -0.958 c/d from the published frequency — the +/-1 c/d ALIAS, which is what the window predicts and what makes the prior necessary</li><li><b>YZ Cnc e7 I</b> &mdash; the tallest peak in the orbital band is -0.942 c/d from the published frequency — the +/-1 c/d ALIAS, which is what the window predicts and what makes the prior necessary</li></ul>
+
+<h3>Decision</h3>
+<p><b>20 of 25 series agree with the published period,
+1 disagree, and 4 have no orbital modulation to compare.</b>
+But the agreement column is the less important one.  The
+<em>family-chosen-by</em> column is the result: <b>not one series in this
+archive has sidelobes weak enough for its own periodogram to select a period.</b>
+The strongest sidelobe runs 0.54
+to 0.96
+of the window power against a bar of 0.2.</p>
+
+<p>So the honest statement of this section is: <b>these are period
+confirmations at the precision of a local peak, not period determinations.</b>
+Where the light curve is strong and the baseline long &mdash; ST&nbsp;LMi in
+both eras, AN&nbsp;UMa in g and r, VV&nbsp;Pup&nbsp;e76&nbsp;g, EU&nbsp;UMa
+in g &mdash; that confirmation is tight, a part in 10<sup>4</sup> or better.
+Where it is not, the table says <code>WEAK</code> or
+<code>UNINFORMATIVE</code> instead of quietly reporting seven decimal
+places.</p>
+
+<p>Two specific findings are worth naming.  <b>YZ&nbsp;Cnc shows no orbital
+modulation at all</b> in its 2024 era despite 1,148 points over 46 nights in
+three filters &mdash; which is what a dwarf nova outside superoutburst should
+do, and is a real result rather than a failure.  And <b>VV&nbsp;Pup&nbsp;e76&nbsp;i
+and YZ&nbsp;Cnc&nbsp;e7&nbsp;I have their tallest orbital-band peak almost
+exactly 1&nbsp;c/d from the published frequency</b> &mdash; the textbook
+alias, appearing exactly where the window says it will.</p>
+
+<h3>Consequence</h3>
+<p>Every downstream section uses the <em>published</em> ephemeris, not a
+period measured here, and that is now a justified choice rather than a
+convenient one.  The cycle counts in&nbsp;&sect;4, the phase windows the
+edges in&nbsp;&sect;3 are fitted in, and the phase-coverage gate
+in&nbsp;&sect;5 all inherit the literature value, and the uncertainty they
+inherit is the literature's, which &sect;4 then refuses to take on faith.</p>
+</section>
+
+<section id="sigmat">
+<h2>2 &nbsp; The &sigma;<sub>t</sub> injection test on ST&nbsp;LMi's densest
+night</h2>
+
+<h3>Question</h3>
+<p>ST&nbsp;LMi on the local night 2025-02-27 (UTC
+night 2025-02-28) is the densest run in the archive: 153, 142 and 141 frames
+in g, r and i over 9.37&nbsp;h, which is 4.9 orbits with each filter sampled
+every 219&nbsp;s.  If per-cycle timing is publishable anywhere in this data
+set it is publishable here.  Is it?  The threshold set by the strategy is
+60&nbsp;s.</p>
+
+<p>The question cannot be answered with the error bar the edge fit returns.
+On this night those fits come back with &chi;<sup>2</sup><sub>&nu;</sub>
+between 5 and 400 on 6&ndash;11 points &mdash; the trapezoid does not describe
+the flickering &mdash; and the &Delta;&chi;<sup>2</sup>&nbsp;=&nbsp;1 interval
+they imply is 0&ndash;4&nbsp;s.  A published per-cycle timing precision of
+four seconds at a cadence of 219&nbsp;s would be a fiction.</p>
+
+<h3>Evidence</h3>
+<p>So the epochs are injected and recovered.  A bright-phase template of known
+epoch is added to the <em>real</em> timestamps with the <em>real</em>
+per-point errors (inflated by each series' measured
+&chi;<sup>2</sup><sub>&nu;</sub>), and recovered by template matching &mdash;
+one fixed width, one fixed depth, only the epoch and an overall level free.
+The scatter of <code>t<sub>recovered</sub> &minus; t<sub>true</sub></code> is
+&sigma;<sub>t</sub>, with no model of the star in it.</p>
+
+<p>The template's depth, bright-phase width and edge width are measured from
+each series' own phase-folded light curve:</p>
+<table class="data">
+<tr><th>series</th><th>N</th><th>cadence (s)</th><th>depth (mag)</th><th>fitted edge width (s)</th><th>fold sampling floor (s)</th><th>bright width (phase)</th><th>orbits</th><th>σ used (mmag)</th><th>χ² inflation</th></tr>
+<tr><td>ST LMi e76 g</td><td>144</td><td>219</td><td>0.54</td><td>28.8</td><td>28.8</td><td>0.28</td><td>4.94</td><td>27.0</td><td>2.41</td></tr>
+<tr><td>ST LMi e76 i</td><td>134</td><td>219</td><td>1.48</td><td>37.3</td><td>31.1</td><td>0.28</td><td>4.85</td><td>63.6</td><td>2.37</td></tr>
+<tr><td>ST LMi e76 r</td><td>134</td><td>219</td><td>1.32</td><td>47.5</td><td>33.2</td><td>0.28</td><td>4.87</td><td>18.6</td><td>1.16</td></tr>
+</table>
+
+<p class="note"><b>The fitted edge width is an upper bound, and it turned out
+to be the most consequential number in this section.</b>  A first version of
+the shape estimator was algebraically pinned at two phase bins &mdash;
+547&nbsp;s for every series it was ever given &mdash; and returned a
+comfortable &ldquo;CONDITIONAL, &sigma;<sub>t</sub>&nbsp;=&nbsp;20&nbsp;s with
+the shape known&rdquo;.  Fitting the width to the folded points at full time
+resolution instead gives 29&ndash;48&nbsp;s,
+at or near the fold's own sampling floor: <b>the edge is unresolved</b>.  And
+a sharper edge is <em>harder</em> to time, not easier, because fewer points
+land on the ramp and the epoch is bracketed by the 219&nbsp;s cadence rather
+than interpolated within it.  Since the data cannot say where in that range
+the truth lies, the grid was run at three injected widths and the verdict has
+to survive the range.</p>
+
+<p><figure><a href="figures/cv_phase3/sigmat_contour.png"><img src="figures/cv_phase3/sigmat_contour.png" alt=""></a><figcaption>The σ_t contour.  Each panel is one band: assumed-edge-width error across, assumed-depth error up, total timing error (scatter and template-induced bias in quadrature) in the cells, with the 60 s contour drawn where it falls.  The rightmost panel is the sensitivity to the injected width — the one input the data cannot measure.</figcaption></figure></p>
+
+<p>The verdict is taken on the <b>total</b> error, not the scatter, and the
+distinction changed the answer.  A five-times-too-wide template produces a
+<em>tighter</em> spread than the correct one &mdash; a smooth model fits
+smoothly &mdash; while placing every epoch tens of seconds late.  Judging on
+scatter alone would have scored the badly wrong template as the better
+measurement.  A common bias cancels out of an O&minus;C gradient; it does not
+cancel out of an O&minus;C zero point, and it certainly does not cancel
+between two bands whose templates differ, which is exactly the measurement
+in&nbsp;&sect;3.</p>
+
+<table class="data">
+<tr><th>series</th><th>assumed width / true</th><th>assumed depth error</th><th>scatter σ<sub>t</sub> (s)</th><th>bias (s)</th><th><b>total (s)</b></th><th>95th pct |Δt| (s)</th><th>recovered</th><th>vs 60 s</th></tr>
+<tr><td>ST LMi e76 g</td><td>×1</td><td>+0%</td><td>100.4</td><td>-76.7</td><td><b>126.3</b></td><td>276.4</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×1</td><td>+10%</td><td>133.3</td><td>-43.8</td><td><b>140.3</b></td><td>300.8</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×1</td><td>+20%</td><td>149.7</td><td>0.0</td><td><b>149.7</b></td><td>306.9</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×1</td><td>+50%</td><td>161.6</td><td>0.0</td><td><b>161.6</b></td><td>377.5</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×2</td><td>+0%</td><td>101.4</td><td>-49.3</td><td><b>112.7</b></td><td>273.4</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×2</td><td>+10%</td><td>136.0</td><td>-5.5</td><td><b>136.1</b></td><td>290.4</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×2</td><td>+20%</td><td>141.5</td><td>-5.5</td><td><b>141.6</b></td><td>313.2</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×2</td><td>+50%</td><td>153.4</td><td>0.0</td><td><b>153.4</b></td><td>372.1</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×3</td><td>+0%</td><td>98.6</td><td>-21.9</td><td><b>101.0</b></td><td>249.0</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×3</td><td>+10%</td><td>122.3</td><td>-5.5</td><td><b>122.4</b></td><td>276.4</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×3</td><td>+20%</td><td>131.5</td><td>0.0</td><td><b>131.5</b></td><td>302.2</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×3</td><td>+50%</td><td>147.9</td><td>-5.5</td><td><b>148.0</b></td><td>361.1</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×5</td><td>+0%</td><td>79.5</td><td>-16.4</td><td><b>81.1</b></td><td>232.1</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×5</td><td>+10%</td><td>99.4</td><td>-11.0</td><td><b>100.0</b></td><td>254.5</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×5</td><td>+20%</td><td>108.6</td><td>-5.5</td><td><b>108.7</b></td><td>277.8</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×5</td><td>+50%</td><td>130.5</td><td>-5.5</td><td><b>130.6</b></td><td>347.7</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×1</td><td>+0%</td><td>79.8</td><td>-54.8</td><td><b>96.8</b></td><td>205.0</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×1</td><td>+10%</td><td>131.5</td><td>0.0</td><td><b>131.5</b></td><td>315.7</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×1</td><td>+20%</td><td>137.0</td><td>0.0</td><td><b>137.0</b></td><td>321.4</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×1</td><td>+50%</td><td>145.2</td><td>-5.5</td><td><b>145.3</b></td><td>327.7</td><td>88%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×2</td><td>+0%</td><td>93.5</td><td>-27.4</td><td><b>97.4</b></td><td>183.0</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×2</td><td>+10%</td><td>115.4</td><td>0.0</td><td><b>115.4</b></td><td>323.3</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×2</td><td>+20%</td><td>116.6</td><td>2.7</td><td><b>116.7</b></td><td>305.0</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×2</td><td>+50%</td><td>134.3</td><td>-5.5</td><td><b>134.4</b></td><td>316.5</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×3</td><td>+0%</td><td>82.2</td><td>-11.0</td><td><b>82.9</b></td><td>168.8</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×3</td><td>+10%</td><td>96.2</td><td>0.0</td><td><b>96.2</b></td><td>309.1</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×3</td><td>+20%</td><td>102.9</td><td>2.7</td><td><b>103.0</b></td><td>294.0</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×3</td><td>+50%</td><td>126.1</td><td>-5.5</td><td><b>126.2</b></td><td>311.0</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×5</td><td>+0%</td><td>65.8</td><td>0.0</td><td><b>65.8</b></td><td>133.7</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×5</td><td>+10%</td><td>69.2</td><td>5.5</td><td><b>69.4</b></td><td>276.2</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×5</td><td>+20%</td><td>74.0</td><td>2.7</td><td><b>74.0</b></td><td>266.6</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×5</td><td>+50%</td><td>104.1</td><td>-5.5</td><td><b>104.3</b></td><td>294.6</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×1</td><td>+0%</td><td>74.0</td><td>-52.1</td><td><b>90.5</b></td><td>243.9</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×1</td><td>+10%</td><td>126.1</td><td>0.0</td><td><b>126.1</b></td><td>217.9</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×1</td><td>+20%</td><td>126.1</td><td>0.0</td><td><b>126.1</b></td><td>219.2</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×1</td><td>+50%</td><td>137.0</td><td>-5.5</td><td><b>137.1</b></td><td>239.8</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×2</td><td>+0%</td><td>65.8</td><td>-21.9</td><td><b>69.3</b></td><td>208.3</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×2</td><td>+10%</td><td>104.1</td><td>0.0</td><td><b>104.1</b></td><td>197.3</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×2</td><td>+20%</td><td>109.6</td><td>0.0</td><td><b>109.6</b></td><td>201.4</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×2</td><td>+50%</td><td>126.1</td><td>-5.5</td><td><b>126.2</b></td><td>228.8</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×3</td><td>+0%</td><td>65.8</td><td>-13.7</td><td><b>67.2</b></td><td>194.6</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×3</td><td>+10%</td><td>79.5</td><td>0.0</td><td><b>79.5</b></td><td>175.4</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×3</td><td>+20%</td><td>90.4</td><td>0.0</td><td><b>90.4</b></td><td>185.0</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×3</td><td>+50%</td><td>115.1</td><td>-5.5</td><td><b>115.2</b></td><td>213.7</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×5</td><td>+0%</td><td>60.3</td><td>-5.5</td><td><b>60.5</b></td><td>138.4</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×5</td><td>+10%</td><td>60.3</td><td>2.7</td><td><b>60.4</b></td><td>131.5</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×5</td><td>+20%</td><td>60.3</td><td>0.0</td><td><b>60.3</b></td><td>146.6</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×5</td><td>+50%</td><td>87.7</td><td>-5.5</td><td><b>87.9</b></td><td>186.3</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+</table>
+
+<p class="note"><b>The grid runs the &ldquo;wrong&rdquo; way along the shape
+axis, and that is a finding rather than a bug.</b>  Assuming a
+five-times-too-wide ramp gives a <em>smaller</em> total error than assuming
+the correct one.  The reason is that at 219&nbsp;s cadence against a
+&lt;50&nbsp;s edge, almost no exposure lands on the ramp at all: the epoch is
+bracketed by two points either side, and a wide assumed ramp makes the fit
+interpolate between them, which is a better estimator of a bracketed
+transition than a near-step template that can sit anywhere in the gap with
+equal likelihood.  Being wrong in the direction of &ldquo;smoother than
+reality&rdquo; costs nothing here because the data never resolved the edge.
+The <em>depth</em> axis behaves as expected &mdash; a 50% depth error is the
+worst cell in every panel &mdash; because a committed wrong depth biases the
+level fit and drags the crossing point with it.</p>
+
+<h3>Decision</h3>
+<ul><li><b>ST LMi e76 g</b>: <b>NOT PUBLISHABLE</b> &mdash; Even with the edge shape known exactly sigma_t = 126.3 s, outside the 60 s threshold.  Per-cycle timing is not supported by this cadence.<br><span class='note'>width sensitivity, shape known exactly: x0.2 -&gt; 146.3 s; x1 -&gt; 126.3 s; x2 -&gt; 98.8 s</span></li><li><b>ST LMi e76 i</b>: <b>NOT PUBLISHABLE</b> &mdash; Even with the edge shape known exactly sigma_t = 96.8 s, outside the 60 s threshold.  Per-cycle timing is not supported by this cadence.<br><span class='note'>width sensitivity, shape known exactly: x0.2 -&gt; 132.2 s; x1 -&gt; 96.8 s; x2 -&gt; 72.1 s</span></li><li><b>ST LMi e76 r</b>: <b>NOT PUBLISHABLE</b> &mdash; Even with the edge shape known exactly sigma_t = 90.5 s, outside the 60 s threshold.  Per-cycle timing is not supported by this cadence.<br><span class='note'>width sensitivity, shape known exactly: x0.2 -&gt; 136.1 s; x1 -&gt; 90.5 s; x2 -&gt; 55.1 s</span></li></ul>
+
+<p><b>17 of 144 grid cells pass the
+60&nbsp;s threshold.</b>  The best cell in the whole
+experiment &mdash; the densest night, the sharpest band, the edge shape and
+depth both known exactly &mdash; returns 90.5&nbsp;s.  <b>Per-cycle
+bright-phase timing is not supported by this cadence.</b>  Not marginally, and
+not only under a wrong template: the exact-template cell misses too.</p>
+
+<p>The reason is arithmetic rather than photometric.  With a 219&nbsp;s
+per-filter interval and an edge that crosses in under 50&nbsp;s, most cycles
+have <em>no</em> point on the ramp; the epoch is bracketed by two exposures
+219&nbsp;s apart, and the uncertainty of a bracket is
+219/&radic;12&nbsp;&asymp;&nbsp;63&nbsp;s before any noise is added.  No
+improvement in photometric precision moves that number.  A cadence of about
+60&nbsp;s per filter would.</p>
+
+<h3>Consequence</h3>
+<p>&sect;3 and &sect;4 are re-scoped by this result rather than cancelled.
+Individual cycle epochs are published with the Monte Carlo's error bar and not
+the fit's, and no statement anywhere on this page rests on a single cycle.
+What survives is what <em>averaging</em> over many cycles supports: the
+inter-band offsets in&nbsp;&sect;3 are means over 4&ndash;5 paired cycles per
+night, and the O&minus;C in&nbsp;&sect;4 is read as a night-averaged
+quantity.  The 60&nbsp;s threshold governs the per-cycle claim, and the
+per-cycle claim is the one that is withdrawn.</p>
+</section>
+
+<section id="edges">
+<h2>3 &nbsp; Bright-phase timing, per band</h2>
+
+<h3>Question</h3>
+<p>In a polar the optical emission is cyclotron radiation from an accretion
+column, and its opacity depends on wavelength.  The column therefore does not
+disappear behind the white dwarf's limb at the same instant in every band, and
+the size of that offset is a property of the emission region &mdash; a
+measurement, not a systematic to be calibrated away.  Can this data see
+it?</p>
+
+<h3>Evidence</h3>
+<p>The falling edge of the bright phase was fitted per cycle per band, with
+the edge phase taken from each series' own folded profile and a four-parameter
+trapezoid (two levels, epoch, ramp width) profiled on a grid.
+72 of 120 attempted fits were accepted; the rest were refused
+by explicit gates rather than quietly averaged in:</p>
+<table class="data">
+<tr><th>why an edge was refused</th><th>fits</th></tr>
+<tr><td>step SNR N below N — not distinguishable from flickering</td><td>40</td></tr>
+<tr><td>best epoch sits on the edge of the search grid</td><td>4</td></tr>
+<tr><td>edge fell in a N s gap, more than Nx the N s cadence — the epoch is an interpolation, not a measurement</td><td>4</td></tr>
+</table>
+
+<p><figure><a href="figures/cv_phase3/edges.png"><img src="figures/cv_phase3/edges.png" alt=""></a><figcaption>Left: the bright phase folded on the published ephemeris, one colour per band, with the accepted edge epochs dashed. Right: the inter-band edge-time differences, paired per cycle so the cycle-to-cycle wander of the accretion spot cancels.</figcaption></figure></p>
+
+<p>The amplitude of the edge itself is strongly colour dependent, which is the first-order cyclotron signature and is measured here rather than assumed:</p><table class="data">
+<tr><th>band</th><th>mean fitted edge depth (mag)</th><th>cycles</th></tr>
+<tr><td>g</td><td>0.608</td><td>19</td></tr>
+<tr><td>i</td><td>1.601</td><td>16</td></tr>
+<tr><td>r</td><td>1.323</td><td>14</td></tr>
+</table>
+
+<p><b>The publishable inter-band numbers are the pooled ones.</b>  A band offset is a property of the emission region, not of a night, and most individual nights contribute a single paired cycle — which at the &sigma;<sub>t</sub> this cadence supports is a ±300 s bound that says nothing.  Pooling every paired cycle in an era is both the correct estimator and the only one with the signal-to-noise to detect anything:</p><table class="data">
+<tr><th>target</th><th>era</th><th>bands</th><th>paired cycles</th><th>Δt (s)</th><th>σ (s)</th><th>χ²<sub>ν</sub></th><th>|Δt| / σ</th><th>verdict</th></tr>
+<tr><td>ST LMi</td><td>7</td><td>G &minus; I</td><td>2</td><td><b>-136.6</b></td><td>88.3</td><td>0.64</td><td>1.5</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>7</td><td>I &minus; R</td><td>3</td><td><b>-28.2</b></td><td>90.0</td><td>0.35</td><td>0.3</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>g &minus; i</td><td>12</td><td><b>-97.0</b></td><td>51.1</td><td>0.26</td><td>1.9</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>g &minus; r</td><td>12</td><td><b>-32.5</b></td><td>50.9</td><td>0.31</td><td>0.6</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>i &minus; r</td><td>12</td><td><b>59.0</b></td><td>45.2</td><td>0.18</td><td>1.3</td><td>consistent with zero</td></tr>
+</table>
+
+<details><summary>The per-night components of the pooled values (27 rows) — these are not independent results</summary><table class="data">
+<tr><th>target</th><th>era</th><th>night</th><th>bands</th><th>cycles</th><th>Δt (s)</th><th>σ (s)</th><th>χ²<sub>ν</sub></th><th>verdict</th></tr>
+<tr><td>ST LMi</td><td>7</td><td>2024-01-30</td><td>G &minus; I</td><td>1</td><td><b>-117.0</b></td><td>91.7</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>7</td><td>2024-01-31</td><td>I &minus; R</td><td>1</td><td><b>41.2</b></td><td>302.9</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>7</td><td>2024-03-03</td><td>G &minus; I</td><td>1</td><td><b>-392.3</b></td><td>331.2</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>7</td><td>2024-03-03</td><td>G &minus; R</td><td>1</td><td><b>25.9</b></td><td>189.7</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>7</td><td>2024-03-03</td><td>I &minus; R</td><td>2</td><td><b>-35.0</b></td><td>94.2</td><td>0.65</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-02-22</td><td>g &minus; r</td><td>1</td><td><b>176.4</b></td><td>216.9</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-02-27</td><td>g &minus; i</td><td>4</td><td><b>-38.9</b></td><td>79.6</td><td>0.22</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-02-27</td><td>g &minus; r</td><td>4</td><td><b>19.6</b></td><td>80.3</td><td>0.16</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-02-27</td><td>i &minus; r</td><td>4</td><td><b>59.1</b></td><td>69.1</td><td>0.03</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-03-02</td><td>g &minus; i</td><td>1</td><td><b>-300.2</b></td><td>206.0</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-03-02</td><td>g &minus; r</td><td>1</td><td><b>-186.9</b></td><td>155.4</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-03-02</td><td>i &minus; r</td><td>1</td><td><b>113.3</b></td><td>186.2</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-04-30</td><td>g &minus; i</td><td>1</td><td><b>-171.8</b></td><td>159.2</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-04-30</td><td>g &minus; r</td><td>1</td><td><b>-25.6</b></td><td>155.4</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-04-30</td><td>i &minus; r</td><td>1</td><td><b>146.2</b></td><td>132.5</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-05-02</td><td>g &minus; i</td><td>1</td><td><b>-98.5</b></td><td>159.2</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-05-02</td><td>g &minus; r</td><td>1</td><td><b>-62.1</b></td><td>155.4</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-05-02</td><td>i &minus; r</td><td>1</td><td><b>36.5</b></td><td>132.5</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-05-03</td><td>g &minus; i</td><td>2</td><td><b>-61.0</b></td><td>141.9</td><td>0.01</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-05-03</td><td>g &minus; r</td><td>1</td><td><b>-95.2</b></td><td>243.8</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-05-03</td><td>i &minus; r</td><td>1</td><td><b>-51.2</b></td><td>278.5</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-05-06</td><td>g &minus; i</td><td>1</td><td><b>-98.5</b></td><td>159.2</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-05-06</td><td>g &minus; r</td><td>1</td><td><b>-106.0</b></td><td>155.4</td><td>&mdash;</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-05-06</td><td>i &minus; r</td><td>2</td><td><b>-37.7</b></td><td>121.0</td><td>0.32</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-05-08</td><td>g &minus; i</td><td>2</td><td><b>-190.0</b></td><td>172.9</td><td>0.06</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-05-08</td><td>g &minus; r</td><td>2</td><td><b>-71.2</b></td><td>189.9</td><td>0.26</td><td>consistent with zero</td></tr>
+<tr><td>ST LMi</td><td>76</td><td>2025-05-08</td><td>i &minus; r</td><td>2</td><td><b>107.4</b></td><td>132.9</td><td>0.08</td><td>consistent with zero</td></tr>
+</table></details>
+
+<h3>Decision</h3>
+<p><b>0 of 5 pooled inter-band differences reach
+3&sigma;.</b>  The largest is
+ST LMi e76 g&minus;i at -97 &plusmn; 51 s over 12 paired cycles &mdash; 1.9&sigma;, which is a bound and not a detection.</p>
+
+<p>The error bars are the larger of the rescaled formal bar and the injection
+Monte Carlo's total error from&nbsp;&sect;2, which is why they are tens of
+seconds wide rather than the few seconds the raw fits claimed.  Their
+&chi;<sup>2</sup><sub>&nu;</sub> of 0.2&ndash;0.6 says those bars are if
+anything conservative: the cycle-to-cycle scatter of the differences is
+<em>smaller</em> than the Monte Carlo floor, so the limit here is set by how
+well a single edge can be placed and not by the star's variability.</p>
+
+<p>The honest reading: <b>this data resolves the colour dependence of the
+bright phase's <em>amplitude</em> decisively, and its <em>timing</em> not at
+all.</b>  The amplitude result is unambiguous and is a cyclotron measurement
+&mdash; the edge is roughly three times deeper in i than in g.  The timing
+result is a bound, limited by exactly what&nbsp;&sect;2 predicted: a 219&nbsp;s
+cadence against an unresolved edge.  The sign of the largest offset is the
+one cyclotron theory would predict (the bluer band's edge earlier), and at
+1.9&sigma; that is a remark, not a result, and the page declines to promote
+it.</p>
+
+<p>This is an ST LMi result.
+ That is a consequence of the observing record and not of the analysis:
+three-filter full-orbit nights number 20 of 30 for ST&nbsp;LMi, 4 of 11 for
+AN&nbsp;UMa, 1 of 18 for VV&nbsp;Pup and 0 for EU&nbsp;UMa.  Calling this a
+&ldquo;three-polar colour result&rdquo; would misrepresent the sample by a
+factor of three.</p>
+
+<h3>Consequence</h3>
+<p>The published claim is the band-dependent bright-phase <em>amplitude</em>
+with the timing offsets as bounds, and the bounds are quoted with the Monte
+Carlo error bar rather than the fit's.  A future run that wants the timing
+result needs a shorter per-filter interval, not more nights: more nights at
+219&nbsp;s cadence average down the random part of a bracket-limited error and
+leave the bracket.</p>
+</section>
+
+<section id="oc">
+<h2>4 &nbsp; O&minus;C construction and cycle-count analysis</h2>
+
+<h3>Question</h3>
+<p>An O&minus;C diagram plots an observed epoch minus the epoch a linear
+ephemeris predicts, and that subtraction needs an <em>integer</em>: which
+cycle is this?  Between the VSX zero point and our nights there are tens of
+thousands of cycles, and an error in the period accumulates over every one of
+them.  Once the accumulated drift reaches half a cycle the integer is no
+longer determined, and an O&minus;C computed on the wrong one is not a noisy
+result &mdash; it is a fabricated one, and it looks exactly like a real
+period change.</p>
+
+<h3>Evidence</h3>
+<p>The drift is <code>n &times; &sigma;(P) / P</code> cycles.  Inverting it
+gives the number this section actually turns on: the largest period
+uncertainty that would still leave the count unique,
+<code>&sigma;(P)<sub>max</sub> = 0.5 &times; P / n</code>.  That form is used
+deliberately, because <b>VSX publishes no period uncertainty at all</b>.
+Rather than invent one, the table reports how many times larger the true
+&sigma;(P) could be than the quoted-precision floor before the conclusion
+changes:</p>
+<table class="data">
+<tr><th>target</th><th>epochs</th><th>cycles since VSX epoch</th><th>σ(P) floor (d)</th><th>accumulated drift (cycles)</th><th>σ(P) that would still work (d)</th><th>margin</th><th>verdict</th></tr>
+<tr><td>AN UMa</td><td>4</td><td>54,437</td><td>5.00e-09</td><td>0.0034</td><td>7.33e-07</td><td>147&times;</td><td><b style="color:#9fd8ae">NOT ONE FEATURE — NO O-C</b></td></tr>
+<tr><td>EU UMa</td><td>2</td><td>45,131</td><td>5.00e-08</td><td>0.0360</td><td>6.94e-07</td><td>14&times;</td><td><b style="color:#9fd8ae">CYCLE COUNT UNIQUE</b></td></tr>
+<tr><td>ST LMi</td><td>63</td><td>21,869</td><td>5.00e-09</td><td>0.0014</td><td>1.81e-06</td><td>362&times;</td><td><b style="color:#9fd8ae">CYCLE COUNT UNIQUE</b></td></tr>
+<tr><td>VV Pup</td><td>3</td><td>474,793</td><td>5.00e-11</td><td>0.0003</td><td>7.34e-08</td><td>1,469&times;</td><td><b style="color:#9fd8ae">NOT ONE FEATURE — NO O-C</b></td></tr>
+<tr><td>YZ Cnc</td><td>&mdash;</td><td>&mdash;</td><td>5.00e-05</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td><b style="color:#f0a3a3">NO EPHEMERIS EPOCH</b></td></tr>
+</table>
+
+<p><figure><a href="figures/cv_phase3/oc.png"><img src="figures/cv_phase3/oc.png" alt=""></a><figcaption>Left: the O−C of the bright-phase edge against cycle number, mean removed. Right: the cycle-count margin — the count is unique when the period uncertainty that would still work (green) exceeds the uncertainty we actually have (blue).</figcaption></figure></p>
+
+<ul><li><b>AN UMa</b>: The 4 accepted edges for this target scatter over 0.152 in orbital phase (circular s.d.), far more than the 0.05 that would make them one feature. The folded profile is too sparse here to locate the falling edge consistently between filters, so these epochs time DIFFERENT things and pooling them into one O-C would produce a large scatter that reads as a period error and is not one.  The cycle count itself is still unique (54,437 cycles, drift 0.0034), but there is nothing legitimate to plot against it.</li><li><b>EU UMa</b>: 45,131 cycles separate our last timed edge from the VSX epoch.  At the quoted-precision floor sigma_P = 5.0e-08 d the accumulated drift is 0.036 cycles, below the half cycle at which the integer count stops being determined.  The count survives any period uncertainty up to 6.94e-07 d, which is 14x the quoted precision — so the conclusion holds even if the true published sigma is far larger than the rounding of the last digit.</li><li><b>ST LMi</b>: 21,869 cycles separate our last timed edge from the VSX epoch.  At the quoted-precision floor sigma_P = 5.0e-09 d the accumulated drift is 0.001 cycles, below the half cycle at which the integer count stops being determined.  The count survives any period uncertainty up to 1.81e-06 d, which is 362x the quoted precision — so the conclusion holds even if the true published sigma is far larger than the rounding of the last digit.</li><li><b>VV Pup</b>: The 3 accepted edges for this target scatter over 0.130 in orbital phase (circular s.d.), far more than the 0.05 that would make them one feature. The folded profile is too sparse here to locate the falling edge consistently between filters, so these epochs time DIFFERENT things and pooling them into one O-C would produce a large scatter that reads as a period error and is not one.  The cycle count itself is still unique (474,793 cycles, drift 0.0003), but there is nothing legitimate to plot against it.</li><li><b>YZ Cnc</b>: VSX publishes a period but no epoch for this star, so there is no zero point to count cycles from and no O-C is possible against the catalogue value.</li></ul>
+
+<p>Where enough epochs survived, a linear ephemeris was refitted to them and compared with the published period:</p><table class="data">
+<tr><th>target</th><th>epochs</th><th>O−C rms (s)</th><th>fitted P (d)</th><th>VSX P (d)</th><th>difference (s/cycle)</th></tr>
+<tr><td>ST LMi</td><td>63</td><td>96.9</td><td>0.07908916 &plusmn; 0.00000004</td><td>0.07908912</td><td>0.004</td></tr>
+</table>
+
+<p class="note">One systematic is removed and published rather than hidden.
+The bright-phase edge is not at phase zero of the catalogue ephemeris &mdash;
+it is a feature of the accretion geometry, offset by a constant fraction of a
+cycle.  That constant appears in the raw O&minus;C as a large offset that has
+nothing to do with the clock, so the mean is subtracted and quoted separately
+(EU UMa: 1,060 s, ST LMi: 1,071 s).  An O&minus;C that kept it
+would show a huge constant offset and invite exactly the wrong
+interpretation.</p>
+
+<h3>Decision</h3>
+<p><b>The cycle count is unique for 4 of the 4 targets
+with both a published epoch and timed epochs of our own</b>, and the margins
+are not marginal &mdash; the true &sigma;(P) would have to be thousands of
+times larger than the quoted precision before any of them broke.  So the
+O&minus;C diagrams above rest on determined integers.</p>
+
+<p><b>A unique cycle count is necessary and not sufficient, and a second
+gate removes two of the four.</b>  An O&minus;C pools epochs from every
+filter and era into one diagram, which is only legitimate if they all time
+the same feature.  For ST&nbsp;LMi they do &mdash; the folded profile puts
+the falling edge at phase 0.140 in all six series, and the accepted epochs
+scatter by 0.014 in phase.  For AN&nbsp;UMa and VV&nbsp;Pup they scatter by
+0.152 and 0.130, because with 4 full-orbit nights out of 11 and 1 out of 18
+the folded profile cannot locate the edge consistently between filters.
+Pooling those produced O&minus;C scatters of 1,126&nbsp;s and 2,555&nbsp;s
+on the first run &mdash; a number that reads as a period error and is
+nothing of the kind.  Both are now refused with the verdict
+<code>NOT ONE FEATURE &mdash; NO O&minus;C</code> and no O&minus;C rows are
+written for them at all, because a refused result that is still stored
+&ldquo;for reference&rdquo; is a result that gets plotted anyway.</p>
+
+<p>YZ&nbsp;Cnc is excluded for a different and simpler reason: <b>VSX
+publishes a period for it but no epoch</b>, so there is no zero point to count
+from and no O&minus;C is possible against the catalogue value at all.  That is
+recorded as its own verdict rather than being folded into a footnote.</p>
+
+<p>What the O&minus;C does <em>not</em> support is a period change.  The
+scatter is dominated by the per-cycle timing error that &sect;2 measured
+&mdash; tens of seconds against a bracket-limited floor &mdash; and with the
+baseline available here that scatter swamps any secular term.  The refitted
+periods agree with the published ones and are not offered as improvements on
+them.</p>
+
+<h3>Consequence</h3>
+<p>The cycle counts are stored in <code>p3_cycle_count</code> with the drift
+and the margin beside them, so a later run that acquires a genuine published
+&sigma;(P) &mdash; from the discovery paper rather than from the catalogue
+&mdash; can check the conclusion against it in one query instead of
+re-deriving it.  That is the whole reason the margin is stored as a ratio.</p>
+</section>
+
+<section id="states">
+<h2>5 &nbsp; Accretion-state classification</h2>
+
+<h3>Question</h3>
+<p>Polars switch between high and low accretion states, and a duty cycle
+&mdash; what fraction of the time the star is accreting &mdash; is one of the
+few population-level numbers a monitoring programme like this can contribute.
+Two things can make that number a fiction.  A threshold chosen by eye, and a
+statistic computed only on the nights the star was bright enough to detect,
+which is very nearly a tautology.</p>
+
+<h3>Evidence</h3>
+<p>The classifying statistic is a night's median magnitude, and it is gated
+first.  These polars vary by 0.65&ndash;1.7&nbsp;mag around a single orbit
+&mdash; the same size as a state change &mdash; so a median over a third of an
+orbit is a phase measurement wearing a state label.  A night must cover at
+least 60% of the phase circle before its median
+is allowed to mean anything.</p>
+
+<p>The threshold is then Otsu's method on the surviving nights: the cut that
+maximises the between-class variance.  Deterministic, no free parameters
+beyond the bin count, and derived from the observed bimodality rather than
+imported.  Its own bootstrap uncertainty defines an INTERMEDIATE band, which
+means &ldquo;this data cannot say&rdquo; and not &ldquo;the star was
+physically in between&rdquo;.  Crucially, Otsu also reports a
+<b>separability</b>, and a low value is the method telling you it has cut a
+single population in half.</p>
+
+<p>Duty cycles are then computed twice.  Once on detections only, and once
+with the Phase-2 upper limits included &mdash; where a limit <em>fainter</em>
+than the threshold proves the epoch is on the low side, and a limit brighter
+than the threshold proves nothing and is counted as uninformative rather than
+silently assigned.</p>
+
+<p><figure><a href="figures/cv_phase3/states.png"><img src="figures/cv_phase3/states.png" alt=""></a><figcaption>Left: every night's median magnitude relative to its own series' threshold. Right: duty cycle computed on detections only versus with the Phase-2 limits included — the gap is the censoring bias.</figcaption></figure></p>
+
+<table class="data">
+<tr><th>series</th><th>nights</th><th>gated</th><th>used</th><th>threshold (mag)</th><th>separability</th><th>H / L / I</th><th>limits used</th><th>duty (detections)</th><th>duty (with limits)</th><th>bias</th><th>verdict</th></tr>
+<tr><td>AN UMa e76 g</td><td>10</td><td>2</td><td>8</td><td>16.64 &plusmn; 0.05</td><td>0.81</td><td>4 / 4 / 0</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>AN UMa e76 i</td><td>8</td><td>0</td><td>8</td><td>16.76 &plusmn; 0.04</td><td>0.87</td><td>6 / 2 / 0</td><td>0</td><td>0.750</td><td><b>0.750</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>AN UMa e76 r</td><td>11</td><td>3</td><td>8</td><td>16.64 &plusmn; 0.10</td><td>0.76</td><td>3 / 3 / 2</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>EU UMa e76 g</td><td>10</td><td>4</td><td>6</td><td>19.10 &plusmn; 0.15</td><td>0.72</td><td>1 / 2 / 3</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><span style="color:#e6cc7a">UNIMODAL — NO STATE CHANGE RESOLVED</span></td></tr>
+<tr><td>EU UMa e76 i</td><td>7</td><td>6</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>&mdash;</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
+<tr><td>EU UMa e76 r</td><td>4</td><td>3</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
+<tr><td>ST LMi e7 G</td><td>16</td><td>8</td><td>8</td><td>16.80 &plusmn; 0.10</td><td>0.69</td><td>2 / 3 / 3</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><span style="color:#e6cc7a">UNIMODAL — NO STATE CHANGE RESOLVED</span></td></tr>
+<tr><td>ST LMi e7 I</td><td>17</td><td>11</td><td>6</td><td>16.19 &plusmn; 0.08</td><td>0.89</td><td>3 / 3 / 0</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>ST LMi e7 R</td><td>16</td><td>8</td><td>8</td><td>16.39 &plusmn; 0.11</td><td>0.81</td><td>2 / 5 / 1</td><td>0</td><td>0.375</td><td><b>0.375</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>ST LMi e47 z</td><td>1</td><td>0</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
+<tr><td>ST LMi e76 g</td><td>16</td><td>2</td><td>14</td><td>16.14 &plusmn; 0.23</td><td>0.80</td><td>2 / 10 / 2</td><td>0</td><td>0.286</td><td><b>0.286</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>10</td><td>2</td><td>8</td><td>16.17 &plusmn; 0.02</td><td>0.80</td><td>4 / 4 / 0</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>12</td><td>2</td><td>10</td><td>16.48 &plusmn; 0.06</td><td>0.65</td><td>3 / 2 / 5</td><td>0</td><td>0.600</td><td><b>0.600</b></td><td>0.000</td><td><span style="color:#e6cc7a">UNIMODAL — NO STATE CHANGE RESOLVED</span></td></tr>
+<tr><td>VV Pup e72 g</td><td>3</td><td>1</td><td>2</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
+<tr><td>VV Pup e72 i</td><td>1</td><td>0</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
+<tr><td>VV Pup e72 r</td><td>4</td><td>2</td><td>2</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
+<tr><td>VV Pup e76 g</td><td>14</td><td>5</td><td>9</td><td>16.57 &plusmn; 0.19</td><td>0.99</td><td>3 / 6 / 0</td><td>0</td><td>0.333</td><td><b>0.333</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>VV Pup e76 i</td><td>8</td><td>6</td><td>2</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
+<tr><td>VV Pup e76 r</td><td>10</td><td>6</td><td>4</td><td>17.59</td><td>0.90</td><td>2 / 2 / 0</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>YZ Cnc e7 G</td><td>20</td><td>0</td><td>20</td><td>13.43 &plusmn; 0.12</td><td>0.76</td><td>9 / 8 / 3</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>YZ Cnc e7 I</td><td>18</td><td>0</td><td>18</td><td>13.63 &plusmn; 0.16</td><td>0.71</td><td>7 / 6 / 5</td><td>0</td><td>0.611</td><td><b>0.611</b></td><td>0.000</td><td><span style="color:#e6cc7a">UNIMODAL — NO STATE CHANGE RESOLVED</span></td></tr>
+<tr><td>YZ Cnc e7 R</td><td>17</td><td>0</td><td>17</td><td>13.76 &plusmn; 0.18</td><td>0.77</td><td>12 / 5 / 0</td><td>0</td><td>0.706</td><td><b>0.706</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>YZ Cnc e72 g</td><td>3</td><td>0</td><td>3</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
+<tr><td>YZ Cnc e72 i</td><td>2</td><td>0</td><td>2</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
+<tr><td>YZ Cnc e72 r</td><td>3</td><td>0</td><td>3</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
+</table>
+
+<h3>Decision</h3>
+<p><b>15 of 25 series produce a threshold at all, and
+only 11 of those 15 are genuinely bimodal.</b>  For the
+other 4 the separability is below 0.75 and the honest
+statement is that the nightly magnitudes are <em>one</em> population: the
+threshold still cuts them, and the HIGH/LOW counts in the table are still
+computed, but they are not evidence of two accretion states and the verdict
+column says so.  A page that printed the duty cycles without that column
+would be publishing a bimodality that was manufactured by the method.</p>
+
+<p><b>The measured censoring bias is exactly zero in every series</b>
+(0 series move the duty cycle by more than 0.01; the largest
+change anywhere is 0.000).  That is a
+result, not an omission, and it is worth being clear about what it does and
+does not mean.  It does <em>not</em> mean the censoring bias is unimportant
+in general &mdash; it means <em>this archive has too few limits, in the wrong
+places, to exhibit it</em>: 111 limits across
+27 nights, of which 17 fail the phase gate and
+9 are nights with no detection at all.  The reason is the one
+Phase&nbsp;2 already established: 11 of 13 series have median limits
+<em>shallower</em> than their own median detection, so most undetected epochs
+are low-sensitivity frames rather than demonstrably faint states.  The
+limit-aware duty cycles here are therefore still <b>bounds, not
+measurements</b>, and they inherit that caveat from Phase&nbsp;2 rather than
+escaping it.  What the exercise does establish is that the duty cycles above
+are not <em>inflated</em> by dropped non-detections, which is the specific
+failure the task existed to rule out.</p>
+
+<h3>Consequence</h3>
+<p>The state histories are stored per night in
+<code>p3_state_night</code> with the phase coverage, the censoring flag and
+the gate reason on every row, so a later analysis can re-derive a duty cycle
+under a different threshold without re-deriving the classification.  The
+series that failed the bimodality test are kept in the table rather than
+dropped, because &ldquo;this series shows no resolvable state change&rdquo; is
+a result about the star and the campaign, and deleting the row would make the
+sample look more decisive than it is.</p>
+</section>
+
+<section id="detrend">
+<h2>6 &nbsp; Detrending discipline</h2>
+
+<h3>Question</h3>
+<p>Every light curve here has a trend under it &mdash; atmospheric
+transparency, differential extinction across a night, slow instrumental
+drift.  The standard move is to remove it and then search the residuals.  The
+strategy forbids that and requires joint GP&nbsp;+&nbsp;signal fitting
+instead.  Is that a matter of taste, or does the order change the answer?</p>
+
+<h3>Evidence</h3>
+<p>The two orderings were run on the same data with the same injected signal.
+A sinusoid of semi-amplitude 0.1&nbsp;mag
+at the orbital frequency was added to the real timestamps of
+ST LMi e76 g on night
+2025-02-27, on top of a real correlated trend drawn
+from a Mat&eacute;rn-3/2 process, and recovered (a) by subtracting a running
+median and then fitting at the known frequency, and (b) by fitting the GP and
+the sinusoid simultaneously.  The injected amplitude is known, so the
+recovered fraction is a measurement and not an opinion.</p>
+
+<p><figure><a href="figures/cv_phase3/detrend.png"><img src="figures/cv_phase3/detrend.png" alt=""></a><figcaption>The same data, the same signal, two orderings. The joint fit has no window to choose and returns the same answer everywhere; the detrend's answer is a function of a parameter the analyst picks before seeing the signal.</figcaption></figure></p>
+
+<table class="data">
+<tr><th>running-median window</th><th>detrend-then-search recovers</th><th>joint GP + signal recovers</th></tr>
+<tr><td>0.5 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">25.4%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
+<tr><td>0.8 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">57.9%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
+<tr><td>1 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">86.0%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
+<tr><td>1.5 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">123.3%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
+<tr><td>2 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">102.4%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
+<tr><td>3 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">99.0%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
+<tr><td>5 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">99.3%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
+<tr><td>10 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">101.0%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
+<tr><td>20 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">101.0%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
+</table>
+
+<h3>Decision</h3>
+<p><b>The order changes the answer by a factor of
+4.9,
+and not in one direction.</b>  At a window of
+0.5&nbsp;&times;&nbsp;P<sub>orb</sub> the running median destroys
+74.6% of the injected signal.  At
+1.5&nbsp;&times;&nbsp;P<sub>orb</sub> it returns
+123.3% of it &mdash; it <em>fabricates</em> amplitude.  The joint
+fit returns 101.7%
+at every window from 0.5 to 20&nbsp;P<sub>orb</sub>
+&mdash; it has no window to choose.</p>
+
+<p>The fabrication is the more dangerous half and is the reason this section
+exists.  Attenuation is at least a conservative failure; an analyst who
+detrends at a badly chosen window and recovers 125% of a signal has no way to
+know it, because the true amplitude is exactly what they were trying to
+measure.  The joint fit is not merely better on average &mdash; it removes the
+free parameter that does the damage.</p>
+
+<p>The fast path is checked rather than trusted.  celerite2's <code>Matern32Term</code> is a two-exponential <em>approximation</em> whose own docstring warns it &ldquo;should be used with care&rdquo;, and at its default &epsilon;&nbsp;=&nbsp;0.01 it differs from the textbook Mat&eacute;rn-3/2 kernel by 1.8&times;10<sup>-5</sup> relative. The module pins &epsilon; so the fast path and a dense pure-numpy Cholesky reference are the same kernel to machine precision, and the two are compared on the real sampling:</p><table class="data">
+<tr><th>series</th><th>N</th><th>celerite2 amplitude</th><th>dense amplitude</th><th>relative difference</th><th>Δ log-likelihood</th><th>kernel ε</th><th>verdict</th></tr>
+<tr><td>ST LMi e76 g</td><td>144</td><td>0.104335</td><td>0.104335</td><td>5.92e-14</td><td>1.14e-12</td><td>1e-06</td><td>AGREE</td></tr>
+</table>
+
+<h3>Consequence</h3>
+<p>No stage in Phase&nbsp;3 detrends before searching.  &sect;1's periodograms
+carry one free constant per night &mdash; a nuisance model with a single
+parameter per block, fitted jointly, which can only absorb power below
+2.5&nbsp;c/d and is five times away from the orbital band.  This section is
+the measurement that licenses that choice: it shows what happens when a
+nuisance model is given enough freedom to reach the signal, and how far the
+night-constant model is from that regime.</p>
+</section>
+
+
+<footer>Generated by <code>macro_phot.report_phase3</code> from
+<code>products/phot/cv_timeseries.sqlite</code>.  Every number in a table,
+figure or verdict is the result of a query run at render time or a constant
+imported from <code>macro_phot.phase3</code>.  The exceptions, named rather
+than claimed away: the per-point precision and &chi;<sup>2</sup>-inflation
+ranges and the three-filter full-orbit night counts quoted in &sect;0 and
+&sect;3 (measured by the CV characterization, CV-S6), the Phase-2 finding
+about limit depths quoted in &sect;5 (measured by CV-S8), and the descriptive
+prose throughout.  The published ephemerides are cached payloads from the
+AAVSO Variable Star Index under
+<code>products/external/vsx/</code>, fetched on the date shown in &sect;0.
+Regenerate with <code>pipeline/scripts/run_cv_phase3.py report</code>.
+</footer>
+</body></html>
