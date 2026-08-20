@@ -377,6 +377,15 @@ def _median(values, scale: float = 1.0):
 #: census in §2.2 is reproducible from the release rather than asserted.
 FULL_ORBIT_MIN_POINTS_DEFAULT = 12
 
+#: The quasi-simultaneity window a colour pair must fall inside, in seconds.
+#: It lives HERE rather than in ``figures_cv`` -- which is what does the
+#: pairing -- because §3.3's prose, Figure 6's generated caption and the
+#: pairing code must all be the same number, and ``figures_cv`` imports this
+#: module while this one imports nothing from it.  Typed into the prose, as
+#: it was until referee 6, it is a constant that can go stale in one of the
+#: three places and nowhere else.
+COLOUR_PAIR_WINDOW_S = 600.0
+
 #: Instrument-era and target labels, shared by the macro collector and the
 #: table renderers.  Defined up here rather than beside the renderers
 #: because ``collect`` names an era in a macro's note and nothing should
@@ -780,6 +789,37 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
             unit="min", source="VSX catalogue",
             note="the same published VSX period in minutes; a unit "
                  "conversion of an external constant, not a measurement")
+
+    # THE SPAN OF THE CATALOGUE PERIODS, AS ONE MACRO.  §1 states it to say
+    # what a survey cadence cannot resolve, and Figure 1(b)'s caption prints
+    # the same span from the same table.  Typed into §1 -- as it was until
+    # referee 6 -- it is a number that a re-fetch of any one target's VSX
+    # entry can silently falsify in the prose while the caption moves.
+    _per_min = [1440.0 * float(r["period_d"])
+                for r in rows(cv, "SELECT period_d FROM p3_ephemeris "
+                                  "WHERE period_d IS NOT NULL")]
+    add("orbital period range min", fmt_range(*_minmax(_per_min), 0),
+        unit="min", source="VSX catalogue",
+        note="shortest to longest published VSX orbital period over the "
+             "targets of this paper, rounded to the minute; external, and "
+             "the same span Figure 1(b)'s caption computes from "
+             "p3_ephemeris")
+
+    # HALF THE LONGEST POLAR EXPOSURE: the size of the error §2.3 says using
+    # the header JD as a mid-exposure time would introduce.  A polar is a
+    # target whose VSX variability type begins AM, read from the catalogue
+    # rather than listed here, so adding a fifth polar to the programme
+    # moves this number instead of leaving the prose behind.
+    _polar_exp = one(cv, """SELECT max(f.exptime) FROM cv_frames f
+                            JOIN p3_ephemeris e ON e.target_key=f.target_key
+                            WHERE e.var_type LIKE 'AM%'""")
+    add("polar half exposure s",
+        fmt_int(None if _polar_exp is None else 0.5 * float(_polar_exp)),
+        unit="s", source="cv_frames",
+        note="half the longest staged exposure on any polar (VSX var_type "
+             "AM*), which is the largest target- and exposure-dependent "
+             "offset that reading the header JD as a mid-exposure time "
+             "would introduce")
 
     # Three-filter full-orbit night census: the number that decides which
     # colour panels may exist at all, and therefore the one number in this
@@ -2126,7 +2166,8 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     # agreement at the fold's own resolution and not an identity, so the
     # bin count and the shared bin are emitted and the sentence says which
     # it is claiming.
-    add("fold profile bins", fmt_int(FOLD_BINS), source="cv_lightcurve",
+    add("fold profile bins", fmt_int(FOLD_BINS), unit="bins",
+        source="cv_lightcurve",
         note="bins in the folded orbital profile every phase read off it "
              "carries; its bin width is the resolution of such a phase")
     _obc = (st_cc["oc_mean_s"] / _Ps
@@ -2147,6 +2188,17 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         note="steepest faintward gradient divided by the steepest "
              "brightward one, per series: the decline is the sharp feature "
              "and the rise the gradual one, in every band and both eras")
+    # THE QUASI-SIMULTANEITY WINDOW, ONCE.  §5.1's colour paragraph, the
+    # pairing code and Figure 6's caption all state it; it is emitted from
+    # COLOUR_PAIR_WINDOW_S, which figures_cv imports, so the three cannot
+    # disagree.
+    add("colour pair window s", fmt_int(COLOUR_PAIR_WINDOW_S), unit="s",
+        source="CV-S11 constant",
+        note="the largest separation two exposures may have and still be "
+             "paired into a colour; set by CV-S11 "
+             "(numbers_cv.COLOUR_PAIR_WINDOW_S) and used by the pairing "
+             "code figures_cv.pair_quasi_simultaneous, so it is a choice "
+             "and not a measurement")
 
     # -- §5 Results: EU UMa's 2026 Fast-mode series ---------------------
     eu = rows(cv, "SELECT * FROM cv_series WHERE target_key='euuma' "
@@ -2521,6 +2573,29 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         cv, "SELECT max(n_used) FROM p3_state_series WHERE "
             "target_key='anuma'")), source="p3_state_series",
         note="ungated nights the state classification could use")
+    # THE TWO BARS §5.3 STATES IN PROSE, READ FROM THE TABLE THAT RENDERS
+    # THEM.  Table 3's Bar column already prints both; typed into the
+    # paragraphs beside it -- "a bar of eight", "a bar of 15" -- they were
+    # two constants that a change to ANUMA_BARS would leave behind.  They
+    # are EXTERNAL: a bar CV-S10 fixed in code before it was applied, which
+    # p4_anuma records as a stage input beside the measurement it graded.
+    def _anuma_bar(capability):
+        hit = [r for r in an if str(r["capability"]) == capability]
+        return hit[0]["bar"] if hit else None
+
+    add("an uma colour nights bar",
+        fmt_int(_anuma_bar("three-filter colour curves (Q5)")), unit="nights",
+        source="CV-S10 constant",
+        note="three-filter full-orbit nights AN UMa would need for a colour "
+             "curve, restated from CV-S5's Q5; set by CV-S10 "
+             "(ANUMA_BARS['three_filter_nights']) and stored in p4_anuma.bar "
+             "beside the count it grades")
+    add("an uma duty halfwidth bar", fmt_int(_anuma_bar("absolute duty "
+                                                        "cycle")),
+        unit="percentage points", source="CV-S10 constant",
+        note="the binomial half-width an absolute duty cycle must beat to "
+             "be a measurement rather than an illustration; set by CV-S10 "
+             "(ANUMA_BARS['duty_halfwidth_pp']) and stored in p4_anuma.bar")
 
     # -- §7 Data products: what Table 2 actually shows -------------------
     # cv_series has more rows than Table 2 has lines, and §7 has to say so:

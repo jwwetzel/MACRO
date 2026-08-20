@@ -119,8 +119,10 @@ TABLES_TEX = MANUSCRIPT_DIR / "tables.tex"
 #: Stamped into ``p5_meta`` and read by the provenance graph.  Bump it when
 #: a figure's ARITHMETIC or a macro's definition changes, not when a
 #: comment or a colour does.
-PAPER_CODE_VERSION = ("CV-S11 v1.1 (2026-08-20, manuscript figures + "
-                      "numbers; p5_number carries db + kind)")
+PAPER_CODE_VERSION = ("CV-S11 v1.2 (2026-08-20, manuscript figures + "
+                      "numbers; p5_number carries db + kind; Fig. 13(b) "
+                      "marks resolution floors, and the six constants the "
+                      "prose typed are macros)")
 
 BUSY_TIMEOUT_MS = 300_000
 

@@ -347,7 +347,8 @@ def phase_bin(phase, y, n_bins: int = 40, min_count: int = 3):
     return centres, med, sig, cnt
 
 
-def pair_quasi_simultaneous(t_a, m_a, t_b, m_b, max_dt_s: float = 600.0):
+def pair_quasi_simultaneous(t_a, m_a, t_b, m_b,
+                            max_dt_s: float = _nx.COLOUR_PAIR_WINDOW_S):
     """Match band-B points onto band-A times, keeping only close pairs.
 
     Returns ``(t_matched, colour, dt_s)`` where ``colour = m_a - m_b``.
@@ -472,6 +473,85 @@ def _envelope_report(oc_s, sigma_s, envelope_s, cycles=None) -> dict:
         "env_last": float(e[order][-1]) if e.size else float("nan"),
         "sigma_median": float(np.median(s)) if s.size else float("nan"),
     }
+
+
+#: The alarm line of Figure 13(b): the disagreement above which a frame is
+#: excluded.  Named once because the panel draws it, the caption states it
+#: and the caption's floor clause compares against it.
+CLOCK_ALARM_S = 0.1
+
+
+def stamp_label(seconds: float) -> str:
+    """``0.001 -> '1 ms'``, ``1.0 -> '1 s'``: a stamp resolution, in print."""
+    s = float(seconds)
+    return f"{s * 1000:.0f} ms" if s < 1.0 else f"{s:.0f} s"
+
+
+def clock_disagreement_rows(audit_rows) -> list[dict]:
+    """What Figure 13(b) draws per readout mode, and whether it is MEASURED.
+
+    The panel's abscissa is the worst ``|TELUT - DATE-OBS|`` in the mode,
+    but a mode whose worst frame disagrees by LESS than its own header stamp
+    resolution has not been measured to disagree by that much -- it has not
+    been measured to disagree at all, and the honest place to draw it is at
+    the resolution.  Drawing the floor is the conservative choice and this
+    module makes it; what referee 6 caught is that the floor was drawn with
+    the same marker as a measurement, so the 2026 blank mode -- whose
+    headers stamp whole seconds while its frames agree to 40 microseconds --
+    appeared as a 1 s clock disagreement a decade right of the panel's own
+    100 ms alarm line, contradicting §2.3 in a figure §2.3 cites.
+
+    Returns one dict per mode carrying the resolution, the MEASURED worst
+    disagreement, the value actually plotted, and ``floored``.  The panel
+    styles the floored rows differently and the caption names them, both
+    from this list, so neither can describe a mode the audit no longer
+    holds.
+    """
+    out = []
+    for r in audit_rows:
+        mode = str(r["readoutm"])
+        own = float(r["stamp_resolution_s"] or 1e-3)
+        measured = float(r["max_abs_s"] or 0.0)
+        out.append({
+            "readoutm": mode,
+            "label": MODE_SHORT.get(mode, mode[:9]),
+            "resolution_s": own,
+            "measured_s": measured,
+            "worst_s": max(measured, own),
+            "floored": measured < own,
+            "n_gt_100ms": int(r["n_gt_100ms"] or 0),
+        })
+    return out
+
+
+def clock_floor_clause(drawn: Sequence[dict],
+                       alarm_s: float = CLOCK_ALARM_S) -> str:
+    """The sentence Figure 13(b)'s caption uses to say which rows are floors.
+
+    Generated from :func:`clock_disagreement_rows` rather than typed, so a
+    re-audit that resolves a mode's stamp -- or coarsens another's -- moves
+    the caption with the markers.
+    """
+    floors = [d for d in drawn if d["floored"]]
+    if not floors:
+        return ("No mode is floor-limited in this audit: every marker "
+                "drawn is a measured disagreement.")
+    named = "; ".join(
+        f"{d['label']}, measured $"
+        f"{_nx.fmt_sci(d['measured_s'], 1)}$~s against a "
+        f"{stamp_label(d['resolution_s'])} stamp"
+        for d in floors)
+    out = (f"{len(floors)} of the {len(drawn)} modes drawn are "
+           f"floor-limited: {named}.")
+    coarse = [d for d in floors if d["resolution_s"] > alarm_s]
+    for d in coarse:
+        out += (f" The {d['label']} mode's headers stamp to "
+                f"{stamp_label(d['resolution_s'])}, which is why its open "
+                f"marker sits to the RIGHT of the "
+                f"{alarm_s * 1000:.0f} ms line although its frames agree "
+                f"to $\\sim{_nx.fmt_sci(d['measured_s'], 0)}$~s: that "
+                f"marker is the stamp resolution and not a disagreement.")
+    return out
 
 
 def robust_ylim(y, pad_frac: float = 0.08, k: float = 6.0):
@@ -1347,7 +1427,7 @@ def fig05_stlmi_folds(cv):
     return fig, spec
 
 
-def fig06_colour_phase(cv, max_dt_s=600.0):
+def fig06_colour_phase(cv, max_dt_s=_nx.COLOUR_PAIR_WINDOW_S):
     """Figure 6 -- colour against orbital phase.  SUBSTITUTE: ST LMi only."""
     eph = read_ephemeris(cv)["stlmi"]
     period, epoch = float(eph["period_d"]), float(eph["epoch_bjd"])
@@ -2523,43 +2603,60 @@ def fig13_timing_audit(man):
     # everywhere -- but the WORST frame, and how many exceed 100 ms.
     aud = read_rows(man, """SELECT * FROM s3_dateobs_audit
                             WHERE n_frames >= 50 ORDER BY n_frames DESC""")
-    if aud:
-        y = np.arange(len(aud))
+    drawn = clock_disagreement_rows(aud)
+    if drawn:
+        y = np.arange(len(drawn))
         # Each mode's bar starts at ITS OWN timestamp resolution: the
         # 2026 blank-mode headers stamp to 1 s and every other mode to 1 ms,
         # so one shared floor would draw eight modes as if they were coarser
-        # than they are.
-        res = float(np.nanmin([r["stamp_resolution_s"] or 1e-3
-                               for r in aud]))
-        for i, r in enumerate(aud):
-            own = float(r["stamp_resolution_s"] or 1e-3)
-            worst = max(float(r["max_abs_s"] or 0.0), own)
+        # than they are.  The dotted guide is therefore the FINEST of them
+        # and not "the" resolution, and the caption says so.
+        res = float(np.nanmin([d["resolution_s"] for d in drawn]))
+        for i, d in enumerate(drawn):
+            own, worst = d["resolution_s"], d["worst_s"]
             ax2.plot([own, worst], [i, i], "-", lw=2.2,
                      color=OKABE_ITO["skyblue"], alpha=0.7,
                      solid_capstyle="butt")
             ax2.plot([own], [i], "|", ms=5, color=OKABE_ITO["black"],
                      mew=0.8)
-            ax2.plot([worst], [i], "o", ms=3.2, color=OKABE_ITO["blue"],
-                     mec="none")
-            if r["n_gt_100ms"]:
-                ax2.text(worst * 1.6, i, f"{int(r['n_gt_100ms'])}",
+            # A FLOOR IS NOT A MEASUREMENT AND MUST NOT LOOK LIKE ONE.  When
+            # the measured worst frame falls below the mode's own stamp, the
+            # marker is the resolution: it is drawn OPEN and labelled, so a
+            # reader cannot read the blank mode's 1 s stamp as a 1 s clock
+            # disagreement sitting a decade right of the alarm line.
+            if d["floored"]:
+                ax2.plot([worst], [i], "o", ms=4.0, mfc="none",
+                         mec=OKABE_ITO["blue"], mew=0.9)
+                ax2.text(worst * 1.6, i, "floor", fontsize=4.8,
+                         va="center", color=OKABE_ITO["grey"])
+            else:
+                ax2.plot([worst], [i], "o", ms=3.2, color=OKABE_ITO["blue"],
+                         mec="none")
+            if d["n_gt_100ms"]:
+                ax2.text(worst * 1.6, i, f"{d['n_gt_100ms']}",
                          fontsize=5.2, va="center",
                          color=OKABE_ITO["vermilion"])
         ax2.axvline(res, ls=":", lw=0.9, color=OKABE_ITO["black"])
-        ax2.text(res * 1.4, len(aud) - 1.6, "stamp\nresolution",
+        ax2.text(res * 1.4, len(drawn) - 1.6, "finest stamp\nresolution",
                  fontsize=5.0, va="center", color=OKABE_ITO["grey"])
-        ax2.axvline(0.1, ls="--", lw=0.8, color=OKABE_ITO["vermilion"])
+        ax2.axvline(CLOCK_ALARM_S, ls="--", lw=0.8,
+                    color=OKABE_ITO["vermilion"])
         ax2.set_yticks(y)
         # Heavily abbreviated: this panel sits between two others, and the
         # full readout-mode strings are long enough to overrun both of its
         # neighbours whichever side they are placed on.  The mapping is in
         # MODE_SHORT and the instrument table gives the full names.
-        ax2.set_yticklabels([MODE_SHORT.get(r["readoutm"],
-                                            str(r["readoutm"])[:9])
-                             for r in aud], fontsize=5.4)
+        ax2.set_yticklabels([d["label"] for d in drawn], fontsize=5.4)
         ax2.set_xscale("log")
         ax2.set_xlim(res * 0.4, 1e4)
         ax2.set_xlabel("worst |TELUT $-$ DATE-OBS| (s)")
+        # The key for the two marker styles, in the panel rather than only
+        # in the caption: a reader who reads figures before captions must
+        # still be able to tell a floor from a measurement.
+        ax2.text(0.98, 0.97, "filled = measured\nopen = floor at that\n"
+                             "mode's own stamp",
+                 transform=ax2.transAxes, ha="right", va="top",
+                 fontsize=4.8, color=OKABE_ITO["grey"], linespacing=1.15)
     else:
         _empty_panel(ax2, "no DATE-OBS audit rows")
     ax2.grid(axis="x", color="#f2f2f2")
@@ -2607,6 +2704,10 @@ def fig13_timing_audit(man):
     ax3.grid(axis="x", color="#f2f2f2")
     ax3.set_title("(c) the clock validator", fontsize=7, loc="left")
 
+    # The guide the caption names, recomputed at caption scope so it is the
+    # same number the panel drew even when the panel was empty.
+    res_cap = min((d["resolution_s"] for d in drawn), default=1e-3)
+
     spec = FigureSpec(
         fig_id="fig13", label="fig:timingaudit",
         title="Timing audit (appendix)",
@@ -2619,9 +2720,18 @@ def fig13_timing_audit(man):
             "BJD$_\\mathrm{TDB}$ recomputed from DATE-OBS, the exposure "
             "time and the target coordinates. (b) The WORST disagreement "
             "between the two clock cards, TELUT and DATE-OBS, in each "
-            "readout mode, on a logarithmic axis running from the "
-            "timestamp resolution (dotted) to the 100 ms line (dashed); "
-            "the red count is how many frames exceed 100 ms. Medians are "
+            "readout mode, on a logarithmic axis. Each bar starts at THAT "
+            "mode's own timestamp resolution, not at a shared one: the "
+            f"dotted line is the FINEST resolution across the {len(drawn)} "
+            f"modes drawn ({stamp_label(res_cap)}) and the dashed line is "
+            f"{CLOCK_ALARM_S * 1000:.0f} ms, above which a frame is "
+            "excluded; the red count is how many frames exceed it. A "
+            "FILLED marker is a MEASURED disagreement. An OPEN marker is "
+            "a FLOOR and not a measurement: it is drawn where the measured "
+            "disagreement falls BELOW that mode's own stamp resolution, "
+            "where a disagreement cannot be measured at all, and it is "
+            "plotted at the resolution because that is the conservative "
+            f"place to put it. {clock_floor_clause(drawn)} Medians are "
             "not plotted because they are exactly zero in every mode. (c) "
             "The independent clock validator: eclipse timings of a detached "
             "eclipsing binary observed with the same instrument. Its bound "

@@ -1224,3 +1224,313 @@ class TestFigureSevenNamesTheEraTheWayTheTablesDo:
         tables = _text("tables.tex")
         assert "\\colhead{Readout mode}" in tables
         assert "\\colhead{Camera}" not in tables
+
+
+# ---------------------------------------------------------------------------
+# Referee 6
+# ---------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def manifest():
+    if not MANIFEST_DB.exists():
+        pytest.skip("rlmt-manifest.sqlite not built in this checkout")
+    con = sqlite3.connect(f"file:{MANIFEST_DB}?mode=ro", uri=True, timeout=300)
+    con.row_factory = sqlite3.Row
+    con.execute("PRAGMA busy_timeout = 300000")
+    yield con
+    con.close()
+
+
+@pytest.fixture(scope="module")
+def clock_rows(manifest) -> list:
+    """Exactly the rows Figure 13(b) draws, through the figure's own helper."""
+    from macro_phot.figures_cv import clock_disagreement_rows
+    rows = [dict(r) for r in manifest.execute(
+        "SELECT * FROM s3_dateobs_audit WHERE n_frames >= 50 "
+        "ORDER BY n_frames DESC")]
+    if not rows:
+        pytest.skip("s3_dateobs_audit is empty in this checkout")
+    return clock_disagreement_rows(rows)
+
+
+class TestFigureThirteenDrawsAFloorAsAFloor:
+    """Referee 6, minor.  Panel (b)'s abscissa is the measured worst
+    |TELUT - DATE-OBS|, but a mode whose worst frame disagrees by less than
+    its own header stamp resolution is drawn AT that resolution --- the
+    conservative choice, and the right one.  The defect was that the floor
+    carried the SAME marker as a measurement: the 2026 blank mode stamps to
+    1 s while its frames agree to 4e-05 s, so a filled marker sat a decade
+    right of the panel's own 100 ms alarm line with no red count, appearing
+    to contradict the §2.3 claim the panel is cited for.  The caption
+    compounded it by calling the dotted guide "the timestamp resolution"
+    when it is the FINEST across modes and every bar starts at its own."""
+
+    def test_a_marker_past_the_alarm_line_is_a_floor_or_a_counted_frame(
+            self, clock_rows, captions):
+        """The defect, stated as an invariant.  A marker right of the 100 ms
+        line either carries frames that really exceed it, or it is a floor
+        --- and if it is a floor the caption must say so by name, because
+        nothing else on the page distinguishes it."""
+        from macro_phot.figures_cv import CLOCK_ALARM_S
+        cap = captions["CapFigOneThree"]
+        for d in clock_rows:
+            if d["worst_s"] <= CLOCK_ALARM_S:
+                continue
+            if d["n_gt_100ms"]:
+                continue
+            assert d["floored"], (
+                f"{d['label']} is drawn past the alarm line with no frame "
+                f"exceeding it and is not marked as a floor")
+            assert d["label"] in cap, (
+                f"{d['label']} is drawn past the alarm line as a floor and "
+                f"the caption does not name it")
+
+    def test_the_caption_names_every_floor_limited_mode(self, clock_rows,
+                                                         captions):
+        """Generated from the audit, not typed: a mode that becomes
+        floor-limited (or stops being one) moves the caption with it."""
+        cap = captions["CapFigOneThree"]
+        floors = [d for d in clock_rows if d["floored"]]
+        assert f"{len(floors)} of the {len(clock_rows)} modes drawn are " \
+               f"floor-limited" in cap, (
+            f"the caption does not state the {len(floors)} floor-limited "
+            f"modes of {len(clock_rows)} the code draws")
+        for d in floors:
+            assert d["label"] in cap, (
+                f"floor-limited mode {d['label']} is unnamed in the caption")
+        for d in clock_rows:
+            if d["floored"]:
+                continue
+            assert d["worst_s"] == d["measured_s"], (
+                f"{d['label']} is drawn somewhere other than its "
+                f"measurement without being called a floor")
+
+    def test_the_caption_does_not_call_the_dotted_line_the_resolution(
+            self, captions):
+        """It is the minimum across modes; each bar starts at its own."""
+        cap = captions["CapFigOneThree"]
+        assert "running from the timestamp resolution (dotted)" not in cap
+        assert "Each bar starts at THAT mode's own timestamp resolution" in cap
+        assert "the FINEST resolution across the" in cap
+        assert "An OPEN marker is a FLOOR and not a measurement" in cap
+
+    def test_the_floor_rule_is_the_one_the_panel_and_caption_share(self):
+        """The pure helper both use, on rows chosen to sit either side of
+        the rule, so a change to one cannot leave the other behind."""
+        from macro_phot.figures_cv import (clock_disagreement_rows,
+                                           clock_floor_clause)
+        rows = [
+            {"readoutm": "Mode0", "stamp_resolution_s": 0.001,
+             "max_abs_s": 211.2, "n_gt_100ms": 1},
+            {"readoutm": "(blank)", "stamp_resolution_s": 1.0,
+             "max_abs_s": 4.0e-05, "n_gt_100ms": 0},
+        ]
+        got = clock_disagreement_rows(rows)
+        assert [d["floored"] for d in got] == [False, True]
+        assert got[0]["worst_s"] == pytest.approx(211.2)
+        assert got[1]["worst_s"] == pytest.approx(1.0)
+        clause = clock_floor_clause(got)
+        assert "1 of the 2 modes drawn are floor-limited" in clause
+        assert "(blank)" in clause and "Mode0" not in clause
+        assert "not a disagreement" in clause
+        assert clock_floor_clause([got[0]]).startswith("No mode is "
+                                                       "floor-limited")
+
+    def test_the_body_claim_the_panel_supports_is_still_true(self, body,
+                                                              clock_rows):
+        """§2.3 says the two cards agree to the timestamp resolution in every
+        mode bar one counted frame.  The panel may not be read against it."""
+        assert "agree\nto the timestamp resolution in every readout mode" in \
+            body or "agree to the timestamp resolution in every readout " \
+                    "mode" in " ".join(body.split())
+        counted = [d for d in clock_rows if d["n_gt_100ms"]]
+        assert len(counted) <= 1, (
+            f"more than one mode now exceeds the alarm line: "
+            f"{[d['label'] for d in counted]}; §2.3's single-frame sentence "
+            f"no longer describes the audit")
+
+
+class TestThePromiseIsWhatTheReleaseActuallyDelivers:
+    """Referee 6, minor.  §1 and §7 promised, without qualification, that
+    any measured statement could be checked "in one query"; §7's own closing
+    paragraph then says a value computed in code over the rows of more than
+    one query has no single query to record, and several macros are exactly
+    that.  The promise that IS one query --- separating the external
+    constants from the measurements on the kind flag --- is unaffected."""
+
+    def test_the_unqualified_promises_are_gone(self, body):
+        flat = " ".join(body.split())
+        assert "data release in one query" not in flat
+        assert "can be checked with one query" not in flat
+        assert "check any measured statement below" not in flat
+
+    def test_what_replaced_them_says_what_takes_one_query_and_what_does_not(
+            self, body):
+        flat = " ".join(body.split())
+        assert "not that one query settles everything" in flat
+        assert "Not every one of them is then a single query" in flat
+        assert "re-running the released emitter" in flat
+        assert "trace every one that is to a named table in a named " \
+               "database" in flat
+
+    def test_the_closing_retraction_still_stands(self, body):
+        """The sentence that was accurate all along, and which the two
+        promises above now agree with rather than contradict."""
+        flat = " ".join(body.split())
+        assert "has no single query to record" in flat
+
+    def test_no_sentence_promises_one_query_for_any_statement(self, body):
+        """The recurrence guard.  Both retracted sentences had the same
+        shape: a universal over the paper's statements, and "one query" as
+        what settles it.  A sentence may still say one query settles
+        something --- the external flag really does --- and may still say
+        what needs more than one; what it may not do is quantify over every
+        statement and promise a single query for all of them."""
+        flat = " ".join(body.split())
+        # "more than one query" is the honest half of the pair and must not
+        # be read as a promise of one.
+        flat = flat.replace("more than one query", "several queries")
+        universal = re.compile(r"\b(any|every|each)\s+(measured\s+)?"
+                               r"(statement|number|value|claim)")
+        qualifier = re.compile(
+            r"flag|column of (?:that|the) table|not that one query|"
+            r"[Nn]ot every one of them|no single query to record")
+        offenders = [s for s in re.split(r"(?<=[.;])\s", flat)
+                     if "one query" in s and universal.search(s)
+                     and not qualifier.search(s)]
+        assert not offenders, (
+            "a sentence promises one query for every statement the paper "
+            "makes, which §7's own closing paragraph denies: "
+            + " | ".join(offenders))
+
+
+class TestNoConstantIsTypedWhereAMacroHoldsIt:
+    """Referee 6, minor.  Six constants were typed into the prose although a
+    macro or a table cell already held them: the 40-bin fold, AN UMa's bars
+    of 8 nights and 15 percentage points, the 600 s colour-pairing window,
+    the 150 s half-exposure and the 90--125 minute period span.  Every one
+    was correct on the day; the objection is that a re-run moves the macro
+    and leaves the sentence behind, which is the single failure mode this
+    paper's apparatus exists to prevent.
+
+    The lint below is the general form.  A prose sentence may not carry a
+    numeric literal that equals an emitted macro's value when that macro's
+    UNIT is named in the same sentence --- which is precisely how each of
+    the six read, and which no ordinary English number ("one query", "three
+    databases", "five targets") can trip, because those carry no unit."""
+
+    #: The unit strings ``p5_number`` uses, and how each is written in prose.
+    #: A macro whose unit is not here is not checked, because there is no
+    #: reliable way to see it in a sentence.
+    UNIT_IN_PROSE = {
+        "s": [r"\bs\b", r"\bseconds?\b"],
+        "min": [r"\bmin\b", r"\bminutes?\b"],
+        "mmag": [r"\bmmag\b"],
+        "mag": [r"\bmag\b"],
+        "ADU": [r"\bADU\b"],
+        "cycles": [r"\bcycles?\b"],
+        "nights": [r"\bnights?\b"],
+        "bins": [r"\bbins?\b"],
+        "per cent": [r"per\s+cent"],
+        "percentage points": [r"percentage\s+points"],
+        "d": [r"\bd\b"],
+        "yr": [r"\byr\b"],
+        "mag/h": [r"mag/h"],
+    }
+
+    #: Spelled-out numbers count as typed constants.  "a bar of eight" is
+    #: the same defect as "a bar of 8" and was the harder of the two to see.
+    WORD_NUMBER = {"one": "1", "two": "2", "three": "3", "four": "4",
+                   "five": "5", "six": "6", "seven": "7", "eight": "8",
+                   "nine": "9", "ten": "10", "eleven": "11", "twelve": "12",
+                   "thirteen": "13", "fourteen": "14", "fifteen": "15",
+                   "sixteen": "16", "twenty": "20"}
+
+    LITERAL = re.compile(
+        r"(?<![\\A-Za-z0-9.])(\d+(?:\.\d+)?(?:--\d+(?:\.\d+)?)?)(?![0-9])")
+
+    @classmethod
+    def _literals(cls, sentence: str) -> set:
+        # Math delimiters are typography, not content: "$90$--$125$" is the
+        # range "90--125" typed, and reading it as two separate numbers is
+        # how this one hid.
+        s = sentence.replace("$", "")
+        out = {m.group(1) for m in cls.LITERAL.finditer(s)}
+        out |= {cls.WORD_NUMBER[m.group(1)] for m in
+                re.finditer(r"\b(" + "|".join(cls.WORD_NUMBER) + r")\b", s)}
+        return out
+
+    @staticmethod
+    def _prose(body: str) -> list:
+        text = "\n".join(re.sub(r"(?<!\\)%.*$", "", ln)
+                         for ln in body.splitlines())
+        if "\\begin{document}" in text:
+            text = text[text.index("\\begin{document}"):]
+        return re.split(r"(?<=[.;:])\s", text)
+
+    def test_the_six_constants_are_macros_now(self, body, numbers):
+        for macro in ("NumFoldProfileBins", "NumAnUmaColourNightsBar",
+                      "NumAnUmaDutyHalfwidthBar", "NumColourPairWindowS",
+                      "NumPolarHalfExposureS", "NumOrbitalPeriodRangeMin"):
+            assert macro in numbers, f"{macro} is not emitted"
+            assert f"\\{macro}" in body, (
+                f"{macro} is emitted but the prose still types its value")
+        assert "in the 40-bin folded profile" not in body
+        assert "against a bar of eight" not in body
+        assert "percentage points against a bar of 15" not in body
+        assert "within 600~s of each other" not in body
+        assert "up to 150~s for our longest" not in body
+        assert "$90$--$125$~minute" not in body
+
+    def test_those_macros_agree_with_the_tables_and_the_code(self, numbers,
+                                                              phot):
+        """The point of moving them: each now comes from the place that
+        already held it."""
+        from macro_phot.numbers_cv import COLOUR_PAIR_WINDOW_S, FOLD_BINS
+        assert _num(numbers, "NumFoldProfileBins") == FOLD_BINS
+        assert _num(numbers, "NumColourPairWindowS") == COLOUR_PAIR_WINDOW_S
+        tables = _text("tables.tex")
+        for macro, capability in (
+                ("NumAnUmaColourNightsBar",
+                 "three-filter colour curves (Q5)"),
+                ("NumAnUmaDutyHalfwidthBar", "absolute duty cycle")):
+            bar = phot.execute("SELECT bar FROM p4_anuma WHERE capability=? "
+                               "LIMIT 1", (capability,)).fetchone()
+            if bar is None:
+                pytest.skip(f"p4_anuma has no {capability} row")
+            assert _num(numbers, macro) == pytest.approx(float(bar[0]))
+            assert f"& {float(bar[0]):.2f} &" in tables, (
+                f"Table 3 no longer renders the bar {macro} quotes")
+        span = numbers["NumOrbitalPeriodRangeMin"].split("--")
+        db_lo, db_hi = phot.execute(
+            "SELECT min(period_d), max(period_d) FROM p3_ephemeris "
+            "WHERE period_d IS NOT NULL").fetchone()
+        assert float(span[0]) == pytest.approx(1440.0 * db_lo, abs=0.5)
+        assert float(span[-1]) == pytest.approx(1440.0 * db_hi, abs=0.5)
+
+    def test_no_prose_sentence_types_a_value_a_macro_already_holds(
+            self, body, macro_rows):
+        """The lint that would catch the next one.  Scope is the sentence,
+        because that is where a value and its unit sit together."""
+        held = [(r["macro"], (r["value"] or "").replace("\\,", "").strip(),
+                 (r["unit"] or "").strip())
+                for r in macro_rows]
+        held = [(m, v, u) for m, v, u in held
+                if v and u in self.UNIT_IN_PROSE]
+        offenders = []
+        for sentence in self._prose(body):
+            lits = self._literals(sentence)
+            if not lits:
+                continue
+            for macro, value, unit in held:
+                if value not in lits:
+                    continue
+                if not any(re.search(p, sentence)
+                           for p in self.UNIT_IN_PROSE[unit]):
+                    continue
+                offenders.append(
+                    f"{macro} ({value} {unit}) typed in: "
+                    + " ".join(sentence.split())[:150])
+        assert not offenders, (
+            "the prose types a value an emitted macro already holds, so a "
+            "re-run would move the macro and leave the sentence behind: "
+            + " | ".join(sorted(set(offenders))))
