@@ -858,6 +858,94 @@ _reg(_t(
     "themselves) — a re-extraction that reaches the same verdicts on the "
     "same frames is not a changed input to anything downstream."))
 
+# ---- CV-S10 outputs (the two closing science decisions) -------------------
+# Both tasks this stage closes are DECISIONS about what the manuscript may
+# claim, so both sit in the graph.  What is hashed is chosen so that a re-run
+# which moved a VERDICT cannot leave the fingerprint unchanged: the detection
+# call, not the amplitude; the flickering detection flag, not the structure
+# function; the per-capability verdict, not the night count.
+_reg(ResourceSpec(
+    key="db:cvphot:p4_run", kind="db", name="p4_run",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="scope",
+    columns=("scope", "coalesce(state,'')",
+             "printf('%.5f', coalesce(hump_amp,-1))",
+             "printf('%.5f', coalesce(amp90_field,-1))",
+             "printf('%.5f', coalesce(amp90_self,-1))",
+             "coalesce(detection,'')"),
+    why=("The folded orbital hump per scope, with BOTH detection contours "
+         "and the call.  The two contours are hashed together with the "
+         "amplitude because the whole result lives in the distance between "
+         "them: against magnitude-matched field stars the hump is "
+         "significant, against the star's own flickering it is not, and a "
+         "re-run that moved either null would move the published claim from "
+         "a detection to an upper limit while leaving the amplitude "
+         "untouched.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p4_flicker", kind="db", name="p4_flicker",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="series_key, night, tau_s",
+    columns=("series_key", "night", "printf('%.0f', tau_s)",
+             "printf('%.5f', coalesce(sf_floor,-1))",
+             "printf('%.5f', coalesce(sf_excess,-1))",
+             "coalesce(detected,-1)"),
+    why=("The flickering statistics.  The FLOOR is in the fingerprint "
+         "beside the excess because the excess is a subtraction and the "
+         "floor is the thing subtracted: swapping the magnitude-matched "
+         "field stars for the held-out check stars -- which sit about a "
+         "magnitude brighter than YZ Cnc at quiescence -- would change "
+         "every flickering amplitude on the page without changing one "
+         "measured magnitude.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p4_outburst", kind="db", name="p4_outburst",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="series_key, night",
+    columns=("series_key", "night", "filter",
+             "printf('%.5f', coalesce(rate_mag_per_h,-999))",
+             "coalesce(rate_verdict,'')",
+             "printf('%.5f', coalesce(amp90_blind,-1))"),
+    why=("The normal-outburst runs and the BLIND-search recovery contour "
+         "that closes the superhump question.  The blind contour is the "
+         "number that turns 'no superhump period' from an absence into a "
+         "measurement, so it is hashed; the rate verdict is hashed because "
+         "'FADING' and 'FLAT (within 3 sigma)' are different sentences in "
+         "the manuscript and the same slope can produce either.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p4_gate", kind="db", name="p4_gate",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="gate_id, scope",
+    columns=("gate_id", "scope", "printf('%.4f', coalesce(value,-1))",
+             "coalesce(passes,-1)"),
+    why=("The strategy's §4.19 signal-to-noise gate, line by line.  This "
+         "gate is what licenses the quiescent fallback at all: the strategy "
+         "refused to promise it until the 8 s High Gain frames at quiescent "
+         "V ~ 14.5 were shown not to be noise-dominated, and a re-run in "
+         "which a line flipped would withdraw that licence.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p4_anuma", kind="db", name="p4_anuma",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="filter, capability",
+    columns=("filter", "capability",
+             "printf('%.4f', coalesce(measured,-1))",
+             "printf('%.4f', coalesce(bar,-1))", "coalesce(verdict,'')"),
+    why=("AN UMa's per-filter go/no-go.  The BAR is hashed beside the "
+         "measured value because every contestable choice in this decision "
+         "is a choice of bar: the same photometry supports a different "
+         "recommendation if the folded-morphology bar moves from three "
+         "nights to five, and the fingerprint has to notice that.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p4_verdict", kind="db", name="p4_verdict",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="verdict_id",
+    columns=("verdict_id", "coalesce(verdict,'')",
+             "coalesce(deciding_number,'')"),
+    why=("The five headline decisions with the numbers that decide them. "
+         "The DECIDING NUMBER string is hashed with the verdict because the "
+         "page renders it verbatim: a re-run that kept the verdict word but "
+         "changed the number behind it would publish a sentence nothing in "
+         "the database supports.")))
+
+
 # ---- published artifacts (files) ------------------------------------------
 def _f(key: str, path: str, why: str) -> None:
     _reg(ResourceSpec(key=key, kind="file", name=path, why=why))
@@ -1033,6 +1121,71 @@ _f("file:pipeline/macro_phot/phase2.py", "pipeline/macro_phot/phase2.py",
    "decides which blocks may publish limits at all.  Every constant in it "
    "changes a published number, so it is an INPUT to the stage and to its "
    "page.")
+# ---- CV-S11 outputs (the manuscript's figures and its numbers) -----------
+# The manuscript itself lives under manuscripts/, which is deliberately
+# outside version control (it goes to a journal, not to GitHub), so the
+# .tex and .pdf files it emits cannot be fingerprinted from a fresh clone.
+# What IS fingerprinted is the record of what was emitted: one row per
+# figure and one row per macro, in the products database.  A figure whose
+# caption or substitution reason moved, or a macro whose value moved,
+# changes these hashes -- which is exactly the event that should force the
+# paper to be rebuilt.
+_reg(ResourceSpec(
+    key="db:cvphot:p5_figure", kind="db", name="p5_figure",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="fig_id",
+    columns=("fig_id", "label", "caption",
+             "coalesce(substitute,0)", "coalesce(substitute_reason,'')",
+             "coalesce(tables_used,'')"),
+    why=("What each manuscript figure SHOWS and what it was drawn from, "
+         "plus -- for the figures the observations do not support -- the "
+         "substitution and its stated reason.  The caption is hashed "
+         "because a caption is a claim; the file paths and build stamp are "
+         "LEFT OUT because a redraw that reaches the same picture is not a "
+         "changed input to anything.")))
+_reg(ResourceSpec(
+    key="db:cvphot:p5_number", kind="db", name="p5_number",
+    database="products/phot/cv_timeseries.sqlite",
+    order_by="macro",
+    columns=("macro", "value_tex", "coalesce(unit,'')",
+             "coalesce(source,'')"),
+    why=("Every value the manuscript prose is allowed to state, with its "
+         "unit and the table it came from.  This is the fingerprint that "
+         "makes the paper's numbers auditable: if a pipeline re-run moves "
+         "a measurement, this hash moves, and the manuscript is stale "
+         "until it is rebuilt.")))
+_f("file:pipeline/macro_phot/figures_cv.py",
+   "pipeline/macro_phot/figures_cv.py",
+   "The CV-S11 figure generator: the fold, the phase binning, the "
+   "quasi-simultaneous colour pairing and its 600 s gate, the robust axis "
+   "limits, the colour-blind-safe palette and the AASTeX column widths. "
+   "Every constant in it changes a published panel, so it is an INPUT to "
+   "the stage.")
+_f("file:pipeline/macro_phot/numbers_cv.py",
+   "pipeline/macro_phot/numbers_cv.py",
+   "The CV-S11 macro emitter: which values the manuscript may state, how "
+   "each is queried, how it is formatted, and the four measured tables. "
+   "A change here changes what the paper says, so it is an INPUT.")
+_f("file:docs/CV_TimeSeries/cv_final_science.html",
+   "docs/CV_TimeSeries/cv_final_science.html",
+   "CV-S10 closing-decisions page: YZ Cnc's quiescent orbital hump against "
+   "TWO nulls (magnitude-matched field stars and the star's own rolled "
+   "residuals), flickering amplitude against timescale over a measured "
+   "floor, the strategy's §4.19 signal-to-noise gate executed, the "
+   "normal-outburst runs characterised on their own terms with the "
+   "blind-search contour that closes the superhump question, and AN UMa "
+   "graded capability by capability per filter.  Whole-file hash -- every "
+   "byte of a published page is the claim.")
+_f("file:pipeline/macro_phot/final_science.py",
+   "pipeline/macro_phot/final_science.py",
+   "The CV-S10 arithmetic: the joint nightly-constant harmonic fold, the "
+   "structure function and its variance-space floor subtraction, the "
+   "within-night residual roll that makes a red-noise null, the coverage "
+   "gate below which a modulation at P_orb and a trend are the same "
+   "statement, the phase-drift bar that decides which runs may share a "
+   "phase axis, and the one-number-one-bar verdict function.  Every "
+   "constant in it changes a published verdict, so it is an INPUT to the "
+   "stage and to its page.")
 _f("file:docs/CV_TimeSeries/cv_timeseries_analysis.html",
    "docs/CV_TimeSeries/cv_timeseries_analysis.html",
    "CV-S9 Phase-3 page: the period verification with the spectral window "
@@ -1555,6 +1708,114 @@ STAGES: tuple[Stage, ...] = (
                "file:pipeline/macro_phot/phase3.py"),
         writes=("file:docs/CV_TimeSeries/cv_timeseries_analysis.html",),
         build_cmd="python pipeline/scripts/run_cv_phase3.py report"),
+    Stage(
+        key="CV-S10", title="CV closing science decisions (YZ Cnc fallback "
+                            "branch; AN UMa go/no-go per filter)",
+        code_version="FINAL_CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_final.py",
+        version_symbol="FINAL_CODE_VERSION",
+        # Reads the branch decision it executes (CV-S7's per-night state
+        # verdicts), the ephemeris every fold uses, the light curves it
+        # folds, the cloud flag it honours frame by frame, the Phase-3
+        # products the AN UMa grades are read off, and the pure module whose
+        # constants set every bar.
+        reads=("db:cvphot:cv_ext_verdict", "db:cvphot:p3_ephemeris",
+               "db:cvphot:cv_frames", "db:cvphot:p2_cloud_series",
+               "db:cvphot:p3_period", "db:cvphot:p3_edge",
+               "db:cvphot:p3_state_series", "db:cvphot:p3_cycle_count",
+               "file:pipeline/macro_phot/final_science.py"),
+        writes=("db:cvphot:p4_run", "db:cvphot:p4_flicker",
+                "db:cvphot:p4_outburst", "db:cvphot:p4_gate",
+                "db:cvphot:p4_anuma", "db:cvphot:p4_verdict"),
+        meta_table="p4_meta",
+        meta_version_key="final_code_version",
+        build_cmd=("python pipeline/scripts/run_cv_final.py hump\n"
+                   "python pipeline/scripts/run_cv_final.py flicker\n"
+                   "python pipeline/scripts/run_cv_final.py outburst\n"
+                   "python pipeline/scripts/run_cv_final.py gate\n"
+                   "python pipeline/scripts/run_cv_final.py anuma\n"
+                   "python pipeline/scripts/run_cv_final.py verdict\n"
+                   "python pipeline/scripts/run_cv_final.py report"),
+        note="Measures NO period and writes NO column on cv_lightcurve. "
+             "Every fold uses the PUBLISHED ephemeris, and YZ Cnc's has no "
+             "epoch at all, so phase zero is a constant this stage chose "
+             "and only within-run phase statements survive it.  The stage "
+             "also does not re-decide which nights were dense or which were "
+             "in outburst: that is CV-S7's classification, made against "
+             "independent AAVSO photometry, and re-deriving it here would "
+             "let this page disagree with the page that chose the branch."),
+    Stage(
+        key="R-CV-S10", title="Report: CV closing-decisions page",
+        code_version="FINAL_CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_final.py",
+        version_symbol="FINAL_CODE_VERSION",
+        reads=("db:cvphot:p4_run", "db:cvphot:p4_flicker",
+               "db:cvphot:p4_outburst", "db:cvphot:p4_gate",
+               "db:cvphot:p4_anuma", "db:cvphot:p4_verdict",
+               "file:pipeline/macro_phot/final_science.py"),
+        writes=("file:docs/CV_TimeSeries/cv_final_science.html",),
+        build_cmd="python pipeline/scripts/run_cv_final.py report"),
+    Stage(
+        key="CV-S11", title="CV manuscript figure set (the thirteen "
+                            "figures of the strategy's §7)",
+        code_version="PAPER_CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_paper.py",
+        version_symbol="PAPER_CODE_VERSION",
+        # Reads every product a panel is drawn from.  The characterization
+        # and manifest databases are read too (Figures 2, 3, 12, 13), but
+        # through resources already declared for the stages that wrote
+        # them; what is listed here is the CV-photometry side plus the
+        # generator itself, whose constants set every gate a panel applies.
+        reads=("db:cvphot:p3_ephemeris", "db:cvphot:p3_period",
+               "db:cvphot:p3_state_series", "db:cvphot:p3_cycle_count",
+               "db:cvphot:p4_run", "db:cvphot:p4_flicker",
+               "db:cvphot:p4_outburst",
+               "file:pipeline/macro_phot/figures_cv.py"),
+        writes=("db:cvphot:p5_figure",),
+        meta_table="p5_meta",
+        meta_version_key="paper_code_version",
+        build_cmd="python pipeline/scripts/run_cv_paper.py figures",
+        note="Draws NOTHING it cannot query.  Four of the strategy's "
+             "thirteen figures cannot be made as specified -- the "
+             "cyclotron colour--phase diagram's VV Pup and EU UMa panels "
+             "(1 of 18 and 0 of 25 three-filter full-orbit nights), those "
+             "targets' three-filter folds, the VV Pup and EU UMa O-C "
+             "panels (graded NOT ONE FEATURE by CV-S9), and the YZ Cnc "
+             "superhump analysis (no dense run in a superoutburst, per "
+             "CV-S7).  Each is built as a stated substitute whose reason "
+             "is stored in p5_figure and printed in the caption, rather "
+             "than as a plausible-looking version of a figure the "
+             "observations do not support.  Writes both a vector PDF for "
+             "the manuscript and a raster PNG for the web page FROM THE "
+             "SAME figure object, so the two cannot disagree."),
+    Stage(
+        key="R-CV-S11", title="CV manuscript numbers, captions and tables",
+        code_version="PAPER_CODE_VERSION",
+        version_file="pipeline/scripts/run_cv_paper.py",
+        version_symbol="PAPER_CODE_VERSION",
+        reads=("db:cvphot:p5_figure", "db:cvphot:cv_frames",
+               "db:cvphot:cv_cattie", "db:cvphot:p2_limit_series",
+               "db:cvphot:p2_extinction", "db:cvphot:p3_period",
+               "db:cvphot:p3_sigmat", "db:cvphot:p3_edge",
+               "db:cvphot:p3_state_series", "db:cvphot:p3_cycle_count",
+               "db:cvphot:p4_run", "db:cvphot:p4_flicker",
+               "db:cvphot:p4_outburst", "db:cvphot:p4_anuma",
+               "db:cvphot:p4_verdict",
+               "file:pipeline/macro_phot/numbers_cv.py"),
+        writes=("db:cvphot:p5_number",),
+        meta_table="p5_meta",
+        meta_version_key="paper_code_version",
+        build_cmd="python pipeline/scripts/run_cv_paper.py report",
+        note="Emits manuscripts/CV_TimeSeries/{numbers,captions,tables}.tex "
+             "-- the macro file the paper inputs, the figure captions the "
+             "figure generator wrote, and the four measured tables.  The "
+             "manuscript directory is outside version control by design "
+             "(it goes to a journal), so p5_number is the fingerprinted "
+             "record of what the paper is allowed to say.  A value the "
+             "database cannot supply is emitted as a visible "
+             "[NUMBER MISSING] marker rather than omitted, because a macro "
+             "that silently vanished would let a sentence lose its number "
+             "and still compile."),
     Stage(
         key="G", title="Grism extraction + identity gate (T CrB)",
         code_version="G_CODE_VERSION",

@@ -1,0 +1,609 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CV Time Series &mdash; the closing science decisions</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+
+<header>
+  <h1>Cataclysmic-Variable Time Series &mdash; the closing science
+  decisions</h1>
+  <p>YZ&nbsp;Cnc on the fallback branch: the quiescent orbital hump against
+  two nulls &middot; flickering over a floor that was measured, not modelled
+  &middot; the §4.19 signal-to-noise gate, executed &middot; the six
+  normal-outburst runs as their own result &middot; what the season cannot
+  do, quantified &middot; AN&nbsp;UMa graded filter by filter
+  &middot; 30 scopes, 138 flickering detections
+  &middot; built 2026-08-20T07:03Z
+  (CV-S10 v1.0 (2026-08-20, closing science decisions),
+  commit <code>3a30628-dirty</code>)
+  &middot; <a href="cv_external_context.html">the external record that
+  chose the branch</a> &middot;
+  <a href="cv_timeseries_analysis.html">the Phase-3 analysis</a> &middot;
+  <a href="cv_characterization.html">the characterization</a> &middot;
+  <a href="index.html">project hub</a> &middot;
+  <a href="../index.html">all reports</a></p>
+</header>
+
+<nav>
+  <a href="#intro">0 What this decides</a> &middot;
+  <a href="#census">1 The dense runs</a> &middot;
+  <a href="#gate">2 The §4.19 gate</a> &middot;
+  <a href="#hump">3 The orbital hump</a> &middot;
+  <a href="#flicker">4 Flickering</a> &middot;
+  <a href="#cannot">5 What it cannot do</a> &middot;
+  <a href="#outburst">6 The outburst runs</a> &middot;
+  <a href="#anuma">7 AN UMa</a> &middot;
+  <a href="#verdicts">8 Verdicts</a>
+</nav>
+
+
+<section id="intro"><h2>0 &nbsp; What this page decides, and what it may not
+assume</h2>
+
+<h3>Question</h3>
+<p>Two tasks were left open when Phase&nbsp;3 finished, and both are
+decisions rather than discoveries. <b>CV-P3-yzcnc-superhump</b> had already
+had its branch chosen for it by the external record: CV-S7 measured that no
+dense run of the 2024 YZ&nbsp;Cnc season sits inside a superoutburst, so the
+superhump branch is closed and the strategy's own fallback &mdash; orbital
+hump plus flickering statistics, &ldquo;honest but weaker&rdquo; &mdash; is
+what the season supports. <b>CV-P4-anuma</b> asks what role AN&nbsp;UMa
+should have in the paper, filter by filter, after CV-S5 graded its
+three-filter colour goal NOT SUPPORTED.</p>
+
+<h3>What is inherited and not re-litigated</h3>
+<ul>
+<li><b>The branch decision itself.</b> The nine dense runs and their states
+come from <code>cv_ext_verdict</code> &mdash; CV-S7's night-by-night
+classification, which uses INDEPENDENT AAVSO photometry wherever it exists
+and survives deleting every RLMT row from the comparison. This page does not
+re-decide which nights were dense or which were in outburst.</li>
+<li><b>The period.</b> 0.0868&nbsp;d, from
+<code>p3_ephemeris</code>, i.e. the AAVSO VSX record. Nothing here measures
+a period; §4 of the analysis page already showed that the
+&plusmn;1&nbsp;c/d aliases carry up to 0.96 of the window power on YZ Cnc's
+multi-night sets, so no period from this archive could select its own
+family member.</li>
+<li><b>Phase zero is arbitrary.</b> VSX publishes NO epoch for YZ&nbsp;Cnc.
+Every phase on this page is measured from BJD&nbsp;
+2460000.0, a constant this stage chose. What
+survives that is the SHAPE of a fold and the offset between two filters
+observed through the same night; what does not survive is any statement
+about where a hump sits relative to a physical conjunction.</li>
+<li><b>The error model.</b> Every weighted fit here uses the per-point
+formal error multiplied by that series' MEASURED
+&chi;<sup>2</sup> inflation from <code>cv_series</code>, never the photon
+prediction alone.</li>
+</ul>
+
+<h3>What this page adds</h3>
+<p>Three measurements and two decisions: the folded hump with a detection
+test that has TWO nulls; flickering amplitude against timescale over a floor
+that is measured rather than modelled; the six normal-outburst runs
+characterised on their own terms; the §4.19 signal-to-noise gate executed;
+and AN&nbsp;UMa graded capability by capability against bars that are stated
+one number at a time so a reader can disagree with any of them in one
+line.</p>
+</section>
+<section id="census"><h2>1 &nbsp; Which runs, and in which state</h2>
+
+<h3>Question</h3>
+<p>Everything below depends on one classification: which of the dense runs
+caught YZ&nbsp;Cnc at quiescence and which caught it in outburst. Get that
+wrong and a flickering amplitude measured in outburst is published as a
+quiescent one.</p>
+
+<h3>Evidence</h3>
+<p>3 quiescent dense runs and 6 in normal outburst, inherited from
+CV-S7 and re-tabulated here with this stage's own coverage numbers. Note the
+two night conventions: <code>cv_frames</code> keys on the LOCAL night and
+CV-S7's page tabulates by UTC night, one day later for these Arizona
+evenings. Both are printed so the two pages can be checked against each
+other.</p>
+<table class="data">
+<tr><th>local night</th><th>UTC night</th><th>state</th><th>filter</th><th>N</th><th>span (h)</th><th>orbits sampled</th><th>cadence (s)</th><th>median cal_mag</th><th>p5&ndash;p95 (mag)</th></tr>
+<tr><td>2024-02-20</td><td>2024-02-21</td><td><b style="color:#9fd8ae">QUIESCENT</b></td><td>G</td><td>62</td><td>5.61</td><td>2.69</td><td>203</td><td>14.24</td><td>0.420</td></tr>
+<tr><td>2024-02-20</td><td>2024-02-21</td><td><b style="color:#9fd8ae">QUIESCENT</b></td><td>I</td><td>51</td><td>6.28</td><td>3.01</td><td>220</td><td>14.10</td><td>0.332</td></tr>
+<tr><td>2024-02-20</td><td>2024-02-21</td><td><b style="color:#9fd8ae">QUIESCENT</b></td><td>R</td><td>58</td><td>5.84</td><td>2.80</td><td>205</td><td>14.17</td><td>0.267</td></tr>
+<tr><td>2024-02-21</td><td>2024-02-22</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>G</td><td>71</td><td>4.29</td><td>2.06</td><td>193</td><td>12.83</td><td>0.258</td></tr>
+<tr><td>2024-02-21</td><td>2024-02-22</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>I</td><td>92</td><td>4.53</td><td>2.17</td><td>191</td><td>13.16</td><td>0.216</td></tr>
+<tr><td>2024-02-21</td><td>2024-02-22</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>R</td><td>68</td><td>4.49</td><td>2.16</td><td>193</td><td>13.02</td><td>0.253</td></tr>
+<tr><td>2024-02-22</td><td>2024-02-23</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>G</td><td>30</td><td>4.88</td><td>2.34</td><td>377</td><td>12.57</td><td>0.129</td></tr>
+<tr><td>2024-02-22</td><td>2024-02-23</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>I</td><td>28</td><td>4.92</td><td>2.36</td><td>307</td><td>12.92</td><td>0.146</td></tr>
+<tr><td>2024-02-22</td><td>2024-02-23</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>R</td><td>33</td><td>4.48</td><td>2.15</td><td>215</td><td>12.79</td><td>0.123</td></tr>
+<tr><td>2024-02-23</td><td>2024-02-24</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>G</td><td>40</td><td>5.59</td><td>2.69</td><td>195</td><td>12.88</td><td>0.150</td></tr>
+<tr><td>2024-02-23</td><td>2024-02-24</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>I</td><td>39</td><td>6.58</td><td>3.16</td><td>240</td><td>13.22</td><td>0.203</td></tr>
+<tr><td>2024-02-23</td><td>2024-02-24</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>R</td><td>43</td><td>6.54</td><td>3.14</td><td>194</td><td>13.09</td><td>0.192</td></tr>
+<tr><td>2024-02-29</td><td>2024-03-01</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>G</td><td>56</td><td>7.37</td><td>3.54</td><td>213</td><td>12.92</td><td>0.249</td></tr>
+<tr><td>2024-02-29</td><td>2024-03-01</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>I</td><td>51</td><td>7.48</td><td>3.59</td><td>317</td><td>13.22</td><td>0.201</td></tr>
+<tr><td>2024-02-29</td><td>2024-03-01</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>R</td><td>55</td><td>6.96</td><td>3.34</td><td>153</td><td>13.10</td><td>0.261</td></tr>
+<tr><td>2024-03-02</td><td>2024-03-03</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>G</td><td>17</td><td>4.25</td><td>2.04</td><td>311</td><td>13.20</td><td>0.264</td></tr>
+<tr><td>2024-03-02</td><td>2024-03-03</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>I</td><td>22</td><td>5.29</td><td>2.54</td><td>584</td><td>13.49</td><td>0.313</td></tr>
+<tr><td>2024-03-02</td><td>2024-03-03</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>R</td><td>22</td><td>5.16</td><td>2.48</td><td>594</td><td>13.33</td><td>0.253</td></tr>
+<tr><td>2024-03-03</td><td>2024-03-04</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>G</td><td>31</td><td>1.35</td><td>0.65</td><td>165</td><td>13.38</td><td>0.282</td></tr>
+<tr><td>2024-03-03</td><td>2024-03-04</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>I</td><td>30</td><td>1.42</td><td>0.68</td><td>165</td><td>13.59</td><td>0.216</td></tr>
+<tr><td>2024-03-03</td><td>2024-03-04</td><td><b style="color:#e6cc7a">OUTBURST</b></td><td>R</td><td>31</td><td>1.42</td><td>0.68</td><td>163</td><td>13.50</td><td>0.257</td></tr>
+<tr><td>2024-05-01</td><td>2024-05-02</td><td><b style="color:#9fd8ae">QUIESCENT</b></td><td>g</td><td>55</td><td>2.52</td><td>1.21</td><td>144</td><td>14.30</td><td>0.521</td></tr>
+<tr><td>2024-05-01</td><td>2024-05-02</td><td><b style="color:#9fd8ae">QUIESCENT</b></td><td>i</td><td>57</td><td>2.52</td><td>1.21</td><td>144</td><td>14.15</td><td>0.401</td></tr>
+<tr><td>2024-05-01</td><td>2024-05-02</td><td><b style="color:#9fd8ae">QUIESCENT</b></td><td>r</td><td>58</td><td>2.52</td><td>1.21</td><td>144</td><td>14.20</td><td>0.445</td></tr>
+<tr><td>2024-05-02</td><td>2024-05-03</td><td><b style="color:#9fd8ae">QUIESCENT</b></td><td>g</td><td>49</td><td>1.94</td><td>0.93</td><td>141</td><td>14.63</td><td>0.277</td></tr>
+<tr><td>2024-05-02</td><td>2024-05-03</td><td><b style="color:#9fd8ae">QUIESCENT</b></td><td>i</td><td>50</td><td>1.94</td><td>0.93</td><td>141</td><td>14.47</td><td>0.201</td></tr>
+<tr><td>2024-05-02</td><td>2024-05-03</td><td><b style="color:#9fd8ae">QUIESCENT</b></td><td>r</td><td>51</td><td>1.97</td><td>0.95</td><td>141</td><td>14.53</td><td>0.231</td></tr>
+</table>
+<figure><a href="figures/cv_final/census.png"><img src="figures/cv_final/census.png" alt=""></a><figcaption>The dense runs on a magnitude axis. The quiescent runs sit about 1.5 mag below the outburst ones — the separation the branch decision rests on.</figcaption></figure>
+
+<h3>Decision</h3>
+<p>The quiescent runs are the fallback's data set. The outburst runs are
+§6's, and are not mixed into any quiescent statistic on this page.</p>
+</section>
+<section id="gate"><h2>2 &nbsp; §4.19: is the photometry good enough to
+attempt the fallback at all?</h2>
+
+<h3>Question</h3>
+<p>The strategy refused to promise the quiescent fallback until somebody
+checked it: <i>&ldquo;8&nbsp;s High Gain at quiescent V&asymp;14.5 may be
+sky/read-noise dominated; verify before promising the fallback&rdquo;</i>
+(§4.19, concern <b>m4</b>). That sentence is not a measurement, so it is
+turned into three arithmetic lines here.</p>
+
+<p>The key move is to stop using formal error bars. What decides whether a
+frame is noise-dominated is the scatter a REAL star of the target's
+brightness shows through those same frames &mdash; and YZ&nbsp;Cnc's four
+held-out check stars sit about a magnitude brighter than the star at
+quiescence, so they are the wrong stars to ask. The floor used throughout
+this page is the structure function of every field star within
+0.25&nbsp;mag of the target on that run.</p>
+
+<h3>Evidence</h3>
+<p>Measured floors, by era: era 7: 27&ndash;46 mmag; era 72: 5&ndash;12 mmag. That gap is exactly the §4.19
+worry made numerical &mdash; the 8&nbsp;s High Gain frames are several times
+noisier at quiescence than the 30&nbsp;s Sloan-era frames.</p>
+<table class="data">
+<tr><th>gate</th><th>scope</th><th>what is compared</th><th>value</th><th>bar</th><th>verdict</th><th>the numbers behind it</th></tr>
+<tr><td><code>4.19-flicker</code></td><td>e72|g|2024-05-01</td><td>timescale bins with variability above the floor</td><td>8.00</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>8 of 8 measurable bins clear 3 sigma on the variance excess</td></tr>
+<tr><td><code>4.19-flicker</code></td><td>e72|g|2024-05-02</td><td>timescale bins with variability above the floor</td><td>7.00</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>7 of 7 measurable bins clear 3 sigma on the variance excess</td></tr>
+<tr><td><code>4.19-flicker</code></td><td>e72|i|2024-05-01</td><td>timescale bins with variability above the floor</td><td>8.00</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>8 of 8 measurable bins clear 3 sigma on the variance excess</td></tr>
+<tr><td><code>4.19-flicker</code></td><td>e72|i|2024-05-02</td><td>timescale bins with variability above the floor</td><td>7.00</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>7 of 7 measurable bins clear 3 sigma on the variance excess</td></tr>
+<tr><td><code>4.19-flicker</code></td><td>e72|r|2024-05-01</td><td>timescale bins with variability above the floor</td><td>8.00</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>8 of 8 measurable bins clear 3 sigma on the variance excess</td></tr>
+<tr><td><code>4.19-flicker</code></td><td>e72|r|2024-05-02</td><td>timescale bins with variability above the floor</td><td>7.00</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>7 of 7 measurable bins clear 3 sigma on the variance excess</td></tr>
+<tr><td><code>4.19-flicker</code></td><td>e7|G|2024-02-20</td><td>timescale bins with variability above the floor</td><td>7.00</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>7 of 8 measurable bins clear 3 sigma on the variance excess</td></tr>
+<tr><td><code>4.19-flicker</code></td><td>e7|I|2024-02-20</td><td>timescale bins with variability above the floor</td><td>4.00</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>4 of 7 measurable bins clear 3 sigma on the variance excess</td></tr>
+<tr><td><code>4.19-flicker</code></td><td>e7|R|2024-02-20</td><td>timescale bins with variability above the floor</td><td>6.00</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>6 of 8 measurable bins clear 3 sigma on the variance excess</td></tr>
+<tr><td><code>4.19-floor</code></td><td>e72|g|2024-05-01</td><td>target variability / measured photometric floor, at the shortest lag sampled</td><td>13.55</td><td>2.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>at tau = 150 s the target's structure function is 69 mmag and the magnitude-matched field stars' is 5 mmag (20 stars, exposure 30 s)</td></tr>
+<tr><td><code>4.19-floor</code></td><td>e72|g|2024-05-02</td><td>target variability / measured photometric floor, at the shortest lag sampled</td><td>7.31</td><td>2.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>at tau = 150 s the target's structure function is 48 mmag and the magnitude-matched field stars' is 7 mmag (16 stars, exposure 30 s)</td></tr>
+<tr><td><code>4.19-floor</code></td><td>e72|i|2024-05-01</td><td>target variability / measured photometric floor, at the shortest lag sampled</td><td>5.27</td><td>2.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>at tau = 150 s the target's structure function is 40 mmag and the magnitude-matched field stars' is 8 mmag (19 stars, exposure 30 s)</td></tr>
+<tr><td><code>4.19-floor</code></td><td>e72|i|2024-05-02</td><td>target variability / measured photometric floor, at the shortest lag sampled</td><td>3.75</td><td>2.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>at tau = 150 s the target's structure function is 35 mmag and the magnitude-matched field stars' is 9 mmag (24 stars, exposure 30 s)</td></tr>
+<tr><td><code>4.19-floor</code></td><td>e72|r|2024-05-01</td><td>target variability / measured photometric floor, at the shortest lag sampled</td><td>9.13</td><td>2.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>at tau = 150 s the target's structure function is 50 mmag and the magnitude-matched field stars' is 6 mmag (17 stars, exposure 30 s)</td></tr>
+<tr><td><code>4.19-floor</code></td><td>e72|r|2024-05-02</td><td>target variability / measured photometric floor, at the shortest lag sampled</td><td>7.31</td><td>2.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>at tau = 150 s the target's structure function is 52 mmag and the magnitude-matched field stars' is 7 mmag (21 stars, exposure 30 s)</td></tr>
+<tr><td><code>4.19-floor</code></td><td>e7|G|2024-02-20</td><td>target variability / measured photometric floor, at the shortest lag sampled</td><td>1.97</td><td>2.00</td><td><b style="color:#f0a3a3">FAIL</b></td><td>at tau = 150 s the target's structure function is 53 mmag and the magnitude-matched field stars' is 27 mmag (33 stars, exposure 8 s)</td></tr>
+<tr><td><code>4.19-floor</code></td><td>e7|I|2024-02-20</td><td>target variability / measured photometric floor, at the shortest lag sampled</td><td>1.25</td><td>2.00</td><td><b style="color:#f0a3a3">FAIL</b></td><td>at tau = 275 s the target's structure function is 56 mmag and the magnitude-matched field stars' is 45 mmag (40 stars, exposure 8 s)</td></tr>
+<tr><td><code>4.19-floor</code></td><td>e7|R|2024-02-20</td><td>target variability / measured photometric floor, at the shortest lag sampled</td><td>2.50</td><td>2.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>at tau = 150 s the target's structure function is 77 mmag and the magnitude-matched field stars' is 31 mmag (33 stars, exposure 8 s)</td></tr>
+<tr><td><code>4.19-hump</code></td><td>e72|g|2024-05-01</td><td>fitted hump semi-amplitude / instrumental 90% recovery contour</td><td>3.33</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>hump 90 mmag against an instrumental contour of 27 mmag; the contour set by the star's OWN flickering is not measurable on this scope, which samples fewer than 1.5 orbits and is reported in p4_run, not here</td></tr>
+<tr><td><code>4.19-hump</code></td><td>e72|g|2024-05-02</td><td>fitted hump semi-amplitude / instrumental 90% recovery contour</td><td>6.08</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>hump 88 mmag against an instrumental contour of 15 mmag; the contour set by the star's OWN flickering is not measurable on this scope, which samples fewer than 1.5 orbits and is reported in p4_run, not here</td></tr>
+<tr><td><code>4.19-hump</code></td><td>e72|i|2024-05-01</td><td>fitted hump semi-amplitude / instrumental 90% recovery contour</td><td>2.76</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>hump 71 mmag against an instrumental contour of 26 mmag; the contour set by the star's OWN flickering is not measurable on this scope, which samples fewer than 1.5 orbits and is reported in p4_run, not here</td></tr>
+<tr><td><code>4.19-hump</code></td><td>e72|i|2024-05-02</td><td>fitted hump semi-amplitude / instrumental 90% recovery contour</td><td>3.81</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>hump 66 mmag against an instrumental contour of 17 mmag; the contour set by the star's OWN flickering is not measurable on this scope, which samples fewer than 1.5 orbits and is reported in p4_run, not here</td></tr>
+<tr><td><code>4.19-hump</code></td><td>e72|r|2024-05-01</td><td>fitted hump semi-amplitude / instrumental 90% recovery contour</td><td>3.67</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>hump 80 mmag against an instrumental contour of 22 mmag; the contour set by the star's OWN flickering is not measurable on this scope, which samples fewer than 1.5 orbits and is reported in p4_run, not here</td></tr>
+<tr><td><code>4.19-hump</code></td><td>e72|r|2024-05-02</td><td>fitted hump semi-amplitude / instrumental 90% recovery contour</td><td>4.16</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>hump 70 mmag against an instrumental contour of 17 mmag; the contour set by the star's OWN flickering is not measurable on this scope, which samples fewer than 1.5 orbits and is reported in p4_run, not here</td></tr>
+<tr><td><code>4.19-hump</code></td><td>e7|G|2024-02-20</td><td>fitted hump semi-amplitude / instrumental 90% recovery contour</td><td>2.22</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>hump 70 mmag against an instrumental contour of 32 mmag; the contour set by the star's OWN flickering is 139 mmag and is reported in p4_run, not here</td></tr>
+<tr><td><code>4.19-hump</code></td><td>e7|I|2024-02-20</td><td>fitted hump semi-amplitude / instrumental 90% recovery contour</td><td>0.71</td><td>1.00</td><td><b style="color:#f0a3a3">FAIL</b></td><td>hump 37 mmag against an instrumental contour of 52 mmag; the contour set by the star's OWN flickering is 232 mmag and is reported in p4_run, not here</td></tr>
+<tr><td><code>4.19-hump</code></td><td>e7|R|2024-02-20</td><td>fitted hump semi-amplitude / instrumental 90% recovery contour</td><td>1.44</td><td>1.00</td><td><b style="color:#9fd8ae">PASS</b></td><td>hump 50 mmag against an instrumental contour of 35 mmag; the contour set by the star's OWN flickering is 148 mmag and is reported in p4_run, not here</td></tr>
+</table>
+
+<h3>Decision</h3>
+<p><b>The gate passes</b>, 24 of 27 lines, and it passes with
+a restriction rather than uniformly. Flickering clears the measured floor on
+every quiescent run in every filter. Every line that fails does so on the
+same run &mdash; the 8&nbsp;s High&nbsp;Gain night, which is exactly the one
+§4.19 named:</p>
+<ul><li><code>4.19-floor</code> on <code>e7|G|2024-02-20</code> &mdash; at tau = 150 s the target's structure function is 53 mmag and the magnitude-matched field stars' is 27 mmag (33 stars, exposure 8 s)</li><li><code>4.19-floor</code> on <code>e7|I|2024-02-20</code> &mdash; at tau = 275 s the target's structure function is 56 mmag and the magnitude-matched field stars' is 45 mmag (40 stars, exposure 8 s)</li><li><code>4.19-hump</code> on <code>e7|I|2024-02-20</code> &mdash; hump 37 mmag against an instrumental contour of 52 mmag; the contour set by the star's OWN flickering is 232 mmag and is reported in p4_run, not here</li></ul>
+<p>So §4.19 was right about the frames and wrong about the conclusion. The
+fallback is deliverable; the short-timescale end of the High&nbsp;Gain era
+is not where to deliver it, and the 30&nbsp;s Sloan-era runs carry the
+flickering result. Note what this gate does NOT license: it says the
+photometry can see a modulation the size of the fitted hump, not that the
+hump is real. That question needs a second null and is §3's.</p>
+</section>
+<section id="hump"><h2>3 &nbsp; The quiescent orbital hump: two nulls, one
+answer</h2>
+
+<h3>Question</h3>
+<p>A dwarf nova at quiescence should show an orbital hump &mdash; the bright
+spot where the accretion stream meets the disc rim, seen once per orbit. Is
+one there, and how big? The question that decides the answer is not
+&ldquo;is the fitted amplitude bigger than its error bar?&rdquo; but
+&ldquo;bigger than <em>what could have produced it by accident</em>?&rdquo;,
+and there are two candidate accidents.</p>
+
+<h3>Evidence</h3>
+<p>Each scope is folded on the published period and fitted with
+2 harmonics plus one free constant per night, jointly &mdash;
+the discipline CV-S9 measured the case for, because detrending first and
+searching afterwards eats part of the signal it is looking for. Blocks fold
+two nights together only where the accumulated phase drift stays inside
+0.1 cycles; the February and May quiescent runs are
+71 days apart, which on a period quoted to four decimals is about half a
+cycle of drift, so those may never share a phase axis.</p>
+<table class="data">
+<tr><th>scope</th><th>N</th><th>orbits</th><th>A (mmag)</th><th>&sigma;<sub>A</sub></th><th>2nd harm.</th><th>phase of max light</th><th>&chi;<sup>2</sup><sub>&nu;</sub></th><th>A<sub>90</sub> field</th><th>A<sub>90</sub> self</th><th>call</th></tr>
+<tr><td>e72 g &nbsp; 2024-05-01</td><td>55</td><td>1.21</td><td><b>90</b></td><td>20</td><td>36</td><td>0.773</td><td>400.3</td><td>27</td><td>&mdash;</td><td><b style="color:#e6cc7a">AMPLITUDE ONLY</b></td></tr>
+<tr><td>e72 g &nbsp; 2024-05-02</td><td>49</td><td>0.93</td><td><b>88</b></td><td>13</td><td>30</td><td>0.366</td><td>103.1</td><td>15</td><td>&mdash;</td><td><b style="color:#e6cc7a">AMPLITUDE ONLY</b></td></tr>
+<tr><td>e72 g &nbsp; 2024-05-01+2024-05-02</td><td>104</td><td>2.14</td><td><b>30</b></td><td>16</td><td>21</td><td>0.706</td><td>387.5</td><td>10</td><td>254</td><td><b style="color:#f0a3a3">NOT DETECTED</b></td></tr>
+<tr><td>e72 i &nbsp; 2024-05-01</td><td>57</td><td>1.21</td><td><b>71</b></td><td>15</td><td>22</td><td>0.784</td><td>104.4</td><td>26</td><td>&mdash;</td><td><b style="color:#e6cc7a">AMPLITUDE ONLY</b></td></tr>
+<tr><td>e72 i &nbsp; 2024-05-02</td><td>50</td><td>0.93</td><td><b>66</b></td><td>9</td><td>14</td><td>0.450</td><td>20.8</td><td>17</td><td>&mdash;</td><td><b style="color:#e6cc7a">AMPLITUDE ONLY</b></td></tr>
+<tr><td>e72 i &nbsp; 2024-05-01+2024-05-02</td><td>107</td><td>2.14</td><td><b>37</b></td><td>11</td><td>15</td><td>0.703</td><td>89.8</td><td>10</td><td>144</td><td><b style="color:#f0a3a3">NOT DETECTED</b></td></tr>
+<tr><td>e72 r &nbsp; 2024-05-01</td><td>58</td><td>1.21</td><td><b>80</b></td><td>16</td><td>30</td><td>0.790</td><td>187.6</td><td>22</td><td>&mdash;</td><td><b style="color:#e6cc7a">AMPLITUDE ONLY</b></td></tr>
+<tr><td>e72 r &nbsp; 2024-05-02</td><td>51</td><td>0.95</td><td><b>70</b></td><td>11</td><td>5</td><td>0.379</td><td>44.2</td><td>17</td><td>&mdash;</td><td><b style="color:#e6cc7a">AMPLITUDE ONLY</b></td></tr>
+<tr><td>e72 r &nbsp; 2024-05-01+2024-05-02</td><td>109</td><td>2.16</td><td><b>33</b></td><td>13</td><td>20</td><td>0.732</td><td>170.5</td><td>9</td><td>153</td><td><b style="color:#f0a3a3">NOT DETECTED</b></td></tr>
+<tr><td>e7 G &nbsp; 2024-02-20</td><td>62</td><td>2.69</td><td><b>70</b></td><td>21</td><td>16</td><td>0.984</td><td>4.8</td><td>32</td><td>139</td><td><b style="color:#f0a3a3">NOT DETECTED</b></td></tr>
+<tr><td>e7 I &nbsp; 2024-02-20</td><td>51</td><td>3.01</td><td><b>37</b></td><td>23</td><td>30</td><td>0.091</td><td>3.4</td><td>52</td><td>232</td><td><b style="color:#f0a3a3">NOT DETECTED</b></td></tr>
+<tr><td>e7 R &nbsp; 2024-02-20</td><td>58</td><td>2.80</td><td><b>50</b></td><td>23</td><td>34</td><td>0.141</td><td>2.2</td><td>35</td><td>148</td><td><b style="color:#f0a3a3">NOT DETECTED</b></td></tr>
+</table>
+<p class='note'><b>Scope notes.</b></p><ul><li><code>e72 g &nbsp; 2024-05-01</code> &mdash; this scope samples only 1.21 orbits, below the 1.5 at which a sinusoid at P_orb stops being degenerate with a trend; the amplitude is reported, the detection is not claimed</li><li><code>e72 g &nbsp; 2024-05-02</code> &mdash; this scope samples only 0.93 orbits, below the 1.5 at which a sinusoid at P_orb stops being degenerate with a trend; the amplitude is reported, the detection is not claimed</li><li><code>e72 g &nbsp; 2024-05-01+2024-05-02</code> &mdash; 2 runs folded together: accumulated phase drift 0.0066 cycles, inside the 0.1 bar; one free constant per night fitted jointly with the harmonics</li><li><code>e72 i &nbsp; 2024-05-01</code> &mdash; this scope samples only 1.21 orbits, below the 1.5 at which a sinusoid at P_orb stops being degenerate with a trend; the amplitude is reported, the detection is not claimed</li><li><code>e72 i &nbsp; 2024-05-02</code> &mdash; this scope samples only 0.93 orbits, below the 1.5 at which a sinusoid at P_orb stops being degenerate with a trend; the amplitude is reported, the detection is not claimed</li><li><code>e72 i &nbsp; 2024-05-01+2024-05-02</code> &mdash; 2 runs folded together: accumulated phase drift 0.0066 cycles, inside the 0.1 bar; one free constant per night fitted jointly with the harmonics</li><li><code>e72 r &nbsp; 2024-05-01</code> &mdash; this scope samples only 1.21 orbits, below the 1.5 at which a sinusoid at P_orb stops being degenerate with a trend; the amplitude is reported, the detection is not claimed</li><li><code>e72 r &nbsp; 2024-05-02</code> &mdash; this scope samples only 0.95 orbits, below the 1.5 at which a sinusoid at P_orb stops being degenerate with a trend; the amplitude is reported, the detection is not claimed</li><li><code>e72 r &nbsp; 2024-05-01+2024-05-02</code> &mdash; 2 runs folded together: accumulated phase drift 0.0066 cycles, inside the 0.1 bar; one free constant per night fitted jointly with the harmonics</li></ul>
+
+<p>Two nulls are measured for every scope, and BOTH are injections of a
+known sinusoid into real noise at the real timestamps, recovered at the
+published frequency, with the 90% recovery amplitude read off the same
+amplitude grid CV-S5 used:</p>
+<ul>
+<li><b>the field null</b> &mdash; magnitude-matched field stars through the
+same frames. It asks: <i>could the photometry see a hump this size?</i></li>
+<li><b>the self null</b> &mdash; this star's own residuals about the fitted
+model, rolled night by night so every realization is made of light the
+telescope actually recorded that night. It asks: <i>could this star's own
+aperiodic flickering have produced a peak this tall at the orbital
+frequency?</i></li>
+</ul>
+<figure><a href="figures/cv_final/two_nulls.png"><img src="figures/cv_final/two_nulls.png" alt=""></a><figcaption>The gap between the green squares and the red diamonds is the result. The instrument can see a hump of the fitted size; the star's own flickering cannot be told apart from one.</figcaption></figure>
+<figure><a href="figures/cv_final/folds.png"><img src="figures/cv_final/folds.png" alt=""></a><figcaption>The quiescent runs folded on the published period, each night about its own median, model overlaid, plotted twice for continuity. The fitted fundamental is a thin line inside a cloud several times its height.</figcaption></figure>
+
+<h3>A third test the contours do not know about: does the phase repeat?</h3>
+<p>Each night's three filters are fitted independently, so they are three
+measurements of one physical feature and must agree in phase. An
+<em>orbital</em> feature must agree between nights as well. Phases are
+compared on the circle, where the largest possible disagreement is half a
+cycle.</p>
+<table class="data">
+<tr><th>night</th><th>era</th><th>filters</th><th>mean phase of maximum light</th><th>spread across filters (cycles)</th></tr>
+<tr><td>2024-02-20</td><td>7</td><td>3</td><td>0.073</td><td>0.066</td></tr>
+<tr><td>2024-05-01</td><td>72</td><td>3</td><td>0.782</td><td>0.007</td></tr>
+<tr><td>2024-05-02</td><td>72</td><td>3</td><td>0.398</td><td>0.037</td></tr>
+</table>
+<p>Within a night the filters agree to a few hundredths of a cycle. So the
+modulation being fitted is REAL &mdash; three independent measurements land
+on the same feature &mdash; and it is the star rather than the photometry.
+</p>
+
+<p>Between nights, comparing only pairs that share an era and are close
+enough in time that the period's own uncertainty cannot explain the
+difference: 2024-05-01 vs 2024-05-02: <b>0.384 cycles</b>. That is close to the half-cycle maximum, against an
+accumulated phase drift of well under 0.01 cycles over the one-day gap. A
+modulation that is coherent across three filters within one night and lands
+a third of a cycle away the next night is not the orbit; it is flickering
+with a coherence time shorter than the gap between runs, which is exactly
+what §4 measures directly.</p>
+
+<p class="note">The February run cannot be compared with the May runs at
+all: 71 days on a period published to four decimals is about half a cycle of
+accumulated drift, so any phase difference between them is unconstrained
+before the star is even considered.</p>
+
+<h3>Decision</h3>
+<p><b style="color:#f0a3a3">NOT DETECTED — PUBLISHED AS AN UPPER LIMIT</b> &mdash; 0 of 6 testable quiescent scopes clear both the 90% recovery contour and the 1% false-alarm threshold. The folded fundamental has semi-amplitude 30-70 mmag; the INSTRUMENTAL contour is 9-52 mmag, so the photometry could see a hump this size, but the contour set by the star's OWN flickering is 139-254 mmag, so the data cannot tell a coherent hump from the flickering.</p>
+<p>Two nulls, and they disagree, which is the whole result. Against magnitude-matched field stars the fitted amplitude is comfortably significant. Against this star's own residuals -- rolled night by night, so every realization is made of light the telescope actually recorded -- it is not. YZ Cnc flickers at about ten times the photometric floor on exactly the timescales an orbital hump occupies, so the field-star contour alone would have produced a confident detection of nothing in particular.</p>
+
+<h3>Consequence</h3>
+<p>The publishable statement is an upper limit: any COHERENT orbital modulation with semi-amplitude above about 139 mmag would have been recovered in nine injections out of ten, and none is. Phase zero is arbitrary in any case -- VSX publishes no epoch for YZ Cnc -- so only hump SHAPES and within-night inter-filter phase offsets were ever available.</p>
+</section>
+<section id="flicker"><h2>4 &nbsp; Flickering: amplitude against timescale,
+over a floor that was measured</h2>
+
+<h3>Question</h3>
+<p>Flickering is aperiodic, so a periodogram is the wrong instrument. The
+right one is a structure function: for every pair of points separated by
+&tau;, accumulate (&Delta;m)<sup>2</sup>, and report
+&radic;(&lang;&Delta;m<sup>2</sup>&rang;/2) &mdash; which for a stationary
+process is the standard deviation of the variability on that timescale.</p>
+
+<p>The hard part is not the statistic, it is the subtraction. A structure
+function of the target contains flickering AND photon noise AND sky AND
+whatever the ensemble zero point did that night. Subtract too little and the
+photometry is published as astrophysics; subtract too much and a real
+detection is erased.</p>
+
+<h3>What was subtracted, and how</h3>
+<p>The floor is the <b>identical statistic computed on the magnitude-matched
+field stars</b> &mdash; every star within 0.25 mag of
+the target's median on that run, covering at least
+50% of its frames, measured through the same
+frames. Those stars carry the same photon statistics, the same sky, the same
+ensemble zero-point wander and the same atmosphere, and no flickering. The
+per-bin floor is the MEDIAN over stars, not the mean, so one variable star
+that slipped into the sample cannot erase a detection; fewer than
+5 stars and the bin reports no floor at all rather than a
+guess.</p>
+
+<p>The subtraction is done in VARIANCE &mdash;
+&sigma;<sub>flicker</sub> = &radic;(&sigma;<sub>total</sub><sup>2</sup>
+&minus; &sigma;<sub>floor</sub><sup>2</sup>) &mdash; because that is the
+quantity that is additive, and its significance is quoted as a sigma on the
+variance difference rather than as a ratio of two similar sigmas. The
+orbital model of §3 is removed from the target before the statistic is
+computed, so a coherent hump cannot be counted as flickering.</p>
+
+<p>For comparison, the formal per-point error inflated by each series'
+measured &chi;<sup>2</sup> inflation &mdash; the number a pipeline would
+have used if nobody had measured a floor &mdash; is: yzcnc|e72|g 5 mmag, yzcnc|e72|g 6 mmag, yzcnc|e72|i 8 mmag, yzcnc|e72|i 10 mmag, yzcnc|e72|r 6 mmag, yzcnc|e72|r 8 mmag, yzcnc|e7|G 52 mmag, yzcnc|e7|I 62 mmag, yzcnc|e7|R 76 mmag. Where it
+disagrees with the measured floor, the measured floor governs.</p>
+
+<h3>Evidence</h3>
+<figure><a href="figures/cv_final/flicker.png"><img src="figures/cv_final/flicker.png" alt=""></a><figcaption>Solid: the target. Dotted: the measured field-star floor. Dashed: the quadrature excess — the flickering. The two eras differ by a factor of several in the floor, which is what §4.19 was worried about.</figcaption></figure>
+<table class="data">
+<tr><th>series</th><th>night</th><th>&tau; (s)</th><th>pairs</th><th>&sigma;<sub>target</sub></th><th>floor (mmag)</th><th>floor stars</th><th><b>flickering (mmag)</b></th><th>excess &sigma;</th><th>detected</th></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-01</td><td>81</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>20</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-01</td><td>150</td><td>49</td><td>69</td><td>5</td><td>20</td><td><b>69</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-01</td><td>275</td><td>48</td><td>73</td><td>6</td><td>20</td><td><b>73</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-01</td><td>506</td><td>90</td><td>78</td><td>6</td><td>20</td><td><b>77</b></td><td>5.2</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-01</td><td>930</td><td>169</td><td>70</td><td>7</td><td>20</td><td><b>70</b></td><td>5.2</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-01</td><td>1,709</td><td>301</td><td>94</td><td>8</td><td>20</td><td><b>93</b></td><td>5.2</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-01</td><td>3,142</td><td>409</td><td>109</td><td>10</td><td>20</td><td><b>108</b></td><td>5.2</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-01</td><td>5,776</td><td>384</td><td>141</td><td>11</td><td>20</td><td><b>141</b></td><td>5.2</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-01</td><td>10,620</td><td>35</td><td>250</td><td>10</td><td>20</td><td><b>250</b></td><td>4.2</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-02</td><td>81</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>16</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-02</td><td>150</td><td>46</td><td>48</td><td>7</td><td>16</td><td><b>48</b></td><td>4.7</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-02</td><td>275</td><td>45</td><td>61</td><td>7</td><td>16</td><td><b>60</b></td><td>4.7</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-02</td><td>506</td><td>96</td><td>67</td><td>7</td><td>16</td><td><b>67</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-02</td><td>930</td><td>167</td><td>66</td><td>7</td><td>16</td><td><b>66</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-02</td><td>1,709</td><td>278</td><td>56</td><td>7</td><td>16</td><td><b>55</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-02</td><td>3,142</td><td>352</td><td>60</td><td>8</td><td>16</td><td><b>60</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-02</td><td>5,776</td><td>192</td><td>61</td><td>10</td><td>16</td><td><b>60</b></td><td>4.8</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|g</td><td>2024-05-02</td><td>10,620</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>16</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-01</td><td>81</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>19</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-01</td><td>150</td><td>50</td><td>40</td><td>8</td><td>19</td><td><b>39</b></td><td>4.8</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-01</td><td>275</td><td>49</td><td>46</td><td>7</td><td>19</td><td><b>45</b></td><td>4.8</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-01</td><td>506</td><td>99</td><td>49</td><td>8</td><td>19</td><td><b>49</b></td><td>5.2</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-01</td><td>930</td><td>186</td><td>54</td><td>8</td><td>19</td><td><b>54</b></td><td>5.2</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-01</td><td>1,709</td><td>326</td><td>74</td><td>8</td><td>19</td><td><b>74</b></td><td>5.3</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-01</td><td>3,142</td><td>435</td><td>83</td><td>10</td><td>19</td><td><b>83</b></td><td>5.3</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-01</td><td>5,776</td><td>419</td><td>119</td><td>10</td><td>19</td><td><b>119</b></td><td>5.3</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-01</td><td>10,620</td><td>32</td><td>206</td><td>12</td><td>19</td><td><b>206</b></td><td>4.0</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-02</td><td>81</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>24</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-02</td><td>150</td><td>48</td><td>35</td><td>9</td><td>24</td><td><b>34</b></td><td>4.5</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-02</td><td>275</td><td>47</td><td>46</td><td>10</td><td>24</td><td><b>45</b></td><td>4.6</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-02</td><td>506</td><td>100</td><td>46</td><td>10</td><td>24</td><td><b>45</b></td><td>4.8</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-02</td><td>930</td><td>171</td><td>44</td><td>10</td><td>24</td><td><b>43</b></td><td>4.8</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-02</td><td>1,709</td><td>284</td><td>41</td><td>10</td><td>24</td><td><b>39</b></td><td>4.7</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-02</td><td>3,142</td><td>365</td><td>41</td><td>11</td><td>24</td><td><b>40</b></td><td>4.7</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-02</td><td>5,776</td><td>210</td><td>43</td><td>12</td><td>24</td><td><b>41</b></td><td>4.6</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|i</td><td>2024-05-02</td><td>10,620</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>24</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-01</td><td>81</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>17</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-01</td><td>150</td><td>53</td><td>50</td><td>6</td><td>17</td><td><b>50</b></td><td>5.1</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-01</td><td>275</td><td>51</td><td>58</td><td>6</td><td>17</td><td><b>58</b></td><td>5.0</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-01</td><td>506</td><td>102</td><td>58</td><td>6</td><td>17</td><td><b>57</b></td><td>5.3</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-01</td><td>930</td><td>189</td><td>59</td><td>6</td><td>17</td><td><b>58</b></td><td>5.3</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-01</td><td>1,709</td><td>339</td><td>79</td><td>7</td><td>17</td><td><b>79</b></td><td>5.3</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-01</td><td>3,142</td><td>460</td><td>94</td><td>9</td><td>17</td><td><b>94</b></td><td>5.3</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-01</td><td>5,776</td><td>422</td><td>135</td><td>10</td><td>17</td><td><b>134</b></td><td>5.4</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-01</td><td>10,620</td><td>37</td><td>242</td><td>7</td><td>17</td><td><b>242</b></td><td>4.3</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-02</td><td>81</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>21</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-02</td><td>150</td><td>49</td><td>52</td><td>7</td><td>21</td><td><b>51</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-02</td><td>275</td><td>48</td><td>55</td><td>8</td><td>21</td><td><b>54</b></td><td>4.8</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-02</td><td>506</td><td>102</td><td>58</td><td>7</td><td>21</td><td><b>57</b></td><td>5.0</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-02</td><td>930</td><td>175</td><td>50</td><td>8</td><td>21</td><td><b>50</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-02</td><td>1,709</td><td>293</td><td>51</td><td>8</td><td>21</td><td><b>51</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-02</td><td>3,142</td><td>377</td><td>52</td><td>9</td><td>21</td><td><b>51</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-02</td><td>5,776</td><td>231</td><td>57</td><td>11</td><td>21</td><td><b>56</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e72|r</td><td>2024-05-02</td><td>10,620</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>21</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e7|G</td><td>2024-02-20</td><td>81</td><td>4</td><td>&mdash;</td><td>&mdash;</td><td>33</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e7|G</td><td>2024-02-20</td><td>150</td><td>20</td><td>53</td><td>27</td><td>33</td><td><b>45</b></td><td>2.3</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e7|G</td><td>2024-02-20</td><td>275</td><td>35</td><td>86</td><td>28</td><td>33</td><td><b>81</b></td><td>3.7</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|G</td><td>2024-02-20</td><td>506</td><td>84</td><td>85</td><td>30</td><td>33</td><td><b>79</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|G</td><td>2024-02-20</td><td>930</td><td>120</td><td>98</td><td>29</td><td>33</td><td><b>94</b></td><td>5.1</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|G</td><td>2024-02-20</td><td>1,709</td><td>193</td><td>108</td><td>29</td><td>33</td><td><b>104</b></td><td>5.2</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|G</td><td>2024-02-20</td><td>3,142</td><td>274</td><td>115</td><td>28</td><td>33</td><td><b>111</b></td><td>5.2</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|G</td><td>2024-02-20</td><td>5,776</td><td>607</td><td>113</td><td>29</td><td>33</td><td><b>109</b></td><td>5.2</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|G</td><td>2024-02-20</td><td>10,620</td><td>474</td><td>123</td><td>32</td><td>33</td><td><b>119</b></td><td>5.2</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|I</td><td>2024-02-20</td><td>81</td><td>2</td><td>&mdash;</td><td>&mdash;</td><td>40</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e7|I</td><td>2024-02-20</td><td>150</td><td>16</td><td>&mdash;</td><td>&mdash;</td><td>40</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e7|I</td><td>2024-02-20</td><td>275</td><td>24</td><td>56</td><td>45</td><td>40</td><td><b>34</b></td><td>1.2</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e7|I</td><td>2024-02-20</td><td>506</td><td>49</td><td>62</td><td>45</td><td>40</td><td><b>42</b></td><td>2.3</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e7|I</td><td>2024-02-20</td><td>930</td><td>60</td><td>66</td><td>44</td><td>40</td><td><b>49</b></td><td>2.8</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e7|I</td><td>2024-02-20</td><td>1,709</td><td>119</td><td>70</td><td>43</td><td>40</td><td><b>55</b></td><td>3.1</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|I</td><td>2024-02-20</td><td>3,142</td><td>213</td><td>88</td><td>46</td><td>40</td><td><b>75</b></td><td>3.7</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|I</td><td>2024-02-20</td><td>5,776</td><td>282</td><td>113</td><td>45</td><td>40</td><td><b>104</b></td><td>4.3</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|I</td><td>2024-02-20</td><td>10,620</td><td>381</td><td>138</td><td>45</td><td>40</td><td><b>130</b></td><td>4.5</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|R</td><td>2024-02-20</td><td>81</td><td>3</td><td>&mdash;</td><td>&mdash;</td><td>33</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e7|R</td><td>2024-02-20</td><td>150</td><td>21</td><td>77</td><td>31</td><td>33</td><td><b>71</b></td><td>2.7</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e7|R</td><td>2024-02-20</td><td>275</td><td>28</td><td>66</td><td>36</td><td>33</td><td><b>55</b></td><td>2.6</td><td><span style="color:#6f7a8a">no</span></td></tr>
+<tr><td>yzcnc|e7|R</td><td>2024-02-20</td><td>506</td><td>61</td><td>76</td><td>36</td><td>33</td><td><b>67</b></td><td>4.2</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|R</td><td>2024-02-20</td><td>930</td><td>100</td><td>86</td><td>34</td><td>33</td><td><b>79</b></td><td>4.5</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|R</td><td>2024-02-20</td><td>1,709</td><td>162</td><td>83</td><td>34</td><td>33</td><td><b>76</b></td><td>4.5</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|R</td><td>2024-02-20</td><td>3,142</td><td>267</td><td>91</td><td>34</td><td>33</td><td><b>85</b></td><td>4.7</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|R</td><td>2024-02-20</td><td>5,776</td><td>415</td><td>110</td><td>33</td><td>33</td><td><b>105</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+<tr><td>yzcnc|e7|R</td><td>2024-02-20</td><td>10,620</td><td>465</td><td>123</td><td>35</td><td>33</td><td><b>117</b></td><td>4.9</td><td><b style="color:#9fd8ae">yes</b></td></tr>
+</table>
+
+<h3>Decision</h3>
+<p><b style="color:#9fd8ae">MEASURED</b> &mdash; 62 of 68 measurable timescale bins on the quiescent runs exceed the measured field-star floor by 3 sigma or more on the variance excess. Flickering amplitude 34-250 mmag over 60-14400 s; the floor subtracted is 5-46 mmag.</p>
+<p>The floor is not modelled and not a formal error bar. It is the SAME structure function computed on field stars within 0.25 mag of the target through the same frames, so it carries identical photon noise, sky, ensemble zero-point wander and atmosphere, and no flickering. YZ Cnc's four held-out check stars sit about a magnitude BRIGHTER than the star at quiescence and would have given an optimistic floor.</p>
+
+<h3>Consequence</h3>
+<p>The subtraction is done in variance, and bins where the target does not exceed the floor are reported as NOT MEASURED rather than as a small amplitude. The two eras differ by design: the 30 s Sloan-era frames reach a 5-12 mmag floor, the 8 s High Gain frames only 27-46 mmag, which is precisely what §4.19 feared.</p>
+</section>
+<section id="cannot"><h2>5 &nbsp; What this season cannot do</h2>
+
+<h3>Question</h3>
+<p>The strategy's Q3 promised a superhump period and a
+dP<sub>sh</sub>/dt. Neither appears in this paper. An absence in a
+manuscript is worth nothing unless it is quantified, so: how big would a
+superhump have had to be for these data to have measured its period?</p>
+
+<h3>Evidence</h3>
+<p>Two independent reasons, either sufficient on its own.</p>
+<p><b>First, the state.</b> Common superhumps occur inside superoutbursts.
+CV-S7 established that none of the dense runs does &mdash; the brightest
+reaches 1.86 mag above quiescence against the ~3 mag a superoutburst
+reaches, and the February block is bracketed by independent AAVSO points
+five days apart, which a &ge;&nbsp;8&nbsp;d superoutburst plateau cannot fit
+between.</p>
+<p><b>Second, the sampling.</b> A superhump period is a BLIND period
+determination: P<sub>sh</sub> is not known in advance the way P<sub>orb</sub>
+is. Scored that way &mdash; the tallest peak in the 2&ndash;40&nbsp;c/d band
+must both clear threshold and land within 1% of the truth &mdash; the 90%
+recovery contour on the outburst dense runs is:</p>
+<table class="data">
+<tr><th>night</th><th>filter</th><th>N</th><th>blind-search A<sub>90</sub> (mmag)</th><th>range</th><th>a superhump would need</th></tr>
+<tr><td>2024-02-21</td><td>I</td><td>92</td><td><b>130</b></td><td>111&ndash;140</td><td>&ge; 50</td></tr>
+<tr><td>2024-02-22</td><td>R</td><td>33</td><td><b>100</b></td><td>94&ndash;122</td><td>&ge; 50</td></tr>
+<tr><td>2024-02-23</td><td>R</td><td>43</td><td><b>82</b></td><td>69&ndash;92</td><td>&ge; 50</td></tr>
+<tr><td>2024-02-29</td><td>G</td><td>56</td><td><b>127</b></td><td>116&ndash;134</td><td>&ge; 50</td></tr>
+<tr><td>2024-03-02</td><td>I</td><td>22</td><td><b>237</b></td><td>219&ndash;248</td><td>&ge; 50</td></tr>
+</table>
+
+<h3>Decision</h3>
+<p><b style="color:#f0a3a3">NO — AND THAT IS A MEASUREMENT, NOT AN ABSENCE</b> &mdash; the blind-search 90% recovery contour on the outburst dense runs is 82-237 mmag, against superhump semi-amplitudes of 50 mmag and up; and CV-S7 already established that none of the 6 outburst dense runs sits inside a superoutburst (brightest 1.86 mag above quiescence, against the ~3 mag a superoutburst reaches).</p>
+<p>A superhump period is a BLIND period determination -- P_sh is not known in advance the way P_orb is -- and a single night spanning about two orbits cannot place a periodogram maximum inside a 1% frequency window at any amplitude these data reach. Two independent reasons, either sufficient on its own.</p>
+
+<h3>Consequence</h3>
+<p>No superhump period, no dP_sh/dt, no O-C of superhump maxima, and no such promise in the abstract. Figure 11 of the strategy's figure list becomes the orbital-hump and flickering panel, which is the alternative the strategy itself names.</p>
+</section>
+<section id="outburst"><h2>6 &nbsp; The six normal-outburst runs, on their
+own terms</h2>
+
+<h3>Question</h3>
+<p>CV-S7 called these &ldquo;a distinct, separately publishable data set,
+not a consolation&rdquo;. That is a claim, and it needs numbers: what does a
+dense multi-colour run inside a normal outburst actually measure?</p>
+
+<h3>Evidence</h3>
+<p>Amplitude relative to the measured quiescent baseline, covered duration,
+and a straight-line rate through the run with its own error bar. A rate is
+called a direction only when it exceeds three times that bar; otherwise the
+run is FLAT and says so.</p>
+<table class="data">
+<tr><th>local night</th><th>UTC</th><th>filter</th><th>N</th><th>span (h)</th><th>median cal_mag</th><th>mag above quiescence</th><th>p5&ndash;p95</th><th>rate (mag/h)</th><th>verdict</th></tr>
+<tr><td>2024-02-21</td><td>2024-02-22</td><td>G</td><td>71</td><td>4.29</td><td>12.83</td><td>1.63</td><td>0.258</td><td>-0.0465 &plusmn; 0.0050</td><td>BRIGHTENING</td></tr>
+<tr><td>2024-02-21</td><td>2024-02-22</td><td>I</td><td>92</td><td>4.53</td><td>13.16</td><td>1.63</td><td>0.216</td><td>-0.0418 &plusmn; 0.0035</td><td>BRIGHTENING</td></tr>
+<tr><td>2024-02-21</td><td>2024-02-22</td><td>R</td><td>68</td><td>4.49</td><td>13.02</td><td>1.63</td><td>0.253</td><td>-0.0496 &plusmn; 0.0044</td><td>BRIGHTENING</td></tr>
+<tr><td>2024-02-22</td><td>2024-02-23</td><td>G</td><td>30</td><td>4.88</td><td>12.57</td><td>1.86</td><td>0.129</td><td>0.0059 &plusmn; 0.0057</td><td>FLAT (within 3 sigma)</td></tr>
+<tr><td>2024-02-22</td><td>2024-02-23</td><td>I</td><td>28</td><td>4.92</td><td>12.92</td><td>1.86</td><td>0.146</td><td>0.0179 &plusmn; 0.0055</td><td>FADING</td></tr>
+<tr><td>2024-02-22</td><td>2024-02-23</td><td>R</td><td>33</td><td>4.48</td><td>12.79</td><td>1.86</td><td>0.123</td><td>0.0120 &plusmn; 0.0051</td><td>FLAT (within 3 sigma)</td></tr>
+<tr><td>2024-02-23</td><td>2024-02-24</td><td>G</td><td>40</td><td>5.59</td><td>12.88</td><td>1.59</td><td>0.150</td><td>0.0274 &plusmn; 0.0052</td><td>FADING</td></tr>
+<tr><td>2024-02-23</td><td>2024-02-24</td><td>I</td><td>39</td><td>6.58</td><td>13.22</td><td>1.59</td><td>0.203</td><td>0.0035 &plusmn; 0.0056</td><td>FLAT (within 3 sigma)</td></tr>
+<tr><td>2024-02-23</td><td>2024-02-24</td><td>R</td><td>43</td><td>6.54</td><td>13.09</td><td>1.59</td><td>0.192</td><td>-0.0041 &plusmn; 0.0067</td><td>FLAT (within 3 sigma)</td></tr>
+<tr><td>2024-02-29</td><td>2024-03-01</td><td>G</td><td>56</td><td>7.37</td><td>12.92</td><td>1.15</td><td>0.249</td><td>-0.0326 &plusmn; 0.0055</td><td>BRIGHTENING</td></tr>
+<tr><td>2024-02-29</td><td>2024-03-01</td><td>I</td><td>51</td><td>7.48</td><td>13.22</td><td>1.15</td><td>0.201</td><td>-0.0251 &plusmn; 0.0046</td><td>BRIGHTENING</td></tr>
+<tr><td>2024-02-29</td><td>2024-03-01</td><td>R</td><td>55</td><td>6.96</td><td>13.10</td><td>1.15</td><td>0.261</td><td>-0.0335 &plusmn; 0.0051</td><td>BRIGHTENING</td></tr>
+<tr><td>2024-03-02</td><td>2024-03-03</td><td>G</td><td>17</td><td>4.25</td><td>13.20</td><td>1.15</td><td>0.264</td><td>-0.0027 &plusmn; 0.0154</td><td>FLAT (within 3 sigma)</td></tr>
+<tr><td>2024-03-02</td><td>2024-03-03</td><td>I</td><td>22</td><td>5.29</td><td>13.49</td><td>1.15</td><td>0.313</td><td>0.0036 &plusmn; 0.0109</td><td>FLAT (within 3 sigma)</td></tr>
+<tr><td>2024-03-02</td><td>2024-03-03</td><td>R</td><td>22</td><td>5.16</td><td>13.33</td><td>1.15</td><td>0.253</td><td>-0.0017 &plusmn; 0.0105</td><td>FLAT (within 3 sigma)</td></tr>
+<tr><td>2024-03-03</td><td>2024-03-04</td><td>G</td><td>31</td><td>1.35</td><td>13.38</td><td>1.22</td><td>0.282</td><td>-0.0638 &plusmn; 0.0382</td><td>FLAT (within 3 sigma)</td></tr>
+<tr><td>2024-03-03</td><td>2024-03-04</td><td>I</td><td>30</td><td>1.42</td><td>13.59</td><td>1.22</td><td>0.216</td><td>-0.0349 &plusmn; 0.0324</td><td>FLAT (within 3 sigma)</td></tr>
+<tr><td>2024-03-03</td><td>2024-03-04</td><td>R</td><td>31</td><td>1.42</td><td>13.50</td><td>1.22</td><td>0.257</td><td>-0.0399 &plusmn; 0.0345</td><td>FLAT (within 3 sigma)</td></tr>
+</table>
+<figure><a href="figures/cv_final/outburst.png"><img src="figures/cv_final/outburst.png" alt=""></a><figcaption>Six nights, three filters each, 8 s exposures. The 2024-02-21 panel catches a rise in all three filters at once.</figcaption></figure>
+
+<h3>Decision</h3>
+<p><b style="color:#e6cc7a">A SEPARATE RESULT, NOT A CONSOLATION</b> &mdash; 6 dense runs inside normal outbursts, three filters at 8 s exposures, peaking 1.86 mag above quiescence; 8 of 18 run-filters show a rate significant at 3 sigma, from -0.050 mag/h on the rise to +0.027 mag/h on the decline.</p>
+<p>Cycle-resolved three-colour coverage of normal-outburst structure is sampling the sparse survey record cannot provide. The 2024-02-21 run catches a rise in all three filters at once, and the following nights catch the top and the decline.</p>
+
+<h3>Consequence</h3>
+<p>Reported as amplitude, covered duration and rate of change per run. No outburst recurrence time and no disc-instability model fit: nine dense nights of one season cannot support either.</p>
+</section>
+<section id="anuma"><h2>7 &nbsp; AN UMa, filter by filter</h2>
+
+<h3>Question</h3>
+<p>CV-S5's Q5 already graded AN&nbsp;UMa's three-filter colour goal NOT
+SUPPORTED: 2025-03-03,2025-03-04,2025-04-10,2025-12-21 &mdash; four
+nights carrying a full orbit in all three filters, against the strategy's
+own bar of 8. That
+settles one goal. It does not settle the question the plan actually asks,
+which is what EACH FILTER can support on its own, and therefore whether
+AN&nbsp;UMa belongs in the paper as a full target, a reduced-scope target,
+or not at all.</p>
+
+<h3>How each verdict is reached</h3>
+<p>One measured number against one stated bar, per capability. Every
+contestable choice is a choice of bar, and a bar can be disagreed with in
+one line; a weighted score cannot. The bars, and why each is where it
+is:</p>
+<ul><li><b>folded orbital morphology</b> (bar 3.00 nights) &mdash; A folded panel needs the modulation to be detected in THIS filter and enough independent full-orbit nights that the fold shows reproducibility rather than one night's weather.</li><li><b>per-cycle bright-phase timing (O-C)</b> (bar 5.00 accepted edges) &mdash; The precision is NOT the problem: CV-S5 measures sigma_t = 21-35 s on AN UMa's richest g night against a 60 s bar, the best of any target here. The problem is that the edge itself is only detected on a handful of cycles, so there are almost no epochs to time.</li><li><b>relative state history</b> (bar 0.75 Otsu separability) &mdash; Classifying one night is easy -- the per-point precision beats the state separation many times over. What has to be shown is that the nightly magnitudes separate into two populations at all.</li><li><b>absolute duty cycle</b> (bar 15.00 percentage points) &mdash; A duty cycle is a fraction of TIME, so its error bar counts independent nights, not points. Nothing about the photometry can shrink it.</li><li><b>three-filter colour curves (Q5)</b> (bar 8.00 nights) &mdash; This is a property of the SCHEDULE, not of any one filter: it is repeated on every filter's row because no single filter can fix it.</li></ul>
+<p>A night counts as a full-orbit night in a filter when it holds at least
+12 target points spanning more
+than one orbital period &mdash; the same rule CV-S5's census used, restated
+so this page's counts are reproducible without opening that one. They
+reproduce <code>ch_cadence.n_blocks_ge1cycle</code> exactly.</p>
+
+<h3>Evidence</h3>
+<table class="data">
+<tr><th>filter</th><th>capability</th><th>measured</th><th>bar</th><th>unit</th><th>verdict</th><th>the deciding number</th></tr>
+<tr><td><b>g</b></td><td>folded orbital morphology</td><td>9.00</td><td>3.00</td><td>nights</td><td><b style="color:#9fd8ae">SUPPORTED</b></td><td>9 usable full-orbit nights in g (9 observed, &gt;= 12 points spanning more than one 0.079753 d orbit, counted as usable only where the modulation is detected); CV-S9 modulation detected = 1, PDM theta 0.385, LS power at the published frequency 0.346, fitted semi-amplitude 223 mmag</td></tr>
+<tr><td><b>i</b></td><td>folded orbital morphology</td><td>0.00</td><td>3.00</td><td>nights</td><td><b style="color:#f0a3a3">NOT SUPPORTED</b></td><td>0 usable full-orbit nights in i (6 observed, &gt;= 12 points spanning more than one 0.079753 d orbit, counted as usable only where the modulation is detected); CV-S9 modulation detected = 0, PDM theta 0.410, LS power at the published frequency 0.048, fitted semi-amplitude 57 mmag</td></tr>
+<tr><td><b>r</b></td><td>folded orbital morphology</td><td>9.00</td><td>3.00</td><td>nights</td><td><b style="color:#9fd8ae">SUPPORTED</b></td><td>9 usable full-orbit nights in r (9 observed, &gt;= 12 points spanning more than one 0.079753 d orbit, counted as usable only where the modulation is detected); CV-S9 modulation detected = 1, PDM theta 0.398, LS power at the published frequency 0.199, fitted semi-amplitude 140 mmag</td></tr>
+<tr><td><b>g</b></td><td>per-cycle bright-phase timing (O-C)</td><td>1.00</td><td>5.00</td><td>accepted edges</td><td><b style="color:#f0a3a3">NOT SUPPORTED</b></td><td>1 of 10 fitted edges accepted in g; the rejections are step signal-to-noise below 5, i.e. the bright-phase edge is not distinguishable from flickering on most cycles. CV-S9's cycle-count verdict for the target: NOT ONE FEATURE — NO O-C</td></tr>
+<tr><td><b>i</b></td><td>per-cycle bright-phase timing (O-C)</td><td>2.00</td><td>5.00</td><td>accepted edges</td><td><b style="color:#f0a3a3">NOT SUPPORTED</b></td><td>2 of 4 fitted edges accepted in i; the rejections are step signal-to-noise below 5, i.e. the bright-phase edge is not distinguishable from flickering on most cycles. CV-S9's cycle-count verdict for the target: NOT ONE FEATURE — NO O-C</td></tr>
+<tr><td><b>r</b></td><td>per-cycle bright-phase timing (O-C)</td><td>1.00</td><td>5.00</td><td>accepted edges</td><td><b style="color:#f0a3a3">NOT SUPPORTED</b></td><td>1 of 10 fitted edges accepted in r; the rejections are step signal-to-noise below 5, i.e. the bright-phase edge is not distinguishable from flickering on most cycles. CV-S9's cycle-count verdict for the target: NOT ONE FEATURE — NO O-C</td></tr>
+<tr><td><b>g</b></td><td>relative state history</td><td>0.81</td><td>0.75</td><td>Otsu separability</td><td><b style="color:#9fd8ae">SUPPORTED</b></td><td>Otsu separability 0.81 on 8 ungated nights, threshold 16.64 mag, span 0.54 mag; CV-S9 verdict BIMODAL — TWO STATES RESOLVED</td></tr>
+<tr><td><b>i</b></td><td>relative state history</td><td>0.87</td><td>0.75</td><td>Otsu separability</td><td><b style="color:#9fd8ae">SUPPORTED</b></td><td>Otsu separability 0.87 on 8 ungated nights, threshold 16.76 mag, span 0.25 mag; CV-S9 verdict BIMODAL — TWO STATES RESOLVED</td></tr>
+<tr><td><b>r</b></td><td>relative state history</td><td>0.76</td><td>0.75</td><td>Otsu separability</td><td><b style="color:#9fd8ae">SUPPORTED</b></td><td>Otsu separability 0.76 on 8 ungated nights, threshold 16.64 mag, span 0.63 mag; CV-S9 verdict BIMODAL — TWO STATES RESOLVED</td></tr>
+<tr><td><b>g</b></td><td>absolute duty cycle</td><td>17.68</td><td>15.00</td><td>percentage points</td><td><b style="color:#f0a3a3">NOT SUPPORTED</b></td><td>8 independent nights give a binomial half-width of +/-18 percentage points on a 50% duty cycle (duty measured 50%)</td></tr>
+<tr><td><b>i</b></td><td>absolute duty cycle</td><td>17.68</td><td>15.00</td><td>percentage points</td><td><b style="color:#f0a3a3">NOT SUPPORTED</b></td><td>8 independent nights give a binomial half-width of +/-18 percentage points on a 50% duty cycle (duty measured 75%)</td></tr>
+<tr><td><b>r</b></td><td>absolute duty cycle</td><td>17.68</td><td>15.00</td><td>percentage points</td><td><b style="color:#f0a3a3">NOT SUPPORTED</b></td><td>8 independent nights give a binomial half-width of +/-18 percentage points on a 50% duty cycle (duty measured 50%)</td></tr>
+<tr><td><b>g</b></td><td>three-filter colour curves (Q5)</td><td>4.00</td><td>8.00</td><td>nights</td><td><b style="color:#f0a3a3">NOT SUPPORTED</b></td><td>4 nights carry a full orbit in ALL THREE filters (2025-03-03, 2025-03-04, 2025-04-10, 2025-12-21) against the strategy's own bar of 8</td></tr>
+<tr><td><b>i</b></td><td>three-filter colour curves (Q5)</td><td>4.00</td><td>8.00</td><td>nights</td><td><b style="color:#f0a3a3">NOT SUPPORTED</b></td><td>4 nights carry a full orbit in ALL THREE filters (2025-03-03, 2025-03-04, 2025-04-10, 2025-12-21) against the strategy's own bar of 8</td></tr>
+<tr><td><b>r</b></td><td>three-filter colour curves (Q5)</td><td>4.00</td><td>8.00</td><td>nights</td><td><b style="color:#f0a3a3">NOT SUPPORTED</b></td><td>4 nights carry a full orbit in ALL THREE filters (2025-03-03, 2025-03-04, 2025-04-10, 2025-12-21) against the strategy's own bar of 8</td></tr>
+</table>
+<figure><a href="figures/cv_final/anuma.png"><img src="figures/cv_final/anuma.png" alt=""></a><figcaption>Every capability as a ratio to its own bar, so five incommensurable quantities share one axis. Right of the blue line passes.</figcaption></figure>
+
+<h3>Decision</h3>
+<p><b style="color:#e6cc7a">REDUCED-SCOPE TARGET</b> &mdash; 5 of 15 graded capabilities are SUPPORTED across the three filters. Per filter: g — folded orbital morphology; relative state history | i — relative state history | r — folded orbital morphology; relative state history</p>
+<p>AN UMa is neither a colour target nor a timing target, and the two failures have different causes. The colour goal fails on SCHEDULING: 4 nights carry a full orbit in all three filters against a bar of 8. The timing goal fails on the EDGE, not on precision: CV-S5 measures sigma_t = 21-35 s on the richest g night against a 60 s bar -- the best of any target here -- but only 4 of 24 fitted bright-phase edges survive a step signal-to-noise of 5, and CV-S9's cycle-count stage refuses an O-C on them. What survives is real and costs nothing extra: folded morphology in g and r, where the modulation is detected at 223 and 140 mmag, and a relative state history that is bimodal in all three filters.</p>
+
+<h3>What would change the verdict</h3>
+<ul><li><b>i &middot; folded orbital morphology</b> &mdash; nothing schedulable: the modulation is not detected in this filter at all, so more nights of the same kind buy depth, not a detection</li><li><b>g &middot; per-cycle bright-phase timing (O-C)</b> &mdash; Deeper per-cycle sampling of the bright-phase edge (a faster filter cycle on fewer filters), not more nights: the shortfall is in edges per night.</li><li><b>i &middot; per-cycle bright-phase timing (O-C)</b> &mdash; Deeper per-cycle sampling of the bright-phase edge (a faster filter cycle on fewer filters), not more nights: the shortfall is in edges per night.</li><li><b>r &middot; per-cycle bright-phase timing (O-C)</b> &mdash; Deeper per-cycle sampling of the bright-phase edge (a faster filter cycle on fewer filters), not more nights: the shortfall is in edges per night.</li><li><b>g &middot; absolute duty cycle</b> &mdash; 4 more independent g nights (12 in total for +/-15 pp)</li><li><b>i &middot; absolute duty cycle</b> &mdash; 4 more independent i nights (12 in total for +/-15 pp)</li><li><b>r &middot; absolute duty cycle</b> &mdash; 4 more independent r nights (12 in total for +/-15 pp)</li><li><b>g &middot; three-filter colour curves (Q5)</b> &mdash; 4 more nights carrying all three filters over a full orbit</li><li><b>i &middot; three-filter colour curves (Q5)</b> &mdash; 4 more nights carrying all three filters over a full orbit</li><li><b>r &middot; three-filter colour curves (Q5)</b> &mdash; 4 more nights carrying all three filters over a full orbit</li></ul>
+
+<h3>Consequence</h3>
+<p>Cutting AN UMa entirely would discard a resolved bimodal state history and a detected orbital modulation already in hand; promoting it to a full target would require three-filter full-orbit nights the schedule never delivered. The i band is the one filter with nothing of its own to offer: the modulation is not detected there at all (LS power 0.048, PDM theta 0.410, fitted semi-amplitude 57 mmag), so i appears only inside the state history.</p>
+</section>
+<section id="verdicts"><h2>8 &nbsp; The verdicts</h2>
+<p>Same shape as the CV-S5 goal audit: question, verdict, THE number that
+decides it, and what the alternative was. Every number is a query, so a
+re-run that moves a measurement moves the sentence with it.</p>
+
+<div class="blockcard"><b>Is the quiescent orbital hump detected, and at what amplitude?</b>
+<span class="src">(CV-P3-yzcnc-superhump, <code>YZ-hump</code>)</span><br>
+<b>Verdict:</b> <b style="color:#f0a3a3">NOT DETECTED — PUBLISHED AS AN UPPER LIMIT</b><br>
+<b>Deciding number:</b> 0 of 6 testable quiescent scopes clear both the 90% recovery contour and the 1% false-alarm threshold. The folded fundamental has semi-amplitude 30-70 mmag; the INSTRUMENTAL contour is 9-52 mmag, so the photometry could see a hump this size, but the contour set by the star's OWN flickering is 139-254 mmag, so the data cannot tell a coherent hump from the flickering<br>
+<b>Why:</b> Two nulls, and they disagree, which is the whole result. Against magnitude-matched field stars the fitted amplitude is comfortably significant. Against this star's own residuals -- rolled night by night, so every realization is made of light the telescope actually recorded -- it is not. YZ Cnc flickers at about ten times the photometric floor on exactly the timescales an orbital hump occupies, so the field-star contour alone would have produced a confident detection of nothing in particular.<br>
+<b>What it costs / what was the alternative:</b> The publishable statement is an upper limit: any COHERENT orbital modulation with semi-amplitude above about 139 mmag would have been recovered in nine injections out of ten, and none is. Phase zero is arbitrary in any case -- VSX publishes no epoch for YZ Cnc -- so only hump SHAPES and within-night inter-filter phase offsets were ever available.</div>
+<div class="blockcard"><b>Is flickering separated from photometric noise, and how?</b>
+<span class="src">(CV-P3-yzcnc-superhump, <code>YZ-flicker</code>)</span><br>
+<b>Verdict:</b> <b style="color:#9fd8ae">MEASURED</b><br>
+<b>Deciding number:</b> 62 of 68 measurable timescale bins on the quiescent runs exceed the measured field-star floor by 3 sigma or more on the variance excess. Flickering amplitude 34-250 mmag over 60-14400 s; the floor subtracted is 5-46 mmag<br>
+<b>Why:</b> The floor is not modelled and not a formal error bar. It is the SAME structure function computed on field stars within 0.25 mag of the target through the same frames, so it carries identical photon noise, sky, ensemble zero-point wander and atmosphere, and no flickering. YZ Cnc's four held-out check stars sit about a magnitude BRIGHTER than the star at quiescence and would have given an optimistic floor.<br>
+<b>What it costs / what was the alternative:</b> The subtraction is done in variance, and bins where the target does not exceed the floor are reported as NOT MEASURED rather than as a small amplitude. The two eras differ by design: the 30 s Sloan-era frames reach a 5-12 mmag floor, the 8 s High Gain frames only 27-46 mmag, which is precisely what §4.19 feared.</div>
+<div class="blockcard"><b>Can this season measure a superhump period or dP_sh/dt?</b>
+<span class="src">(CV-P3-yzcnc-superhump, <code>YZ-superhump</code>)</span><br>
+<b>Verdict:</b> <b style="color:#f0a3a3">NO — AND THAT IS A MEASUREMENT, NOT AN ABSENCE</b><br>
+<b>Deciding number:</b> the blind-search 90% recovery contour on the outburst dense runs is 82-237 mmag, against superhump semi-amplitudes of 50 mmag and up; and CV-S7 already established that none of the 6 outburst dense runs sits inside a superoutburst (brightest 1.86 mag above quiescence, against the ~3 mag a superoutburst reaches)<br>
+<b>Why:</b> A superhump period is a BLIND period determination -- P_sh is not known in advance the way P_orb is -- and a single night spanning about two orbits cannot place a periodogram maximum inside a 1% frequency window at any amplitude these data reach. Two independent reasons, either sufficient on its own.<br>
+<b>What it costs / what was the alternative:</b> No superhump period, no dP_sh/dt, no O-C of superhump maxima, and no such promise in the abstract. Figure 11 of the strategy's figure list becomes the orbital-hump and flickering panel, which is the alternative the strategy itself names.</div>
+<div class="blockcard"><b>What do the six normal-outburst dense runs support?</b>
+<span class="src">(CV-P3-yzcnc-superhump, <code>YZ-outburst</code>)</span><br>
+<b>Verdict:</b> <b style="color:#e6cc7a">A SEPARATE RESULT, NOT A CONSOLATION</b><br>
+<b>Deciding number:</b> 6 dense runs inside normal outbursts, three filters at 8 s exposures, peaking 1.86 mag above quiescence; 8 of 18 run-filters show a rate significant at 3 sigma, from -0.050 mag/h on the rise to +0.027 mag/h on the decline<br>
+<b>Why:</b> Cycle-resolved three-colour coverage of normal-outburst structure is sampling the sparse survey record cannot provide. The 2024-02-21 run catches a rise in all three filters at once, and the following nights catch the top and the decline.<br>
+<b>What it costs / what was the alternative:</b> Reported as amplitude, covered duration and rate of change per run. No outburst recurrence time and no disc-instability model fit: nine dense nights of one season cannot support either.</div>
+<div class="blockcard"><b>What role should AN UMa have in the paper?</b>
+<span class="src">(CV-P4-anuma, <code>ANUMA-role</code>)</span><br>
+<b>Verdict:</b> <b style="color:#e6cc7a">REDUCED-SCOPE TARGET</b><br>
+<b>Deciding number:</b> 5 of 15 graded capabilities are SUPPORTED across the three filters. Per filter: g — folded orbital morphology; relative state history | i — relative state history | r — folded orbital morphology; relative state history<br>
+<b>Why:</b> AN UMa is neither a colour target nor a timing target, and the two failures have different causes. The colour goal fails on SCHEDULING: 4 nights carry a full orbit in all three filters against a bar of 8. The timing goal fails on the EDGE, not on precision: CV-S5 measures sigma_t = 21-35 s on the richest g night against a 60 s bar -- the best of any target here -- but only 4 of 24 fitted bright-phase edges survive a step signal-to-noise of 5, and CV-S9's cycle-count stage refuses an O-C on them. What survives is real and costs nothing extra: folded morphology in g and r, where the modulation is detected at 223 and 140 mmag, and a relative state history that is bimodal in all three filters.<br>
+<b>What it costs / what was the alternative:</b> Cutting AN UMa entirely would discard a resolved bimodal state history and a detected orbital modulation already in hand; promoting it to a full target would require three-filter full-orbit nights the schedule never delivered. The i band is the one filter with nothing of its own to offer: the modulation is not detected there at all (LS power 0.048, PDM theta 0.410, fitted semi-amplitude 57 mmag), so i appears only inside the state history.</div>
+</section>
+
+<footer>Generated by <code>macro_phot.report_final</code> from
+<code>products/phot/cv_timeseries.sqlite</code> &mdash; every number on this
+page is the result of a SQL query or a constant imported from
+<code>macro_phot.final_science</code>; none is typed by hand.  Regenerate
+with <code>pipeline/scripts/run_cv_final.py all</code>.</footer>
+</body></html>

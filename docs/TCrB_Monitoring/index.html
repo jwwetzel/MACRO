@@ -213,7 +213,7 @@ edited by hand.</p>
 
 <section id="evidence">
 <div class="bhead"><h2>Evidence</h2>
-<span class="tag">4 of 8 stages are not FRESH</span></div>
+<span class="tag">3 of 8 stages are not FRESH</span></div>
 <div class="stage">
 <p class="sub">The pipeline stages this project's plan rests on, each with
 the verdict <code>macro_core.provenance</code> returns right now.
@@ -226,7 +226,7 @@ database at all. A reader is never invited to trust an orphaned report.</p>
 <tr class="warn"><td><code>G</code></td><td>Grism extraction + identity gate (T CrB)</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>input table:eras: content changed (84 rows, digest 34e7c8d1c2cde7b6 -&gt; 92ac7bba3062f54c)</td></tr>
 <tr class="warn"><td><code>OPS</code></td><td>Observatory request (October shopping list)</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>input table:calib_coverage: changed after this stage ran — S0b changed 2026-08-18T15:04:14.574732+00:00, after this stage ran 2026-08-18T02:52:50Z</td></tr>
 <tr><td><code>S0c</code></td><td>Per-project staging manifests</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a></td><td>&mdash;</td></tr>
-<tr class="warn"><td><code>S1b</code></td><td>Astrometry production batch</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>input table:eras: content changed (84 rows, digest 34e7c8d1c2cde7b6 -&gt; 92ac7bba3062f54c)</td></tr>
+<tr><td><code>S1b</code></td><td>Astrometry production batch</td><td><span class="chip v-fresh">FRESH</span></td><td>&mdash;</td><td>&mdash;</td></tr>
 <tr><td><code>S2</code></td><td>Detector truth (ceiling, PTC, recon, linearity)</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s2_detector.html">s2_detector.html</a></td><td>&mdash;</td></tr>
 <tr><td><code>S3</code></td><td>Timing (BJD_TDB, clock, cadence)</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a></td><td>&mdash;</td></tr>
 <tr class="warn"><td><code>S4</code></td><td>Ensemble photometry (AN UMa / VV Pup prototype)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>input file:pipeline/macro_phot/series.py: changed after this stage ran — external source changed 2026-08-18T20:00:29Z, after this stage ran 2026-08-18T09:06:22.298272+00:00</td></tr>
@@ -235,7 +235,7 @@ database at all. A reader is never invited to trust an orphaned report.</p>
 </div>
 </section>
 
-<footer>Generated 2026-08-20T06:04:49Z by
+<footer>Generated 2026-08-20T08:20:14Z by
 <code>macro_core.report_projects</code> from the plan ledger in
 <code>macro_core.project_plan</code> (PLAN v1.0 (2026-08-18)), the
 progress recorded in <code>project_plan_status</code>, and live queries

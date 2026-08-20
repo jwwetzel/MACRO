@@ -235,7 +235,7 @@ edited by hand.</p>
 
 <section id="evidence">
 <div class="bhead"><h2>Evidence</h2>
-<span class="tag">3 of 8 stages are not FRESH</span></div>
+<span class="tag">2 of 8 stages are not FRESH</span></div>
 <div class="stage">
 <p class="sub">The pipeline stages this project's plan rests on, each with
 the verdict <code>macro_core.provenance</code> returns right now.
@@ -247,7 +247,7 @@ database at all. A reader is never invited to trust an orphaned report.</p>
 <tr><td><code>S0</code></td><td>Manifest (dedup, aliases, eras, pointing)</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s0_manifest.html">s0_manifest.html</a></td><td>&mdash;</td></tr>
 <tr><td><code>S0b</code></td><td>Calibration inventory (links, coverage, gaps)</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s0b_calibration_inventory.html">s0b_calibration_inventory.html</a></td><td>&mdash;</td></tr>
 <tr><td><code>S0c</code></td><td>Per-project staging manifests</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a></td><td>&mdash;</td></tr>
-<tr class="warn"><td><code>S1b</code></td><td>Astrometry production batch</td><td><span class="chip v-stale">STALE</span></td><td>&mdash;</td><td>input table:eras: content changed (84 rows, digest 34e7c8d1c2cde7b6 -&gt; 92ac7bba3062f54c)</td></tr>
+<tr><td><code>S1b</code></td><td>Astrometry production batch</td><td><span class="chip v-fresh">FRESH</span></td><td>&mdash;</td><td>&mdash;</td></tr>
 <tr><td><code>S2</code></td><td>Detector truth (ceiling, PTC, recon, linearity)</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s2_detector.html">s2_detector.html</a></td><td>&mdash;</td></tr>
 <tr class="warn"><td><code>S2c</code></td><td>Per-frame dispersion (is this FILTER a spectrum?)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s2c_filter_identity.html">s2c_filter_identity.html</a> <span class="chip v-stale">STALE</span></td><td>code version 'S2c v1.0 (2026-08-18)' -&gt; 'S2c v1.1 (2026-08-18)'</td></tr>
 <tr><td><code>S3</code></td><td>Timing (BJD_TDB, clock, cadence)</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a></td><td>&mdash;</td></tr>
@@ -257,7 +257,7 @@ database at all. A reader is never invited to trust an orphaned report.</p>
 </div>
 </section>
 
-<footer>Generated 2026-08-20T06:04:49Z by
+<footer>Generated 2026-08-20T08:20:14Z by
 <code>macro_core.report_projects</code> from the plan ledger in
 <code>macro_core.project_plan</code> (PLAN v1.0 (2026-08-18)), the
 progress recorded in <code>project_plan_status</code>, and live queries

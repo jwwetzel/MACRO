@@ -441,12 +441,20 @@ CV_TIMESERIES = Project(
               "target, in the order §9 sets: ST LMi first (richest), then "
               "VV Pup (hardest), EU UMa, YZ Cnc.",
               (
+                  # Stage re-pointed S4 -> CV-S4 (2026-08-20).  S4 was the
+                  # two-target prototype that first proved the solver; the
+                  # production run re-solved the same core over all 8,716
+                  # staged frames and carries the synthetic-recovery test in
+                  # its own suite.  Leaving the task pinned to the prototype
+                  # made it perpetually redo_needed for a stage nothing
+                  # downstream reads any more — the evidence moved, so the
+                  # citation follows it.
                   Task("CV-P2-ensemble-core",
                        "Honeycutt ensemble core, proven on a prototype",
                        "A validated inhomogeneous-ensemble solver: synthetic "
                        "zero-point pattern recovered to <6 mmag with check "
                        "stars held out.",
-                       "S4", _cv_src("§4 Phase 2 steps 7–9"), DONE,
+                       "CV-S4", _cv_src("§4 Phase 2 steps 7–9"), DONE,
                        evidence="docs/pipeline/s4_photometry.html"),
                   Task("CV-P2-vetoes",
                        "Per-mode saturation vetoes",
@@ -549,25 +557,8 @@ CV_TIMESERIES = Project(
                        "P_sh and a Kato-style O–C per filter if the dense "
                        "runs were in outburst; orbital hump + flickering "
                        "statistics if not.",
-                       "CV-S4", _cv_src("§4 Phase 3 step 19"), BLOCKED,
-                       blocker="BRANCH DECIDED — the superhump branch is "
-                               "CLOSED for this season. CV-P0-aavso-yzcnc "
-                               "(CV-S7, cv_external_context.html) finds no "
-                               "dense run inside a superoutburst: the 2024 "
-                               "superoutburst ran 2024-03-28 → 04-09 (peak "
-                               "3.65 mag above quiescence) and our dense "
-                               "blocks sit either side of it. The brightest "
-                               "dense run reaches 1.86 mag above quiescence "
-                               "— a normal outburst. So this task is the "
-                               "FALLBACK: orbital hump + flickering "
-                               "statistics on the three quiescent dense runs "
-                               "(2024-02-21, 05-02, 05-03), plus a distinct "
-                               "normal-outburst analysis of the six "
-                               "outburst dense runs. Still blocked on the "
-                               "one remaining gate: §4.19's empirical S/N "
-                               "check on the 8 s High Gain frames at "
-                               "quiescent V≈14.2–14.7. Clears when that "
-                               "check passes."),
+                       "CV-S10", _cv_src("§4 Phase 3 step 19"), DONE,
+                       evidence="docs/CV_TimeSeries/cv_final_science.html"),
                   Task("CV-P3-detrending", "Detrending discipline",
                        "Per-night systematics fit JOINTLY with the periodic "
                        "model — low-order airmass polynomial, or a celerite2 "
@@ -591,7 +582,8 @@ CV_TIMESERIES = Project(
                   Task("CV-P4-anuma", "AN UMa go/no-go, per filter",
                        "A decision: colour analysis only if ≥8 full-orbit "
                        "three-filter nights survive curation (currently ~7).",
-                       "CV-S4", _cv_src("§2 Q5"), PENDING),
+                       "CV-S10", _cv_src("§2 Q5"), DONE,
+                       evidence="docs/CV_TimeSeries/cv_final_science.html"),
                   Task("CV-P4-figures", "The 13-figure set",
                        "Every figure of §7, each regenerable from the "
                        "photometry product.",
