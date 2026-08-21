@@ -60,7 +60,7 @@ table.data td.tight{white-space:nowrap}
 
 <section id="projects">
   <div class="bhead"><h2>Projects</h2>
-    <span class="tag">44 of 154 plan tasks complete across six projects</span></div>
+    <span class="tag">46 of 154 plan tasks complete across six projects</span></div>
   <div class="stage">
     <p class="sub">Each project page carries its whole plan — every phase,
     every task, what it produces, and where it stands — derived from that
@@ -70,7 +70,7 @@ table.data td.tight{white-space:nowrap}
 <tr><th>Project</th><th>Venue posture</th><th>Plan progress</th><th>Blocked</th><th>Next up</th></tr>
 <tr><td><a href="TCrB_Monitoring/index.html">T CrB Pre-Eruption Monitoring</a></td><td>ApJ, with a slitless-spectrophotometry methods appendix</td><td><b>2/34</b><div class="bar" style="width:150px;margin:4px 0"><span class="done" style="width:5.8824%"></span><span class="in_progress" style="width:8.8235%"></span><span class="blocked" style="width:20.5882%"></span><span class="pending" style="width:64.7059%"></span></div></td><td>7</td><td>Re-solve the unsolved imaging</td></tr>
 <tr><td><a href="CV_TimeSeries/index.html">Cataclysmic-Variable Time Series</a></td><td>ApJ (AASTeX 7 skeleton in manuscripts/CV_TimeSeries/main.tex)</td><td><b>34/34</b><div class="bar" style="width:150px;margin:4px 0"><span class="done" style="width:100.0000%"></span></div></td><td>&mdash;</td><td>&mdash;</td></tr>
-<tr><td><a href="SN2023ixf_LightCurve/index.html">SN 2023ixf Early Light Curve</a></td><td>AJ/PASP base case; ApJ upside decided at week 3, post-Gate 0</td><td><b>3/20</b><div class="bar" style="width:150px;margin:4px 0"><span class="done" style="width:15.0000%"></span><span class="in_progress" style="width:10.0000%"></span><span class="blocked" style="width:20.0000%"></span><span class="pending" style="width:55.0000%"></span></div></td><td>4</td><td>Measure whether filter '6' disperses, per frame</td></tr>
+<tr><td><a href="SN2023ixf_LightCurve/index.html">SN 2023ixf Early Light Curve</a></td><td>AJ/PASP base case; ApJ upside decided at week 3, post-Gate 0</td><td><b>5/20</b><div class="bar" style="width:150px;margin:4px 0"><span class="done" style="width:25.0000%"></span><span class="in_progress" style="width:15.0000%"></span><span class="blocked" style="width:10.0000%"></span><span class="pending" style="width:50.0000%"></span></div></td><td>2</td><td>Contamination-hardened grism triage (2-week timebox)</td></tr>
 <tr><td><a href="BeStar_Grism/index.html">Be-Star Grism Campaign</a></td><td>ApJ if ≥4 BeSS-verified active emitters; AJ/PASP otherwise</td><td><b>4/24</b><div class="bar" style="width:150px;margin:4px 0"><span class="done" style="width:16.6667%"></span><span class="in_progress" style="width:4.1667%"></span><span class="blocked" style="width:4.1667%"></span><span class="pending" style="width:75.0000%"></span></div></td><td>1</td><td>Measure, don't assume, which filters disperse</td></tr>
 <tr><td><a href="DwarfGalaxy_AGN_Survey/index.html">Dwarf Galaxies + NGC 5548</a></td><td>ApJ (NGC 5548 section conditional; pre-authorised RNAAS fallback)</td><td><b>1/31</b><div class="bar" style="width:150px;margin:4px 0"><span class="done" style="width:3.2258%"></span><span class="in_progress" style="width:6.4516%"></span><span class="blocked" style="width:25.8065%"></span><span class="pending" style="width:64.5161%"></span></div></td><td>8</td><td>Deduplicate and validate pointing</td></tr>
 <tr><td><a href="Legacy_Rigel/index.html">Rigel-Era Legacy Archive (candidate)</a></td><td>undecided — a go/no-go, not a venue posture</td><td><b>0/11</b><div class="bar" style="width:150px;margin:4px 0"><span class="in_progress" style="width:27.2727%"></span><span class="pending" style="width:72.7273%"></span></div></td><td>&mdash;</td><td>Complete the archive transfer</td></tr>
@@ -80,7 +80,7 @@ table.data td.tight{white-space:nowrap}
 
 <section id="pipeline">
   <div class="bhead"><h2>Shared pipeline</h2>
-    <span class="tag">9 of 12 stages are FRESH right now</span></div>
+    <span class="tag">8 of 12 stages are FRESH right now</span></div>
   <div class="stage">
     <p class="sub">Stages in build order. The verdict column is computed by
     <code>macro_core.provenance</code> at render time — it is not a
@@ -94,7 +94,7 @@ table.data td.tight{white-space:nowrap}
 <tr><td><code>S0</code> Manifest (dedup, aliases, eras, pointing)</td><td>global dedup, alias table, era tagging, pointing validation, night labels</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="pipeline/s0_manifest.html">s0_manifest.html</a></td></tr>
 <tr><td><code>S0b</code> Calibration inventory (links, coverage, gaps)</td><td>raw↔reduced links, calibration census per era, coverage matrix, the October shopping list</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="pipeline/s0b_calibration_inventory.html">s0b_calibration_inventory.html</a></td></tr>
 <tr><td><code>S0c</code> Per-project staging manifests</td><td>per-project working sets, by reference — no project ever copies a frame</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="pipeline/s0c_staging.html">s0c_staging.html</a></td></tr>
-<tr><td><code>S1</code> Astrometry solvability experiment</td><td>the stratified go/no-go that set the batch-solve acceptance threshold</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="pipeline/s1_astrometry.html">s1_astrometry.html</a></td></tr>
+<tr class="warn"><td><code>S1</code> Astrometry solvability experiment</td><td>the stratified go/no-go that set the batch-solve acceptance threshold</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="pipeline/s1_astrometry.html">s1_astrometry.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td></tr>
 <tr><td><code>S1b</code> Astrometry production batch</td><td>the production solve queue: which frames actually have a WCS</td><td><span class="chip v-fresh">FRESH</span></td><td>&mdash;</td></tr>
 <tr><td><code>S2</code> Detector truth (ceiling, PTC, recon, linearity)</td><td>ceiling, StackPro PTC, master reconstruction, linearity — every detector constant any paper would quote</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="pipeline/s2_detector.html">s2_detector.html</a></td></tr>
 <tr class="warn"><td><code>S2c</code> Per-frame dispersion (is this FILTER a spectrum?)</td><td>measures source elongation per frame: is this FILTER a spectrum, or was that only its name?</td><td><span class="chip v-stale">STALE</span></td><td><a href="pipeline/s2c_filter_identity.html">s2c_filter_identity.html</a> <span class="chip v-stale">STALE</span></td></tr>
@@ -108,7 +108,7 @@ table.data td.tight{white-space:nowrap}
   </div>
 </section>
 
-<footer>Generated 2026-08-20T20:14:25Z by
+<footer>Generated 2026-08-21T04:01:43Z by
 <code>macro_core.report_projects</code> &middot; project progress from
 <code>macro_core.project_plan</code> (PLAN v1.0 (2026-08-18)) and
 <code>project_plan_status</code>; stage verdicts from

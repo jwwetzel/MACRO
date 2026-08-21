@@ -44,6 +44,7 @@ import os
 import sqlite3
 from pathlib import Path
 
+from macro_core import plotstyle as ps
 from macro_core import provenance as pv
 
 # ---------------------------------------------------------------------------
@@ -913,9 +914,11 @@ AUDIT: tuple[Row, ...] = (
 # the non-fresh colours: a stage merely waiting on an ancestor is not
 # accused of anything, and painting it the same amber as a stage whose own
 # evidence moved is what made the plan read as "re-run everything".
-SVG_FILL = {pv.FRESH: "#1f7a3f", pv.STALE: "#a06a00",
-            pv.STALE_UPSTREAM: "#5b6470",
-            pv.NEVER_RUN: "#1f5f7a", pv.OUTPUT_MISSING: "#8c1c1c"}
+# The hues are the house ones (macro_core.plotstyle), so a green node
+# here means what a green line means on every figure on the site.
+SVG_FILL = {pv.FRESH: ps.GOOD, pv.STALE: ps.WARN,
+            pv.STALE_UPSTREAM: ps.FAINT,
+            pv.NEVER_RUN: ps.ACCENT, pv.OUTPUT_MISSING: ps.BAD}
 
 
 def dag_svg(freshness) -> str:
@@ -931,8 +934,8 @@ def dag_svg(freshness) -> str:
                for s in pv.STAGES}
     depth: dict[str, int] = {}
     for key in order:                     # topological order guarantees the
-        ps = parents[key]                 # parents are already assigned
-        depth[key] = 0 if not ps else 1 + max(depth[p] for p in ps)
+        pars = parents[key]               # parents are already assigned
+        depth[key] = 0 if not pars else 1 + max(depth[p] for p in pars)
 
     cols: dict[int, list[str]] = {}
     for key in order:
@@ -954,29 +957,36 @@ def dag_svg(freshness) -> str:
              f'role="img" aria-label="pipeline dependency DAG">',
              '<defs><marker id="a" markerWidth="9" markerHeight="7" '
              'refX="9" refY="3.5" orient="auto">'
-             '<path d="M0,0 L9,3.5 L0,7 z" fill="#8a8a8a"/></marker></defs>']
+             f'<path d="M0,0 L9,3.5 L0,7 z" fill="{ps.MUTED}"/></marker></defs>',
+             # An explicit white ground: this file is opened on its own
+             # as often as it is embedded, and a transparent SVG in a
+             # dark viewer loses every node label.
+             f'<rect width="{width}" height="{height}" fill="{ps.PAPER}"/>']
     # edges first, so boxes paint over them
-    for key, ps in parents.items():
+    for key, pars in parents.items():
         x2, y2 = pos[key]
-        for p in ps:
+        for p in pars:
             x1, y1 = pos[p]
             parts.append(
                 f'<path d="M{x1 + bw},{y1 + bh // 2} '
                 f'C{x1 + bw + 34},{y1 + bh // 2} {x2 - 34},{y2 + bh // 2} '
-                f'{x2},{y2 + bh // 2}" fill="none" stroke="#8a8a8a" '
+                f'{x2},{y2 + bh // 2}" fill="none" stroke="{ps.MUTED}" '
                 f'stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>')
     for key, (x, y) in pos.items():
         f = freshness[key]
-        fill = SVG_FILL.get(f.state, "#555")
+        fill = SVG_FILL.get(f.state, ps.FAINT)
+        # White or near-black by luminance, decided once in plotstyle:
+        # white on the house orange fails contrast, black on it passes.
+        type_col = ps.text_on(fill)
         title = pv.STAGE_BY_KEY[key].title
         parts.append(
             f'<g><title>{html.escape(key)}: {html.escape(f.state)} — '
             f'{html.escape(title)}</title>'
             f'<rect x="{x}" y="{y}" width="{bw}" height="{bh}" rx="7" '
             f'fill="{fill}" stroke="#00000033"/>'
-            f'<text x="{x + 10}" y="{y + 18}" fill="#fff" font-size="13" '
+            f'<text x="{x + 10}" y="{y + 18}" fill="{type_col}" font-size="13" '
             f'font-weight="700">{html.escape(key)}</text>'
-            f'<text x="{x + 10}" y="{y + 33}" fill="#ffffffcc" '
+            f'<text x="{x + 10}" y="{y + 33}" fill="{type_col}" opacity="0.8" '
             f'font-size="10.5">{html.escape(f.state)}</text></g>')
     parts.append("</svg>")
     return "\n".join(parts)
@@ -1101,7 +1111,9 @@ def render(con: sqlite3.Connection, repo_root: Path, freshness, fingerprints,
         A(f"<tr><td><b>{html.escape(key)}</b><br>"
           f"<span class='mono-sm'>{html.escape(stage.title)}</span></td>"
           f"<td><span class='tag' style='background:"
-          f"{SVG_FILL.get(f.state, '#555')}'>{html.escape(f.state)}</span></td>"
+          f"{SVG_FILL.get(f.state, ps.FAINT)};"
+          f"color:{ps.text_on(SVG_FILL.get(f.state, ps.FAINT))}'>"
+          f"{html.escape(f.state)}</span></td>"
           f"<td class='mono-sm'>{html.escape(rec.run_utc if rec else '—')}</td>"
           f"<td class='mono-sm'>{html.escape(stage.code_version)}</td>"
           f"<td>{reasons}</td></tr>")

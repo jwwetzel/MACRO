@@ -26,10 +26,12 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np               # noqa: E402
 
 from . import timing as tm       # noqa: E402  (constants for interpolation)
-# Shared page machinery: same dark theme, same query discipline, same
+# Shared page machinery: same house figure style, same query discipline, same
 # table generator as the earlier reports — one visual language site-wide.
 from .report_s0 import (          # noqa: E402
-    ACCENT, DARK, DPI, WARN, _figure, esc, fmt, q, q1, table)
+    ACCENT, BAD, STYLE, DPI, GOOD, INK, MUTED, WARN,
+    _figure, esc, fmt, q, q1, table)
+from . import plotstyle as ps    # noqa: E402  (the house figure style)
 
 # ---------------------------------------------------------------------------
 # Locations, derived from the repo layout (report lives in docs/pipeline/).
@@ -39,7 +41,7 @@ DOCS_DIR = REPO_ROOT / "docs" / "pipeline"
 FIG_DIR = DOCS_DIR / "figures" / "s3"
 HTML_PATH = DOCS_DIR / "s3_timing.html"
 
-GREEN = "#9fd8ae"               # site badge green (verdict OK)
+GREEN = GOOD                    # verdict OK — the house confirmation hue
 
 
 def fnum(x, digits=2) -> str:
@@ -71,10 +73,10 @@ def fig_jdhelio_semantics(con) -> str:
     # "Broken" = mid-residual beyond 5 s: the HDR family + the one Mode0
     # focus-frame oddity; every other sampled header sits within 1 s.
     bad = np.abs(rm) > 5.0
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9.4, 3.6))
         xs = np.geomspace(0.01, 2000, 50)
-        ax1.plot(xs, xs / 2.0, color="#9aa4b2", lw=1, ls="--",
+        ax1.plot(xs, xs / 2.0, color=MUTED, lw=1, ls="--",
                  label="EXPTIME / 2")
         ax1.scatter(exp[~bad], rs[~bad], s=18, color=ACCENT, zorder=3,
                     label="sampled headers")
@@ -88,7 +90,7 @@ def fig_jdhelio_semantics(con) -> str:
         ax1.legend(fontsize=8, loc="upper left")
         ax2.scatter(exp[~bad], rm[~bad], s=18, color=ACCENT, zorder=3)
         ax2.scatter(exp[bad], rm[bad], s=22, color=WARN, zorder=4)
-        ax2.axhline(0, color="#9aa4b2", lw=1, ls="--")
+        ax2.axhline(0, color=MUTED, lw=1, ls="--")
         ax2.set_xscale("log")
         ax2.set_yscale("symlog", linthresh=1)
         ax2.set_xlabel("header EXPTIME (s)")
@@ -117,7 +119,7 @@ def fig_cadence_overheads(con) -> str:
         WHERE readoutm IN ('High Gain', 'High Gain StackPro')
           AND regular_overhead_s IS NOT NULL
         ORDER BY exptime_s""")
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(7.2, 3.6))
         for mode, color, marker in (("High Gain", ACCENT, "o"),
                                     ("High Gain StackPro", WARN, "s")):
@@ -130,7 +132,7 @@ def fig_cadence_overheads(con) -> str:
             ax.plot(e, reg, marker=marker, ms=5, lw=1, color=color,
                     label=f"{mode} (median-cadence overhead)")
         e_sp = np.array([r[1] for r in rows if r[0] == "High Gain StackPro"])
-        ax.plot(e_sp, 15.0 * e_sp, color="#e06c75", lw=1.2, ls=":",
+        ax.plot(e_sp, 15.0 * e_sp, color=BAD, lw=1.2, ls=":",
                 label="expected extra if EXPTIME were per-sub-read "
                       "(15 $\\times$ EXPTIME)")
         ax.axhline(tm.STACKPRO_DEADTIME_BOUND_S, color=GREEN, lw=1,
@@ -156,7 +158,7 @@ def fig_bjd_offset(con) -> str:
         WHERE bjd_tdb IS NOT NULL""")
     ltt = np.array([r[0] for r in rows]) / 60.0
     total = np.array([r[0] + r[1] for r in rows]) / 60.0
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(7.2, 3.4))
         ax.hist(ltt, bins=120, color=ACCENT, alpha=0.85,
                 label="barycentric light-travel term")
@@ -195,9 +197,10 @@ def fig_clock(con, meta: dict) -> str:
     # through them.
     gated = {n for n in str(meta.get("clock_nights_gated", "")).split(";")
              if n and n != "none"}
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(7.6, 4.0))
-        colors = {"G": "#9fd8ae", "R": "#e06c75", "I": "#c678dd",
+        colors = {"G": ps.BAND_COLOR["G"], "R": ps.BAND_COLOR["R"],
+                  "I": ps.BAND_COLOR["I"],
                   "": ACCENT}
         seen = set()
         for (ro, filt), members in groups.items():
@@ -220,7 +223,7 @@ def fig_clock(con, meta: dict) -> str:
                            alpha=0.8 if in_fit else 0.55,
                            color=colors.get(filt, ACCENT) if in_fit
                            else "none",
-                           edgecolors="#9aa4b2" if not in_fit else "none",
+                           edgecolors=MUTED if not in_fit else "none",
                            linewidths=0.8,
                            label=lab if lab not in seen else None)
                 seen.add(lab)
@@ -230,10 +233,10 @@ def fig_clock(con, meta: dict) -> str:
             xs = np.linspace(-0.15, 0.15, 400)
             ax.plot(xs, depth * np.exp(-((xs - ph0) ** 2)
                                        / (2 * width ** 2)),
-                    color="#e8eaed", lw=1.4,
+                    color=INK, lw=1.4,
                     label=f"fit: O$-$C = {oc_s:+.0f} $\\pm$ {oc_err:.0f} s")
-            ax.axvline(ph0, color="#e8eaed", lw=0.8, ls="--")
-        ax.axvline(0, color="#9aa4b2", lw=0.8, ls=":")
+            ax.axvline(ph0, color=INK, lw=0.8, ls="--")
+        ax.axvline(0, color=MUTED, lw=0.8, ls=":")
         ax.set_xlim(-0.16, 0.16)
         ax.invert_yaxis()               # dmag: fainter is down
         ax.set_xlabel("phase on the VSX ephemeris "
@@ -268,7 +271,7 @@ def fig_drift(con) -> str:
     # units the drift slope is quoted in.
     years = (jd - jd.min()) / 365.25
     slope = float(np.polyfit(years, resid, 1)[0]) if len(rows) >= 3 else 0.0
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(7.4, 3.4))
         ax.scatter(years, resid, s=22, color=ACCENT, zorder=3,
                    label="sampled headers (one clock vs the other)")

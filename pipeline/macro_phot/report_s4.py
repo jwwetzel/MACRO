@@ -32,10 +32,13 @@ import numpy as np               # noqa: E402
 from . import photometry as ph   # noqa: E402  (constants for interpolation)
 from . import ensemble as ens    # noqa: E402
 from . import gaia as gg         # noqa: E402
-# Shared page machinery: same dark theme, same query discipline, same table
+# Shared page machinery: one house figure style, one query discipline,
+# one table generator
 # generator as the S0/S0b reports — one visual language across the site.
 from macro_core.report_s0 import (   # noqa: E402
-    ACCENT, DARK, DPI, WARN, _figure, esc, fmt, q, q1, table)
+    ACCENT, BAD, STYLE, DPI, FAINT, GOOD, MUTED, WARN,
+    _figure, esc, fmt, q, q1, table)
+from macro_core import plotstyle as ps   # noqa: E402  (house figure style)
 
 # ---------------------------------------------------------------------------
 # Locations, derived from the repo layout (report lives in docs/pipeline/).
@@ -57,9 +60,9 @@ ANUMA_PORB_D = 0.0797528
 #: the citation beside the number keeps them in sync).
 ANUMA_PORB_SOURCE = "AAVSO VSX (0.07975274 d)"
 
-#: Extra colors for per-filter panels (g, r, i, empty).
-FILTER_COLORS = {"g": "#9fd8ae", "r": "#e6907a", "i": "#c39be0",
-                 "empty": "#8a93a3"}
+#: Per-filter panels.  The house band map, so that "r" is the same hue
+#: here as in the manuscript figures and in every other CV report.
+FILTER_COLORS = dict(ps.BAND_COLOR, empty=FAINT)
 
 
 # ---------------------------------------------------------------------------
@@ -73,15 +76,17 @@ def fig_match_qc(con) -> str:
         FROM phot_frames f
         WHERE f.status = 'matched' AND f.n_detected > 0""")
     series = sorted({r[0] for r in rows})
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9.6, 3.4))
         for i, s in enumerate(series):
             fr = [r[1] for r in rows if r[0] == s]
             res = [r[2] for r in rows if r[0] == s and r[2] is not None]
-            color = plt.cm.tab10(i % 10)
+            # Hue AND dash pattern: two step histograms of the same
+            # shape overlaid are exactly where colour alone fails.
+            style = ps.line_series(i)
             ax1.hist(fr, bins=np.linspace(0, 1, 41), histtype="step",
-                     label=s, color=color)
-            ax2.hist(res, bins=40, histtype="step", color=color)
+                     label=s, **style)
+            ax2.hist(res, bins=40, histtype="step", **style)
         ax1.set_xlabel("matched fraction of frame detections")
         ax1.set_ylabel("frames")
         ax1.set_title("Star-match completeness per frame")
@@ -119,14 +124,14 @@ def fig_anuma_lc(con) -> str:
     """AN UMa unfolded light curve per filter, colored by night."""
     filts = [r[0] for r in q(con, """SELECT DISTINCT filter FROM phot_series
         WHERE target_key='anuma' ORDER BY filter""")]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axes = plt.subplots(len(filts), 1,
                                  figsize=(9.6, 2.6 * len(filts)),
                                  sharex=True, squeeze=False)
         for ax, filt in zip(axes[:, 0], filts):
             rows = _lc_points(con, "anuma", 76, filt) or []
             nights = sorted({r[1] for r in rows})
-            cmap = plt.cm.viridis(np.linspace(0, 1, max(len(nights), 2)))
+            cmap = ps.ordinal_colors(max(len(nights), 2))
             for i, night in enumerate(nights):
                 pts = [(r[0], r[2]) for r in rows if r[1] == night]
                 jd = np.array([p[0] for p in pts])
@@ -147,14 +152,14 @@ def fig_anuma_folded(con) -> str:
     """AN UMa folded on the literature period, colored by night."""
     filts = [r[0] for r in q(con, """SELECT DISTINCT filter FROM phot_series
         WHERE target_key='anuma' ORDER BY filter""")]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axes = plt.subplots(1, len(filts),
                                  figsize=(3.4 * len(filts), 3.4),
                                  sharey=False, squeeze=False)
         for ax, filt in zip(axes[0], filts):
             rows = _lc_points(con, "anuma", 76, filt) or []
             nights = sorted({r[1] for r in rows})
-            cmap = plt.cm.viridis(np.linspace(0, 1, max(len(nights), 2)))
+            cmap = ps.ordinal_colors(max(len(nights), 2))
             for i, night in enumerate(nights):
                 pts = [(r[0], r[2]) for r in rows if r[1] == night]
                 phase = np.array([p[0] for p in pts]) / ANUMA_PORB_D % 1.0
@@ -180,7 +185,7 @@ def fig_rms_vs_mag(con) -> str:
     n = len(combos)
     ncol = 3
     nrow = (n + ncol - 1) // ncol
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axes = plt.subplots(nrow, ncol,
                                  figsize=(3.3 * ncol, 3.0 * nrow),
                                  squeeze=False)
@@ -189,11 +194,11 @@ def fig_rms_vs_mag(con) -> str:
             rows = q(con, """SELECT mean_mag, rms, role FROM phot_stars
                 WHERE era_id=? AND filter=? AND mean_mag IS NOT NULL
                   AND rms IS NOT NULL AND nobs >= 10""", (era, filt))
-            for role, color, ms in (("field", "#5a6478", 6),
+            for role, color, ms in (("field", FAINT, 6),
                                     ("comp", ACCENT, 10),
                                     ("check", WARN, 16),
-                                    ("dropped_unstable", "#e6907a", 10),
-                                    ("target", "#ff6b8a", 30)):
+                                    ("dropped_unstable", BAD, 10),
+                                    ("target", ps.OTHER, 30)):
                 pts = [(r[0], r[1]) for r in rows if r[2] == role]
                 if pts:
                     ax.scatter([p[0] for p in pts], [p[1] for p in pts],
@@ -219,7 +224,7 @@ def fig_rms_vs_mag(con) -> str:
                 centers, medians, _n = rms_vs_mag_curve(
                     np.array([f[0] for f in floor], dtype=float),
                     np.array([f[1] for f in floor], dtype=float))
-                ax.plot(centers, medians, "-", color="#9fd8ae", lw=1.4,
+                ax.plot(centers, medians, "-", color=GOOD, lw=1.4,
                         alpha=0.9, label="photon+sky floor (binned median)")
             ax.set_yscale("log")
             ax.set_xlabel("ensemble mean mag (inst)")
@@ -251,7 +256,7 @@ def fig_allan(con) -> str | None:
     # The long-tau rungs rest on a handful of pairs — plotting them bare
     # invites over-reading a 'floor' the statistics do not establish.
     ad_err = ad / np.sqrt(2.0 * npairs)
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(6.4, 4.0))
         ax.errorbar(tau, ad, yerr=ad_err, fmt="o-", color=ACCENT,
                     capsize=3,
@@ -264,7 +269,7 @@ def fig_allan(con) -> str | None:
         # each rung rests on without opening the database.
         for t, a, n in zip(tau, ad, npairs):
             ax.annotate(f"N={int(n)}", (t, a), textcoords="offset points",
-                        xytext=(6, 6), fontsize=7, color="#8a93a3")
+                        xytext=(6, 6), fontsize=7, color=MUTED)
         ax.set_xlabel("averaging time tau (s)")
         ax.set_ylabel("Allan deviation (mag)")
         ax.set_title(f"Allan deviation — {tk}/era {era}/{filt}, star "
@@ -282,12 +287,13 @@ def fig_zp_timeline(con) -> str:
                             jd, zp FROM phot_frames
                      WHERE zp IS NOT NULL ORDER BY jd""")
     series = sorted({r[0] for r in rows})
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(9.6, 3.6))
         for i, s in enumerate(series):
             pts = [(r[1], r[2]) for r in rows if r[0] == s]
             ax.plot([p[0] - 2460000.0 for p in pts], [p[1] for p in pts],
-                    ".", ms=2.5, color=plt.cm.tab10(i % 10), label=s)
+                    ms=2.5, lw=0, label=s,
+                    **ps.measurement_kw(**ps.series(i)))
         ax.set_xlabel("JD - 2460000")
         ax.set_ylabel("frame zero point (mag)")
         ax.set_title("Honeycutt frame zero points — transparency history "

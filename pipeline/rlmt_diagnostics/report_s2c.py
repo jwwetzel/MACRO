@@ -28,16 +28,15 @@ from . import dispersion as dsp  # noqa: E402
 import sys                       # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from macro_core.report_s0 import (  # noqa: E402
-    ACCENT, DARK, DPI, WARN, _figure, esc, fmt, q, q1, table)
+    ACCENT, STYLE, DPI, FAINT, GOOD, INK, MUTED, WARN,
+    _figure, esc, fmt, q, q1, table)
+from macro_core import plotstyle as ps   # noqa: E402  (house figure style)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DOCS_DIR = REPO_ROOT / "docs" / "pipeline"
 FIG_DIR = DOCS_DIR / "figures" / "s2c"
 HTML_PATH = DOCS_DIR / "s2c_filter_identity.html"
 
-GOOD = "#9fd8ae"                 # site badge green — confirmations
-BAD = "#e59a9a"                  # site badge red — contradictions
-MUTED = "#9aa4b2"
 
 #: The three filter-name epochs, as established by the header archaeology
 #: and confirmed by the measurements on this page.
@@ -104,9 +103,9 @@ def fig_calibration(con) -> str:
     groups = [("high-dispersion grism", f"filter IN ({HIGH_IN})", WARN),
               ("low-dispersion grism", f"filter IN ({LOW_IN})", ACCENT),
               ("known direct (control)",
-               f"population = 'control' AND filter IN ({DIR_IN})", "#e8eaed")]
+               f"population = 'control' AND filter IN ({DIR_IN})", INK)]
 
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (axl, axr) = plt.subplots(1, 2, figsize=(11.5, 4.8))
         for name, where, color in groups:
             d = fetch(where)
@@ -164,7 +163,7 @@ def fig_strength(con) -> str:
                             AND trace_a_px IS NOT NULL AND width > 0""")
         return np.array([r[0] for r in rows], dtype=float)
 
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (axl, axr) = plt.subplots(1, 2, figsize=(11.5, 4.4))
         for where, color, name in ((f"filter IN ({HIGH_IN})", WARN,
                                     "H-alpha grism (hrg / HaGrism)"),
@@ -207,7 +206,7 @@ def fig_slot6_timeline(con) -> str:
     direct = np.array([r[2] or 0 for r in rows], dtype=float)
     indet = np.array([r[3] or 0 for r in rows], dtype=float)
     x = np.arange(len(mons))
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (axt, axb) = plt.subplots(2, 1, figsize=(11.5, 5.6),
                                        sharex=True,
                                        gridspec_kw={"height_ratios": [2, 1]})
@@ -244,7 +243,7 @@ def fig_census(con) -> str:
     hi = np.array([r[1] or 0 for r in rows], dtype=float)[::-1]
     am = np.array([r[2] or 0 for r in rows], dtype=float)[::-1]
     y = np.arange(len(tgt))
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(9.5, 7.5))
         ax.barh(y, hi, color=WARN, label="H-alpha grism (identified)")
         ax.barh(y, am, left=hi, color=MUTED, label="unit not identifiable")

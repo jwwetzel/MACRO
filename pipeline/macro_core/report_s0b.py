@@ -23,14 +23,16 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")           # headless: we only ever write PNG files
 import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib.colors import LinearSegmentedColormap  # noqa: E402
 import numpy as np               # noqa: E402
 
 from . import inventory as inv   # noqa: E402  (constants for interpolation)
-# Shared page machinery: same dark theme, same query discipline, same table
+# Shared page machinery: one house figure style, one query discipline,
+# one table generator
 # generator as the S0 report — one visual language across the evidence site.
 from .report_s0 import (          # noqa: E402
-    ACCENT, DARK, DPI, WARN, _figure, esc, fmt, q, q1, table)
+    ACCENT, STYLE, DPI, INK, WARN,
+    _figure, esc, fmt, q, q1, table)
+from . import plotstyle as ps    # noqa: E402  (the house figure style)
 
 # ---------------------------------------------------------------------------
 # Locations, derived from the repo layout (report lives in docs/pipeline/).
@@ -70,7 +72,7 @@ def fig_link_methods(con) -> str:
     drifts = [r[0] for r in q(con, """
         SELECT jd_drift_s FROM raw_reduced_links
         WHERE match_method = 'stem_jd_drift' AND jd_drift_s IS NOT NULL""")]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9.4, 3.4),
                                        gridspec_kw={"width_ratios": [3, 2]})
         colors = [WARN if m == "orphan" else ACCENT for m in methods]
@@ -80,7 +82,7 @@ def fig_link_methods(con) -> str:
         ax1.set_title("How each reduced file found its raw parent")
         for b, c in zip(bars, counts):
             ax1.annotate(f" {c:,}", (c, b.get_y() + b.get_height() / 2),
-                         va="center", fontsize=8, color="#e8eaed")
+                         va="center", fontsize=8, color=INK)
         if drifts:
             ax2.hist(drifts, bins=30, color=WARN)
         ax2.set_xlabel("JD rewrite, reduced − raw (seconds)")
@@ -101,13 +103,13 @@ def fig_calib_timeline(con) -> str:
     import datetime as _dt
     eras = sorted({r[0] for r in rows})
     era_pos = {e: i for i, e in enumerate(eras)}
-    kind_color = {"bias": "#9fd8ae", "dark": ACCENT, "flat": WARN}
+    kind_color = ps.KIND_COLOR
     # era_id round-trips through pandas as a float (NaN-capable column);
     # cast for display so the axis reads 'era 47', not 'era 47.0'.
     labels = {r[0]: f"era {int(r[0])}: {r[1] or '(blank)'}" for r in q(con, """
         SELECT DISTINCT era_id, readoutm FROM calib_frames
         WHERE era_id IS NOT NULL""")}
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(8.6, 0.5 * max(len(eras), 4) + 1.8))
         for kind in ("bias", "dark", "flat"):
             sub = [r for r in rows if r[2] == kind]
@@ -157,14 +159,20 @@ def fig_coverage_heatmap(con) -> str:
     labels = {r[0]: f"era {r[0]}: {r[1] or '(blank)'} bin{r[2]}"
               for r in q(con, """
         SELECT e.era_id, e.readoutm, e.xbinning FROM eras e""")}
-    # Site-palette colormap: warn-red (missing) through badge-yellow to
-    # badge-green (covered) — matches the status colors used site-wide.
-    cmap = LinearSegmentedColormap.from_list(
-        "macro_cov", ["#5b2730", "#3a3320", "#1d3a26"])
-    with plt.rc_context(DARK):
+    # The house sequential ramp: white (nothing) to blue (fully covered).
+    # Not red-to-green — that is the one pair a deuteranope cannot read,
+    # and the exact percentage is printed in every cell anyway.
+    cmap = ps.SEQ_CMAP
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(
             figsize=(6.4, 0.42 * max(len(eras), 4) + 1.6))
         ax.imshow(grid, cmap=cmap, vmin=0, vmax=1, aspect="auto")
+        # Cell separators instead of the rcParam grid, which a heatmap
+        # would otherwise wear as stripes across its own data.
+        ax.set_xticks(np.arange(len(kinds) + 1) - 0.5, minor=True)
+        ax.set_yticks(np.arange(len(eras) + 1) - 0.5, minor=True)
+        ax.grid(which="minor", color=ps.GRID, linewidth=0.8)
+        ax.tick_params(which="minor", length=0)
         ax.set_xticks(range(len(kinds)), kinds)
         ax.set_yticks(range(len(eras)),
                       [labels.get(e, f"era {e}") for e in eras], fontsize=8)
@@ -175,7 +183,7 @@ def fig_coverage_heatmap(con) -> str:
                 v = grid[i, j]
                 ax.text(j, i, f"{100 * v:.0f}%", ha="center", va="center",
                         fontsize=8,
-                        color="#9fd8ae" if v >= 0.5 else "#e6cc7a")
+                        color=ps.ink_on(v))
         fig.tight_layout()
         fig.savefig(FIG_DIR / "s0b_coverage_heatmap.png", dpi=DPI)
         plt.close(fig)

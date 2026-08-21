@@ -30,12 +30,15 @@ from . import noise as noisemod   # noqa: E402
 from . import ptc as ptcmod       # noqa: E402
 from . import reconstruct as recmod  # noqa: E402
 
-# Shared page machinery: same dark theme, same query discipline, same table
+# Shared page machinery: one house figure style, one query discipline,
+# one table generator
 # generator as the S0/S0b reports — one visual language across the site.
 import sys                        # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from macro_core.report_s0 import (  # noqa: E402
-    ACCENT, DARK, DPI, WARN, _figure, esc, fmt, q, q1, table)
+    ACCENT, STYLE, DPI, FAINT, GOOD, MUTED, WARN,
+    _figure, esc, fmt, q, q1, table)
+from macro_core import plotstyle as ps   # noqa: E402  (house figure style)
 
 # ---------------------------------------------------------------------------
 # Locations, derived from the repo layout (report lives in docs/pipeline/).
@@ -44,7 +47,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DOCS_DIR = REPO_ROOT / "docs" / "pipeline"
 FIG_DIR = DOCS_DIR / "figures" / "s2"
 HTML_PATH = DOCS_DIR / "s2_detector.html"
-GOOD = "#9fd8ae"                # site badge green — confirmations
 
 
 def fnum(x, nd=2) -> str:
@@ -61,7 +63,7 @@ def fig_ceiling_hist(con) -> str:
     """Terminal histogram structure per mode, clip and veto marked."""
     modes = q(con, """SELECT mode, hard_max_adu, clip_adu, veto_adu
                       FROM s2_ceiling_modes ORDER BY mode""")
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axes = plt.subplots(2, 4, figsize=(11.5, 5.6))
         for ax, (mode, hard, clip, veto) in zip(axes.ravel(), modes):
             top = int(hard or 0)
@@ -94,7 +96,7 @@ def fig_frame_maxes(con) -> str:
     """Per-frame maxima: the StackPro 16x cluster and the Low Gain hot pixel."""
     modes = [r[0] for r in q(con, "SELECT mode FROM s2_ceiling_modes "
                                   "ORDER BY mode")]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(9.6, 3.6))
         for i, mode in enumerate(modes):
             mx = [r[0] for r in q(con, "SELECT max_adu FROM s2_ceiling_frames "
@@ -128,7 +130,7 @@ def fig_frame_maxes(con) -> str:
 
 def fig_ptc(con) -> str:
     """PTC points: darks + lights per mode, with the fitted bracket."""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.2, 4.0))
         colors = {"High Gain": ACCENT, "High Gain StackPro": WARN}
         for mode, color in colors.items():
@@ -209,7 +211,7 @@ def fig_recon(con) -> str:
                      FROM s2_recon_eras WHERE npz_path IS NOT NULL
                      ORDER BY era_id""")
     n = len(rows)
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axes = plt.subplots(n, 3, figsize=(8.6, 2.5 * n))
         if n == 1:
             axes = axes[None, :]
@@ -218,8 +220,8 @@ def fig_recon(con) -> str:
             D = _center_stamp(npz, "D")
             F = _center_stamp(npz, "F")
             for j, (img, name, cmap) in enumerate(
-                    ((D, "dark D (ADU)", "magma"),
-                     (F, "flat F", "viridis"))):
+                    ((D, "dark D (ADU)", ps.IMAGE_CMAP),
+                     (F, "flat F", ps.IMAGE_FLAT_CMAP))):
                 ax = axes[i, j]
                 if img is not None:
                     lo, hi = np.nanpercentile(img, [2, 98])
@@ -234,14 +236,14 @@ def fig_recon(con) -> str:
                 c = D.shape[0]
                 resid = D - truth[: c * c].reshape(c, c) - t_off
                 lim = float(np.nanpercentile(np.abs(resid), 98))
-                im = ax.imshow(resid, cmap="coolwarm", vmin=-lim, vmax=lim)
+                im = ax.imshow(resid, cmap=ps.DIV_CMAP, vmin=-lim, vmax=lim)
                 fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02)
                 ax.set_title(f"era {era_id}: D $-$ archived master (ADU)",
                              fontsize=7)
             else:
                 ax.text(0.5, 0.5, "no archived master\nto compare",
                         ha="center", va="center", fontsize=7,
-                        color="#9aa4b2", transform=ax.transAxes)
+                        color=MUTED, transform=ax.transAxes)
             ax.set_xticks([]), ax.set_yticks([])
         fig.suptitle("Master reconstruction: central 512$^2$ stamps of the "
                      "calibration each era's reduction actually applied",
@@ -262,9 +264,8 @@ def fig_noise(con) -> str:
     cross = {r[0]: r[1] for r in q(con, """
         SELECT era_group, value FROM detector_params
         WHERE quantity = 'noise_crossover_adu'""")}
-    palette = [ACCENT, WARN, GOOD, "#d38ce0", "#e0a56c", "#8fb8e8", "#c9c06a",
-               "#e08c8c"]
-    with plt.rc_context(DARK):
+    palette = list(ps.CYCLE)
+    with plt.rc_context(STYLE):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.6, 4.1))
         for mode, color in zip(modes, palette):
             rows = q(con, """SELECT level_adu, var_adu2, var_mad_adu2,
@@ -307,9 +308,9 @@ def fig_linearity(con) -> str:
             SELECT min(l2.max_abs_resid_pct) FROM s2_linearity_ladders l2
             WHERE l2.mode = l1.mode AND l2.max_abs_resid_pct IS NOT NULL)
         ORDER BY l1.mode""")
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(8.8, 3.8))
-        palette = [ACCENT, WARN, GOOD, "#d38ce0", "#e0a56c"]
+        palette = list(ps.CYCLE)
         for (mode, ladder_id), color in zip(best, palette):
             veto = q1(con, "SELECT coalesce(veto_adu, 1e12) FROM "
                            "s2_ceiling_modes WHERE mode = ?", (mode,))
@@ -325,8 +326,8 @@ def fig_linearity(con) -> str:
                         color=color)
             ax.plot([], [], "o-", color=color, label=mode, ms=4)
         ax.set_xscale("log")
-        ax.axhspan(-2, 2, color="#2a3140", alpha=0.5, zorder=0)
-        ax.axhline(0, color="#9aa4b2", lw=0.6)
+        ax.axhspan(-2, 2, color=FAINT, alpha=0.22, zorder=0)
+        ax.axhline(0, color=MUTED, lw=0.6)
         ax.set_xlabel("exposure time (s, log)")
         ax.set_ylabel("residual vs flux = k$\\,\\cdot\\,$t   (%)")
         ax.set_ylim(-60, 60)

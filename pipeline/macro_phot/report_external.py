@@ -39,7 +39,9 @@ import matplotlib.pyplot as plt          # noqa: E402
 import numpy as np                       # noqa: E402
 
 from macro_core.report_s0 import (        # noqa: E402
-    ACCENT, DARK, DPI, WARN, _figure, esc, q, q1, table)
+    ACCENT, BAD, STYLE, DPI, FAINT, GOOD, MUTED, WARN,
+    _figure, esc, q, q1, table)
+from macro_core import plotstyle as ps   # noqa: E402  (house figure style)
 from . import external as ex              # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -52,13 +54,14 @@ TARGET_LABEL = {"stlmi": "ST LMi", "vvpup": "VV Pup", "euuma": "EU UMa",
 TARGET_ORDER = ("yzcnc", "stlmi", "vvpup", "euuma", "anuma")
 SOURCE_LABEL = {"aavso": "AAVSO (AID)", "ztf": "ZTF (IRSA)",
                 "asassn": "ASAS-SN (legacy V)", "atlas": "ATLAS forced phot."}
-SOURCE_COLOR = {"aavso": ACCENT, "ztf": "#9fd8ae", "asassn": WARN,
-                "atlas": "#f0a3a3"}
-GOOD = "#9fd8ae"
-BAD = "#f0a3a3"
+SOURCE_COLOR = {"aavso": ACCENT, "ztf": GOOD, "asassn": WARN,
+                "atlas": BAD}
+#: Survey -> marker.  Four surveys overlaid on one light curve is
+#: exactly the case where hue alone stops being enough.
+SOURCE_MARKER = {"aavso": "o", "ztf": "s", "asassn": "^", "atlas": "D"}
 
-STATE_COLOR = {ex.STATE_QUIESCENT: "#8fb3d9", ex.STATE_ELEVATED: WARN,
-               ex.STATE_OUTBURST: "#e6907a", ex.STATE_UNKNOWN: "#777777"}
+STATE_COLOR = {ex.STATE_QUIESCENT: ACCENT, ex.STATE_ELEVATED: WARN,
+               ex.STATE_OUTBURST: BAD, ex.STATE_UNKNOWN: FAINT}
 
 
 def _mjd_to_date(mjd) -> str:
@@ -153,7 +156,7 @@ def fig_yzcnc_timeline(con) -> str:
                       AND start_night BETWEEN '2023-12-01' AND '2024-07-01'
                     ORDER BY start_night""")
 
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (ax, axn) = plt.subplots(
             2, 1, figsize=(11, 6.4), sharex=True,
             gridspec_kw={"height_ratios": [3.0, 1.0], "hspace": 0.08})
@@ -162,22 +165,22 @@ def fig_yzcnc_timeline(con) -> str:
             if kind != ex.EPISODE_SUPEROUTBURST:
                 continue
             ax.axvspan(_date_num(p_start), _date_num(p_end),
-                       color="#e6907a", alpha=0.18, zorder=0)
+                       color=BAD, alpha=0.18, zorder=0)
             axn.axvspan(_date_num(p_start), _date_num(p_end),
-                        color="#e6907a", alpha=0.18, zorder=0)
+                        color=BAD, alpha=0.18, zorder=0)
             # Anchored in axes fraction vertically so the caption stays
             # INSIDE the panel whatever the magnitude limits turn out to be
             # (a fixed y=10.4 put it above the axis on this data).
             ax.annotate(" superoutburst plateau",
                         xy=(_date_num(p_start), 0.98),
                         xycoords=("data", "axes fraction"),
-                        color="#e6907a", fontsize=8, va="top", ha="left")
+                        color=BAD, fontsize=8, va="top", ha="left")
 
         if math.isfinite(base):
-            ax.axhline(base, color="#8fb3d9", lw=1.0, ls="--", zorder=1)
+            ax.axhline(base, color=ACCENT, lw=1.0, ls="--", zorder=1)
             ax.text(_date_num("2023-12-03"), base - 0.08,
                     f"measured quiescent baseline V={base:.2f}",
-                    color="#8fb3d9", fontsize=8)
+                    color=ACCENT, fontsize=8)
             ax.axhline(base - ex.SUPEROUTBURST_AMP_MIN, color=WARN, lw=1.0,
                        ls=":", zorder=1)
             ax.text(_date_num("2023-12-03"),
@@ -191,7 +194,7 @@ def fig_yzcnc_timeline(con) -> str:
                 label=f"AAVSO, independent observers ({len(ind)} nights)")
         if own:
             ax.plot([_date_num(n) for n, _ in own], [m for _, m in own],
-                    "o", mfc="none", mec="#f0d0a3", ms=7, mew=1.4, zorder=4,
+                    "o", mfc="none", mec=WARN, ms=7, mew=1.4, zorder=4,
                     label=f"our own photometry, resubmitted ({len(own)} nights)")
         ax.invert_yaxis()
         ax.set_ylabel("V (or V-equivalent)")
@@ -201,10 +204,10 @@ def fig_yzcnc_timeline(con) -> str:
         dense_n = [(n, c) for n, c, d in nights if d]
         snap_n = [(n, c) for n, c, d in nights if not d]
         axn.bar([_date_num(n) for n, _ in dense_n], [c for _, c in dense_n],
-                width=1.6, color="#e6cc7a", zorder=3,
+                width=1.6, color=WARN, zorder=3,
                 label=f"dense RLMT run (>= {meta.get('dense_run_min_frames')} frames)")
         axn.bar([_date_num(n) for n, _ in snap_n], [c for _, c in snap_n],
-                width=1.6, color="#666666", zorder=3, label="short RLMT run")
+                width=1.6, color=MUTED, zorder=3, label="short RLMT run")
         axn.set_ylabel("RLMT frames")
         axn.legend(loc="upper left", fontsize=8, framealpha=0.25)
         # One tick per month, explicitly.  The auto locator produced two
@@ -243,13 +246,13 @@ def fig_band_offsets(con) -> str:
     # draw an empty axis.
     if len(rows) < 3:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(5.4, 4.6))
         ours = [r[1] for r in rows]
         theirs = [r[2] for r in rows]
         lo = min(min(ours), min(theirs)) - 0.3
         hi = max(max(ours), max(theirs)) + 0.3
-        ax.plot([lo, hi], [lo, hi], "-", color="#8fb3d9", lw=1.0)
+        ax.plot([lo, hi], [lo, hi], "-", color=ACCENT, lw=1.0)
         ax.plot(theirs, ours, "o", color=ACCENT, ms=6)
         d = np.array(ours) - np.array(theirs)
         ax.set_xlabel("independent AAVSO V (nightly median)")
@@ -287,7 +290,7 @@ def fig_coverage(con) -> str:
         by_target.setdefault(t, []).append((s, a, b, n))
 
     sources = ("aavso", "ztf", "asassn")
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(11, 4.6))
         ylab, ypos = [], []
         y = 0.0
@@ -302,7 +305,7 @@ def fig_coverage(con) -> str:
                 ax.barh(y, float(b) - float(a), left=float(a), height=0.62,
                         color=SOURCE_COLOR[s], alpha=0.85)
                 ax.text(float(b) + 200, y, f"{n:,}", va="center", fontsize=7,
-                        color="#bbbbbb")
+                        color=MUTED)
                 ylab.append(f"{TARGET_LABEL[t]} · {SOURCE_LABEL[s]}")
                 ypos.append(y)
                 y -= 1.0
@@ -310,9 +313,9 @@ def fig_coverage(con) -> str:
                 a, b = our_span[t]
                 am, bm = _night_to_mjd(a), _night_to_mjd(b)
                 ax.barh(y, max(bm - am, 30), left=am, height=0.62,
-                        color="#ffffff", alpha=0.95)
+                        color=ps.tint(ACCENT, 0.45), alpha=0.95)
                 ax.text(bm + 200, y, f"{ours.get(t, 0):,}", va="center",
-                        fontsize=7, color="#bbbbbb")
+                        fontsize=7, color=MUTED)
                 ylab.append(f"{TARGET_LABEL[t]} · RLMT (ours)")
                 ypos.append(y)
                 y -= 1.6
@@ -346,7 +349,7 @@ def fig_recurrence(con) -> str:
     su_gaps = [ex.days_between(a, b) for a, b in zip(supers, supers[1:])]
     all_gaps = [g for g in all_gaps if 0 < g < 200]
     su_gaps = [g for g in su_gaps if 0 < g < 600]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(10, 3.6))
         a1.hist(all_gaps, bins=40, color=ACCENT)
         a1.set_xlabel("days between successive outburst peaks")

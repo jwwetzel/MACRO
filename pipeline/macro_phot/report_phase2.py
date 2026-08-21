@@ -36,7 +36,9 @@ import numpy as np                # noqa: E402
 
 from . import phase2 as p2        # noqa: E402
 from macro_core.report_s0 import (  # noqa: E402
-    ACCENT, DARK, DPI, WARN, _figure, esc, q, q1, table)
+    ACCENT, BAD, STYLE, DPI, FAINT, GOOD, MUTED, WARN,
+    _figure, esc, q, q1, table)
+from macro_core import plotstyle as ps   # noqa: E402  (house figure style)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DOCS_DIR = REPO_ROOT / "docs" / "CV_TimeSeries"
@@ -45,8 +47,6 @@ HTML_PATH = DOCS_DIR / "cv_phase2_completion.html"
 
 TARGET_LABEL = {"stlmi": "ST LMi", "vvpup": "VV Pup", "euuma": "EU UMa",
                 "anuma": "AN UMa", "yzcnc": "YZ Cnc"}
-GOOD = "#9fd8ae"
-BAD = "#f0a3a3"
 
 
 # ---------------------------------------------------------------------------
@@ -148,7 +148,7 @@ def fig_cloud_calibration(con) -> str:
     fpr = np.array([r[1] if r[1] is not None else np.nan for r in roc])
     rec = np.array([r[2] if r[2] is not None else np.nan for r in roc])
     chosen = next((r[0] for r in roc if r[3]), None)
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.6, 3.9))
         a1.plot(t, 100 * fpr, "-o", ms=3, color=BAD,
                 label="clear frames vetoed (cost)")
@@ -176,7 +176,7 @@ def fig_cloud_calibration(con) -> str:
             y = np.array([r[0] for r in rows])
             lab = np.array([r[2] or "" for r in rows], dtype=object)
             a2.scatter(x[lab == ""], y[lab == ""], s=3, alpha=0.25,
-                       color="#6f7a8a", label="neither")
+                       color=FAINT, label="neither")
             a2.scatter(x[lab == "clear"], y[lab == "clear"], s=5, alpha=0.6,
                        color=GOOD, label="ZMAG says clear")
             a2.scatter(x[lab == "attenuated"], y[lab == "attenuated"], s=7,
@@ -205,7 +205,7 @@ def fig_cloud_sculpting(con) -> str:
                      ORDER BY series_key""")
     if not rows:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(9.6, 4.2))
         y = np.arange(len(rows))
         ax.barh(y - 0.19, [100 * r[2] for r in rows], 0.36,
@@ -234,7 +234,7 @@ def fig_extinction(con) -> str:
                      ORDER BY era_id, filter""")
     if not rows:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.6, 4.0))
         y = np.arange(len(rows))
         k = np.array([r[2] for r in rows])
@@ -244,7 +244,7 @@ def fig_extinction(con) -> str:
                     capsize=3, label="published (max of formal, bootstrap)")
         a1.errorbar(k, y, xerr=ef, fmt="none", ecolor=BAD, lw=3, alpha=0.7,
                     label="formal only — assumes every point independent")
-        a1.axvline(0, color="#8a93a3", lw=1)
+        a1.axvline(0, color=MUTED, lw=1)
         a1.set_yticks(y)
         a1.set_yticklabels([f"era {r[0]} {r[1]}" for r in rows], fontsize=8)
         a1.invert_yaxis()
@@ -253,7 +253,7 @@ def fig_extinction(con) -> str:
         a1.set_title("the star bootstrap is the honest error bar", fontsize=9)
 
         size = [(r[6] if r[5] else r[7]) for r in rows]
-        colors = [GOOD if r[5] else "#6f7a8a" for r in rows]
+        colors = [GOOD if r[5] else FAINT for r in rows]
         a2.barh(y, size, 0.6, color=colors)
         a2.set_yticks(y)
         a2.set_yticklabels([f"era {r[0]} {r[1]}" for r in rows], fontsize=8)
@@ -281,7 +281,7 @@ def fig_transform(con) -> str:
                      ORDER BY target_key, band_from""")
     if not rows:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.6, 4.0))
         y = np.arange(len(rows))
         a1.errorbar([r[3] for r in rows], y,
@@ -292,7 +292,7 @@ def fig_transform(con) -> str:
         a1.errorbar(exp, y + 0.28, xerr=exp_e, fmt="s", ms=4, color=WARN,
                     capsize=3, label="predicted by the two eras' tie "
                                      "colour terms")
-        a1.axvline(0, color="#8a93a3", lw=1)
+        a1.axvline(0, color=MUTED, lw=1)
         a1.set_yticks(y)
         a1.set_yticklabels([f"{TARGET_LABEL.get(r[0], r[0])} "
                             f"{r[1]}→{r[2]}" for r in rows], fontsize=8)
@@ -305,7 +305,7 @@ def fig_transform(con) -> str:
         a2.errorbar([1000 * r[7] for r in rows], y,
                     xerr=[1000 * r[8] for r in rows], fmt="o", ms=4,
                     color=BAD, capsize=3)
-        a2.axvline(0, color="#8a93a3", lw=1)
+        a2.axvline(0, color=MUTED, lw=1)
         a2.set_yticks(y)
         a2.set_yticklabels([f"{TARGET_LABEL.get(r[0], r[0])} "
                             f"{r[1]}→{r[2]}" for r in rows], fontsize=8)
@@ -328,7 +328,7 @@ def fig_limits(con) -> str:
                      ORDER BY n_candidates DESC""")
     if not rows:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.6, 4.4))
         y = np.arange(len(rows))
         rec = np.array([r[4] for r in rows], dtype=float)
@@ -370,11 +370,11 @@ def fig_limits(con) -> str:
             yy = np.arange(len(keys))
             a2.boxplot(dets, positions=yy - 0.17, vert=False, widths=0.28,
                        patch_artist=True, showfliers=False,
-                       boxprops=dict(facecolor="#2a4a63", color=ACCENT),
+                       boxprops=dict(facecolor=ps.tint(ACCENT), color=ACCENT),
                        medianprops=dict(color=ACCENT))
             a2.boxplot(lims, positions=yy + 0.17, vert=False, widths=0.28,
                        patch_artist=True, showfliers=False,
-                       boxprops=dict(facecolor="#4a3a20", color=WARN),
+                       boxprops=dict(facecolor=ps.tint(WARN), color=WARN),
                        medianprops=dict(color=WARN))
             a2.set_yticks(yy)
             a2.set_yticklabels(keys, fontsize=7.5)

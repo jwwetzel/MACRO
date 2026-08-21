@@ -36,7 +36,9 @@ import numpy as np                # noqa: E402
 from . import characterize as ch  # noqa: E402
 from . import photometry as ph    # noqa: E402
 from macro_core.report_s0 import (  # noqa: E402
-    ACCENT, DARK, DPI, WARN, _figure, esc, fmt, q, q1, table)
+    ACCENT, BAD, STYLE, DPI, GOOD, INK, MUTED, WARN,
+    _figure, esc, fmt, q, q1, table)
+from macro_core import plotstyle as ps   # noqa: E402  (house figure style)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DOCS_DIR = REPO_ROOT / "docs" / "CV_TimeSeries"
@@ -46,10 +48,8 @@ HTML_PATH = DOCS_DIR / "cv_characterization.html"
 TARGET_LABEL = {"stlmi": "ST LMi", "vvpup": "VV Pup", "euuma": "EU UMa",
                 "anuma": "AN UMa", "yzcnc": "YZ Cnc"}
 TARGET_ORDER = ["stlmi", "yzcnc", "vvpup", "euuma", "anuma"]
-FILTER_COLOR = {"g": "#9fd8ae", "G": "#9fd8ae", "r": "#e6907a", "R": "#e6907a",
-                "i": "#c39be0", "I": "#c39be0", "y": "#e6cc7a", "z": "#8fb3d9"}
-GOOD = "#9fd8ae"
-BAD = "#f0a3a3"
+FILTER_COLOR = ps.BAND_COLOR
+FILTER_MARKER = ps.BAND_MARKER
 
 
 def _mmag(x, nd=1):
@@ -79,12 +79,13 @@ def fig_seeing(con) -> str:
     rows = q(con, "SELECT readoutm, fwhm_as, airmass, target_key FROM ch_frames "
                   "WHERE fwhm_as IS NOT NULL")
     modes = sorted({r[0] for r in rows})
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.2, 3.6))
         for i, m in enumerate(modes):
             v = [r[1] for r in rows if r[0] == m]
             a1.hist(v, bins=np.arange(0.8, 6.0, 0.15), histtype="step",
-                    lw=1.6, label=f"{m} (n={len(v)})", color=plt.cm.tab10(i % 10))
+                    lw=1.6, label=f"{m} (n={len(v)})",
+                    **ps.line_series(i))
         a1.set_xlabel('FWHM (arcsec, converted with the era plate scale)')
         a1.set_ylabel("frames")
         a1.set_title("Seeing is comparable only in arcsec")
@@ -92,9 +93,11 @@ def fig_seeing(con) -> str:
         for i, t in enumerate(TARGET_ORDER):
             v = [r[2] for r in rows if r[3] == t and r[2] is not None]
             if v:
-                a2.hist(v, bins=np.arange(1.0, 2.6, 0.05), histtype="step",
-                        lw=1.6, label=f"{TARGET_LABEL[t]} (med {np.median(v):.2f})",
-                        color=plt.cm.tab10(i % 10))
+                a2.hist(v, bins=np.arange(1.0, 2.6, 0.05),
+                        histtype="step", lw=1.6,
+                        label=f"{TARGET_LABEL[t]} "
+                              f"(med {np.median(v):.2f})",
+                        **ps.line_series(i))
         a2.set_xlabel("airmass, recomputed from coordinates + time")
         a2.set_ylabel("frames")
         a2.set_title("VV Pup never rises: its floor is structural")
@@ -118,7 +121,7 @@ def fig_quality_response(con) -> str:
         con, "SELECT axis, threshold, baseline FROM ch_cuts")}
     applied = {r[0] for r in q(con, "SELECT axis FROM ch_cuts "
                                     "WHERE note NOT LIKE '%diagnostic%'")}
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axs = plt.subplots(2, 3, figsize=(11.4, 6.0))
         for ax, name in zip(axs.ravel(), axes):
             rows = q(con, "SELECT bin_center, med_rel_scatter, n_frames "
@@ -127,11 +130,11 @@ def fig_quality_response(con) -> str:
             xs = [r[0] for r in rows if r[1] is not None and r[2] >= 5]
             ys = [r[1] for r in rows if r[1] is not None and r[2] >= 5]
             ns = [r[2] for r in rows if r[1] is not None and r[2] >= 5]
-            ax.axhline(1.0, color="#8a93a3", lw=1, ls=":")
+            ax.axhline(1.0, color=MUTED, lw=1, ls=":")
             ax.axhline(ch.DEGRADE_FACTOR, color=WARN, lw=1, ls="--")
             ax.scatter(xs, ys, s=[max(6, min(70, n / 6)) for n in ns],
-                       color=ACCENT if name in applied else "#8a93a3", zorder=3)
-            ax.plot(xs, ys, color=ACCENT if name in applied else "#8a93a3",
+                       color=ACCENT if name in applied else MUTED, zorder=3)
+            ax.plot(xs, ys, color=ACCENT if name in applied else MUTED,
                     lw=1, alpha=0.5)
             thr = cuts.get(name, (None, None))[0]
             if thr is not None and math.isfinite(thr):
@@ -142,7 +145,7 @@ def fig_quality_response(con) -> str:
             ax.set_ylabel("check-star scatter / series median")
             ax.set_title(("APPLIED" if name in applied else "diagnostic only"),
                          fontsize=9,
-                         color=ACCENT if name in applied else "#8a93a3")
+                         color=ACCENT if name in applied else MUTED)
         fig.suptitle("Every cut is set by the scatter it buys back "
                      f"(dashed = {ch.DEGRADE_FACTOR:g}x the pooled median)",
                      fontsize=11)
@@ -160,9 +163,9 @@ def fig_moon(con) -> str:
     ill = np.array([r[0] for r in rows]); sep = np.array([r[1] for r in rows])
     sky = np.array([r[2] for r in rows]); alt = np.array([r[4] for r in rows])
     up = alt > 0
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.2, 3.6))
-        a1.scatter(ill[~up], sky[~up], s=4, alpha=0.3, color="#8a93a3",
+        a1.scatter(ill[~up], sky[~up], s=4, alpha=0.3, color=MUTED,
                    label="moon below horizon")
         sc = a1.scatter(ill[up], sky[up], s=5, alpha=0.5, c=sep[up],
                         cmap="viridis", label="moon up")
@@ -194,7 +197,7 @@ def fig_trail(con) -> str:
         return ""
     e = np.array([r[1] for r in rows], dtype=float)
     R = np.array([r[2] for r in rows], dtype=float)
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.2, 3.4))
         a1.hist(e, bins=np.arange(0, 0.61, 0.02), color=ACCENT)
         a1.set_xlabel("median ellipticity 1 - b/a")
@@ -225,7 +228,7 @@ def _rms_panel(ax, con, sk):
     lo = np.array([s[3] if s[3] is not None else np.nan for s in stars])
     hi = np.array([s[5] if s[5] is not None else np.nan for s in stars])
     comp = np.array([x in ("comp", "check") for x in role])
-    ax.scatter(m[comp], r[comp], s=5, alpha=0.45, color="#8a93a3",
+    ax.scatter(m[comp], r[comp], s=5, alpha=0.45, color=MUTED,
                label="comparison stars")
     chk = np.array([x == "check" for x in role])
     ax.scatter(m[chk], r[chk], s=34, color=ACCENT, zorder=4,
@@ -235,7 +238,7 @@ def _rms_panel(ax, con, sk):
         ax.scatter(m[tgt], r[tgt], s=60, marker="*", color=WARN, zorder=5,
                    label="target (variable: not a noise point)")
     o = np.argsort(m)
-    ax.fill_between(m[o], lo[o], hi[o], color="#4a86c4", alpha=0.25, zorder=2,
+    ax.fill_between(m[o], lo[o], hi[o], color=ACCENT, alpha=0.25, zorder=2,
                     label=f"photon+sky+read, gain {ch.GAIN_LO_E_PER_ADU}"
                           f"-{ch.GAIN_HI_E_PER_ADU} e-/ADU")
     row = q(con, "SELECT floor_nom, floor_plateau, scint_mag FROM "
@@ -268,7 +271,7 @@ def fig_rms_mag(con) -> str:
                 (t,))
         if row:
             picks.append(row[0][0])
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axs = plt.subplots(2, 3, figsize=(12.6, 6.6))
         for ax, sk in zip(axs.ravel(), picks):
             _rms_panel(ax, con, sk)
@@ -291,9 +294,9 @@ def fig_floor_budget(con) -> str:
     sc = np.array([r[2] for r in rows]) * 1000
     pr = np.array([r[3] if r[3] is not None else np.nan for r in rows]) * 1000
     y = np.arange(len(rows))
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(8.8, 0.30 * len(rows) + 1.6))
-        ax.barh(y, fl, color="#4a86c4", label="measured floor (best mag bin)")
+        ax.barh(y, fl, color=ACCENT, label="measured floor (best mag bin)")
         ax.plot(sc, y, "o", color=BAD, ms=5,
                 label="scintillation (Young, 0.5 m, this airmass & exposure)")
         ax.plot(pr, y, "*", color=WARN, ms=10,
@@ -315,17 +318,20 @@ def fig_allan(con) -> str:
     keys = [r[0] for r in q(con, "SELECT DISTINCT series_key FROM ch_allan "
                                  "ORDER BY series_key")]
     keys = [k for k in keys if k.split("|")[0] in TARGET_ORDER][:12]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.6, 4.0))
         for i, k in enumerate(keys):
             rows = q(con, "SELECT tau_s, adev FROM ch_allan WHERE series_key=? "
                           "ORDER BY tau_s", (k,))
             tau = np.array([r[0] for r in rows]); ad = np.array([r[1] for r in rows])
             o = np.argsort(tau)
-            a1.plot(tau[o], ad[o], lw=1, alpha=0.75,
-                    color=plt.cm.tab20(i % 20), label=_label(k))
+            # A dozen series on one axis.  Eight house hues times eight
+            # dash patterns, rather than a twenty-colour matplotlib map —
+            # which is not colour-blind safe and collapses in greyscale.
+            a1.plot(tau[o], ad[o], lw=1, alpha=0.75, label=_label(k),
+                    **ps.line_series(i))
         t0 = np.array([100.0, 10000.0])
-        a1.plot(t0, 0.02 * np.sqrt(t0[0] / t0), ls="--", lw=1.4, color="#fff",
+        a1.plot(t0, 0.02 * np.sqrt(t0[0] / t0), ls="--", lw=1.4, color=INK,
                 label=r"white noise, $\tau^{-1/2}$")
         a1.set_xscale("log"); a1.set_yscale("log")
         a1.set_xlabel(r"averaging time $\tau$ (s)")
@@ -337,7 +343,7 @@ def fig_allan(con) -> str:
         rf = [r[0] for r in q(con, "SELECT red_factor FROM ch_allan_fit "
                                    "WHERE red_factor IS NOT NULL")]
         a2.hist(sl, bins=np.arange(-1.0, 0.45, 0.05), color=ACCENT)
-        a2.axvline(-0.5, color="#fff", lw=1.4, ls="--")
+        a2.axvline(-0.5, color=INK, lw=1.4, ls="--")
         a2.set_xlabel(r"fitted log-log slope   ($-1/2$ = white)")
         a2.set_ylabel("check-star ladders")
         a2.set_title(f"median slope {np.median(sl):+.2f}; median red-noise "
@@ -362,7 +368,7 @@ def fig_window(con) -> str:
         night = [s for s in scopes if s.startswith(t) and not s.endswith("|series")
                  and s != f"{t}|all"]
         picks.append((t, allsc + ser + night))
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axs = plt.subplots(len(picks), 1, figsize=(10.6, 3.2 * len(picks)),
                                 squeeze=False)
         for ax, (t, sc) in zip(axs.ravel(), picks):
@@ -370,8 +376,8 @@ def fig_window(con) -> str:
                 rows = q(con, "SELECT freq_cd, power FROM ch_window WHERE "
                               "scope=? ORDER BY freq_cd", (s,))
                 f = np.array([r[0] for r in rows]); p = np.array([r[1] for r in rows])
-                ax.plot(f, p, lw=0.9, alpha=0.85, color=plt.cm.tab10(i),
-                        label=s)
+                ax.plot(f, p, lw=0.9, alpha=0.85, label=s,
+                        **ps.line_series(i))
             porb = q(con, "SELECT period_d FROM ch_cadence WHERE target_key=? "
                           "LIMIT 1", (t,))[0][0]
             ax.axvline(1.0 / porb, color=WARN, lw=1.2, ls="--",
@@ -381,7 +387,7 @@ def fig_window(con) -> str:
             # The 1 c/d comb is the CAUSE; the dotted lines above are where
             # its effect lands in a real periodogram.  Marking the cause is
             # what stops the figure being read as "there is no alias here".
-            ax.axvline(1.0, color="#e6cc7a", lw=1.4, alpha=0.55,
+            ax.axvline(1.0, color=WARN, lw=1.4, alpha=0.55,
                        label="1 c/d comb: the window power that CREATES "
                              "those aliases")
             ax.set_xlim(0, 30)
@@ -406,10 +412,10 @@ def fig_cadence(con) -> str:
     cyc = np.array([r[2] if r[2] else np.nan for r in rows])
     sm = np.array([r[3] if r[3] else np.nan for r in rows]) * 100
     y = np.arange(len(rows))
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(11.4, 0.30 * len(rows) + 1.8),
                                      sharey=True)
-        a1.barh(y, ppc, color="#4a86c4")
+        a1.barh(y, ppc, color=ACCENT)
         a1.axvline(20, color=WARN, ls="--", lw=1.2)
         a1.set_yticks(y); a1.set_yticklabels(lab, fontsize=7.5)
         a1.set_xlabel("points per orbital cycle (per filter)")
@@ -458,7 +464,7 @@ def fig_contour(con) -> str:
               ("whole season",
                (("season", "known", "--", "s"),
                 ("season-dt", "known", "-", "^")))]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axs = plt.subplots(1, 2, figsize=(12.4, 4.6), sharey=True)
         for ax, (title, series) in zip(axs, panels):
             for i, t in enumerate(targets):
@@ -476,13 +482,13 @@ def fig_contour(con) -> str:
                               if score == "period" else "")
                     ax.plot(P, A, ls, marker=mk, ms=4, lw=1.5,
                             alpha=0.55 if score == "period" else 1.0,
-                            color=plt.cm.tab10(i),
+                            color=ps.CYCLE[i % len(ps.CYCLE)],
                             label=f"{TARGET_LABEL[t]}{suffix}")
                 porb = q(con, "SELECT period_d FROM ch_cadence WHERE "
                               "target_key=? LIMIT 1", (t,))
                 if porb:
-                    ax.axvline(porb[0][0] * 24.0, color=plt.cm.tab10(i),
-                               lw=0.8, alpha=0.35)
+                    ax.axvline(porb[0][0] * 24.0, lw=0.8, alpha=0.35,
+                               color=ps.CYCLE[i % len(ps.CYCLE)])
             ax.set_xscale("log"); ax.set_yscale("log")
             ax.set_xlabel("injected period (hours)")
             ax.set_title(title, fontsize=11)
@@ -524,7 +530,7 @@ def fig_recovery_grid(con) -> str:
             g[A.index(a), P.index(p)] = f
         return P, A, g
 
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axs = plt.subplots(1, 2, figsize=(12.4, 4.6))
         titles = {"known": "detection at a KNOWN period",
                   "period": "blind period determination"}
@@ -533,9 +539,10 @@ def fig_recovery_grid(con) -> str:
             P, A, grid = grid_for(score)
             if grid is None:
                 continue
-            im = ax.imshow(grid, origin="lower", aspect="auto", cmap="magma",
-                           vmin=0, vmax=1,
+            im = ax.imshow(grid, origin="lower", aspect="auto",
+                           cmap=ps.SEQ_CMAP, vmin=0, vmax=1,
                            extent=(-0.5, len(P) - 0.5, -0.5, len(A) - 0.5))
+            ax.grid(False)          # a heatmap wears no grid
             if np.nanmax(grid) >= ch.RECOVERY_LEVEL:
                 cs = ax.contour(np.arange(len(P)), np.arange(len(A)), grid,
                                 levels=[ch.RECOVERY_LEVEL], colors=[GOOD],
@@ -565,16 +572,16 @@ def fig_timing(con) -> str:
     if not rows:
         return ""
     labels, vals, colors = [], [], []
-    palette = {"per-cycle": "#4a86c4", "per-cycle shape-mismatched": BAD,
+    palette = {"per-cycle": ACCENT, "per-cycle shape-mismatched": BAD,
                "night-mean": GOOD}
     for t, regime, ireq, ieff, st, dt, smear in rows:
         smeared = "*" if ieff > ireq + 1e-9 else ""
         labels.append(f"{TARGET_LABEL.get(t, t)}  {regime}  "
                       f"edge {ireq:g}P{smeared}")
         vals.append(st if st else np.nan)
-        colors.append(palette.get(regime, "#8a93a3"))
+        colors.append(palette.get(regime, MUTED))
     y = np.arange(len(labels))
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(9.6, 0.26 * len(labels) + 2.0))
         ax.barh(y, vals, color=colors)
         ax.axvline(60, color=WARN, lw=1.8, ls="--",

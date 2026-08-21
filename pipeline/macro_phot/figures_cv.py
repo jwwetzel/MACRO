@@ -13,6 +13,15 @@ every panel from whatever the database now says.
 
 WHAT "PUBLICATION QUALITY" MEANS HERE, CONCRETELY
 -------------------------------------------------
+The style itself now lives in ``macro_core.plotstyle``, which is the ONE
+definition of the house figure style for the whole repository — the report
+renderers under ``docs/pipeline/`` and ``docs/CV_TimeSeries/`` draw from the
+same module, so a hue means the same thing on a web page as it does in the
+manuscript.  This module's conventions were the source of that module; what
+follows is a summary of what it enforces and why, and the names below
+(``COL_SINGLE``, ``OKABE_ITO``, ``BAND_COLOR`` …) are re-exported from it
+rather than declared here.
+
 * **Vector PDF for the manuscript, raster PNG for the web page.**  The PDF
   is what LaTeX includes; the PNG is what the browser shows.  Both come out
   of the same ``Figure`` object in the same call, so they can never drift.
@@ -24,6 +33,10 @@ WHAT "PUBLICATION QUALITY" MEANS HERE, CONCRETELY
   distinguishable under deuteranopia, protanopia and tritanopia.  Colour is
   never the ONLY channel: every series that is coloured is also given a
   distinct marker or line style, so the figure survives a greyscale print.
+* **A floor is not a measurement.**  An upper limit or a resolution-limited
+  residual is drawn as an OPEN downward triangle (``plotstyle.floor_kw``),
+  never as a filled marker, so no reader fits a trend through a statement
+  about what the data could not have seen.
 * **Axis labels carry units.**  Every axis label in this module states the
   quantity and its unit.  A bare "amplitude" is not a label.
 * **Captions are data, not decoration.**  Each builder returns a caption
@@ -97,70 +110,29 @@ from matplotlib.lines import Line2D          # noqa: E402
 # (§3.1 and Figure 2's caption), and which colour pairs Figure 6 draws
 # (§3.3's tie bars).  numbers_cv imports nothing from here, so this is not
 # a cycle.
+from macro_core import plotstyle as ps       # noqa: E402
 from . import numbers_cv as _nx              # noqa: E402
 from . import final_science as _fs           # noqa: E402
 
 # ===========================================================================
 # Page geometry and style
 # ===========================================================================
+# All of it comes from macro_core.plotstyle, which IS this module's style
+# extracted so that the ninety-odd report figures on the site obey it too.
+# The names are re-bound here rather than dotted through the six hundred
+# call sites below, and because ``from figures_cv import BAND_COLOR`` is
+# what the tests and the manuscript emitter already do.
 
-#: AASTeX two-column body: one column is 3.5 in, the full text block 7.1 in.
-#: Drawing at any other width means the journal rescales the file and the
-#: figure's fonts stop matching the caption's.  These are the only widths.
-COL_SINGLE = 3.5
-COL_DOUBLE = 7.1
+COL_SINGLE = ps.COL_SINGLE
+COL_DOUBLE = ps.COL_DOUBLE
 
 #: Raster resolution for the web copy.  The PDF is vector and unaffected.
-PNG_DPI = 200
+PNG_DPI = ps.PNG_DPI
 
-#: Okabe--Ito: eight hues chosen to stay distinguishable under the three
-#: common forms of colour-blindness.  Named, not indexed, so a reader of the
-#: code can see which physical thing each colour means.
-OKABE_ITO = {
-    "black":     "#000000",
-    "orange":    "#E69F00",
-    "skyblue":   "#56B4E9",
-    "green":     "#009E73",
-    "yellow":    "#F0E442",
-    "blue":      "#0072B2",
-    "vermilion": "#D55E00",
-    "purple":    "#CC79A7",
-    "grey":      "#999999",
-}
-
-#: Filter -> colour.  Both the 2024 Johnson-ish G/R/I set and the Sloan
-#: g/r/i set map to the SAME three hues on purpose: the paper's whole
-#: era-seam argument is that these are different bandpasses measuring the
-#: same three parts of the spectrum, and a reader comparing two era panels
-#: should see blue against blue.  The bandpass difference is stated in the
-#: axis label and the caption, never smuggled in as a colour change.
-BAND_COLOR = {
-    "G": OKABE_ITO["blue"],      "g": OKABE_ITO["blue"],
-    "R": OKABE_ITO["vermilion"], "r": OKABE_ITO["vermilion"],
-    "I": OKABE_ITO["green"],     "i": OKABE_ITO["green"],
-    "z": OKABE_ITO["purple"],    "y": OKABE_ITO["orange"],
-}
-
-#: Filter -> marker.  The second channel that makes the figure survive a
-#: greyscale print, and the reason colour alone is never load-bearing.
-BAND_MARKER = {
-    "G": "o", "g": "o",
-    "R": "s", "r": "s",
-    "I": "^", "i": "^",
-    "z": "D", "y": "v",
-}
-
-#: Readout mode -> marker.  Camera and epoch are confounded for VV Pup and
-#: for the ST LMi era seam, so the camera has to be visible in any figure
-#: that spans the seam -- otherwise a reader attributes an instrument step
-#: to the star.
-MODE_MARKER = {
-    "High Gain": "o",
-    "High Gain StackPro": "P",
-    "1MHz High Sensitivity 16-bit": "s",
-    "Mode0": "^",
-    "Fast": "D",
-}
+OKABE_ITO = ps.OKABE_ITO
+BAND_COLOR = ps.BAND_COLOR
+BAND_MARKER = ps.BAND_MARKER
+MODE_MARKER = ps.MODE_MARKER
 
 #: Readout mode -> the abbreviation a cramped axis can carry.  The full
 #: strings are in the instrument table; these exist so a three-panel figure
@@ -187,7 +159,9 @@ STATE_COLOR = {
     "intermediate": OKABE_ITO["orange"],
     "censored": OKABE_ITO["grey"],
     "unclassified": OKABE_ITO["grey"],
-    "unknown": "#c9c9c9",
+    # A series with no measurable threshold is not a sixth category, it is
+    # the grey one with the saturation taken out -- ps.tint, not a new hue.
+    "unknown": ps.tint(OKABE_ITO["grey"], 0.45),
 }
 
 #: Target key -> the name a reader knows.
@@ -210,35 +184,13 @@ ERA_LABEL = {
 def apply_style() -> None:
     """Set the rcParams every figure in this module is drawn under.
 
-    ``pdf.fonttype = 42`` embeds TrueType rather than Type-3, which is what
-    lets a journal's production system re-flow and search the text in the
-    figure.  Type-3 is the matplotlib default and several publishers reject
-    it outright.
+    One line, because the rcParams are the house style and the house style
+    has exactly one definition.  The ``print`` profile is the manuscript
+    one: 8 pt serif against an AASTeX caption, no grid, hairline rules, and
+    ``pdf.fonttype = 42`` so the PDF embeds TrueType rather than the Type-3
+    that several publishers reject outright.
     """
-    plt.rcParams.update({
-        "pdf.fonttype": 42,
-        "ps.fonttype": 42,
-        "font.family": "serif",
-        "font.serif": ["DejaVu Serif", "Times New Roman", "serif"],
-        "font.size": 8,
-        "axes.labelsize": 8,
-        "axes.titlesize": 8.5,
-        "xtick.labelsize": 7,
-        "ytick.labelsize": 7,
-        "legend.fontsize": 6.5,
-        "legend.frameon": False,
-        "axes.linewidth": 0.7,
-        "grid.linewidth": 0.4,
-        "lines.linewidth": 1.0,
-        "lines.markersize": 3.0,
-        "xtick.direction": "in",
-        "ytick.direction": "in",
-        "xtick.top": True,
-        "ytick.right": True,
-        "figure.dpi": 110,
-        "savefig.bbox": "tight",
-        "savefig.pad_inches": 0.02,
-    })
+    ps.apply("print")
 
 
 # ===========================================================================
@@ -798,7 +750,7 @@ def fig01_coverage(cv, ext_targets=("stlmi", "vvpup", "euuma",
         if math.isfinite(x) and x_lo <= x <= x_hi:
             n_ext_in += 1
             ax.plot([x], [y + 0.30], marker="|", ms=3.5, lw=0,
-                    color="#c4c4c4", zorder=1)
+                    color=ps.WISP, zorder=1)
 
     seen_band, seen_mode = set(), set()
     for r in rows:
@@ -821,7 +773,7 @@ def fig01_coverage(cv, ext_targets=("stlmi", "vvpup", "euuma",
     # Headroom above the top target so the two legends sit on empty axis
     # rather than on YZ Cnc's nights.
     ax.set_ylim(-0.7, len(ycat) + 0.9)
-    ax.grid(axis="x", color="#eeeeee", zorder=0)
+    ax.grid(axis="x", color=ps.GRID, zorder=0)
     ax.set_ylabel("target")
 
     band_handles = [Line2D([], [], marker="o", lw=0, ms=4,
@@ -831,7 +783,7 @@ def fig01_coverage(cv, ext_targets=("stlmi", "vvpup", "euuma",
     mode_handles = [Line2D([], [], marker=MODE_MARKER[m], lw=0, ms=4,
                            mfc="none", mec="k", mew=0.7, label=m)
                     for m in MODE_MARKER if m in seen_mode]
-    grey = Line2D([], [], marker="|", lw=0, ms=5, color="#bbbbbb",
+    grey = Line2D([], [], marker="|", lw=0, ms=5, color=ps.WISP,
                   label="survey epoch (ZTF/ASAS-SN/AAVSO)")
     leg1 = ax.legend(handles=band_handles, loc="upper left", ncol=4,
                      title="filter", title_fontsize=6.5,
@@ -863,7 +815,7 @@ def fig01_coverage(cv, ext_targets=("stlmi", "vvpup", "euuma",
              fontsize=6, va="bottom", color=OKABE_ITO["black"])
     ax2.set_yscale("log")
     ax2.set_ylabel("orbital cycles covered\nper night per filter")
-    ax2.grid(color="#eeeeee")
+    ax2.grid(color=ps.GRID)
 
     ax.set_xlim(x_lo, x_hi)
     ax2.set_xlim(x_lo, x_hi)
@@ -991,7 +943,7 @@ def fig02_rms_vs_mag(ch, cv, man):
                         marker="P", ms=4.5, mfc=col, mec="k", mew=0.4,
                         zorder=6)
         if floors_lo:
-            ax.axhspan(min(floors_lo), max(floors_hi), color="#000000",
+            ax.axhspan(min(floors_lo), max(floors_hi), color=OKABE_ITO["black"],
                        alpha=0.055, lw=0, zorder=1)
             ax.text(0.985, 0.05,
                     f"measured systematic floor "
@@ -1001,7 +953,7 @@ def fig02_rms_vs_mag(ch, cv, man):
         ax.set_yscale("log")
         ax.set_ylim(0.5, 400)
         ax.set_title(mode, loc="left")
-        ax.grid(color="#eeeeee")
+        ax.grid(color=ps.GRID)
     for ax in flat[len(order):]:
         ax.set_visible(False)
     for row in axes:
@@ -1134,7 +1086,7 @@ def fig03_linearity(man):
     ax.set_ylim(0.02, 2e3)
     ax.set_xlabel("median peak pixel level (ADU)")
     ax.set_ylabel("|departure| from a linear\nflux--exposure law (per cent)")
-    ax.grid(color="#eeeeee")
+    ax.grid(color=ps.GRID)
     ax.legend(loc="upper left", fontsize=5.6)
 
     # Right panel: the three ADU numbers per mode that the pipeline uses.
@@ -1162,7 +1114,7 @@ def fig03_linearity(man):
     ax2.set_xscale("log")
     ax2.set_xlim(2e3, 1.2e5)
     ax2.set_xlabel("pixel level (ADU)")
-    ax2.grid(axis="x", color="#eeeeee")
+    ax2.grid(axis="x", color=ps.GRID)
     ax2.legend(handles=[
         Line2D([], [], marker="|", lw=0, ms=8, color="k",
                label="measured clip (ceiling)"),
@@ -1283,7 +1235,7 @@ def fig04_periodograms(cv, ch, picks=None):
             _empty_panel(axp, "no periodogram computed")
         axp.set_ylabel("LS power", fontsize=6.2)
         for a in (axw, axp):
-            a.grid(color="#f2f2f2")
+            a.grid(color=ps.GRID)
             a.tick_params(labelsize=6)
 
     axes[-1][0].set_xlabel("frequency offset from peak (cycles d$^{-1}$)")
@@ -1374,7 +1326,7 @@ def _fold_panel(ax, cv, series_key, eph_row, states, n_bins=40,
     lo, hi = robust_ylim(pts["mag"], k=5.0)
     ax.set_ylim(hi, lo)                       # inverted: bright at the top
     ax.set_xlim(0, 2)
-    ax.grid(color="#f2f2f2")
+    ax.grid(color=ps.GRID)
     return pts["bjd"].size
 
 
@@ -1503,7 +1455,7 @@ def fig06_colour_phase(cv, max_dt_s=_nx.COLOUR_PAIR_WINDOW_S):
             ax.text(0.985, 0.93, f"{t.size} pairs, $\\Delta t<${max_dt_s:.0f} s",
                     transform=ax.transAxes, ha="right", va="top", fontsize=5.8,
                     color=OKABE_ITO["grey"])
-            ax.grid(color="#f2f2f2")
+            ax.grid(color=ps.GRID)
             if r == 0:
                 ax.set_title(title, fontsize=7.5, loc="left")
     for ax in axes[-1]:
@@ -1642,7 +1594,9 @@ def fig08_state_history(cv, first_night="2018-01-01"):
     # in the code that draws it rather than in a \resizebox in the source.
     fig, axes = plt.subplots(len(targets), 1, figsize=(COL_DOUBLE, 7.0),
                              sharex=True, squeeze=False)
-    src_color = {"ztf": "#9ab4d0", "asassn": "#d0b49a", "aavso": "#b7c9a8"}
+    src_color = {"ztf": ps.tint(ps.ACCENT, 0.45),
+                 "asassn": ps.tint(ps.WARN, 0.45),
+                 "aavso": ps.tint(ps.GOOD, 0.45)}
     x_min = float(night_to_ordinal([first_night])[0])
     n_before = 0
 
@@ -1703,7 +1657,7 @@ def fig08_state_history(cv, first_night="2018-01-01"):
         lo, hi = robust_ylim(yvals, k=4.0)
         ax.set_ylim(hi, lo)                   # inverted: bright at the top
         ax.set_ylabel(f"{TARGET_LABEL[tgt]}\nmagnitude", fontsize=6.5)
-        ax.grid(color="#f4f4f4")
+        ax.grid(color=ps.GRID)
         ax.tick_params(labelsize=6)
     ax_last = axes[-1][0]
     lo, hi = ax_last.get_xlim()
@@ -1896,7 +1850,7 @@ def fig09_oc(cv):
             env_report = _envelope_report(y_ep, s_ep, env_ep, e_ep)
     ax.set_xlabel("cycle number since the catalogue epoch")
     ax.set_ylabel("O$-$C (s)")
-    ax.grid(color="#f2f2f2")
+    ax.grid(color=ps.GRID)
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.15), ncol=4,
               fontsize=5.6, columnspacing=0.9, handletextpad=0.35)
 
@@ -1935,7 +1889,7 @@ def fig09_oc(cv):
             ax2.errorbar([r["delta_s"] for r in singles], i + jit,
                          xerr=[r["sigma_s"] for r in singles], fmt="o",
                          ms=2.0, lw=0, elinewidth=0.5, capsize=0,
-                         color=col, ecolor="#d5d5d5", alpha=0.85, mec="none")
+                         color=col, ecolor=ps.WISP, alpha=0.85, mec="none")
         p0 = pooled[0]
         ax2.errorbar([p0["delta_s"]], [i], xerr=[p0["sigma_s"]], fmt="D",
                      ms=3.4, lw=0, elinewidth=1.1, capsize=1.8,
@@ -1958,7 +1912,7 @@ def fig09_oc(cv):
              for era, ba, bb in keys], fontsize=5.8)
         ax2.set_ylim(-0.6, len(keys) - 0.15)
         ax2.set_xlabel("band-to-band edge offset (s)")
-        ax2.grid(axis="x", color="#f2f2f2")
+        ax2.grid(axis="x", color=ps.GRID)
         ax2.set_title(f"{n_sig} of {len(bp)} significant at 3$\\sigma$",
                       fontsize=6.0, color=OKABE_ITO["vermilion"], pad=3)
         ax2.legend(handles=[
@@ -2129,7 +2083,7 @@ def fig10_yzcnc_season(cv):
     xa = night_to_ordinal([r["utc_night"] for r in aavso])
     ya = np.array([r["mag"] for r in aavso], dtype=float)
     order = np.argsort(xa)
-    ax.plot(xa[order], ya[order], "-", lw=0.5, color="#cccccc", zorder=1)
+    ax.plot(xa[order], ya[order], "-", lw=0.5, color=ps.WISP, zorder=1)
     ax.plot(xa, ya, ".", ms=2.0, color=OKABE_ITO["grey"], alpha=0.8,
             zorder=2, label="AAVSO nightly (independent)")
 
@@ -2166,7 +2120,7 @@ def fig10_yzcnc_season(cv):
     ax.invert_yaxis()
     ax.set_ylabel("magnitude (mag)")
     ax.set_xlabel("UTC night")
-    ax.grid(color="#f4f4f4")
+    ax.grid(color=ps.GRID)
     lo, hi = ax.get_xlim()
     ylo, yhi = robust_ylim(
         [y for x, y in zip(xa, ya) if lo <= x <= hi] + [10.0], k=5.0)
@@ -2214,7 +2168,7 @@ def fig10_yzcnc_season(cv):
         axi.set_title(f"{str(r['utc_nights']).split('+')[0]} {band} "
                       f"({r['state']})", fontsize=6, loc="left")
         axi.tick_params(labelsize=5.5)
-        axi.grid(color="#f4f4f4")
+        axi.grid(color=ps.GRID)
 
     # The run census and the peak amplitude, from the tables that measured
     # them, so the caption cannot outlive a re-run of CV-S10.
@@ -2287,7 +2241,7 @@ def fig11_yzcnc_fallback(cv):
         amp = 1000.0 * float(r["hump_amp"])
         f90 = 1000.0 * float(r["amp90_field"] or np.nan)
         s90 = 1000.0 * float(r["amp90_self"] or np.nan)
-        ax.plot([f90, s90], [i, i], "-", lw=0.8, color="#dddddd", zorder=1)
+        ax.plot([f90, s90], [i, i], "-", lw=0.8, color=ps.WISP, zorder=1)
         ax.plot([amp], [i], "o", ms=3.4, color=col, mec="none", zorder=4)
         ax.plot([f90], [i], "|", ms=7, color=OKABE_ITO["green"], mew=1.2,
                 zorder=3)
@@ -2303,7 +2257,7 @@ def fig11_yzcnc_fallback(cv):
     ax.set_xscale("log")
     ax.set_xlabel("semi-amplitude (mmag)")
     ax.set_ylim(-0.8, max(0.6, len(runs) - 0.4))
-    ax.grid(axis="x", color="#f2f2f2")
+    ax.grid(axis="x", color=ps.GRID)
     ax.legend(handles=[
         Line2D([], [], marker="o", lw=0, ms=4, color="k",
                label="fitted hump semi-amplitude"),
@@ -2340,13 +2294,13 @@ def fig11_yzcnc_fallback(cv):
     tauf = np.array([r["tau_s"] for r in fl if r["sf_floor"]], dtype=float)
     if floor.size:
         o = np.argsort(tauf)
-        ax2.plot(tauf[o], floor[o], ".", ms=1.4, color="#bbbbbb", zorder=0,
+        ax2.plot(tauf[o], floor[o], ".", ms=1.4, color=ps.WISP, zorder=0,
                  label="measured floor (field stars)")
     ax2.set_xscale("log")
     ax2.set_yscale("log")
     ax2.set_xlabel("timescale $\\tau$ (s)")
     ax2.set_ylabel("structure-function amplitude (mmag)")
-    ax2.grid(color="#f2f2f2")
+    ax2.grid(color=ps.GRID)
     ax2.legend(loc="upper left", fontsize=5.4)
     ax2.set_title("(b) flickering over a measured floor", fontsize=7,
                   loc="left")
@@ -2503,7 +2457,7 @@ def fig12_injection(ch, cv):
         a_.set_xscale("log")
         a_.set_yscale("log")
         a_.set_xlabel("injected period (h)")
-        a_.grid(color="#f2f2f2")
+        a_.grid(color=ps.GRID)
         a_.legend(fontsize=5.0, loc="upper left", ncol=2,
                   columnspacing=0.8, handletextpad=0.4, handlelength=1.6)
     ax.set_ylabel("semi-amplitude at 90% recovery (mmag)")
@@ -2595,7 +2549,7 @@ def fig13_timing_audit(man):
         ax.set_ylabel(f"frames (of {len(rows):,} audited)")
     else:
         _empty_panel(ax, "no header audit rows")
-    ax.grid(color="#f2f2f2")
+    ax.grid(color=ps.GRID)
     ax.set_title("(a) what the header JD is", fontsize=7, loc="left")
 
     # (b) The clock cards agree to the stamp resolution in every mode.  The
@@ -2659,7 +2613,7 @@ def fig13_timing_audit(man):
                  fontsize=4.8, color=OKABE_ITO["grey"], linespacing=1.15)
     else:
         _empty_panel(ax2, "no DATE-OBS audit rows")
-    ax2.grid(axis="x", color="#f2f2f2")
+    ax2.grid(axis="x", color=ps.GRID)
     ax2.set_title("(b) worst clock disagreement per mode", fontsize=7,
                   loc="left")
 
@@ -2701,7 +2655,7 @@ def fig13_timing_audit(man):
                      fontsize=5.0, color=OKABE_ITO["grey"])
     else:
         _empty_panel(ax3, "no clock-validation eclipses with a usable O-C")
-    ax3.grid(axis="x", color="#f2f2f2")
+    ax3.grid(axis="x", color=ps.GRID)
     ax3.set_title("(c) the clock validator", fontsize=7, loc="left")
 
     # The guide the caption names, recomputed at caption scope so it is the

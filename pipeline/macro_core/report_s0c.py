@@ -24,10 +24,13 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np               # noqa: E402
 
 from . import staging as stg     # noqa: E402  (constants for interpolation)
-# Shared page machinery: same dark theme, same query discipline, same table
+# Shared page machinery: one house figure style, one query discipline,
+# one table generator
 # generator as the S0/S0b reports — one visual language across the site.
 from .report_s0 import (          # noqa: E402
-    ACCENT, DARK, DPI, WARN, _figure, esc, fmt, q, q1, table)
+    ACCENT, STYLE, DPI, GOOD, INK, MUTED, PAPER, WARN,
+    _figure, esc, fmt, q, q1, table)
+from . import plotstyle as ps    # noqa: E402  (the house figure style)
 
 # ---------------------------------------------------------------------------
 # Locations, derived from the repo layout (report lives in docs/pipeline/).
@@ -44,10 +47,14 @@ ROLE_ORDER = (stg.ROLE_SCIENCE, stg.ROLE_SCIENCE_UNRESOLVED,
               "bias", "dark", "flat",
               "master_bias", "master_dark", "master_flat")
 ROLE_COLORS = {stg.ROLE_SCIENCE: ACCENT,
-               stg.ROLE_SCIENCE_UNRESOLVED: "#d98f4f",
-               "bias": "#9fd8ae", "dark": "#7a8b99",
-               "flat": WARN, "master_bias": "#5d8a6b",
-               "master_dark": "#4d5b66", "master_flat": "#9a884d"}
+               stg.ROLE_SCIENCE_UNRESOLVED: ps.OTHER,
+               "bias": GOOD, "dark": MUTED,
+               "flat": WARN,
+               # A master is the SAME thing as its raws, derived — so it
+               # is the same hue, tinted, not a new colour to learn.
+               "master_bias": ps.tint(GOOD),
+               "master_dark": ps.tint(MUTED),
+               "master_flat": ps.tint(WARN)}
 
 
 def _stage_tables(con) -> list[tuple[str, str]]:
@@ -67,7 +74,7 @@ def fig_roles(con) -> str:
         counts[project] = dict(q(con,
             f"SELECT role, count(*) FROM {tbl} GROUP BY role"))
     projects = [p for p, _ in pairs]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(9.4, 0.62 * len(projects) + 1.6))
         left = np.zeros(len(projects))
         for role in ROLE_ORDER:
@@ -83,7 +90,7 @@ def fig_roles(con) -> str:
             n_sci = counts[p].get("science", 0)
             ax.annotate(f" {fmt(n_sci)} sci / {fmt(total)} total",
                         (left[i], i), va="center", fontsize=8,
-                        color="#e8eaed")
+                        color=INK)
         ax.set_xlabel("staged rows (science + era-matched calibration)")
         ax.set_title("Each project's working set, by role — "
                      "rows in a manifest, never copies")
@@ -113,20 +120,26 @@ def fig_eras(con) -> str:
     projects = [p for p, _ in pairs]
     grid = np.array([[per[p].get(e, 0) for e in era_list] for p in projects],
                     dtype=float)
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(
             figsize=(0.62 * len(era_list) + 3.2, 0.6 * len(projects) + 1.8))
         shown = np.log10(np.where(grid > 0, grid, np.nan))
-        im = ax.imshow(shown, cmap="Blues", aspect="auto")
+        im = ax.imshow(shown, cmap=ps.SEQ_CMAP, aspect="auto")
+        # A heatmap is not a plot with a grid: the rcParam grid would be
+        # painted straight across the cells it is meant to help read.
+        ax.grid(False)
+        lo, hi = float(np.nanmin(shown)), float(np.nanmax(shown))
         for i in range(len(projects)):
             for j in range(len(era_list)):
                 if grid[i, j] > 0:
-                    # High counts render as DARK blue under 'Blues' — those
-                    # cells need light text; pale cells need dark text.
-                    dark_cell = shown[i, j] > (np.nanmax(shown) * 0.6)
+                    # Where the cell sits on the ramp decides whether its
+                    # count is written in paper or in ink — measured, not
+                    # guessed, so a colormap change cannot orphan the type.
+                    frac = ((shown[i, j] - lo) / (hi - lo)
+                            if hi > lo else 1.0)
                     ax.annotate(fmt(int(grid[i, j])), (j, i), ha="center",
                                 va="center", fontsize=8,
-                                color="#e8eaed" if dark_cell else "#10151c")
+                                color=ps.ink_on(frac))
         ax.set_xticks(range(len(era_list)),
                       [f"era {e}" for e in era_list], rotation=45,
                       ha="right", fontsize=8)

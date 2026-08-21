@@ -41,7 +41,9 @@ import numpy as np                # noqa: E402
 
 from . import phase3 as p3        # noqa: E402
 from macro_core.report_s0 import (  # noqa: E402
-    ACCENT, DARK, DPI, WARN, esc, q, q1, table)
+    ACCENT, BAD, STYLE, DPI, GOOD, INK, MUTED, WARN,
+    esc, q, q1, table)
+from macro_core import plotstyle as ps   # noqa: E402  (house figure style)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DOCS_DIR = REPO_ROOT / "docs" / "CV_TimeSeries"
@@ -51,9 +53,6 @@ HTML_PATH = DOCS_DIR / "cv_timeseries_analysis.html"
 TARGET_LABEL = {"stlmi": "ST LMi", "vvpup": "VV Pup", "euuma": "EU UMa",
                 "anuma": "AN UMa", "yzcnc": "YZ Cnc"}
 TARGET_ORDER = ("stlmi", "anuma", "vvpup", "euuma", "yzcnc")
-GOOD = "#9fd8ae"
-BAD = "#f0a3a3"
-MUTED = "#6f7a8a"
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +133,7 @@ def fig_periodograms(con, target: str) -> str:
     if not series:
         return ""
     n = len(series)
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axes = plt.subplots(n, 3, figsize=(12.4, 2.05 * n + 0.5),
                                  squeeze=False,
                                  gridspec_kw={"width_ratios": [1.5, 1.5, 1.0]})
@@ -202,7 +201,12 @@ def fig_periodograms(con, target: str) -> str:
                         f"W(±1) = {meta[5]:.2f}\n{meta[6]} night"
                         f"{'s' if meta[6] != 1 else ''}\n{meta[7]}",
                         transform=a2.transAxes, fontsize=6.5, va="top",
-                        color="#d8dee9")
+                        color=MUTED,
+                        # A single-night window fills the whole panel, and
+                        # grey type on it was unreadable.  The label carries
+                        # its own ground.
+                        bbox=dict(facecolor=ps.PAPER, edgecolor="none",
+                                  alpha=0.78, pad=1.4))
             if i == 0:
                 a2.set_title("SPECTRAL WINDOW\n(frequency offset, c/d)",
                              fontsize=8)
@@ -230,7 +234,7 @@ def fig_period_summary(con) -> str:
                      ORDER BY target_key, era_id, filter""")
     if not rows:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(11.4, 4.6))
         y = np.arange(len(rows))
         dev = np.array([r[1] if r[1] is not None else np.nan for r in rows])
@@ -241,7 +245,7 @@ def fig_period_summary(con) -> str:
                    label="orbital modulation detected")
         a1.scatter(dev[~det], y[~det], s=26, color=MUTED, marker="x",
                    label="not detected")
-        a1.axvline(0, color="#d8dee9", lw=0.8)
+        a1.axvline(0, color=MUTED, lw=0.8)
         a1.set_yticks(y)
         a1.set_yticklabels([_label(r[0]) for r in rows], fontsize=6.5)
         a1.set_xlabel("(recovered − published) / combined σ")
@@ -258,7 +262,7 @@ def fig_period_summary(con) -> str:
             if np.isfinite(xa) and np.isfinite(yf):
                 a2.annotate(_label(r[0]), (xa, yf), fontsize=5.5,
                             xytext=(3, 2), textcoords="offset points",
-                            color="#aab4c2")
+                            color=MUTED)
         a2.axvline(p3.ALIAS_DECIDABLE_MAX, color=GOOD, ls="--", lw=1.2,
                    label=f"alias power below which a periodogram could\n"
                          f"choose its own period ({p3.ALIAS_DECIDABLE_MAX:g})")
@@ -282,7 +286,7 @@ def fig_sigmat(con) -> str:
                                  "ORDER BY series_key")]
     if not keys:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axes = plt.subplots(1, len(keys) + 1,
                                  figsize=(3.6 * (len(keys) + 1), 3.9),
                                  squeeze=False)
@@ -298,19 +302,23 @@ def fig_sigmat(con) -> str:
                                          WHERE series_key=? AND
                                                inject_factor=1.0""", (sk,)):
                 grid[depths.index(de), shapes.index(se)] = tot
+            norm = matplotlib.colors.LogNorm(
+                vmin=max(np.nanmin(grid), 1.0), vmax=np.nanmax(grid))
             im = ax.imshow(grid, origin="lower", aspect="auto",
-                           cmap="magma", norm=matplotlib.colors.LogNorm(
-                               vmin=max(np.nanmin(grid), 1.0),
-                               vmax=np.nanmax(grid)))
+                           cmap=ps.SEQ_CMAP, norm=norm)
+            ax.grid(False)          # a heatmap wears no grid
             for iy in range(grid.shape[0]):
                 for ix in range(grid.shape[1]):
                     v = grid[iy, ix]
                     if not np.isfinite(v):
                         continue
-                    ok = v <= p3.SIGMA_T_THRESHOLD_S
+                    # Paper or ink by where the cell sits on the ramp.  The
+                    # previous version wrote every PASSING cell in green,
+                    # which on the dark end of the old map was unreadable;
+                    # the pass/fail verdict is the CONTOUR's job, below.
                     ax.text(ix, iy, f"{v:.0f}", ha="center", va="center",
                             fontsize=7.5, weight="bold",
-                            color=GOOD if ok else "#ffffff")
+                            color=ps.ink_on(float(norm(v))))
             # The 60 s contour, drawn where it actually falls.
             try:
                 ax.contour(grid, levels=[p3.SIGMA_T_THRESHOLD_S],
@@ -364,11 +372,9 @@ def fig_edges(con) -> str:
                                      "ORDER BY c DESC LIMIT 3")]
     if not keys:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(11.6, 4.4))
-        colours = {"g": "#8ab4ff", "r": "#f0a3a3", "i": "#e6cc7a",
-                   "G": "#8ab4ff", "R": "#f0a3a3", "I": "#e6cc7a",
-                   "z": "#c8a2e0", "y": "#9fd8ae"}
+        colours = ps.BAND_COLOR
         for sk in keys:
             tgt, era, filt = sk.split("|")
             eph = q(con, "SELECT period_d, epoch_bjd FROM p3_ephemeris "
@@ -420,7 +426,7 @@ def fig_edges(con) -> str:
             if sig.any():
                 a2.errorbar(d[sig], y[sig], xerr=s[sig], fmt="o", ms=5,
                             color=BAD, capsize=2, label="≥3σ from zero")
-            a2.axvline(0, color="#d8dee9", lw=1.0)
+            a2.axvline(0, color=MUTED, lw=1.0)
             a2.set_yticks(y)
             a2.set_yticklabels([f"{TARGET_LABEL.get(r[0], r[0])} {r[1]} "
                                 f"{r[2]}−{r[3]} (n={r[6]})" for r in rows],
@@ -458,15 +464,13 @@ def fig_oc(con) -> str:
     oc_targets = sorted({r[0] for r in rows},
                         key=lambda t: -sum(1 for r in rows if r[0] == t))
     n_oc = max(len(oc_targets), 1)
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axes = plt.subplots(1, n_oc + 1,
                                  figsize=(4.4 * n_oc + 5.6, 4.3),
                                  squeeze=False)
         axes = axes[0]
         a2 = axes[-1]
-        colours = {"g": "#8ab4ff", "r": "#f0a3a3", "i": "#e6cc7a",
-                   "G": "#8ab4ff", "R": "#f0a3a3", "I": "#e6cc7a",
-                   "z": "#c8a2e0", "y": "#9fd8ae"}
+        colours = ps.BAND_COLOR
         if rows:
             for a1, tgt in zip(axes, oc_targets):
                 trows = [r for r in rows if r[0] == tgt]
@@ -476,7 +480,7 @@ def fig_oc(con) -> str:
                                 yerr=[r[3] for r in sel], fmt="o", ms=4,
                                 capsize=2, lw=0.9,
                                 color=colours.get(filt, ACCENT), label=filt)
-                a1.axhline(0, color="#d8dee9", lw=0.9)
+                a1.axhline(0, color=MUTED, lw=0.9)
                 rms = float(np.std([r[2] for r in trows], ddof=1)) \
                     if len(trows) > 1 else float("nan")
                 a1.set_xlabel("cycle number from this star's VSX epoch")
@@ -527,7 +531,7 @@ def fig_states(con) -> str:
     if not series:
         return ""
     show = series[:12]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(12.0, 4.8))
         for i, sk in enumerate(show):
             rows = q(con, """SELECT night, median_mag, state, censored, gated
@@ -574,10 +578,10 @@ def fig_states(con) -> str:
             # entirely — the reader would see one bar and conclude the
             # censored version had not been plotted.
             a2.barh(y - 0.19, [r[1] for r in rows], height=0.36,
-                    color=MUTED, edgecolor="#d8dee9", linewidth=0.6,
+                    color=MUTED, edgecolor=MUTED, linewidth=0.6,
                     label="detections only (censored)")
             a2.barh(y + 0.19, [r[2] if r[2] is not None else 0 for r in rows],
-                    height=0.36, color=ACCENT, edgecolor="#d8dee9",
+                    height=0.36, color=ACCENT, edgecolor=MUTED,
                     linewidth=0.6, label="with Phase-2 limits")
             for yi, r in zip(y, rows):
                 if r[2] is not None and abs(r[1] - r[2]) < 1e-9:
@@ -606,12 +610,12 @@ def fig_detrend(con) -> str:
                      FROM p3_detrend ORDER BY window_periods""")
     if not rows:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(7.6, 4.4))
         x = np.array([r[0] for r in rows])
         d = np.array([r[1] if r[1] is not None else np.nan for r in rows])
         j = np.array([r[2] if r[2] is not None else np.nan for r in rows])
-        ax.axhline(1.0, color="#d8dee9", lw=1.0, ls="-",
+        ax.axhline(1.0, color=MUTED, lw=1.0, ls="-",
                    label="the injected amplitude")
         ax.plot(x, d, "-o", ms=5, color=BAD, lw=1.6,
                 label="detrend first, then search")

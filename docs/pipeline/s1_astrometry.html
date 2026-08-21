@@ -6,21 +6,22 @@
 
 <header>
   <h1>S1 — Astrometry Go/No-Go Experiment</h1>
-  <p>455 / 520 sampled frames solved &middot;
-  11 strata (8 GO) &middot;
+  <p>449 / 517 sampled frames solved &middot;
+  11 strata (6 GO) &middot;
   seed 20260817 &middot;
-  built 2026-08-19T23:35Z
-  (S1 v1.1 (2026-08-18),
-  commit <code>2c897e7</code>)
+  built 2026-08-21T02:45Z
+  (S1 v1.2 (2026-08-20) — measured-dispersion candidate gate,
+  commit <code>bf9fe64</code>)
   &middot; <a href="../index.html">back to the evidence hub</a></p>
 </header>
 
 <nav>
   <a href="#tooling">1 Tooling</a> &middot;
   <a href="#universe">2 Candidate universe</a> &middot;
-  <a href="#results">3 Experiment</a> &middot;
-  <a href="#autopsy">4 Failure autopsy</a> &middot;
-  <a href="#verdict">5 Verdict &amp; cost</a>
+  <a href="#correction">3 Gate correction</a> &middot;
+  <a href="#results">4 Experiment</a> &middot;
+  <a href="#autopsy">5 Failure autopsy</a> &middot;
+  <a href="#verdict">6 Verdict &amp; cost</a>
 </nav>
 
 
@@ -49,19 +50,18 @@ pointing as a &plusmn;15.0&deg; hint
 where present.  The measured plate scales, per camera family:</p>
 <table class="data">
 <tr><th>READOUTM</th><th>bin</th><th>solved frames</th><th>measured scale ("/px)</th><th>prior handed to solver</th></tr>
-<tr><td>Mode0</td><td>2</td><td>190</td><td>0.4505 – 0.4515</td><td>0.30 – 0.66</td></tr>
-<tr><td>1MHz High Sensitivity 16-bit</td><td>1</td><td>90</td><td>0.8084 – 0.8102</td><td>0.40 – 1.30</td></tr>
-<tr><td>Fast</td><td>2</td><td>90</td><td>0.4502 – 0.4518</td><td>0.30 – 0.66</td></tr>
-<tr><td>High Gain</td><td>1</td><td>71</td><td>0.5385 – 0.5401</td><td>0.40 – 0.75</td></tr>
+<tr><td>Mode0</td><td>2</td><td>179</td><td>0.4505 – 0.4512</td><td>0.30 – 0.66</td></tr>
+<tr><td>1MHz High Sensitivity 16-bit</td><td>1</td><td>94</td><td>0.8084 – 0.8113</td><td>0.40 – 1.30</td></tr>
+<tr><td>Fast</td><td>2</td><td>91</td><td>0.4495 – 0.4518</td><td>0.30 – 0.66</td></tr>
+<tr><td>High Gain</td><td>1</td><td>74</td><td>0.5390 – 0.5401</td><td>0.40 – 0.75</td></tr>
 <tr><td>High Gain StackPro</td><td>1</td><td>11</td><td>0.5390 – 0.5393</td><td>0.40 – 0.75</td></tr>
-<tr><td>5MHz High Sensitivity 16-bit</td><td>1</td><td>3</td><td>0.8090 – 0.8092</td><td>0.40 – 1.30</td></tr>
 </table>
 <p class="sub">A <b>solution-acceptance gate</b> guards every
 &ldquo;solved&rdquo; verdict: a solution counts only when its measured
 pixel scale sits inside the prior handed to the solver, at least
 8 index stars matched, and the astrometric
 RMS stays under 5&Prime;.  The gate caught
-3 false positive(s) in the experiment (recorded as
+2 false positive(s) in the experiment (recorded as
 <code>bad_solve</code>): astrometry.net emitted a confident-looking WCS
 at 7&times; the true plate scale from a 4-star quad match on a healthy
 Mode0 field.  Any batch run inherits the same gate, so false solutions
@@ -91,11 +91,11 @@ Light frames.  How many of them can a plate solver even be pointed at?</p>
 <table class="data">
 <tr><th>population class</th><th>frames</th><th>meaning</th></tr>
 <tr><td><code>unsolved_total</code></td><td>78,225</td><td>canonical rawimage Light frames with pltsolvd != 1</td></tr>
-<tr class="warn"><td><code>excluded_grism</code></td><td>16,566</td><td>FILTER names a grism — slitless spectra, never solvable</td></tr>
+<tr class="warn"><td><code>excluded_measured_spectrum</code></td><td>16,639</td><td>S2c MEASURED dispersion traces on this frame — it is a spectrum, whatever its FILTER string says</td></tr>
 <tr class="warn"><td><code>excluded_calib_vocab_filter</code></td><td>3</td><td>FILTER = 'dark'/'bias'/'flat' header glitch (S0b)</td></tr>
 <tr class="warn"><td><code>excluded_window_geometry</code></td><td>0</td><td>either axis &lt; 512 px — too little sky for quad matching (see docs/pipeline/s0e_geometry_fix.html: the 8x3211 signature was a metadata artifact)</td></tr>
-<tr><td><code>solvable_candidates</code></td><td>61,656</td><td>frames the solver can be pointed at</td></tr>
-<tr><td><code>candidates_unstratified</code></td><td>6,896</td><td>solvable but in no stratum (small heterogeneous residue)</td></tr>
+<tr><td><code>solvable_candidates</code></td><td>61,583</td><td>frames the solver can be pointed at</td></tr>
+<tr><td><code>candidates_unstratified</code></td><td>5,766</td><td>solvable but in no stratum (small heterogeneous residue)</td></tr>
 </table>
 <p class="sub"><b>The geometry exclusion is now
 EMPTY</b> &mdash; 0 frames.  It used to be the largest
@@ -112,13 +112,17 @@ gate, and they now sit in their own stratum
 no stratum at all.  <b>An earlier version of this page said that
 population &ldquo;can never be plate-solved by any tool&rdquo;.  That was
 wrong, and the rates below are measured on the repaired universe.</b>
-The 16,566 grism rows are slitless spectra
-(hrg/lrg/HaGrism/OGGrism) &mdash; they have no star field by design, and
-they are the only large exclusion left.</p>
+The 16,639 spectrum rows are the only large exclusion left:
+frames that stage <a href="s2c_filter_identity.html">S2c</a>
+<i>measured</i> to be slitless spectra &mdash; parallel traces along a
+common grating axis, no star field by design.  <b>That criterion is
+itself a correction</b>: until S1 v1.2 this page decided &ldquo;spectrum&rdquo;
+by matching the FILTER string against a list of grism names, which was
+wrong in both directions.  Section 3 shows the damage and the delta.</p>
 
 <h3>Decision</h3>
 <div class="decision"><b>The astrometry batch universe is the
-61,656 solvable candidates: non-grism FILTER, both axes
+61,583 solvable candidates: not MEASURED dispersed, both axes
 &ge; 512 px.</b>  Exclusions are recorded
 per class in <code>s1_populations</code> — nothing is silently dropped,
 and the window-strip populations are handed to the time-series pipeline
@@ -128,9 +132,138 @@ as a named fact, not a failure.</div>
 <p class="sub">Success rates below are rates on frames a solver could in
 principle solve — the honest denominator for the batch decision.</p>
 </div></section>
+<section id="correction">
+<div class="bhead"><h2>3 &middot; Label vs measurement: the gate
+correction</h2>
+<span class="tag">a published rate, taxonomy and verdict were computed
+over the wrong denominator</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Astrometry cannot apply to a slitless spectrum, so the
+candidate universe must exclude spectra.  Earlier versions of this page
+decided which frames were spectra by <b>reading the FILTER string</b> and
+matching it against five known grism names
+(<code>grism</code>, <code>hagrism</code>, <code>hrg</code>, <code>lrg</code>, <code>oggrism</code>).
+Stage <a href="s2c_filter_identity.html">S2c</a> has since <b>measured</b>
+dispersion per frame — parallel traces along a common grating axis.  Do
+the label and the measurement agree about what a spectrum is?</p>
+
+<h3>Evidence</h3>
+<p class="sub"><b>They do not, in both directions.</b>  The telescope has
+a MIXED filter slot: slot <code>6</code> carries a grating on some nights
+and glass on others, and its FILTER string is simply <code>6</code> —
+nothing in the header distinguishes the two cases.  The label rule
+therefore let those spectra <i>into</i> the astrometry universe, where
+they could not possibly solve; and it deleted, unseen, frames whose
+labels look like grisms but which S2c measures as ordinary images.  The
+full cross-tab over all 78,225 unsolved
+frames:</p>
+<table class="data">
+<tr><th>FILTER label</th><th>S2c measurement</th><th>label gate</th><th>measured gate</th><th>movement</th><th>frames</th></tr>
+<tr class="warn"><td><code>plain_label</code></td><td><code>dispersed</code></td><td>included</td><td>excluded</td><td><b>OUT</b> — was in the universe, is a spectrum</td><td>1,211</td></tr>
+<tr class="warn"><td><code>grism_label</code></td><td><code>indeterminate</code></td><td>excluded</td><td>included</td><td><b>IN</b> — was deleted unseen, is an image</td><td>960</td></tr>
+<tr class="warn"><td><code>grism_label</code></td><td><code>direct</code></td><td>excluded</td><td>included</td><td><b>IN</b> — was deleted unseen, is an image</td><td>178</td></tr>
+<tr><td><code>plain_label</code></td><td><code>unmeasured</code></td><td>included</td><td>included</td><td>unchanged (in)</td><td>58,596</td></tr>
+<tr><td><code>grism_label</code></td><td><code>dispersed</code></td><td>excluded</td><td>excluded</td><td>unchanged (out)</td><td>15,428</td></tr>
+<tr><td><code>plain_label</code></td><td><code>direct</code></td><td>included</td><td>included</td><td>unchanged (in)</td><td>1,403</td></tr>
+<tr><td><code>plain_label</code></td><td><code>indeterminate</code></td><td>included</td><td>included</td><td>unchanged (in)</td><td>446</td></tr>
+<tr><td><code>plain_label</code></td><td><code>unmeasured</code></td><td>excluded</td><td>excluded</td><td>unchanged (out)</td><td>3</td></tr>
+</table>
+<p class="sub">The retired label gate called
+61,656 frames solvable candidates; the measured gate
+calls 61,583.  The two universes differ by
+1,211 frames <b>out</b> and 1,138 frames
+<b>in</b> &mdash; a near-cancelling net of
+-73, which is precisely why the error was
+invisible in the headline census and had to be found in the failure
+gallery instead.</p>
+<p class="sub"><b>The behavioural check.</b>  In the S1b production batch — a population far larger than this experiment&rsquo;s samples — frames that the solver actually attempted solved at <b>98% of 1,040 attempts</b> when measured <code>direct</code>, <b>77% of 35 attempts</b> when <code>indeterminate</code>, and <b>27% of 11 attempts</b> when <code>dispersed</code> (QC-skipped frames excluded: they never reached the solver).  The indeterminate class behaves like images, not like spectra — which is the empirical half of the argument for keeping it.</p>
+
+<h3>Decision</h3>
+<div class="decision"><b>A frame is excluded as a spectrum when, and only
+when, S2c MEASURED it dispersed.</b>  The FILTER label no longer gates
+anything; it survives in the code
+(<code>is_solvable_candidate_by_label</code>) purely to compute the table
+above.  The rule for each of the four dispersion classes, stated so that
+none of them defaults silently:
+<ul>
+<li><code>dispersed</code> &rarr; <b>EXCLUDED</b>. Measured traces on a
+common grating axis. It is a spectrum.</li>
+<li><code>direct</code> &rarr; <b>INCLUDED, whatever the FILTER says</b>.
+178 frames carrying a grism-looking label are measured
+direct images. A label loses to a measurement of the same fact; these
+return to the universe.</li>
+<li><code>indeterminate</code> &rarr; <b>INCLUDED</b>. S2c looked and
+could not certify either way. This moves 960 frames in
+(the indeterminate frames that carried a grism-looking label; the rest
+were already in). The reason is that the gate's question is ontological
+&mdash; <i>is this an image?</i> &mdash; never predictive &mdash;
+<i>will it solve?</i>. Excluding frames because they look unlikely to
+solve would inflate the very rate this experiment measures. S2c's
+commonest indeterminate reason is literally &ldquo;no usable sources
+extracted&rdquo;, which describes a blank IMAGE far more often than a
+spectrum &mdash; and the production batch corroborates it (below).</li>
+<li><code>unmeasured</code> &rarr; <b>INCLUDED</b>. S2c targeted the
+dispersion-suspect population, so 58,599 candidates were
+never measured at all. This rule moves <b>zero</b> frames &mdash; every
+unmeasured frame carries an ordinary label and was already in &mdash;
+but it still has to be stated, because the alternative (exclude anything
+not certified direct) would delete most of the backlog on no evidence
+whatever.</li>
+</ul>
+In one sentence: <b>exclusion must be earned by a positive
+measurement.</b>  The old label rule and its mirror image (&ldquo;exclude
+whatever is not certified direct&rdquo;) share one flaw — removing frames
+from a denominator without evidence.</div>
+
+<h3>Consequence</h3>
+<p class="sub"><b>What the contamination did.</b>  12 of
+the 65 failures autopsied under the old gate are frames
+S2c measures as spectra.  Every one of them was machine-diagnosed as an
+<i>optical fault</i> &mdash; the frames were real, the statistics were
+real, and the diagnosis was still wrong, because the autopsy was asking
+&ldquo;what is wrong with this image?&rdquo; about something that was
+never an image:</p>
+<table class="data">
+<tr><th>stratum</th><th>old machine diagnosis</th><th>frames</th></tr>
+<tr class="warn"><td><code>sn_gsense_broadband</code></td><td>defocused (giant blobs, no point sources)</td><td>8</td></tr>
+<tr class="warn"><td><code>cv_gsense_misc</code></td><td>trailing (guiding/wind)</td><td>2</td></tr>
+<tr class="warn"><td><code>cv_gsense_misc</code></td><td>starved (blank/clouds/hot-pixel-only)</td><td>1</td></tr>
+<tr class="warn"><td><code>sn_gsense_broadband</code></td><td>trailing (guiding/wind)</td><td>1</td></tr>
+</table>
+<p class="sub">No wrong astrometry was ever produced: a spectrum simply
+fails to solve, and the batch QC gate skips it.  What was produced was a
+<b>rate over a denominator containing non-images</b>, a failure taxonomy
+that attributed spectra to defocus and wind, and verdicts resting on
+both.  The corrected per-stratum delta:</p>
+<table class="data">
+<tr><th>stratum</th><th>old backlog</th><th>new backlog</th><th>&Delta; backlog</th><th>old solved</th><th>new solved</th><th>old rate</th><th>new rate</th><th>&Delta; rate</th><th>old verdict</th><th>new verdict</th><th>verdict</th></tr>
+<tr><td><code>cv_mode0_sloan_short</code></td><td>2,341</td><td>2,341</td><td>&mdash;</td><td>48 / 48</td><td>48 / 48</td><td>100.0%</td><td>100.0%</td><td>+0.0 pp</td><td>GO</td><td><b>GO</b></td><td>same</td></tr>
+<tr><td><code>cv_mode0_sloan_long</code></td><td>1,663</td><td>1,663</td><td>&mdash;</td><td>48 / 48</td><td>48 / 48</td><td>100.0%</td><td>100.0%</td><td>+0.0 pp</td><td>GO</td><td><b>GO</b></td><td>same</td></tr>
+<tr><td><code>cv_ikon_sloan</code></td><td>558</td><td>558</td><td>&mdash;</td><td>48 / 48</td><td>48 / 48</td><td>100.0%</td><td>100.0%</td><td>+0.0 pp</td><td>GO</td><td><b>GO</b></td><td>same</td></tr>
+<tr class="warn"><td><code>cv_gsense_misc</code></td><td>40</td><td>37</td><td>-3</td><td>25 / 40</td><td>25 / 37</td><td>62.5%</td><td>67.6%</td><td>+5.1 pp</td><td>CAUTION</td><td><b>CAUTION</b></td><td>same</td></tr>
+<tr><td><code>cv_fast_fullframe</code></td><td>207</td><td>207</td><td>&mdash;</td><td>45 / 48</td><td>45 / 48</td><td>93.8%</td><td>93.8%</td><td>+0.0 pp</td><td>GO</td><td><b>GO</b></td><td>same</td></tr>
+<tr class="warn"><td><code>sn_gsense_broadband</code></td><td>369</td><td>308</td><td>-61</td><td>15 / 48</td><td>18 / 48</td><td>31.2%</td><td>37.5%</td><td>+6.2 pp</td><td>NO-GO</td><td><b>NO-GO</b></td><td>same</td></tr>
+<tr><td><code>dwarf_gsense_deep</code></td><td>247</td><td>247</td><td>&mdash;</td><td>42 / 48</td><td>42 / 48</td><td>87.5%</td><td>87.5%</td><td>+0.0 pp</td><td>CAUTION</td><td><b>CAUTION</b></td><td>same</td></tr>
+<tr class="warn"><td><code>mode0_backlog_short</code></td><td>9,232</td><td>9,720</td><td>+488</td><td>48 / 48</td><td>41 / 48</td><td>100.0%</td><td>85.4%</td><td>-14.6 pp</td><td>GO</td><td><b>CAUTION</b></td><td><b>MOVED</b></td></tr>
+<tr class="warn"><td><code>mode0_backlog_long</code></td><td>8,478</td><td>8,892</td><td>+414</td><td>46 / 48</td><td>42 / 48</td><td>95.8%</td><td>87.5%</td><td>-8.3 pp</td><td>GO</td><td><b>CAUTION</b></td><td><b>MOVED</b></td></tr>
+<tr class="warn"><td><code>fast_fullframe</code></td><td>19,020</td><td>19,134</td><td>+114</td><td>45 / 48</td><td>46 / 48</td><td>93.8%</td><td>95.8%</td><td>+2.1 pp</td><td>GO</td><td><b>GO</b></td><td>same</td></tr>
+<tr class="warn"><td><code>ikon_backlog</code></td><td>12,605</td><td>12,710</td><td>+105</td><td>45 / 48</td><td>46 / 48</td><td>93.8%</td><td>95.8%</td><td>+2.1 pp</td><td>GO</td><td><b>GO</b></td><td>same</td></tr>
+</table>
+<p class="sub"><b>Verdicts that MOVE:</b></p><ul class="sub"><li><code>mode0_backlog_short</code>: <b>GO &rarr; CAUTION</b></li><li><code>mode0_backlog_long</code>: <b>GO &rarr; CAUTION</b></li></ul>
+<p class="sub">Frames whose sample membership survived the re-design keep
+their recorded solve outcome rather than being re-solved
+(285 of 517
+sampled frames).  A solve outcome is a property of the frame and the
+solver configuration, and neither changed here; re-solving would spend
+CPU to reproduce a known answer <i>and</i> let solver nondeterminism leak
+into a delta that exists to isolate the gate change.  The baseline it is
+compared against is frozen in
+<code>s1_baseline_*</code> (S1 v1.1 — FILTER-label grism gate (the published, contaminated universe)).</p>
+</div></section>
 <section id="results">
-<div class="bhead"><h2>3 &middot; The experiment</h2>
-<span class="tag">520 frames, 11 strata, seed
+<div class="bhead"><h2>4 &middot; The experiment</h2>
+<span class="tag">517 frames, 11 strata, seed
 20260817</span></div>
 
 <div class="stage"><h3>Question</h3>
@@ -139,23 +272,23 @@ project — what fraction of sampled frames does the local solver actually
 solve, how fast, and how well?</p>
 
 <h3>Evidence</h3>
-<div class="grid"><figure><a href="figures/s1/s1_success_rates.png"><img src="figures/s1/s1_success_rates.png" alt=""></a><figcaption>455 of 520 sampled frames solved (gate-accepted). Bars are point rates; whiskers the Wilson 95% interval; the dashed line the 80% GO bar the interval's LOWER bound must clear.</figcaption></figure>
+<div class="grid"><figure><a href="figures/s1/s1_success_rates.png"><img src="figures/s1/s1_success_rates.png" alt=""></a><figcaption>449 of 517 sampled frames solved (gate-accepted). Bars are point rates; whiskers the Wilson 95% interval; the dashed line the 80% GO bar the interval's LOWER bound must clear.</figcaption></figure>
 <figure><a href="figures/s1/s1_solve_times.png"><img src="figures/s1/s1_solve_times.png" alt=""></a><figcaption>Successes cluster at seconds; failures burn the full CPU budget — the failure rate, not the solve speed, sets the batch cost.</figcaption></figure></div>
 <table class="data">
 <tr><th>stratum</th><th>definition</th><th>backlog</th><th>solved</th><th>rate [95% CI]</th><th>median t (s)</th><th>median RMS (")</th><th>median stars</th><th>verdict</th></tr>
 <tr><td><code>cv_mode0_sloan_short</code></td><td>ST LMi / VV Pup / EU UMa / AN UMa — Mode0 (ASI/IMX455) bin2, Sloan g/r/i, exptime &lt; 150 s</td><td>2,341</td><td>48 / 48</td><td>100% [93&ndash;100]</td><td>4.6</td><td>0.92</td><td>196.50</td><td><b>GO</b></td></tr>
 <tr><td><code>cv_mode0_sloan_long</code></td><td>same targets/camera, Sloan g/r/i, exptime ≥ 150 s</td><td>1,663</td><td>48 / 48</td><td>100% [93&ndash;100]</td><td>5.4</td><td>0.79</td><td>232.50</td><td><b>GO</b></td></tr>
 <tr><td><code>cv_ikon_sloan</code></td><td>VV Pup on the Andor iKon (1MHz 16-bit, 2048²), Sloan + blank filter</td><td>558</td><td>48 / 48</td><td>100% [93&ndash;100]</td><td>2.2</td><td>0.49</td><td>236</td><td><b>GO</b></td></tr>
-<tr class="warn"><td><code>cv_gsense_misc</code></td><td>CV polars on the GSENSE4040 (High Gain family) — small legacy set, mostly ST LMi</td><td>40</td><td>25 / 40</td><td>62% (census)</td><td>4.6</td><td>0.80</td><td>20</td><td><b>CAUTION</b></td></tr>
+<tr class="warn"><td><code>cv_gsense_misc</code></td><td>CV polars on the GSENSE4040 (High Gain family) — small legacy set, mostly ST LMi</td><td>37</td><td>25 / 37</td><td>68% (census)</td><td>4.6</td><td>0.80</td><td>20</td><td><b>CAUTION</b></td></tr>
 <tr><td><code>cv_fast_fullframe</code></td><td>CV polars on the fast-readout camera, bin2 full frames — the EU UMa season, invisible until the 8x3211 metadata artifact was repaired (see docs/pipeline/s0e_geometry_fix.html)</td><td>207</td><td>45 / 48</td><td>94% [83&ndash;98]</td><td>3.4</td><td>1.07</td><td>36</td><td><b>GO</b></td></tr>
-<tr class="warn"><td><code>sn_gsense_broadband</code></td><td>SN 2023ixf on the GSENSE4040 (High Gain / StackPro bin1), all filters</td><td>369</td><td>15 / 48</td><td>31% [20&ndash;45]</td><td>6.1</td><td>1.87</td><td>27</td><td><b>NO-GO</b></td></tr>
+<tr class="warn"><td><code>sn_gsense_broadband</code></td><td>SN 2023ixf on the GSENSE4040 (High Gain / StackPro bin1), all filters</td><td>308</td><td>18 / 48</td><td>38% [25&ndash;52]</td><td>4.3</td><td>2.48</td><td>36</td><td><b>NO-GO</b></td></tr>
 <tr class="warn"><td><code>dwarf_gsense_deep</code></td><td>Dw survey fields + NGC 5548 + NGC 5238 on the GSENSE4040, deep broadband/narrowband</td><td>247</td><td>42 / 48</td><td>88% [75&ndash;94]</td><td>7.0</td><td>1.67</td><td>22</td><td><b>CAUTION</b></td></tr>
-<tr><td><code>mode0_backlog_short</code></td><td>Mode0 bin2 non-CV imaging, exptime &lt; 10 s (rho Oph campaign and friends)</td><td>9,232</td><td>48 / 48</td><td>100% [93&ndash;100]</td><td>4.3</td><td>1.14</td><td>135</td><td><b>GO</b></td></tr>
-<tr><td><code>mode0_backlog_long</code></td><td>Mode0 bin2 non-CV imaging, exptime ≥ 10 s</td><td>8,478</td><td>46 / 48</td><td>96% [86&ndash;99]</td><td>4.7</td><td>0.75</td><td>237</td><td><b>GO</b></td></tr>
-<tr><td><code>fast_fullframe</code></td><td>Fast-readout FULL frames (naxis ≥ 512; the 8-px photometry strips are excluded by geometry)</td><td>19,020</td><td>45 / 48</td><td>94% [83&ndash;98]</td><td>4.9</td><td>0.69</td><td>22</td><td><b>GO</b></td></tr>
-<tr><td><code>ikon_backlog</code></td><td>Andor iKon imaging beyond VV Pup</td><td>12,605</td><td>45 / 48</td><td>94% [83&ndash;98]</td><td>2.2</td><td>0.64</td><td>224</td><td><b>GO</b></td></tr>
+<tr class="warn"><td><code>mode0_backlog_short</code></td><td>Mode0 bin2 non-CV imaging, exptime &lt; 10 s (rho Oph campaign and friends)</td><td>9,720</td><td>41 / 48</td><td>85% [73&ndash;93]</td><td>2.9</td><td>1.11</td><td>111</td><td><b>CAUTION</b></td></tr>
+<tr class="warn"><td><code>mode0_backlog_long</code></td><td>Mode0 bin2 non-CV imaging, exptime ≥ 10 s</td><td>8,892</td><td>42 / 48</td><td>88% [75&ndash;94]</td><td>3.2</td><td>0.73</td><td>237</td><td><b>CAUTION</b></td></tr>
+<tr><td><code>fast_fullframe</code></td><td>Fast-readout FULL frames (naxis ≥ 512; the 8-px photometry strips are excluded by geometry)</td><td>19,134</td><td>46 / 48</td><td>96% [86&ndash;99]</td><td>2.7</td><td>0.68</td><td>29</td><td><b>GO</b></td></tr>
+<tr><td><code>ikon_backlog</code></td><td>Andor iKon imaging beyond VV Pup</td><td>12,710</td><td>46 / 48</td><td>96% [86&ndash;99]</td><td>1.6</td><td>0.81</td><td>202</td><td><b>GO</b></td></tr>
 </table>
-<p class="sub"><code>cv_gsense_misc</code> is a <b>census</b>: all 40 population frames were attempted, so its rate is the exact population rate — no confidence interval applies, and the verdict judges 62.5% directly against the thresholds.  Its &ldquo;batch decision&rdquo; is moot: the 25 solutions already exist.</p>
+<p class="sub"><code>cv_gsense_misc</code> is a <b>census</b>: all 37 population frames were attempted, so its rate is the exact population rate — no confidence interval applies, and the verdict judges 67.6% directly against the thresholds.  Its &ldquo;batch decision&rdquo; is moot: the 25 solutions already exist.</p>
 <p class="sub"><b>How independent are these trials?</b>  Frames within a
 night share cloud, focus and wind state, and the failure autopsy below
 attributes most failures to exactly those nightly conditions — so the
@@ -171,12 +304,12 @@ solved) and re-read the interval.</p>
 <tr class="warn"><td><code>cv_ikon_sloan</code></td><td>7 / 8</td><td>7 / 7</td><td>65%</td></tr>
 <tr><td><code>cv_gsense_misc</code></td><td>9 / 9</td><td>6 / 9</td><td>exact</td></tr>
 <tr class="warn"><td><code>cv_fast_fullframe</code></td><td>8 / 8</td><td>7 / 8</td><td>53%</td></tr>
-<tr><td><code>sn_gsense_broadband</code></td><td>23 / 34</td><td>5 / 23</td><td>10%</td></tr>
+<tr><td><code>sn_gsense_broadband</code></td><td>25 / 33</td><td>9 / 25</td><td>20%</td></tr>
 <tr><td><code>dwarf_gsense_deep</code></td><td>18 / 30</td><td>15 / 18</td><td>61%</td></tr>
-<tr><td><code>mode0_backlog_short</code></td><td>24 / 107</td><td>24 / 24</td><td>86%</td></tr>
-<tr><td><code>mode0_backlog_long</code></td><td>34 / 151</td><td>32 / 34</td><td>81%</td></tr>
-<tr class="warn"><td><code>fast_fullframe</code></td><td>24 / 64</td><td>21 / 24</td><td>69%</td></tr>
-<tr class="warn"><td><code>ikon_backlog</code></td><td>32 / 74</td><td>30 / 32</td><td>80%</td></tr>
+<tr><td><code>mode0_backlog_short</code></td><td>25 / 116</td><td>20 / 25</td><td>61%</td></tr>
+<tr><td><code>mode0_backlog_long</code></td><td>35 / 189</td><td>30 / 35</td><td>71%</td></tr>
+<tr class="warn"><td><code>fast_fullframe</code></td><td>24 / 66</td><td>22 / 24</td><td>74%</td></tr>
+<tr><td><code>ikon_backlog</code></td><td>35 / 74</td><td>33 / 35</td><td>81%</td></tr>
 </table>
 
 <h3>Decision</h3>
@@ -186,43 +319,43 @@ lower bound clears 80%, CAUTION above
 worst rate each sample still allows, never on the point estimate (census
 strata are judged on their exact, fully-enumerated rate).</b>  Solutions
 are trustworthy where the gate accepts them: median astrometric RMS
-&sim;0.80&Prime; against the 2MASS index across all strata,
+&sim;0.81&Prime; against the 2MASS index across all strata,
 with plate scales landing inside every family prior.  <b>The frame-level
 intervals assume within-stratum independence that weather demonstrably
 violates</b> — under the harsher night-level collapse, the perfect strata
 keep lower bounds of
-78%/82%/65%/86%
+78%/82%/65%
 across far fewer effective trials, and each stratum samples only a
 minority of its backlog&rsquo;s nights (the coverage column above) — so
 unsampled bad nights are expected in any batch.  The mitigation is not a
-wider interval but the QC pre-gate of section 4: starless frames from
+wider interval but the QC pre-gate of section 5: starless frames from
 unsampled cloudy nights are detected and skipped at batch time, they do
 not silently drag the yield.</div>
 
 <h3>Consequence</h3>
-<p class="sub">4 of the
+<p class="sub">3 of the
 11 strata solved every sampled frame — including the
 Mode0 and iKon strata that carry the bulk of the CV Sloan backlog.  The
 failure analysis below shows where the other strata lose frames: to the
 frames, not to the solver.</p>
 </div></section>
 <section id="autopsy">
-<div class="bhead"><h2>4 &middot; Failure autopsy</h2>
+<div class="bhead"><h2>5 &middot; Failure autopsy</h2>
 <span class="tag">read the pixels before blaming the solver</span></div>
 
 <div class="stage"><h3>Question</h3>
-<p class="sub">65 sampled frames failed to solve (the
+<p class="sub">68 sampled frames failed to solve (the
 gate-rejected false positive included).  Is the solver missing solvable
 fields — or were these frames never solvable?</p>
 
 <h3>Evidence</h3>
-<div class="grid"><figure><a href="figures/s1/s1_failure_gallery.png"><img src="figures/s1/s1_failure_gallery.png" alt=""></a><figcaption>6 of the 65 autopsied failures — every failure is autopsied, no sampling cap — machine-diagnosed from source-extraction statistics.</figcaption></figure></div>
+<div class="grid"><figure><a href="figures/s1/s1_failure_gallery.png"><img src="figures/s1/s1_failure_gallery.png" alt=""></a><figcaption>6 of the 68 autopsied failures — every failure is autopsied, no sampling cap — machine-diagnosed from source-extraction statistics.</figcaption></figure></div>
 <table class="data">
-<tr><th>diagnosis</th><th>autopsied frames</th><th>strata affected</th></tr>
-<tr><td>starved (blank/clouds/hot-pixel-only)</td><td>24</td><td><code>dwarf_gsense_deep,sn_gsense_broadband,cv_gsense_misc,ikon_backlog,mode0_backlog_long,fast_fullframe</code></td></tr>
-<tr><td>trailing (guiding/wind)</td><td>19</td><td><code>sn_gsense_broadband,cv_gsense_misc,fast_fullframe</code></td></tr>
-<tr><td>defocused (giant blobs, no point sources)</td><td>17</td><td><code>sn_gsense_broadband,cv_gsense_misc,ikon_backlog,cv_fast_fullframe</code></td></tr>
-<tr><td>unexplained (stars present, solver still failed)</td><td>5</td><td><code>sn_gsense_broadband,cv_gsense_misc,mode0_backlog_long,fast_fullframe</code></td></tr>
+<tr><th>diagnosis</th><th>old count (label gate)</th><th>new count (measured gate)</th><th>&Delta;</th><th>of the OLD count, measured spectra</th><th>strata affected</th></tr>
+<tr class="warn"><td>starved (blank/clouds/hot-pixel-only)</td><td>24</td><td>33</td><td>+9</td><td><b>1</b></td><td><code>dwarf_gsense_deep,sn_gsense_broadband,cv_gsense_misc,ikon_backlog,mode0_backlog_long,mode0_backlog_short,fast_fullframe</code></td></tr>
+<tr class="warn"><td>trailing (guiding/wind)</td><td>19</td><td>22</td><td>+3</td><td><b>3</b></td><td><code>sn_gsense_broadband</code></td></tr>
+<tr class="warn"><td>defocused (giant blobs, no point sources)</td><td>17</td><td>9</td><td>-8</td><td><b>8</b></td><td><code>sn_gsense_broadband,cv_gsense_misc,ikon_backlog,mode0_backlog_long,cv_fast_fullframe</code></td></tr>
+<tr><td>unexplained (stars present, solver still failed)</td><td>5</td><td>4</td><td>-1</td><td>0</td><td><code>cv_gsense_misc,mode0_backlog_long,fast_fullframe</code></td></tr>
 </table>
 <p class="sub">Diagnosis is computed, not eyeballed: 10&sigma;
 source extraction (min 5 px) splits
@@ -237,26 +370,39 @@ real sources <i>or</i> brightest detections smaller than
 pairs can fake both the source count and the elongation of a blank
 frame, so the trailing verdict additionally requires star-sized
 brightest detections); &lsquo;trailing&rsquo; = median elongation &gt;
-1.8.  Only 5 autopsied
+1.8.  Only 4 autopsied
 failure(s) show a healthy star field the solver still missed.</p>
+<p class="sub"><b>Audit, computed from the table above, not asserted: 0 of the 68 autopsied failures are frames S2c measures as spectra.</b>  Under the retired label gate the count was 12 — spectra sitting inside a taxonomy of optical faults, each one wearing a diagnosis (&lsquo;defocused&rsquo;, &lsquo;trailing&rsquo;, &lsquo;starved&rsquo;) that presumed it was an image.  Every row of this taxonomy now describes a frame that really was pointed at a star field.</p>
 
 <h3>Decision</h3>
 <div class="decision"><b>The failures are frame-quality facts, not solver
 shortfalls — and the claim now covers every failure, because every
-failure was autopsied: blank/cloud frames, badly defocused sequences
-(notably the filter-&lsquo;6&rsquo; series on the GSENSE), and
+failure was autopsied: blank/cloud frames, defocused sequences, and
 wind-trailed exposures.</b>  No solver setting recovers a frame with no
 stars on it; these frames should be flagged by the same statistics at
-batch time and spent zero further CPU.</div>
+batch time and spent zero further CPU.
+<p><b>One line of the old version of this paragraph is retracted.</b>  It
+named &ldquo;the filter-&lsquo;6&rsquo; series on the GSENSE&rdquo; as
+the archetype of a badly defocused sequence.  Slot <code>6</code> is the
+telescope&rsquo;s MIXED slot, and S2c has since measured most of those
+frames to be <i>spectra</i>: the &ldquo;giant blobs, no point
+sources&rdquo; the autopsy saw were dispersion traces, not defocused
+stars.  A source-extraction statistic cannot tell those apart — it was
+never asked to.  The measured-dispersion gate now keeps spectra out of
+the universe entirely, so the diagnosis is never put in that position
+again.  See section 3 for the full accounting.</p></div>
 
 <h3>Consequence</h3>
 <p class="sub">Batch success rates will track the experiment&rsquo;s
 rates, and the batch runner inherits a cheap pre-filter: the autopsy
 statistics double as a QC gate that skips starless frames before the
-solver burns its budget on them.</p>
+solver burns its budget on them.  The taxonomy is also now
+<i>diagnostic</i> in a way it was not before: with spectra excluded
+upstream, a &lsquo;defocused&rsquo; verdict means the optics, and can be
+taken to the observatory as such.</p>
 </div></section>
 <section id="verdict">
-<div class="bhead"><h2>5 &middot; Verdict &amp; batch cost</h2>
+<div class="bhead"><h2>6 &middot; Verdict &amp; batch cost</h2>
 <span class="tag">the Week-2 review's decision table</span></div>
 
 <div class="stage"><h3>Question</h3>
@@ -266,10 +412,10 @@ WCS solutions should it yield, and what does it cost in wall-clock?</p>
 <h3>Evidence</h3>
 <table class="data">
 <tr><th>population</th><th>backlog frames</th><th>sample solved</th><th>pooled sample rate [95% CI]</th><th>backlog-weighted rate</th><th>expected new WCS (range)</th><th>projected hours</th><th>verdict</th></tr>
-<tr><td>CV polars (Sloan)</td><td>4,809</td><td>214 / 232</td><td>92% [88&ndash;95]</td><td>99.4%</td><td>4,421&ndash;4,790</td><td>0.6</td><td><b>GO</b></td></tr>
-<tr class="warn"><td>SN 2023ixf</td><td>369</td><td>15 / 48</td><td>31% [20&ndash;45]</td><td>31.2%</td><td>74&ndash;167</td><td>0.6</td><td><b>NO-GO</b></td></tr>
+<tr><td>CV polars (Sloan)</td><td>4,806</td><td>214 / 229</td><td>93% [89&ndash;96]</td><td>99.5%</td><td>4,421&ndash;4,790</td><td>0.6</td><td><b>GO</b></td></tr>
+<tr class="warn"><td>SN 2023ixf</td><td>308</td><td>18 / 48</td><td>38% [25&ndash;52]</td><td>37.5%</td><td>78&ndash;159</td><td>0.5</td><td><b>NO-GO</b></td></tr>
 <tr class="warn"><td>Dwarf/AGN</td><td>247</td><td>42 / 48</td><td>88% [75&ndash;94]</td><td>87.5%</td><td>186&ndash;233</td><td>0.1</td><td><b>CAUTION</b></td></tr>
-<tr><td>Facility backlog</td><td>49,335</td><td>184 / 192</td><td>96% [92&ndash;98]</td><td>95.3%</td><td>42,142&ndash;48,558</td><td>5.6</td><td><b>GO</b></td></tr>
+<tr><td>Facility backlog</td><td>50,456</td><td>175 / 192</td><td>91% [86&ndash;94]</td><td>92.4%</td><td>41,169&ndash;48,864</td><td>3.6</td><td><b>GO</b></td></tr>
 </table>
 <p class="sub">Hours are population-weighted: each stratum&rsquo;s FULL
 backlog &times; its own median per-frame wall time &divide;
@@ -289,21 +435,21 @@ contributes its exactly-known count).</p>
 <div class="decision"><b>GO for the CV polars&rsquo;
 Sloan series — the paper-gating population solved
 214 of
-232 sampled frames
-(92%; the
-per-stratum table in section 3 locates every miss) — and the same
+229 sampled frames
+(93%; the
+per-stratum table in section 4 locates every miss) — and the same
 mechanical rule for every population: GO where the Wilson lower bound
 clears 80%.</b>  The projected cost of the
-project-critical populations (5,425 frames) is
+project-critical populations (5,361 frames) is
 &sim;1&nbsp;h; the stratified backlog
-(54,760 of the 61,656 solvable frames) is
-&sim;7&nbsp;h and should yield
-&sim;46,800&ndash;53,700 new WCS solutions.  The remaining 6,896 solvable
+(55,817 of the 61,583 solvable frames) is
+&sim;5&nbsp;h and should yield
+&sim;45,900&ndash;54,000 new WCS solutions.  The remaining 5,766 solvable
 candidates fit no stratum (a heterogeneous residue of one-off configs):
 they carry <b>no measured rate</b> and are excluded from the yield and
 hours projections — batching them means extrapolating, and that choice
 belongs to the review.  Populations below GO stay viable as
-<i>filtered</i> batches: run the QC pre-gate from section 4, solve what
+<i>filtered</i> batches: run the QC pre-gate from section 5, solve what
 has stars, and book the starless/defocused frames as facts.  <b>No batch
 runs before the Week-2 review accepts this report</b> — S1&rsquo;s
 mandate ends at the experiment.</div>

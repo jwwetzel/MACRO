@@ -42,7 +42,7 @@ from typing import Optional, Sequence
 # --------------------------------------------------------------------------
 
 #: Version string recorded into ``s1_build_meta``.
-S1_CODE_VERSION = "S1 v1.1 (2026-08-18)"
+S1_CODE_VERSION = "S1 v1.2 (2026-08-20) — measured-dispersion candidate gate"
 
 #: Master RNG seed for the whole experiment.  Every stratum derives its own
 #: child seed from (this, stratum_id) — see ``stable_seed`` — so the sample
@@ -71,10 +71,33 @@ SOLVE_DOWNSAMPLE = 2
 #: search space by ~99%.
 HINT_RADIUS_DEG = 15.0
 
-#: FILTER strings that mean "this is a slitless spectrum, not an image".
-#: A grism frame has no point sources for quad matching — it is excluded
-#: from the astrometry candidate universe, not counted as a failure.
+#: FILTER strings that LOOK like a dispersing element.  Until S1 v1.2 this
+#: set WAS the spectrum gate; it is now kept only as the *legacy comparison*
+#: universe (``is_solvable_candidate_by_label``) so the report can print the
+#: old universe beside the new one.  See ``is_measured_spectrum`` for why a
+#: label is no longer allowed to decide this.
 GRISM_FILTERS = frozenset({"hrg", "lrg", "hagrism", "oggrism", "grism"})
+
+#: The S2c verdict that means "this frame is a slitless spectrum": the
+#: dispersion measurement found parallel traces along a common grating
+#: axis.  A spectrum has no point sources for quad matching, so it is
+#: excluded from the astrometry candidate universe — not counted as a
+#: failure.  This ONE string is the whole exclusion rule.
+DISPERSED_VERDICT = "dispersed"
+
+#: The S2c verdict that means "this frame is a direct image".
+DIRECT_VERDICT = "direct"
+
+#: The S2c verdict that means "S2c looked and could not certify either
+#: way" — usually too few usable sources to judge (the commonest reason
+#: string in the table is literally 'no usable sources extracted').
+INDETERMINATE_VERDICT = "indeterminate"
+
+#: The class this module assigns to a frame S2c never measured (no row in
+#: ``frame_dispersion``, or a row whose verdict is still NULL).  Not a
+#: verdict — the *absence* of one, named so it can never be confused with
+#: a measurement in a group-by.
+UNMEASURED_CLASS = "unmeasured"
 
 #: FILTER strings that collide with the calibration vocabulary (the era-76
 #: filter-wheel glitch documented by S0b) — excluded the same way.
@@ -131,14 +154,61 @@ def norm_filter(filt) -> str:
 
 
 def is_grism_filter(filt) -> bool:
-    """True when the FILTER string names a dispersing element — the frame
-    is a spectrum and can never be plate-solved."""
+    """True when the FILTER string LOOKS like a dispersing element.
+
+    RETIRED AS A GATE in S1 v1.2, kept as a comparison predicate.  The
+    label is not evidence: filter slot '6' on this telescope is MIXED
+    (some nights an image, some nights a grating), and no FILTER string
+    on any frame says so.  See ``is_measured_spectrum``.
+    """
     return norm_filter(filt) in GRISM_FILTERS
 
 
 def is_calib_vocab_filter(filt) -> bool:
     """True for the filter-wheel glitch strings ('dark' science frames)."""
     return norm_filter(filt) in CALIB_VOCAB_FILTERS
+
+
+def dispersion_class(verdict) -> str:
+    """Normalize an S2c ``frame_dispersion.verdict`` into exactly one of
+    four class names: ``dispersed`` / ``direct`` / ``indeterminate`` /
+    ``unmeasured``.
+
+    NULL, missing and empty all collapse to ``unmeasured``; an unexpected
+    verdict string is reported verbatim rather than silently folded into
+    a known class (a new S2c verdict must show up in the census table,
+    not disappear into it).
+    """
+    v = (verdict or "").strip().lower()
+    return v if v else UNMEASURED_CLASS
+
+
+def is_measured_spectrum(verdict) -> bool:
+    """THE spectrum gate: True only when S2c MEASURED this frame to be
+    dispersed.
+
+    Why a measurement and not the FILTER label.  The label rule
+    (``is_grism_filter``) asked whether a header string was one of five
+    known grism names.  It was wrong in both directions on this archive:
+
+    * it MISSED spectra.  Filter slot '6' is a mixed slot — it holds a
+      grating on some nights and glass on others — and its FILTER string
+      is just ``6``.  Under the label rule those spectra entered the
+      astrometry candidate universe, could not possibly solve, and were
+      then counted as astrometric FAILURES and autopsied as "defocused"
+      optical faults.  They are not optical faults; they are spectra.
+    * it DELETED images.  Frames carrying a grism-looking label that S2c
+      measures as ordinary direct images were thrown out of the universe
+      without ever being looked at.
+
+    S2c measures the thing itself (parallel traces along a common grating
+    axis, per frame), so the gate now reads the measurement.  Exclusion
+    must be EARNED by a positive measurement: everything that is not
+    measured-dispersed stays in the universe.  See
+    ``is_solvable_candidate`` for what that means for the two populations
+    where nothing was proven.
+    """
+    return dispersion_class(verdict) == DISPERSED_VERDICT
 
 
 def is_window_geometry(naxis1, naxis2) -> bool:
@@ -154,13 +224,76 @@ def is_window_geometry(naxis1, naxis2) -> bool:
 
 
 def is_solvable_candidate(row: dict) -> bool:
-    """Full candidate gate over one frames-row dict (keys: filter, naxis1,
-    naxis2).  The SQL base query already restricts to canonical rawimage
-    Light frames with pltsolvd != 1; this function applies the pure gates.
+    """Full candidate gate over one frames-row dict (keys: dispersion,
+    filter, naxis1, naxis2).  The SQL base query already restricts to
+    canonical rawimage Light frames with pltsolvd != 1; this function
+    applies the pure gates.
+
+    THE SPECTRUM RULE, and what it does to the four dispersion classes —
+    stated here once, because a gate that leaves any population to a
+    silent default is how the previous version of this function shipped a
+    contaminated denominator:
+
+    * ``dispersed``     → EXCLUDED.  S2c measured traces on a common
+      grating axis.  It is a spectrum; a plate solver cannot apply.
+    * ``direct``        → INCLUDED, *whatever the FILTER string says*.
+      This is the population the old label rule wrongly deleted: frames
+      labelled hrg/lrg/HaGrism/OGGrism that S2c measures as ordinary
+      images.  A label loses to a measurement of the same fact.
+    * ``indeterminate`` → INCLUDED.  S2c looked and could not certify
+      either way; the commonest reason is "no usable sources extracted",
+      which describes a BLANK IMAGE far more often than a spectrum.  The
+      gate's question is ontological ("is this an image?"), never
+      predictive ("will it solve?") — excluding frames because they look
+      unlikely to solve is exactly the circularity that inflates the rate
+      the experiment exists to measure.  The corroboration is in the
+      manifest: in the S1b production batch, attempted frames solve at
+      ~98% when measured ``direct`` and ~77% when ``indeterminate``, but
+      only ~27% when ``dispersed`` — the indeterminate class behaves like
+      images, not like spectra.
+    * ``unmeasured``    → INCLUDED.  S2c's candidate selection targeted
+      the dispersion-suspect population, so most of the archive was never
+      measured at all.  Absence of a measurement is not evidence of a
+      spectrum, and excluding it would delete ~95% of the backlog on no
+      evidence whatever.
+
+    In one sentence: **exclusion must be earned by a positive
+    measurement.**  Both the old label rule's error and its mirror image
+    ("exclude anything not certified direct") share the same flaw —
+    removing frames from a denominator without evidence.
+    """
+    return (not is_measured_spectrum(row.get("dispersion"))
+            and not is_calib_vocab_filter(row.get("filter"))
+            and not is_window_geometry(row.get("naxis1"), row.get("naxis2")))
+
+
+def is_solvable_candidate_by_label(row: dict) -> bool:
+    """The RETIRED candidate gate, preserved verbatim for comparison.
+
+    Identical to ``is_solvable_candidate`` except that it decides
+    "spectrum" from the FILTER string instead of the S2c measurement.
+    Nothing in the pipeline gates on this any more; the S1 design calls
+    it once, to count the frames the two universes disagree about, so the
+    report can print the correction instead of merely asserting it.
     """
     return (not is_grism_filter(row.get("filter"))
             and not is_calib_vocab_filter(row.get("filter"))
             and not is_window_geometry(row.get("naxis1"), row.get("naxis2")))
+
+
+def gate_movement(row: dict) -> str:
+    """How ONE frame moves between the two universes: ``unchanged_in``,
+    ``unchanged_out``, ``moved_in`` (label rule excluded it, the
+    measurement rule keeps it) or ``moved_out`` (label rule kept it, the
+    measurement rule excludes it — the contamination being repaired).
+    """
+    old = is_solvable_candidate_by_label(row)
+    new = is_solvable_candidate(row)
+    if old and new:
+        return "unchanged_in"
+    if not old and not new:
+        return "unchanged_out"
+    return "moved_in" if new else "moved_out"
 
 
 # --------------------------------------------------------------------------
@@ -173,11 +306,20 @@ def is_solvable_candidate(row: dict) -> bool:
 # that the headers call unsolved".
 # --------------------------------------------------------------------------
 
-BASE_SQL = """
+#: The dispersion column, in two forms.  A manifest that has been through
+#: S2c carries ``frame_dispersion`` and the gate reads a real measurement;
+#: an older or partial manifest (the S0e forecast opens a pre-repair
+#: snapshot, for instance) has no such table, and the query must still
+#: run — every frame then reads back as ``unmeasured``, which the gate
+#: treats as "included", i.e. exactly the behaviour before S2c existed.
+_DISP_JOIN = "LEFT JOIN frame_dispersion d ON d.obs_rowid = f.obs_rowid"
+
+BASE_SQL_TEMPLATE = """
 SELECT f.obs_rowid, f.path, f.target_key, f.canonical_target, e.readoutm,
        f.xbinning, f.filter, f.exptime, f.naxis1, f.naxis2,
-       f.ra_deg, f.dec_deg, f.night
+       f.ra_deg, f.dec_deg, f.night, {disp_expr} AS dispersion
 FROM frames f LEFT JOIN eras e ON e.era_id = f.era_id
+{disp_join}
 WHERE f.is_canonical = 1
   AND f.tree = 'rawimage'
   AND f.error IS NULL
@@ -185,16 +327,44 @@ WHERE f.is_canonical = 1
   AND (f.pltsolvd IS NULL OR f.pltsolvd != 1)
 """
 
+#: The canonical form of the query, for humans reading the module and for
+#: the report to quote.  Code paths use ``base_sql`` so they degrade on a
+#: manifest without S2c instead of raising "no such table".
+BASE_SQL = BASE_SQL_TEMPLATE.format(disp_expr="d.verdict",
+                                    disp_join=_DISP_JOIN)
+
 #: Column order of BASE_SQL, used to build row dicts.
 BASE_COLS = ["obs_rowid", "path", "target_key", "canonical_target",
              "readoutm", "xbinning", "filter", "exptime", "naxis1",
-             "naxis2", "ra_deg", "dec_deg", "night"]
+             "naxis2", "ra_deg", "dec_deg", "night", "dispersion"]
+
+
+def base_sql(has_dispersion: bool) -> str:
+    """The candidate base query, with or without the S2c join."""
+    if has_dispersion:
+        return BASE_SQL_TEMPLATE.format(disp_expr="d.verdict",
+                                        disp_join=_DISP_JOIN)
+    # No S2c table: select a NULL of the right shape so BASE_COLS still
+    # lines up and every frame classes as 'unmeasured'.
+    return BASE_SQL_TEMPLATE.format(disp_expr="NULL", disp_join="")
+
+
+def has_dispersion_table(con) -> bool:
+    """True when this manifest carries the S2c ``frame_dispersion`` table."""
+    return con.execute(
+        "SELECT count(*) FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'frame_dispersion'").fetchone()[0] > 0
 
 
 def fetch_candidates(con) -> list[dict]:
     """All unsolved canonical raw Light frames, as row dicts (thin SQL
-    wrapper — the decisions about these rows live in the pure gates)."""
-    return [dict(zip(BASE_COLS, r)) for r in con.execute(BASE_SQL)]
+    wrapper — the decisions about these rows live in the pure gates).
+
+    Each row carries a ``dispersion`` key: the S2c per-frame verdict, or
+    None when S2c never measured that frame.
+    """
+    sql = base_sql(has_dispersion_table(con))
+    return [dict(zip(BASE_COLS, r)) for r in con.execute(sql)]
 
 
 # --------------------------------------------------------------------------
@@ -258,16 +428,38 @@ GSENSE_READOUTS = frozenset({"high gain", "low gain", "hdr",
 def classify_stratum(row: dict) -> Optional[str]:
     """Assign one candidate frame to a stratum id (or None: not sampled).
 
-    ``row`` keys used: target_key, canonical_target, readoutm, xbinning,
-    filter, exptime, naxis1, naxis2.  The frame must already have passed
-    ``is_solvable_candidate`` — classification assumes a solvable field.
+    ``row`` keys used: dispersion, target_key, canonical_target, readoutm,
+    xbinning, filter, exptime, naxis1, naxis2.  Frames that fail
+    ``is_solvable_candidate`` classify as None — the gate runs first, so
+    a caller can never accidentally stratify a measured spectrum.
+    """
+    if not is_solvable_candidate(row):
+        return None
+    return stratum_of(row)
+
+
+def classify_stratum_by_label(row: dict) -> Optional[str]:
+    """``classify_stratum`` under the RETIRED label gate — the comparison
+    universe, used only to build the before/after tables."""
+    if not is_solvable_candidate_by_label(row):
+        return None
+    return stratum_of(row)
+
+
+def stratum_of(row: dict) -> Optional[str]:
+    """The stratum rules alone, with NO candidate gate in front of them.
+
+    Split out of ``classify_stratum`` so that the same rules can be
+    applied to either candidate universe (measurement gate or the retired
+    label gate) without duplicating twenty lines of policy — two copies
+    would eventually disagree about what a stratum IS, and the whole
+    before/after comparison rests on the strata meaning the same thing on
+    both sides.
 
     The rules mirror ``STRATA`` one-to-one, first match wins; they are
     deliberately explicit (no clever generality) so a student can check
     each stratum against its description by reading twenty lines.
     """
-    if not is_solvable_candidate(row):
-        return None
     tkey = (row.get("target_key") or "").strip().lower()
     canon = (row.get("canonical_target") or "").strip().lower()
     readout = (row.get("readoutm") or "").strip().lower()

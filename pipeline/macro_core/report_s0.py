@@ -4,7 +4,8 @@ Reads the S0 manifest database (NEVER the catalog — if a number cannot be
 derived from the manifest, it does not belong on the page) and writes:
 
 * ``docs/pipeline/s0_manifest.html``     — the report
-* ``docs/pipeline/figures/s0/*.png``     — every figure, matplotlib, dark
+* ``docs/pipeline/figures/s0/*.png``     — every figure, matplotlib, drawn
+  in the house style defined once in ``macro_core.plotstyle``
 
 The page follows the site's Socratic format (``docs/assets/macro.css``):
 one section per decision, each section = Question → Evidence → Decision →
@@ -25,6 +26,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np               # noqa: E402
 
 from . import manifest as m      # noqa: E402  (constants for interpolation)
+from . import plotstyle as ps    # noqa: E402  (the house figure style)
 
 # ---------------------------------------------------------------------------
 # Locations, derived from the repo layout (report lives in docs/pipeline/).
@@ -34,25 +36,21 @@ DOCS_DIR = REPO_ROOT / "docs" / "pipeline"
 FIG_DIR = DOCS_DIR / "figures" / "s0"
 HTML_PATH = DOCS_DIR / "s0_manifest.html"
 
-# Dark theme matched to docs/assets/macro.css so figures sit naturally on
-# the page background.
-DARK = {
-    "figure.facecolor": "#0f1115",
-    "savefig.facecolor": "#0f1115",
-    "axes.facecolor": "#161a22",
-    "axes.edgecolor": "#2a3140",
-    "axes.labelcolor": "#e8eaed",
-    "text.color": "#e8eaed",
-    "xtick.color": "#9aa4b2",
-    "ytick.color": "#9aa4b2",
-    "grid.color": "#2a3140",
-    "axes.grid": True,
-    "grid.alpha": 0.6,
-    "font.size": 10,
-}
-ACCENT = "#6cb6ff"     # site link blue — primary data color
-WARN = "#e6cc7a"       # site warn yellow — outliers, disagreements
-DPI = 120              # spec requires >= 110
+# The house figure style.  These are re-exported here rather than defined
+# here because a dozen renderers already do `from .report_s0 import ...` for
+# the page machinery below, and the style must have ONE definition —
+# macro_core.plotstyle.  There is no dark theme any more: a figure is a
+# printable object and prints on white.
+STYLE = ps.STYLE
+ACCENT = ps.ACCENT     # primary data colour (Okabe--Ito blue)
+WARN = ps.WARN         # outliers, disagreements (Okabe--Ito orange)
+GOOD = ps.GOOD         # confirmations (Okabe--Ito green)
+BAD = ps.BAD           # contradictions (Okabe--Ito vermilion)
+MUTED = ps.MUTED       # reference lines, annotations
+FAINT = ps.FAINT       # backgrounded context
+INK = ps.INK           # type drawn onto the figure
+PAPER = ps.PAPER       # the ground, and type drawn onto a dark cell
+DPI = ps.WEB_DPI       # spec requires >= 110
 
 
 # ---------------------------------------------------------------------------
@@ -107,7 +105,7 @@ def fig_dup_hist(con) -> str:
         ) GROUP BY n ORDER BY n""")
     sizes = [r[0] for r in rows]
     counts = [r[1] for r in rows]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(7, 3.4))
         bars = ax.bar(sizes, counts, color=ACCENT, width=0.7)
         ax.set_yscale("log")
@@ -118,7 +116,7 @@ def fig_dup_hist(con) -> str:
         # own numbers so it survives being lifted out of the page.
         for b, c in zip(bars, counts):
             ax.annotate(f"{c:,}", (b.get_x() + b.get_width() / 2, c),
-                        ha="center", va="bottom", fontsize=8, color="#9aa4b2")
+                        ha="center", va="bottom", fontsize=8, color=MUTED)
         fig.tight_layout()
         fig.savefig(FIG_DIR / "s0_dup_group_sizes.png", dpi=DPI)
         plt.close(fig)
@@ -155,7 +153,7 @@ def fig_alias_top25(con) -> str:
     names = [r[1] for r in rows][::-1]
     after = [r[2] for r in rows][::-1]
     before = [biggest_raw[r[0]] for r in rows][::-1]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(7.4, 7))
         ypos = np.arange(len(names))
         ax.barh(ypos, after, color=ACCENT, alpha=0.9,
@@ -206,7 +204,7 @@ def fig_era_timeline(con, min_frames: int) -> str:
         SELECT era_id, readoutm, cast(naxis1 AS int) || 'x' ||
                cast(naxis2 AS int) || ' bin' || cast(xbinning AS int)
         FROM eras WHERE n_frames >= ?""", (min_frames,))}
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(8.2, 0.42 * len(eras) + 1.6))
         ax.scatter(xs, ys, s=ss, color=ACCENT, alpha=0.55, linewidths=0)
         ax.set_yticks(range(len(eras)),
@@ -229,7 +227,7 @@ def fig_frames_per_night(con) -> str:
         SELECT count(*) FROM frames
         WHERE is_canonical = 1 AND night IS NOT NULL GROUP BY night""")
     per_night = [r[0] for r in rows]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(7, 3.4))
         ax.hist(per_night, bins=np.logspace(0, np.log10(max(per_night)), 40),
                 color=ACCENT)
@@ -267,13 +265,17 @@ def fig_night_boundary(con, densest_night: str) -> str:
     all_hours = ((np.array([r[0] for r in all_jd])
                   - (m.NIGHT_SHIFT_DAYS - 0.5)) % 1.0) * 24.0
 
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9.4, 3.4))
         ax1.eventplot(hours_since_noon, colors=ACCENT, lineoffsets=0.5,
                       linelengths=0.8)
-        for x, lbl in ((0, "boundary (local noon)"), (24, "next boundary")):
+        # Inside the axes, not above it: at 1.02 these two labels sat on
+        # the title line and the left one collided with it.
+        for x, lbl, ha in ((0, "boundary (local noon)", "left"),
+                           (24, "next boundary", "right")):
             ax1.axvline(x, color=WARN, lw=1.4)
-            ax1.text(x, 1.02, lbl, color=WARN, fontsize=7.5, ha="center",
+            ax1.text(x, 0.965, " " + lbl + " ", color=WARN, fontsize=7.5,
+                     ha=ha, va="top",
                      transform=ax1.get_xaxis_transform())
         ax1.set_xlim(-1, 25)
         ax1.set_yticks([])
@@ -309,7 +311,7 @@ def fig_pointing(con) -> str:
     nonzero_min = off[off > 0].min() if (off > 0).any() else 1e-5
     floor = max(nonzero_min, 1e-5)
     off = np.maximum(off, floor)
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(7, 3.4))
         bins = np.logspace(np.log10(floor), np.log10(off.max()), 60)
         ax.hist(off, bins=bins, color=ACCENT)
@@ -340,7 +342,7 @@ def fig_qc(con) -> str:
             counts[tok] = counts.get(tok, 0) + n
     toks = sorted(counts, key=counts.get)
     vals = [counts[t] for t in toks]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(7, 3.2))
         bars = ax.barh(toks, vals, color=WARN)
         ax.set_xscale("log")
@@ -348,7 +350,7 @@ def fig_qc(con) -> str:
         ax.set_title("QC flags — marks, not deletions")
         for b, v in zip(bars, vals):
             ax.annotate(f" {v:,}", (v, b.get_y() + b.get_height() / 2),
-                        va="center", fontsize=8, color="#e8eaed")
+                        va="center", fontsize=8, color=INK)
         fig.tight_layout()
         fig.savefig(FIG_DIR / "s0_qc_flags.png", dpi=DPI)
         plt.close(fig)

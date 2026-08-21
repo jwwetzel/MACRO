@@ -1,0 +1,591 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SN 2023ixf — Gate 0</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+
+<header>
+  <h1>SN 2023ixf — Gate 0, from the pixels</h1>
+  <p>1,129 unique campaign frames &middot; 1,461 frames
+  opened and measured &middot; 438 usable broadband epochs &middot;
+  venue posture <b>AJ/PASP</b> &middot;
+  built 2026-08-21T03:42Z
+  (SN-G0 v1.0 (2026-08-20))
+  &middot; <a href="index.html">back to the project page</a>
+  &middot; <a href="../index.html">evidence hub</a></p>
+</header>
+
+<nav>
+  <a href="#freeze">1 Freeze</a> &middot;
+  <a href="#screen">2 The screen</a> &middot;
+  <a href="#census">3 Saturation census</a> &middot;
+  <a href="#narrowband">4 Flash-phase H&alpha;</a> &middot;
+  <a href="#astrometry">5 Astrometry</a> &middot;
+  <a href="#grism">6 Grism triage</a> &middot;
+  <a href="#verdicts">7 The answers</a>
+</nav>
+
+
+<section id="freeze">
+<div class="bhead"><h2>1 &middot; Gate 0a — the manifest freeze</h2>
+<span class="tag">1,129 unique campaign frames</span>
+<span class="tag2">from 4,711 catalog rows</span></div>
+
+<div class="stage">
+<h3>Question</h3>
+<p class="sub">How many frames of this supernova does the archive actually
+hold &mdash; once every copy is collapsed and every name the telescope
+called it by is merged?</p>
+
+<h3>Evidence</h3>
+<p>The strategy's headline inventory is <b>1,052 unique light frames</b>,
+obtained by deduplicating the rows whose target field reads
+<code>2023ixf</code>. The freeze repeats that dedup globally &mdash; across
+every tree and <em>within</em> <code>rawimage/</code>, where the July
+directories hold wholesale copies of earlier nights &mdash; and then does
+the thing the strategy's own §3.1 ruling asks for but its headline number
+does not do: it merges the target's ALIASES. The supernova was observed
+under <code>NGC5457</code> on the discovery night and under <code>M101</code>
+on the two nights after, and S0's alias table maps both onto the same sky.</p>
+
+<table class="data">
+<tr><th>scope</th><th>catalog rows</th><th>unique frames</th><th>what this counts</th></tr>
+<tr><td>ALL TREES</td><td>4,711</td><td>1,461</td><td>the global dedup: every tree at once, which is the only scope in which the within-rawimage copies are visible</td></tr>
+<tr><td>tree:rawimage</td><td>3,395</td><td>1,354</td><td>catalog rows on this sky in this tree; canonical = the copy S0's global (basename, jd) dedup kept</td></tr>
+<tr><td>CAMPAIGN 2023 (unique)</td><td>1,129</td><td>1,129</td><td>unique light frames on this sky between nights 2023-05-19 and 2023-07-07, alias-merged</td></tr>
+<tr><td>tree:external</td><td>1,108</td><td>0</td><td>catalog rows on this sky in this tree; canonical = the copy S0's global (basename, jd) dedup kept</td></tr>
+<tr><td>CAMPAIGN under canonical_target=2023ixf</td><td>1,054</td><td>1,054</td><td>alias-merged slice; a census taken under only one of these names misses the other</td></tr>
+<tr><td>tree:reduced</td><td>142</td><td>105</td><td>catalog rows on this sky in this tree; canonical = the copy S0's global (basename, jd) dedup kept</td></tr>
+<tr><td>CAMPAIGN under canonical_target=M101</td><td>75</td><td>75</td><td>alias-merged slice; a census taken under only one of these names misses the other</td></tr>
+<tr><td>tree:macalester</td><td>61</td><td>0</td><td>catalog rows on this sky in this tree; canonical = the copy S0's global (basename, jd) dedup kept</td></tr>
+<tr><td>tree:mjc</td><td>4</td><td>2</td><td>catalog rows on this sky in this tree; canonical = the copy S0's global (basename, jd) dedup kept</td></tr>
+<tr><td>tree:augustana</td><td>1</td><td>0</td><td>catalog rows on this sky in this tree; canonical = the copy S0's global (basename, jd) dedup kept</td></tr>
+</table>
+
+<p>So the campaign is <b>1,129</b> unique frames, not
+1,054 &mdash; the difference is the 75 frames that
+carried a galaxy's name rather than the transient's, and every one of them
+is a discovery-week epoch. Nothing was double counted to get there: the
+same global <code>(basename, jd)</code> dedup that produced 1,052 produced
+this, applied to a target set of two names instead of one.</p>
+
+<p>Two further facts the freeze turned up, both of which change what may be
+counted:</p>
+<ul>
+<li><b>61 of the campaign's frames are not images at all.</b>
+They are the slot-'6' frames S2c measures as dispersed. Under the retired
+filter-label rule all 83 slot-'6' frames would have been called spectra;
+the measurement says 61 are, 3 are ordinary direct images and 19 could not
+be certified either way.</li>
+<li><b>2 canonical campaign frames are detector engineering
+products</b>, not science: <code>mjc/misc/neg10_test/xwg16919.raw.fts.fz</code>, <code>mjc/misc/neg10_test/xwg1691a.raw.fts.fz</code>. They carry the
+campaign's target name and fall inside its dates. One of them reads 65,535
+ADU at the supernova's position &mdash; a value the 12-bit High Gain channel
+cannot physically produce &mdash; which is how the census caught them.</li>
+</ul>
+
+<p>The freeze also measures the thing the saturation census needs next: how
+far the telescope's commanded pointing sits from where it actually lands.
+Over 749 plate-solved campaign frames the commanded-to-true offset
+is (-92, -67) arcsec, and the residual scatter about that
+median is <b>53 px</b> (median), 108 px (90th
+percentile), 236 px (worst). That is why an unsolved frame's
+search box is 250 px and not a guess.</p>
+
+<h3>Decision</h3>
+<div class="decision"><b>The campaign is 1,129 unique frames, of which
+1,066 are science images.</b> Every number
+downstream on this page is computed over that set, and the set is a table
+(<code>sn_g0_frames</code>) rather than a paragraph.</div>
+
+<h3>Consequence</h3>
+<p>The strategy's 1,052 was not wrong about duplication &mdash; it was right,
+and its dedup rule is the one used here. It was incomplete about IDENTITY:
+a census taken under one of a target's names cannot see the frames filed
+under the others, and on this target those are exactly the earliest and
+most contested epochs. The published campaign statistics, and the README
+the strategy's Step 10 requires be regenerated from the manifest, should be
+regenerated from <code>sn_g0_frames</code>.</p>
+
+<p>The non-campaign epochs are frozen in the same table and are summarised
+here so the template inventory has a query behind it too:</p>
+<table class="data">
+<tr><th>night</th><th>unique frames</th><th>filters</th></tr>
+<tr><td>2023-05-04</td><td>40</td><td>R,G,X,H,O</td></tr>
+<tr><td>2023-11-27</td><td>2</td><td>L</td></tr>
+<tr><td>2024-03-11</td><td>1</td><td>L</td></tr>
+<tr><td>2024-05-18</td><td>30</td><td>g,r</td></tr>
+<tr><td>2026-03-21</td><td>104</td><td>g,ha,i,r</td></tr>
+<tr><td>2026-03-22</td><td>141</td><td>g,ha,i,r</td></tr>
+<tr><td>2026-04-01</td><td>14</td><td>g,i,r</td></tr>
+</table>
+</div>
+</section>
+<section id="screen">
+<div class="bhead"><h2>2 &middot; The screen, and where it comes from</h2>
+<span class="tag">clip 3,496 ADU, measured</span></div>
+
+<div class="stage">
+<h3>Question</h3>
+<p class="sub">At what pixel value does this detector stop telling the
+truth &mdash; and does anyone have a measurement of it, or only a guess?</p>
+
+<h3>Evidence</h3>
+<p>When the strategy was written the answer was a guess, and it said so.
+Its §3.3 quotes a &ldquo;hard clip at ~3,530&ndash;3,550 ADU&rdquo; and sets
+a binding screen of <b>2,800 ADU</b> with a suspect band from 2,400 &mdash;
+numbers derived by eye from an assumed ~3,500 ADU ceiling, because the S2
+tables that held the measured one had been destroyed. That is precisely why
+the project task <code>SN-G0b</code> was marked BLOCKED: a screen with
+nothing behind it is not a screen.</p>
+
+<p>S2 has since been rebuilt and measures the High Gain channel's ceiling
+from science-frame histograms. This page therefore stores the strategy's
+<em>fractions</em> and applies them to the <em>measurement</em>:</p>
+
+<table class="data">
+<tr><th>quantity</th><th>value</th><th>source</th></tr>
+<tr><td>measured clip</td><td>3,496 ADU</td><td>S2 <code>s2_ceiling_modes.clip_adu</code>, High Gain</td></tr>
+<tr><td>S2's own saturation veto</td><td>3,200 ADU</td><td>S2 <code>s2_ceiling_modes.veto_adu</code> &mdash; an independent cross-check, not used as the screen here</td></tr>
+<tr><td>reject screen</td><td>2,797 ADU (0.80 &times; clip)</td><td>the strategy's 80%-of-clip rule, applied to the measurement</td></tr>
+<tr><td>suspect floor</td><td>2,397 ADU (0.686 &times; clip)</td><td>the strategy's lower flag level, likewise</td></tr>
+</table>
+
+<div class="decision"><b>The strategy's hand numbers survive contact with
+the measurement.</b> 0.80 &times; 3,496 =
+2,797 against a typed 2,800, and the suspect floor lands on
+2,397 against a typed 2,400 &mdash; both inside 0.2%. The
+assumed ceiling was right. What has changed is that the screen is now a
+consequence of a query, so an S2 re-measurement moves it without anyone
+editing a document.</div>
+
+<h3>Consequence</h3>
+<p>Every frame on this sky was screened against the ceiling of the readout
+mode it was actually taken in, which matters because the post-fade template
+epochs are not High Gain at all:</p>
+<table class="data">
+<tr><th>readout mode</th><th>frames on this sky</th><th>measured clip</th><th>S2 veto</th></tr>
+<tr><td>High Gain</td><td>1,172</td><td>3,496</td><td>3,200</td></tr>
+<tr><td>Fast</td><td>259</td><td>65,534</td><td>60,200</td></tr>
+<tr><td>1MHz High Sensitivity 16-bit</td><td>30</td><td>64,674</td><td>59,500</td></tr>
+</table>
+<p>A single High Gain screen applied to the 16-bit template epochs would
+have rejected every one of them; a single 16-bit screen applied to the
+campaign would have passed every clipped frame in it.</p>
+</div>
+</section>
+<section id="census">
+<div class="bhead"><h2>3 &middot; Gate 0b — the saturation census</h2>
+<span class="tag">1,461 frames opened</span></div>
+
+<div class="stage">
+<h3>Question</h3>
+<p class="sub">In which frames is the supernova itself measurable, and in
+which is it sitting on the detector's ceiling?  The strategy's answer was an
+exposure-scaling argument.  This is the pixels.</p>
+
+<h3>Evidence</h3>
+<p>Every frame on this sky was opened read-only and the supernova's
+catalogue position projected onto it. Where the frame carried its own plate
+solution the position is exact and the peak of a
+21&nbsp;px stamp is the supernova's peak; where it
+did not, the position is known only to the pointing residual measured in
+§1, and the census reports the maximum of a 501&nbsp;px
+search box &mdash; which is an UPPER BOUND on the supernova's peak and is
+labelled as one. A frame whose whole box stays under the screen is
+<em>provably</em> unsaturated wherever the supernova fell in it; a frame
+whose box reaches the screen supports no conclusion at all, and is recorded
+as <code>undetermined</code> rather than as a saturated epoch it may not
+be.</p>
+
+<figure><a href="figures/gate0/g0_saturation_matrix.png"><img src="figures/gate0/g0_saturation_matrix.png" alt=""></a><figcaption>The saturation matrix the strategy's Gate 0b asks for. Colour is the fraction of that filter-night's frames from which photometry may be taken. The black dots are the result that matters most: cells that are partly clean and partly clipped.</figcaption></figure>
+
+<p>The census validates its own position rule as it goes. In every
+plate-solved frame it also records the ISOLATION radius &mdash; how far away
+the nearest brighter pixel is &mdash; which measures directly how often
+&ldquo;the brightest thing in the search box&rdquo; would have been the
+wrong source. In the broadband codes that misidentification rate is a few
+per cent; in the narrowband codes it is an order of magnitude worse, which
+is why no narrowband bound was ever promoted to a measurement.</p>
+
+<table class="data">
+<tr><th>filter</th><th>role</th><th>frames</th><th>images</th><th>solved / unsolved</th><th>clean</th><th>clean by bound</th><th>suspect</th><th>rejected</th><th>undetermined</th><th>USABLE</th><th>first clean epoch</th><th>box would misidentify</th></tr>
+<tr><td>6</td><td>other</td><td>83</td><td>22</td><td>0 / 83</td><td>0</td><td>0</td><td>0</td><td>0</td><td>83</td><td><b>0</b></td><td>&mdash;</td><td>0/0</td></tr>
+<tr><td>X</td><td>other</td><td>6</td><td>6</td><td>6 / 0</td><td>0</td><td>0</td><td>0</td><td>6</td><td>0</td><td><b>0</b></td><td>&mdash;</td><td>1/6</td></tr>
+<tr><td>1</td><td>narrowband</td><td>124</td><td>124</td><td>80 / 40</td><td>26</td><td>2</td><td>8</td><td>46</td><td>42</td><td><b>0</b></td><td>2023-05-20 (+2.6 d)</td><td>62/80</td></tr>
+<tr><td>H</td><td>narrowband</td><td>112</td><td>112</td><td>35 / 76</td><td>10</td><td>2</td><td>1</td><td>24</td><td>75</td><td><b>0</b></td><td>2023-05-20 (+2.5 d)</td><td>21/35</td></tr>
+<tr><td>O</td><td>narrowband</td><td>172</td><td>172</td><td>68 / 104</td><td>33</td><td>0</td><td>14</td><td>21</td><td>104</td><td><b>0</b></td><td>2023-05-20 (+2.5 d)</td><td>38/68</td></tr>
+<tr><td>G</td><td>broadband</td><td>209</td><td>209</td><td>175 / 34</td><td>143</td><td>29</td><td>10</td><td>22</td><td>5</td><td><b>172</b></td><td>2023-05-23 (+5.4 d)</td><td>1/175</td></tr>
+<tr><td>I</td><td>broadband</td><td>220</td><td>220</td><td>202 / 18</td><td>122</td><td>18</td><td>19</td><td>61</td><td>0</td><td><b>140</b></td><td>2023-05-23 (+5.4 d)</td><td>6/202</td></tr>
+<tr><td>R</td><td>broadband</td><td>203</td><td>203</td><td>178 / 25</td><td>106</td><td>21</td><td>17</td><td>55</td><td>4</td><td><b>126</b></td><td>2023-05-23 (+5.4 d)</td><td>4/178</td></tr>
+</table>
+
+<figure><a href="figures/gate0/g0_peak_vs_phase.png"><img src="figures/gate0/g0_peak_vs_phase.png" alt=""></a><figcaption>Every supernova peak the census could measure directly, against phase. Solid rule: the measured clip. Dashed: the reject screen. Dotted: the suspect floor.</figcaption></figure>
+
+<h3>Decision</h3>
+<div class="decision">
+<b>The clean broadband start is night 2023-05-23 (UT 05-24, +5.4 d), in all
+three broadband codes, exactly where the strategy predicted it by exposure
+scaling &mdash; and now by measurement.</b> The three earlier epochs contain
+not one clean broadband frame between them:
+2023-05-19 (+1.6 d) &mdash; 0 clean of 15 frames, 6 over the screen; 2023-05-20 (+2.5 d) &mdash; 0 clean of 12 frames, 11 over the screen; 2023-05-21 (+3.5 d) &mdash; 0 clean of 15 frames, 15 over the screen. The balance in each is
+<code>undetermined</code>: frames with no plate solution whose search box
+reaches the screen, which the census declines to call either way.
+</div>
+
+<div class="decision">
+<b>Saturation here is a per-frame property, not a per-epoch one.</b>
+39 of 104 broadband filter-night cells contain a clean
+frame AND a clipped frame on the same night in the same filter. The
+strategy anticipated this in one sentence (§3.3: the supernova reaches
+3,222 ADU in a good-seeing 2&nbsp;s frame on a night when a 0.5&nbsp;s frame
+reads 891); the census makes it the rule rather than the anecdote. No epoch
+may be admitted or excluded wholesale &mdash; the screen has to be applied
+frame by frame, and the released table has to carry the flag per frame.
+</div>
+
+<h3>Consequence</h3>
+<p>The narrowband result is the one that changes a plan. The strategy names
+the +5.4 and +6.4&nbsp;d 32&nbsp;s frames as
+&ldquo;<b>the only certain-clean H epochs</b>&rdquo; and warns that
+&ldquo;there is a live risk that the only unsaturated flash-phase H&alpha;
+record in this archive is the slitless grism series.&rdquo; The census
+disagrees, and it disagrees with a measurement: see §4.</p>
+</div>
+</section>
+<section id="narrowband">
+<div class="bhead"><h2>4 &middot; The flash-phase H&alpha; record is not
+only the grism</h2><span class="tag">+2.5 d, measured clean</span></div>
+
+<div class="stage">
+<h3>Question</h3>
+<p class="sub">Is the slitless series really the archive's only unsaturated
+flash-phase narrowband record of this supernova?</p>
+
+<h3>Evidence</h3>
+<p>No. On night 2023-05-20 (UT 05-21, +2.5 d) the narrowband exposures were
+64&nbsp;s, and the census measures the supernova at a few hundred to
+~1,900 ADU in them &mdash; well under the 2,397 ADU flag
+level. The night after, the exposures ramp to 128&nbsp;s and the same
+frames clip. Here is every narrowband frame across the four earliest
+narrowband nights:</p>
+
+<table class="data">
+<tr><th>night</th><th>filter</th><th>exp (s)</th><th>position</th><th>peak ADU</th><th>sky ADU</th><th>offset (px)</th><th>isolation (px)</th><th>class</th></tr>
+<tr><td>2023-05-20</td><td>1</td><td>64</td><td>wcs_off</td><td>765</td><td>94</td><td>6.8</td><td>&mdash;</td><td>bounded_clean</td></tr>
+<tr><td>2023-05-20</td><td>1</td><td>64</td><td>wcs_off</td><td>1,849</td><td>94</td><td>10.4</td><td>&mdash;</td><td>bounded_clean</td></tr>
+<tr><td>2023-05-20</td><td>1</td><td>64</td><td>wcs</td><td>840</td><td>95</td><td>0.3</td><td>14</td><td>clean</td></tr>
+<tr><td>2023-05-20</td><td>1</td><td>64</td><td>wcs</td><td>1,132</td><td>96</td><td>0.2</td><td>31</td><td>clean</td></tr>
+<tr><td>2023-05-20</td><td>H</td><td>64</td><td>wcs</td><td>825</td><td>95</td><td>0.7</td><td>65</td><td>clean</td></tr>
+<tr><td>2023-05-20</td><td>H</td><td>64</td><td>wcs_off</td><td>1,845</td><td>96</td><td>9.9</td><td>&mdash;</td><td>bounded_clean</td></tr>
+<tr><td>2023-05-20</td><td>H</td><td>64</td><td>wcs</td><td>969</td><td>96</td><td>0.6</td><td>38</td><td>clean</td></tr>
+<tr><td>2023-05-20</td><td>H</td><td>64</td><td>wcs</td><td>1,883</td><td>98</td><td>0.1</td><td>142</td><td>clean</td></tr>
+<tr><td>2023-05-20</td><td>O</td><td>64</td><td>bound</td><td>3,426</td><td>95</td><td>9.5</td><td>&mdash;</td><td>undetermined</td></tr>
+<tr><td>2023-05-20</td><td>O</td><td>64</td><td>wcs</td><td>1,403</td><td>95</td><td>0.7</td><td>66</td><td>clean</td></tr>
+<tr><td>2023-05-20</td><td>O</td><td>64</td><td>wcs</td><td>1,958</td><td>95</td><td>0.4</td><td>103</td><td>clean</td></tr>
+<tr><td>2023-05-20</td><td>O</td><td>64</td><td>wcs</td><td>1,829</td><td>95</td><td>0.4</td><td>120</td><td>clean</td></tr>
+<tr class="warn"><td>2023-05-21</td><td>1</td><td>128</td><td>wcs</td><td>2,929</td><td>97</td><td>0.5</td><td>64</td><td>rejected</td></tr>
+<tr><td>2023-05-21</td><td>1</td><td>128</td><td>wcs</td><td>2,294</td><td>97</td><td>0.1</td><td>24</td><td>clean</td></tr>
+<tr class="warn"><td>2023-05-21</td><td>1</td><td>128</td><td>wcs</td><td>2,425</td><td>98</td><td>0.2</td><td>14</td><td>suspect</td></tr>
+<tr class="warn"><td>2023-05-21</td><td>1</td><td>128</td><td>wcs</td><td>2,858</td><td>98</td><td>0.5</td><td>51</td><td>rejected</td></tr>
+<tr><td>2023-05-21</td><td>1</td><td>128</td><td>wcs</td><td>2,141</td><td>99</td><td>0.4</td><td>33</td><td>clean</td></tr>
+<tr><td>2023-05-21</td><td>H</td><td>128</td><td>bound</td><td>3,525</td><td>98</td><td>9.5</td><td>&mdash;</td><td>undetermined</td></tr>
+<tr class="warn"><td>2023-05-21</td><td>H</td><td>128</td><td>wcs</td><td>3,233</td><td>99</td><td>0.3</td><td>113</td><td>rejected</td></tr>
+<tr class="warn"><td>2023-05-21</td><td>H</td><td>128</td><td>wcs</td><td>3,089</td><td>101</td><td>0.8</td><td>15</td><td>rejected</td></tr>
+<tr class="warn"><td>2023-05-21</td><td>H</td><td>128</td><td>wcs</td><td>2,686</td><td>101</td><td>0.1</td><td>52</td><td>suspect</td></tr>
+<tr class="warn"><td>2023-05-21</td><td>H</td><td>128</td><td>wcs</td><td>2,820</td><td>103</td><td>0.3</td><td>61</td><td>rejected</td></tr>
+<tr><td>2023-05-21</td><td>O</td><td>128</td><td>bound</td><td>3,517</td><td>97</td><td>9.5</td><td>&mdash;</td><td>undetermined</td></tr>
+<tr class="warn"><td>2023-05-21</td><td>O</td><td>128</td><td>wcs</td><td>3,357</td><td>98</td><td>0.6</td><td>200</td><td>rejected</td></tr>
+<tr class="warn"><td>2023-05-21</td><td>O</td><td>128</td><td>wcs</td><td>3,304</td><td>99</td><td>0.4</td><td>241</td><td>rejected</td></tr>
+<tr class="warn"><td>2023-05-21</td><td>O</td><td>128</td><td>wcs</td><td>3,337</td><td>99</td><td>0.9</td><td>250</td><td>rejected</td></tr>
+<tr class="warn"><td>2023-05-21</td><td>O</td><td>128</td><td>wcs</td><td>3,186</td><td>100</td><td>0.7</td><td>132</td><td>rejected</td></tr>
+<tr><td>2023-05-23</td><td>1</td><td>32</td><td>wcs</td><td>825</td><td>94</td><td>0.4</td><td>37</td><td>clean</td></tr>
+<tr><td>2023-05-23</td><td>1</td><td>32</td><td>wcs</td><td>1,181</td><td>93</td><td>0.1</td><td>271</td><td>clean</td></tr>
+<tr><td>2023-05-23</td><td>1</td><td>32</td><td>wcs</td><td>792</td><td>93</td><td>0.7</td><td>54</td><td>clean</td></tr>
+<tr><td>2023-05-23</td><td>1</td><td>32</td><td>wcs</td><td>834</td><td>93</td><td>1.0</td><td>41</td><td>clean</td></tr>
+<tr><td>2023-05-23</td><td>1</td><td>32</td><td>wcs</td><td>535</td><td>93</td><td>1.0</td><td>35</td><td>clean</td></tr>
+<tr><td>2023-05-23</td><td>H</td><td>32</td><td>bound</td><td>2,436</td><td>93</td><td>5.7</td><td>&mdash;</td><td>undetermined</td></tr>
+<tr><td>2023-05-23</td><td>H</td><td>32</td><td>bound</td><td>2,525</td><td>93</td><td>1.6</td><td>&mdash;</td><td>undetermined</td></tr>
+<tr><td>2023-05-23</td><td>H</td><td>32</td><td>bound</td><td>2,377</td><td>93</td><td>14.7</td><td>&mdash;</td><td>bounded_clean</td></tr>
+<tr><td>2023-05-23</td><td>H</td><td>32</td><td>wcs</td><td>1,080</td><td>94</td><td>0.6</td><td>139</td><td>clean</td></tr>
+<tr><td>2023-05-23</td><td>H</td><td>32</td><td>wcs</td><td>1,333</td><td>94</td><td>0.6</td><td>271</td><td>clean</td></tr>
+<tr><td>2023-05-23</td><td>H</td><td>32</td><td>wcs</td><td>861</td><td>94</td><td>0.4</td><td>43</td><td>clean</td></tr>
+<tr><td>2023-05-23</td><td>O</td><td>32</td><td>bound</td><td>2,542</td><td>93</td><td>6.7</td><td>&mdash;</td><td>undetermined</td></tr>
+<tr><td>2023-05-23</td><td>O</td><td>32</td><td>bound</td><td>2,480</td><td>93</td><td>5.6</td><td>&mdash;</td><td>undetermined</td></tr>
+<tr><td>2023-05-23</td><td>O</td><td>32</td><td>bound</td><td>2,413</td><td>93</td><td>9.4</td><td>&mdash;</td><td>undetermined</td></tr>
+<tr><td>2023-05-23</td><td>O</td><td>32</td><td>wcs</td><td>1,564</td><td>94</td><td>0.9</td><td>232</td><td>clean</td></tr>
+<tr><td>2023-05-24</td><td>1</td><td>32</td><td>wcs</td><td>922</td><td>94</td><td>0.3</td><td>50</td><td>clean</td></tr>
+<tr><td>2023-05-24</td><td>1</td><td>32</td><td>wcs</td><td>824</td><td>93</td><td>0.4</td><td>53</td><td>clean</td></tr>
+<tr><td>2023-05-24</td><td>1</td><td>32</td><td>wcs</td><td>1,270</td><td>93</td><td>0.4</td><td>235</td><td>clean</td></tr>
+<tr><td>2023-05-24</td><td>H</td><td>32</td><td>wcs</td><td>985</td><td>94</td><td>0.7</td><td>50</td><td>clean</td></tr>
+<tr><td>2023-05-24</td><td>H</td><td>32</td><td>wcs</td><td>1,095</td><td>94</td><td>0.4</td><td>85</td><td>clean</td></tr>
+<tr><td>2023-05-24</td><td>H</td><td>32</td><td>wcs</td><td>1,236</td><td>94</td><td>0.5</td><td>248</td><td>clean</td></tr>
+<tr><td>2023-05-24</td><td>O</td><td>32</td><td>bound</td><td>3,146</td><td>93</td><td>9.2</td><td>&mdash;</td><td>undetermined</td></tr>
+</table>
+
+<p>Two independent checks say this is the supernova and not a field star or
+an H&nbsp;II region that was always there.</p>
+<ul>
+<li><b>Position.</b> The clean +2.5&nbsp;d frames put the peak within
+0.1&ndash;0.7&nbsp;px
+of the catalogue position, with the nearest brighter pixel tens of pixels
+away.</li>
+<li><b>The pre-explosion epoch, which the census also measured.</b> In the
+2023-05-05 H frames the same position yields
+1.7 net ADU&nbsp;s<sup>&minus;1</sup>; at +2.5&nbsp;d it
+yields 18, and at +5.4&nbsp;d 31. The source
+is 10&times; brighter than
+whatever occupied that position two weeks earlier.</li>
+</ul>
+
+<div class="decision"><b>11 narrowband frames at +2.5 d are
+measured unsaturated on the supernova &mdash; three nights earlier than the
+strategy's stated clean narrowband start, and they are images, not
+spectra.</b> The claim that the grism is the only unsaturated flash-phase
+H&alpha; record in this archive is retracted here, on the evidence of the
+frames it was made about.</div>
+
+<h3>Consequence</h3>
+<p>This does not by itself resurrect the H&alpha; product. It moves what is
+blocking it. Q2 was thought to be dead in the flash phase because of
+saturation; it is not, and the blocker is now the one the strategy already
+named &mdash; the narrowband transmission curve, without which a flux at
++2.5&nbsp;d cannot be interpreted physically (task
+<code>SN-S1-narrowband-curves</code>). It also means the flash-phase
+narrowband coverage is three epochs (+2.5, +5.4, +6.4&nbsp;d), not two.</p>
+
+<p>The pre-explosion template epoch was measured in the same pass, and it
+settles a caution the strategy raised but could not resolve:</p>
+<table class="data">
+<tr><th>filter</th><th>frames</th><th>mean sky pedestal (ADU)</th><th>mean peak at the SN position (ADU)</th><th>sky as a fraction of the measured clip</th></tr>
+<tr class="warn"><td>G</td><td>8</td><td>3,153</td><td>3,217</td><td>90%</td></tr>
+<tr><td>H</td><td>8</td><td>176</td><td>658</td><td>5%</td></tr>
+<tr><td>O</td><td>8</td><td>231</td><td>344</td><td>7%</td></tr>
+<tr class="warn"><td>R</td><td>8</td><td>2,206</td><td>2,406</td><td>63%</td></tr>
+<tr class="warn"><td>X</td><td>8</td><td>2,671</td><td>3,177</td><td>76%</td></tr>
+</table>
+<p>The strategy flagged the 2023-05-05 G/R/X frames as
+&ldquo;possibly trailed/defocused&rdquo; on their 14&ndash;16&nbsp;px FWHM
+and ruled them narrowband-only by default. The census supplies the reason:
+their SKY sits at
+90%
+of the clip before a single photon from a star arrives, leaving almost no
+dynamic range. The narrowband H/O templates sit at a few per cent and are
+fine. The strategy's ruling stands, and now has a number under it.</p>
+</div>
+</section>
+<section id="astrometry">
+<div class="bhead"><h2>5 &middot; Does the astrometry verdict move?</h2>
+<span class="tag">NO-GO on the stratum</span></div>
+
+<div class="stage">
+<h3>Question</h3>
+<p class="sub">The strategy inherited a NO-GO on this campaign's astrometry
+from the S1 experiment, whose candidate universe was contaminated by
+spectra it had excluded by filter LABEL.  With the gate repaired to read
+S2c's per-frame measurement, does the verdict move?</p>
+
+<h3>Evidence</h3>
+<p><b>No &mdash; and the reason it does not is more useful than a movement
+would have been.</b> The S1 stratum's rate for this campaign rose when the
+gate was repaired, but not nearly far enough to cross a threshold, and the
+same question asked of the frames that actually carry the light curve gives
+a completely different answer:</p>
+
+<table class="data">
+<tr><th>scope</th><th>successes / trials</th><th>rate</th><th>verdict</th><th>what this is</th></tr>
+<tr><td><code>campaign-broadband</code><br><span class='sub'>Campaign broadband images carrying a plate solution the census independently corroborates</span></td><td>553 / 630</td><td>87.8%</td><td><b>GO</b></td><td>corroboration = the brightest pixel in a 21 px stamp at the catalogue position of the supernova lands within 6 px of it; this is a full census, so the exact rate is judged and no sampling interval applies</td></tr>
+<tr><td><code>campaign-narrowband</code><br><span class='sub'>Campaign narrowband images carrying a plate solution the census independently corroborates</span></td><td>183 / 408</td><td>44.9%</td><td><b>NO-GO</b></td><td>corroboration = the brightest pixel in a 21 px stamp at the catalogue position of the supernova lands within 6 px of it; this is a full census, so the exact rate is judged and no sampling interval applies</td></tr>
+<tr><td><code>s1-stratum</code><br><span class='sub'>S1 stratum sn_gsense_broadband: can the UNSOLVED residue of this campaign be batch-solved blind?</span></td><td>18 / 48</td><td>37.5%</td><td><b>NO-GO</b></td><td>sample of 48 drawn from a population of 308 after the measured-dispersion gate replaced the filter-label gate (the label gate had counted 369)</td></tr>
+</table>
+
+<figure><a href="figures/gate0/g0_astrometry.png"><img src="figures/gate0/g0_astrometry.png" alt=""></a><figcaption>The same 80% / 50% thresholds applied to three different populations. The error bar is drawn only on the sampled scope; the two census scopes have no sampling uncertainty to draw.</figcaption></figure>
+
+<p>The two verdicts are not in conflict, because they are rates over
+different frames. The S1 stratum is drawn from the campaign's UNSOLVED
+residue &mdash; the frames that PinPoint could not solve at the telescope
+&mdash; and that residue is overwhelmingly narrowband:</p>
+
+<table class="data">
+<tr><th>band role</th><th>frames in the stratum's unsolved population</th></tr>
+<tr><td>narrowband</td><td>217</td></tr>
+<tr><td>broadband</td><td>68</td></tr>
+<tr><td>other</td><td>23</td></tr>
+</table>
+
+<p>Its failures say the same thing in the machine's own words:</p>
+<table class="data">
+<tr><th>filter</th><th>S1 failure diagnosis</th><th>frames</th></tr>
+<tr><td>O</td><td>trailing (guiding/wind)</td><td>18</td></tr>
+<tr><td>G</td><td>starved (blank/clouds/hot-pixel-only)</td><td>4</td></tr>
+<tr><td>1</td><td>trailing (guiding/wind)</td><td>3</td></tr>
+<tr><td>I</td><td>starved (blank/clouds/hot-pixel-only)</td><td>2</td></tr>
+<tr><td>6</td><td>defocused (giant blobs, no point sources)</td><td>1</td></tr>
+<tr><td>H</td><td>trailing (guiding/wind)</td><td>1</td></tr>
+<tr><td>R</td><td>starved (blank/clouds/hot-pixel-only)</td><td>1</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>The verdict does not move: the stratum stays
+NO-GO.</b> 18/48 = 37.5% on the S1 stratum (unchanged verdict NO-GO); 553/630 = 87.8% of campaign broadband images carry a corroborated solution (GO).</div>
+
+<div class="decision"><b>But it is a verdict about long narrowband
+exposures, not about the gri light curve.</b> Its unsolved population is
+217 narrowband frames against
+68 broadband, and
+18 of its
+30 autopsied failures are O-band frames
+diagnosed as trailed. The light curve's own astrometry is not a
+blind-batch problem at all: the solutions already exist, and this census
+independently corroborated them by finding the supernova within
+6&nbsp;px of its catalogue position in each
+one.</div>
+
+<h3>Consequence</h3>
+<p>Two things follow for the plan. First, the re-solve task
+(<code>SN-S4-resolve</code>) should be scoped to the bands it can help:
+attempting the O-band residue blind is what the NO-GO is about, and the
+strategy's &ldquo;~177 unsolved broadband frames&rdquo; is the tractable
+part. Second, a corroborated plate solution is a stronger claim than a
+<code>PLTSOLVD</code> card, and this campaign now has one per frame &mdash;
+a by-product of the census that Step 4 can consume instead of re-deriving.</p>
+</div>
+</section>
+<section id="grism">
+<div class="bhead"><h2>6 &middot; Gate 0c — the grism triage</h2>
+<span class="tag">61 measured spectra</span>
+<span class="tag2">NOT PROMOTED</span></div>
+
+<div class="stage">
+<h3>Question</h3>
+<p class="sub">Is the slitless series a genuine flash-phase spectral record
+&mdash; and does it clear the promotion bar the strategy pre-registered
+before any of this evidence existed?</p>
+
+<h3>Evidence</h3>
+<p>The series is real, and it is not what the label said it was. Of the
+61 frames S2c measures as dispersed,
+15 fall inside the flash window; three
+frames wearing the same slot-'6' label are measured DIRECT IMAGES, and
+19 could not be certified either way.</p>
+
+<table class="data">
+<tr><th>night</th><th>phase (d)</th><th>slot-'6' frames</th><th>dispersed</th><th>direct</th><th>indeterminate</th><th>exposure (s)</th><th>paired direct images that night</th><th>in flash window</th></tr>
+<tr><td>2023-05-21</td><td>+3.5</td><td>4</td><td><b>4</b></td><td>0</td><td>0</td><td>256&ndash;256</td><td>30 (1x5,Gx5,Hx5,Ix5,Ox5,Rx5)</td><td>yes</td></tr>
+<tr><td>2023-05-23</td><td>+5.4</td><td>9</td><td><b>7</b></td><td>0</td><td>2</td><td>64&ndash;128</td><td>44 (1x5,Gx10,Hx6,Ix10,Ox4,Rx9)</td><td>yes</td></tr>
+<tr><td>2023-05-24</td><td>+6.4</td><td>4</td><td><b>4</b></td><td>0</td><td>0</td><td>64&ndash;128</td><td>15 (1x3,Gx2,Hx3,Ix4,Ox1,Rx2)</td><td>yes</td></tr>
+<tr><td>2023-05-26</td><td>+8.4</td><td>7</td><td><b>3</b></td><td>3</td><td>1</td><td>256&ndash;256</td><td>41 (1x7,Gx6,Hx5,Ix9,Ox9,Rx5)</td><td>&mdash;</td></tr>
+<tr><td>2023-05-27</td><td>+9.4</td><td>8</td><td><b>8</b></td><td>0</td><td>0</td><td>512&ndash;512</td><td>39 (1x8,Gx6,Hx5,Ix7,Ox8,Rx5)</td><td>&mdash;</td></tr>
+<tr><td>2023-05-28</td><td>+10.4</td><td>8</td><td><b>7</b></td><td>0</td><td>1</td><td>512&ndash;512</td><td>48 (1x9,Gx7,Hx8,Ix8,Ox9,Rx7)</td><td>&mdash;</td></tr>
+<tr><td>2023-05-29</td><td>+11.4</td><td>8</td><td><b>8</b></td><td>0</td><td>0</td><td>512&ndash;512</td><td>41 (1x8,Gx7,Hx7,Ix7,Ox6,Rx6)</td><td>&mdash;</td></tr>
+<tr><td>2023-05-31</td><td>+13.4</td><td>7</td><td><b>7</b></td><td>0</td><td>0</td><td>512&ndash;512</td><td>43 (1x7,Gx7,Hx7,Ix8,Ox7,Rx7)</td><td>&mdash;</td></tr>
+<tr><td>2023-06-01</td><td>+14.4</td><td>7</td><td><b>3</b></td><td>0</td><td>4</td><td>512&ndash;512</td><td>38 (1x6,Gx6,Hx5,Ix7,Ox8,Rx6)</td><td>&mdash;</td></tr>
+<tr><td>2023-06-03</td><td>+16.4</td><td>7</td><td><b>0</b></td><td>0</td><td>7</td><td>512&ndash;512</td><td>43 (1x8,Gx7,Hx6,Ix8,Ox7,Rx7)</td><td>&mdash;</td></tr>
+<tr><td>2023-06-04</td><td>+17.7</td><td>3</td><td><b>0</b></td><td>0</td><td>3</td><td>512&ndash;512</td><td>27 (1x3,Gx6,Hx3,Ix6,Ox3,Rx6)</td><td>&mdash;</td></tr>
+<tr><td>2023-06-10</td><td>+23.4</td><td>1</td><td><b>1</b></td><td>0</td><td>0</td><td>512&ndash;512</td><td>31 (1x3,Gx7,Hx2,Ix7,Ox5,Rx7)</td><td>&mdash;</td></tr>
+<tr><td>2023-06-11</td><td>+24.4</td><td>1</td><td><b>1</b></td><td>0</td><td>0</td><td>512&ndash;512</td><td>29 (1x1,Gx7,Hx2,Ix7,Ox5,Rx7)</td><td>&mdash;</td></tr>
+<tr><td>2023-06-13</td><td>+26.4</td><td>6</td><td><b>5</b></td><td>0</td><td>1</td><td>512&ndash;512</td><td>43 (1x9,Gx5,Hx9,Ix7,Ox8,Rx5)</td><td>&mdash;</td></tr>
+<tr><td>2023-06-23</td><td>+36.5</td><td>3</td><td><b>3</b></td><td>0</td><td>0</td><td>512&ndash;512</td><td>41 (1x8,Gx6,Hx7,Ix6,Ox8,Rx6)</td><td>&mdash;</td></tr>
+</table>
+
+<figure><a href="figures/gate0/g0_grism_series.png"><img src="figures/gate0/g0_grism_series.png" alt=""></a><figcaption>Slot '6' per night as the pixels read it, with the exposure ramp overlaid. The label would have drawn a single flat bar of 83.</figcaption></figure>
+
+<p>Gate 0c's first requirement is that paired or near-in-time direct images
+exist for every grism night, and the strategy insists this be VERIFIED
+rather than assumed. It is verified: every one of the
+13 nights carrying a measured spectrum
+also carries between 15 and
+48 direct images of the same field.</p>
+
+<p>The promotion criterion itself, applied clause by clause exactly as
+pre-registered:</p>
+<table class="data">
+<tr><th>clause</th><th>requirement</th><th>measured value</th><th>passed</th></tr>
+<tr><td>nights</td><td>measured spectra on &gt;= 3 nights</td><td>13</td><td>yes</td></tr>
+<tr><td>flash_nights</td><td>flash-phase nights covered (context, not a bar)</td><td>3</td><td>yes</td></tr>
+<tr class="warn"><td>extracted</td><td>Hα at SNR &gt; 10 on &gt;= 3 nights</td><td>0</td><td><b>NO</b></td></tr>
+<tr class="warn"><td>contamination</td><td>offset-trace contamination test passed</td><td>0</td><td><b>NO</b></td></tr>
+<tr class="warn"><td>wavelength</td><td>named/dated wavelength calibration source</td><td>none identified</td><td><b>NO</b></td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>The series is genuine and it does not promote.</b>
+61 measured spectra on 13 nights, 3 of them inside the flash window; 0 extracted spectra. It has the nights &mdash; exactly the three the criterion asks
+for, with no margin &mdash; and it has none of the spectra. Nothing has been
+extracted, so nothing has been through the offset-trace contamination test,
+and no wavelength calibration source has been named. blocking clauses: extracted,contamination,wavelength; 0 filter-'6' flat frames exist in the archive, so the relative-flux-only policy stands</div>
+
+<h3>Consequence</h3>
+<p>This is a promotion the evidence does not support, and saying so is the
+result. The strategy pre-registered the criterion precisely so that a real,
+well-sampled, genuinely interesting set of frames could not be talked into
+being a headline product before anyone had extracted a spectrum from it.
+The frames are worth the two-week timebox the strategy allots them; they
+are not worth a venue decision.</p>
+
+<p>One limitation of this census bears directly on that timebox and should
+be stated rather than discovered later: <b>not one of the 83 slot-'6'
+frames carries a plate solution</b>, so Gate 0b could not determine whether
+the traces themselves are clipped. The 512&nbsp;s exposures from
++9.4&nbsp;d onward are the ones at risk. The extraction will have to
+establish its own astrometry &mdash; which is exactly what the verified
+paired direct images above are for.</p>
+</div>
+</section>
+<section id="verdicts">
+<div class="bhead"><h2>7 &middot; The answers, with the numbers that decide
+them</h2></div>
+
+<div class="stage">
+<h3>Question</h3>
+<p class="sub">Gate 0 exists to answer three questions and to set one
+posture.  Each answer is stored beside the number it turns on, so a re-run
+that keeps the word while moving the number is visible in the table rather
+than only in a reader's memory.</p>
+
+<h3>Evidence</h3>
+<table class="data">
+<tr><th>question</th><th>verdict</th><th>deciding number</th><th>basis</th></tr>
+<tr><td>How many SN frames are genuinely usable broadband photometry, after removing spectra and saturated epochs?</td><td><b>MEASURED</b></td><td>438 of 632 campaign broadband frames (371 measured clean + 68 clean by bound)</td><td>removed: 138 over the peak-ADU screen, 46 suspect (held pending the linearity curve), 9 undetermined (no plate solution and a search box that reaches the screen); the first clean broadband frame is night 2023-05-23 (+5.4 d)</td></tr>
+<tr><td>Does the astrometry verdict move now that the rate is computed over real images?</td><td><b>NO-GO</b></td><td>18/48 = 37.5% on the S1 stratum (unchanged verdict NO-GO); 553/630 = 87.8% of campaign broadband images carry a corroborated solution (GO)</td><td>the stratum's unsolved population is 217 narrowband, 68 broadband and 23 other frames, so its NO-GO is a verdict about long narrowband exposures and not about the gri light curve</td></tr>
+<tr><td>Is the dispersed series a genuine flash-phase spectral record, and does it promote?</td><td><b>NOT PROMOTED</b></td><td>61 measured spectra on 13 nights, 3 of them inside the flash window; 0 extracted spectra</td><td>blocking clauses: extracted,contamination,wavelength; 0 filter-'6' flat frames exist in the archive, so the relative-flux-only policy stands</td></tr>
+<tr><td>Does Gate 0 promote the venue posture from AJ/PASP to ApJ, per the strategy's own rule?</td><td><b>AJ/PASP</b></td><td>0 contamination-tested flash-phase spectra (the pre-registered rule requires 3) and 0 recovered narrowband transmission curves (the rule requires 1)</td><td>the strategy decides the posture in advance: AJ/PASP is the base case, ApJ only if Gate 0 promotes the grism or recovers the narrowband bandpass; neither happened, so the posture stays where it was put</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>The venue posture stays at
+AJ/PASP.</b> The strategy decided in advance that ApJ is taken
+only if Gate 0 promotes the grism or recovers the narrowband bandpass. Gate
+0 did neither: zero contamination-tested spectra against a bar of
+3, and zero recovered transmission curves
+against a bar of one. A posture that was decided before the evidence
+arrived, and that the evidence does not move, is a posture that held.</div>
+
+<h3>Consequence</h3>
+<p>What Gate 0 delivers is not a promotion; it is a scope. The paper has
+<b>438</b>
+broadband frames it may take photometry from, a measured clean start, a
+per-frame saturation flag for the released table, a corroborated plate
+solution for most of the light curve, and three narrowband epochs inside the
+flash phase it did not know it had. Steps 1 and 2 are now unblocked and are
+the next binding gates.</p>
+
+<p>What Gate 0 does NOT settle, stated so it is not mistakenly assumed:
+the physical identity of the filter codes (Step 1), the linearity curve
+below the screen &mdash; which is what would let the
+46
+suspect broadband frames be recovered (Step 2), whether the grism traces
+are clipped (no plate solutions), and the narrowband transmission profiles
+without which the H&alpha; product stays a methods demonstration.</p>
+</div>
+</section>
+
+<footer>Generated by <code>macro_sn.report_gate0</code> from
+<code>products/manifest/rlmt-manifest.sqlite</code> — every number on this
+page is the result of a SQL query or a documented constant in
+<code>macro_sn.gate0</code>; none is typed by hand. The supernova's position
+is a literature constant (Itagaki discovery position, TNS AT 2023ixf (14:03:38.562 +54:18:41.94, J2000)) and the explosion
+epoch is 60082.79 MJD (Hosseinzadeh+23 (ApJL 953 L16); Li+24 (Nature 627 754)), used for display only — no
+verdict on this page is a function of phase. Regenerate with
+<code>pipeline/scripts/run_sn_gate0.py report</code>.</footer>
+</body></html>

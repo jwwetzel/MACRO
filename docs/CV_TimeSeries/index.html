@@ -132,7 +132,7 @@ reason attached.</p>
 <p class="sub">The pipeline's first bottleneck: ~4,600 of ~5,500 polar Sloan-era frames had no WCS, so no ensemble photometry.</p>
 <table class="data">
 <tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
-<tr><td><span class="chip done">done</span></td><td><b>Stratified 200-frame re-solve experiment</b><br><code>CV-P05-solve-experiment</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 0.5 step 3a</span></td><td>A measured per-target success rate, and the acceptance threshold set FROM it rather than asserted.</td><td><code>S1</code> <a href="../pipeline/s1_astrometry.html">s1_astrometry.html</a></td><td><a href="../pipeline/s1_astrometry.html">s1_astrometry.html</a></td></tr>
+<tr><td><span class="chip done">done</span></td><td><b>Stratified 200-frame re-solve experiment</b><br><code>CV-P05-solve-experiment</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 0.5 step 3a</span></td><td>A measured per-target success rate, and the acceptance threshold set FROM it rather than asserted.</td><td><code>S1</code> <a href="../pipeline/s1_astrometry.html">s1_astrometry.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s1_astrometry.html">s1_astrometry.html</a></td></tr>
 <tr><td><span class="chip done">done</span></td><td><b>Production batch solve of the unsolved pool</b><br><code>CV-P05-batch-solve</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §4 Phase 0.5 step 3b</span></td><td>A WCS for every solvable CV frame; the per-target solved fraction that gates Phase 2.</td><td><code>S1b</code> &mdash;</td><td><a href="../pipeline/s1_astrometry.html">s1_astrometry.html</a></td></tr>
 <tr><td><span class="chip done">done</span></td><td><b>Re-queue the frames excluded by the NAXIS artifact</b><br><code>CV-P05-geometry-requeue</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/CV_TimeSeries/ANALYSIS_STRATEGY.md">CV_TimeSeries/ANALYSIS_STRATEGY.md</a> §5 row 'Astrometry'</span></td><td>The 18,381 frames whose recorded geometry was a tile-compressed BINTABLE row length — EU UMa's 207 among them — returned to the solve queue.</td><td><code>S0e</code> <a href="../pipeline/s0e_geometry_fix.html">s0e_geometry_fix.html</a></td><td><code>pipeline/s0e_geometry_fix.html</code></td></tr>
 </table>
@@ -229,7 +229,7 @@ edited by hand.</p>
 
 <section id="evidence">
 <div class="bhead"><h2>Evidence</h2>
-<span class="tag">0 of 10 stages are not FRESH</span></div>
+<span class="tag">1 of 10 stages are not FRESH</span></div>
 <div class="stage">
 <p class="sub">The pipeline stages this project's plan rests on, each with
 the verdict <code>macro_core.provenance</code> returns right now.
@@ -240,9 +240,9 @@ database at all. A reader is never invited to trust an orphaned report.</p>
 <tr><th>Stage</th><th>What it produces</th><th>Verdict now</th><th>Report</th><th>Why</th></tr>
 <tr><td><code>S0e</code></td><td>Geometry repair of the external catalog</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s0e_geometry_fix.html">s0e_geometry_fix.html</a></td><td>&mdash;</td></tr>
 <tr><td><code>S0c</code></td><td>Per-project staging manifests</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a></td><td>&mdash;</td></tr>
-<tr><td><code>S1</code></td><td>Astrometry solvability experiment</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s1_astrometry.html">s1_astrometry.html</a></td><td>&mdash;</td></tr>
 <tr><td><code>S1b</code></td><td>Astrometry production batch</td><td><span class="chip v-fresh">FRESH</span></td><td>&mdash;</td><td>&mdash;</td></tr>
 <tr><td><code>S2</code></td><td>Detector truth (ceiling, PTC, recon, linearity)</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s2_detector.html">s2_detector.html</a></td><td>&mdash;</td></tr>
+<tr class="warn"><td><code>S1</code></td><td>Astrometry solvability experiment</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s1_astrometry.html">s1_astrometry.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S2c (STALE) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
 <tr><td><code>S3</code></td><td>Timing (BJD_TDB, clock, cadence)</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a></td><td>&mdash;</td></tr>
 <tr><td><code>CV-S4</code></td><td>Production CV photometry (five staged targets)</td><td><span class="chip v-fresh">FRESH</span></td><td>&mdash;</td><td>&mdash;</td></tr>
 <tr><td><code>CV-S6</code></td><td>CV catalogue tie (relative magnitudes -&gt; natural-system magnitudes on a standard zero point)</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../CV_TimeSeries/cv_catalogue_tie.html">cv_catalogue_tie.html</a></td><td>&mdash;</td></tr>
@@ -253,7 +253,7 @@ database at all. A reader is never invited to trust an orphaned report.</p>
 </div>
 </section>
 
-<footer>Generated 2026-08-20T20:14:25Z by
+<footer>Generated 2026-08-21T04:01:43Z by
 <code>macro_core.report_projects</code> from the plan ledger in
 <code>macro_core.project_plan</code> (PLAN v1.0 (2026-08-18)), the
 progress recorded in <code>project_plan_status</code>, and live queries

@@ -43,7 +43,9 @@ import numpy as np                # noqa: E402
 
 from . import cattie as ct        # noqa: E402
 from macro_core.report_s0 import (  # noqa: E402
-    ACCENT, DARK, DPI, WARN, _figure, esc, q, q1, table)
+    ACCENT, BAD, STYLE, DPI, FAINT, GOOD, INK, MUTED, WARN,
+    _figure, esc, q, q1, table)
+from macro_core import plotstyle as ps   # noqa: E402  (house figure style)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DOCS_DIR = REPO_ROOT / "docs" / "CV_TimeSeries"
@@ -52,11 +54,12 @@ HTML_PATH = DOCS_DIR / "cv_catalogue_tie.html"
 
 TARGET_LABEL = {"stlmi": "ST LMi", "vvpup": "VV Pup", "euuma": "EU UMa",
                 "anuma": "AN UMa", "yzcnc": "YZ Cnc"}
-FILTER_COLOR = {"g": "#9fd8ae", "G": "#9fd8ae", "r": "#e6907a", "R": "#e6907a",
-                "i": "#c39be0", "I": "#c39be0", "y": "#e6cc7a", "z": "#8fb3d9"}
-GOOD = "#9fd8ae"
-BAD = "#f0a3a3"
+FILTER_COLOR = ps.BAND_COLOR
+FILTER_MARKER = ps.BAND_MARKER
 CAT_COLOR = {"refcat2": ACCENT, "gaia_gspc": WARN}
+#: Marker as the second channel, so a greyscale print still separates
+#: the two catalogues.
+CAT_MARKER = {"refcat2": "o", "gaia_gspc": "s"}
 
 VERDICT_CLASS = {"TIED-STRETCH": "ok", "TIED-GOAL": "ok",
                  "TIED-ABOVE-GOAL": "warn", "TIED-UNVERIFIED": "warn",
@@ -163,7 +166,7 @@ def fig_catalogue_depth(con) -> str:
     campaign's comparison stars sit inside that reach."""
     fields = [r[0] for r in q(con, "SELECT DISTINCT field_key FROM "
                                    "cv_cat_fetch ORDER BY 1")]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.6, 3.8))
         rows = q(con, """SELECT catalogue, field_key, n_rows
                          FROM cv_cat_fetch ORDER BY field_key""")
@@ -210,15 +213,17 @@ def fig_veto_census(con) -> str:
     """Why a matched catalogue star is not automatically a tie star."""
     reasons = ["saturated", "near_veto", "blend_aperture", "blend_annulus",
                "ambiguous", "catalogue_flag", "no_cat_mag", "clean"]
-    colors = [BAD, "#d98f6b", "#b98fd9", "#8fb3d9", "#c9c9c9", "#e6cc7a",
-              "#7a8290", GOOD]
+    # Seven veto reasons plus "clean": BAD first (the reason that throws
+    # most stars away) and GOOD last (the survivors), the house cycle in
+    # between so no two adjacent wedges share a hue.
+    colors = [BAD, WARN, ps.OTHER, ACCENT, FAINT, ps.SECOND, MUTED, GOOD]
     keys = [r[0] for r in q(con, """SELECT DISTINCT c.series_key
                                     FROM cv_cattie c WHERE c.is_primary=1
                                     ORDER BY c.target_key, c.era_id,
                                              c.filter""")]
     if not keys:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(10.6, 0.30 * len(keys) + 1.8))
         base = np.zeros(len(keys))
         for reason, col in zip(reasons, colors):
@@ -259,7 +264,7 @@ def fig_colour_fits(con) -> str:
     n = len(rows)
     ncol = 4
     nrow = int(math.ceil(n / ncol))
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axs = plt.subplots(nrow, ncol, figsize=(11.4, 2.5 * nrow),
                                 squeeze=False)
         for ax in axs.ravel()[n:]:
@@ -276,7 +281,7 @@ def fig_colour_fits(con) -> str:
             ax.scatter(c[f == 1], d[f == 1], s=8, color=col, alpha=0.75,
                        label="fit")
             ax.scatter(c[f == 0], d[f == 0], s=14, facecolors="none",
-                       edgecolors="#e8eaed", lw=0.7, label="held out")
+                       edgecolors=INK, lw=0.7, label="held out")
             if k is not None and zp is not None:
                 xs = np.linspace(cmin, cmax, 20)
                 ax.plot(xs, zp + k * (xs - cref), color=BAD, lw=1.4)
@@ -305,14 +310,14 @@ def fig_colour_terms(con) -> str:
              (ct.MIN_TIE_STARS,))
     if not rows:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(10.6, 0.28 * len(rows) + 1.6))
         ys = np.arange(len(rows))
         for y, (skey, filt, k, ke) in zip(ys, rows):
             ax.errorbar(k, y, xerr=ke or 0, fmt="o", ms=5,
                         color=FILTER_COLOR.get(filt, ACCENT),
-                        ecolor="#8a93a3", capsize=2)
-        ax.axvline(0.0, color="#8a93a3", lw=1, ls=":")
+                        ecolor=MUTED, capsize=2)
+        ax.axvline(0.0, color=MUTED, lw=1, ls=":")
         ax.set_yticks(ys)
         ax.set_yticklabels([f"{r[0]}" for r in rows], fontsize=7)
         ax.invert_yaxis()
@@ -335,7 +340,7 @@ def fig_accuracy(con) -> str:
     rows = [r for r in rows if r[2] is not None]
     if not rows:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(10.6, 0.30 * len(rows) + 1.8))
         ys = np.arange(len(rows))
         ax.axvspan(ct.ACCURACY_STRETCH_MAG * 1000,
@@ -344,7 +349,7 @@ def fig_accuracy(con) -> str:
         ax.axvline(ct.ACCURACY_STRETCH_MAG * 1000, color=GOOD, lw=1.0,
                    ls="--")
         for y, r in zip(ys, rows):
-            ax.barh(y, 1000 * r[5], height=0.34, color="#3a4453",
+            ax.barh(y, 1000 * r[5], height=0.34, color=FAINT,
                     label="fit residual RMS" if y == 0 else None)
             # The raw RMS is drawn too, and joined to the clipped one by a
             # line: the length of that line IS the influence of the two or
@@ -352,7 +357,7 @@ def fig_accuracy(con) -> str:
             # would otherwise have to take on trust.
             if r[6] is not None:
                 ax.plot([1000 * r[2], 1000 * r[6]], [y, y], "-",
-                        color="#8a93a3", lw=1.0, zorder=1)
+                        color=MUTED, lw=1.0, zorder=1)
                 ax.plot(1000 * r[6], y, "o", ms=5, mfc="none", mec=BAD,
                         label="raw check RMS (with outliers)"
                         if y == 0 else None)
@@ -390,7 +395,7 @@ def fig_resid_mag(con) -> str:
         return ""
     m = np.array([r[0] for r in rows])
     d = np.array([r[1] for r in rows])
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.6, 3.8))
         for filt in sorted({r[2] for r in rows}):
             sel = np.array([r[2] == filt for r in rows])
@@ -404,9 +409,9 @@ def fig_resid_mag(con) -> str:
             if s.sum() >= 8:
                 cen.append(0.5 * (lo + hi))
                 med.append(1000 * float(np.median(d[s])))
-        a1.plot(cen, med, "-o", color="#ffffff", lw=1.6, ms=4,
+        a1.plot(cen, med, "-o", color=INK, lw=1.6, ms=4,
                 label="binned median")
-        a1.axhline(0, color="#8a93a3", lw=1, ls=":")
+        a1.axhline(0, color=MUTED, lw=1, ls=":")
         a1.set_xlabel("catalogue magnitude")
         a1.set_ylabel("tie residual (mmag)")
         a1.set_ylim(-150, 150)
@@ -418,12 +423,12 @@ def fig_resid_mag(con) -> str:
         sw = np.array([1000 * t[0] for t in tr if t[0] is not None])
         sig = np.array([t[1] for t in tr if t[0] is not None], dtype=bool)
         if sw.size:
-            a2.hist(sw[~sig], bins=24, color="#3a4453",
+            a2.hist(sw[~sig], bins=24, color=FAINT,
                     label=f"not significant (n={int((~sig).sum())})")
             a2.hist(sw[sig], bins=24, color=BAD,
                     label=f"significant at {ct.TREND_SIGMA:g}"
                           f"$\\sigma$ (n={int(sig.sum())})")
-        a2.axvline(0, color="#8a93a3", lw=1, ls=":")
+        a2.axvline(0, color=MUTED, lw=1, ls=":")
         a2.set_xlabel("trend SWING across the fitted magnitude range (mmag)")
         a2.set_ylabel("blocks")
         a2.set_title("How big is it, where it is real?")
@@ -461,7 +466,7 @@ def fig_resid_xy(con) -> str:
                                                          c.target_key)
                                     ORDER BY target_key LIMIT 6""")]
     RESID_XY_KEYS[:] = keys
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axs = plt.subplots(2, 4, figsize=(11.4, 5.4))
         panels = list(axs.ravel())
         for ax in panels:
@@ -514,7 +519,7 @@ def fig_resid_xy(con) -> str:
                     med.append(float(np.median(r[s])))
             if cen:
                 ax.plot(cen, med, "-o", ms=3, lw=1.2, label=k.split("|")[0])
-        ax.axhline(0, color="#8a93a3", lw=1, ls=":")
+        ax.axhline(0, color=MUTED, lw=1, ls=":")
         ax.set_xlabel("radius / detector half-width", fontsize=7)
         ax.set_ylabel("median residual (mmag)", fontsize=7)
         ax.tick_params(labelsize=6)
@@ -552,15 +557,15 @@ def fig_cross(con) -> str:
                      FROM cv_cattie_cross ORDER BY series_key""")
     if not rows:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(10.6, 0.30 * len(rows) + 1.8))
         ys = np.arange(len(rows))
         for y, r in zip(ys, rows):
             ax.errorbar(1000 * r[2], y, xerr=1000 * (r[3] or 0), fmt="o",
-                        ms=5, color=ACCENT, ecolor="#8a93a3", capsize=2)
+                        ms=5, color=ACCENT, ecolor=MUTED, capsize=2)
             if r[4] is not None:
                 ax.plot(1000 * r[4], y, "x", ms=7, color=WARN)
-        ax.axvline(0, color="#8a93a3", lw=1, ls=":")
+        ax.axvline(0, color=MUTED, lw=1, ls=":")
         ax.set_yticks(ys)
         ax.set_yticklabels([f"{r[0]} (n={r[1]})" for r in rows], fontsize=7)
         ax.invert_yaxis()

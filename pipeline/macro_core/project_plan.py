@@ -1120,17 +1120,19 @@ SN2023IXF = Project(
                        "peak ADU of the SN in every frame, screened at 80% "
                        "of the measured clip. It decides the true clean "
                        "start per band and whether Q2 survives.",
-                       "S2", _sn_src("§4 Step 0b"), BLOCKED,
-                       blocker="The screen needs a MEASURED clip, and the "
-                               "S2 tables that held it were destroyed by "
-                               "the S0 table swap — the '~3.5 kADU' figure "
-                               "currently has no query behind it. Clears "
-                               "when S2 re-runs."),
+                       # Bound to SN-G0, the stage that actually produces
+                       # the census, not to S2, which only supplies the
+                       # ceiling it screens against.  The old binding was
+                       # written when the blocker WAS S2; keeping it would
+                       # leave this 'done' backed by a stage that cannot go
+                       # stale when the census's own inputs move.
+                       "SN-G0", _sn_src("§4 Step 0b"), DONE,
+                       evidence="docs/SN2023ixf_LightCurve/sn_gate0.html"),
                   Task("SN-G0c-grism-triage",
                        "Contamination-hardened grism triage (2-week timebox)",
                        "A promote-or-appendix verdict on the 83 filter-'6' "
                        "frames, gated on an offset-trace contamination test.",
-                       "G", _sn_src("§4 Step 0c"), PENDING),
+                       "G", _sn_src("§4 Step 0c"), IN_PROGRESS),
               )),
         Phase("Steps 1–2 — The blocking audits",
               "Nothing photometric is publishable before the filters are "
@@ -1141,7 +1143,7 @@ SN2023IXF = Project(
                        "A per-frame direct/dispersed verdict for the '6' "
                        "frames — the measurement behind the grism claim.",
                        "S2c", _sn_src("§3.2 filter table / §4 Step 0c"),
-                       IN_PROGRESS,
+                       DONE,
                        evidence="docs/pipeline/s2c_filter_identity.html"),
                   Task("SN-S1-filter-crosswalk",
                        "Empirical broadband filter identification",
@@ -1161,11 +1163,14 @@ SN2023IXF = Project(
                                "records or a member campus supply the curve."),
                   Task("SN-S2-linearity", "Linearity audit",
                        "A published linearity curve from the 0.5 s/2 s "
-                       "ladder we already own, and the star-side screen.",
-                       "S2", _sn_src("§4 Step 2"), BLOCKED,
-                       blocker="Same destroyed S2 tables; the clip value "
-                               "this fixes is exactly what is unbacked. "
-                               "Clears when S2 re-runs."),
+                       "ladder we already own, and the star-side screen. "
+                       "The SN-side screen it was paired with is done "
+                       "(Gate 0b); this is the star side.",
+                       # UNBLOCKED 2026-08-21: S2 re-ran and measures the
+                       # High Gain clip at 3,496 ADU, so the value this
+                       # audit refines now has a query behind it.  Pending
+                       # rather than in progress: nothing has been fitted.
+                       "S2", _sn_src("§4 Step 2"), PENDING),
               )),
         Phase("Steps 4–6 — Calibration, photometry, the Hα curve",
               "Two photometric regimes with a published overlap test; the "
@@ -1189,11 +1194,17 @@ SN2023IXF = Project(
                        "forward-modelled through the bandpass — never "
                        "presented as a raw 'Hα light curve'.",
                        "S4", _sn_src("§4 Step 6"), BLOCKED,
-                       blocker="Two upstream gates: the saturation census "
-                               "(which epochs are clean) and the "
-                               "transmission curve (whether the product is "
-                               "physical at all). Clears when SN-G0b and "
-                               "SN-S1-narrowband-curves clear."),
+                       blocker="ONE upstream gate now, not two. The "
+                               "saturation census (SN-G0b) has landed and "
+                               "is better news than expected — it finds "
+                               "unsaturated narrowband epochs at +2.5 d as "
+                               "well as +5.4/+6.4 d, so the flash phase is "
+                               "covered by images and not only by the "
+                               "grism. What remains is the transmission "
+                               "curve, without which the product is a "
+                               "methods demonstration and not a physical "
+                               "one. Clears when SN-S1-narrowband-curves "
+                               "clears."),
               )),
         Phase("Steps 7–10 — Limits, late time, release",
               "Consistency rather than constraint; limits rather than "

@@ -15,8 +15,10 @@ import pytest
 
 from macro_core import astrom
 from macro_core.astrom import (
-    build_solve_command, classify_stratum, diagnose_failure, image_metrics,
-    is_grism_filter, is_solvable_candidate, is_window_geometry,
+    build_solve_command, classify_stratum, classify_stratum_by_label,
+    diagnose_failure, dispersion_class, gate_movement, image_metrics,
+    is_grism_filter, is_measured_spectrum, is_solvable_candidate,
+    is_solvable_candidate_by_label, is_window_geometry,
     night_collapse, projected_hours, rms, sample_frames, scale_bounds,
     sky_residuals_arcsec, solution_sane, stable_seed, verdict_for,
     wilson_ci)
@@ -37,11 +39,12 @@ def row(**over) -> dict:
 # candidate gates
 # ---------------------------------------------------------------------------
 class TestGates:
-    def test_grism_filters_are_never_candidates(self):
-        # A grism frame is a spectrum: excluded however it is spelled.
+    def test_grism_filters_are_never_candidates_under_the_label_gate(self):
+        # The RETIRED gate, kept only for the report's comparison column:
+        # a grism-looking label excluded the frame however it was spelled.
         for f in ("hrg", "LRG", " HaGrism ", "OGGrism"):
             assert is_grism_filter(f)
-            assert not is_solvable_candidate(row(filter=f))
+            assert not is_solvable_candidate_by_label(row(filter=f))
 
     def test_ordinary_filters_pass(self):
         for f in ("g", "r", "i", "Ha", "O", None, ""):
@@ -50,6 +53,96 @@ class TestGates:
     def test_calib_vocab_filter_excluded(self):
         # The era-76 glitch: science frame with FILTER = 'dark'.
         assert not is_solvable_candidate(row(filter="dark"))
+        assert not is_solvable_candidate_by_label(row(filter="dark"))
+
+
+# ---------------------------------------------------------------------------
+# The measured-dispersion gate: the S1 v1.2 correction.
+#
+# The defect it repairs: filter slot '6' is a MIXED slot (a grating on some
+# nights, glass on others) whose FILTER string is just '6'.  The label gate
+# let those spectra into the astrometry candidate universe, where they could
+# not possibly solve — and were then counted as astrometric failures and
+# autopsied as "defocused" optical faults.  Meanwhile it deleted, unseen,
+# frames carrying a grism-looking label that are ordinary direct images.
+# ---------------------------------------------------------------------------
+class TestDispersionGate:
+    def test_dispersion_class_normalizes(self):
+        assert dispersion_class("dispersed") == "dispersed"
+        assert dispersion_class(" DIRECT ") == "direct"
+        assert dispersion_class("indeterminate") == "indeterminate"
+        # No measurement is not a verdict — it gets its own name, so it can
+        # never be mistaken for one in a group-by.
+        for empty in (None, "", "   "):
+            assert dispersion_class(empty) == astrom.UNMEASURED_CLASS
+
+    def test_only_a_measurement_excludes(self):
+        assert is_measured_spectrum("dispersed")
+        for v in ("direct", "indeterminate", None, ""):
+            assert not is_measured_spectrum(v)
+
+    def test_measured_spectrum_is_excluded_whatever_its_label(self):
+        # Filter '6' on a spectrum night: the frame the label rule missed.
+        assert not is_solvable_candidate(
+            row(filter="6", dispersion="dispersed"))
+        # ...and the label gate happily kept it — this IS the defect.
+        assert is_solvable_candidate_by_label(
+            row(filter="6", dispersion="dispersed"))
+
+    def test_measured_direct_is_included_whatever_its_label(self):
+        # Population (b): a grism-LABELLED frame that S2c measured to be an
+        # ordinary image.  The measurement beats the label.
+        r = row(filter="hrg", dispersion="direct")
+        assert is_solvable_candidate(r)
+        assert not is_solvable_candidate_by_label(r)
+
+    def test_indeterminate_and_unmeasured_are_included(self):
+        # Population (c).  The stated rule: exclusion must be EARNED by a
+        # positive measurement.  S2c's commonest indeterminate reason is
+        # "no usable sources extracted", which describes a blank IMAGE far
+        # more often than a spectrum; and most of the archive was never
+        # measured at all.  Excluding either on absence of evidence is the
+        # same error as the label rule, pointed the other way.
+        assert is_solvable_candidate(row(dispersion="indeterminate"))
+        assert is_solvable_candidate(row(dispersion=None))
+        assert is_solvable_candidate(row())          # key absent entirely
+
+    def test_gate_movement_names_all_four_cases(self):
+        # unchanged_in: plain label, no measurement — in under both rules.
+        assert gate_movement(row()) == "unchanged_in"
+        # unchanged_out: grism label AND measured dispersed — out of both.
+        assert gate_movement(
+            row(filter="hrg", dispersion="dispersed")) == "unchanged_out"
+        # moved_in: grism label, measured direct (population b).
+        assert gate_movement(
+            row(filter="hrg", dispersion="direct")) == "moved_in"
+        # moved_out: plain label, measured dispersed — the contamination.
+        assert gate_movement(
+            row(filter="6", dispersion="dispersed")) == "moved_out"
+
+    def test_a_measured_spectrum_never_reaches_a_stratum(self):
+        # The gate runs before the stratum rules, so no caller can
+        # accidentally stratify (and therefore sample, and therefore
+        # count as a failure) a frame measured to be a spectrum.
+        sn = row(target_key="2023ixf", canonical_target="SN 2023ixf",
+                 readoutm="High Gain", xbinning=1, filter="6",
+                 naxis1=4096, naxis2=4096)
+        assert classify_stratum({**sn, "dispersion": "direct"}) \
+            == "sn_gsense_broadband"
+        assert classify_stratum({**sn, "dispersion": "indeterminate"}) \
+            == "sn_gsense_broadband"
+        assert classify_stratum({**sn, "dispersion": "dispersed"}) is None
+        # The retired gate: the same spectrum WAS stratified, because its
+        # FILTER string ('6') is not in the grism-name list.
+        assert classify_stratum_by_label({**sn, "dispersion": "dispersed"}) \
+            == "sn_gsense_broadband"
+
+    def test_both_universes_share_one_set_of_stratum_rules(self):
+        # The before/after comparison only means anything if a stratum id
+        # denotes the same cell on both sides; the two classifiers differ
+        # only in their gate, never in their rules.
+        r = row(dispersion="direct")
+        assert classify_stratum(r) == classify_stratum_by_label(r)
 
     def test_window_geometry(self):
         # The 8x3211 Fast photometry strips: unsolvable by geometry.

@@ -31,7 +31,9 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np               # noqa: E402
 
 from .report_s0 import (          # noqa: E402  shared page machinery
-    ACCENT, DARK, DPI, WARN, _figure, esc, fmt, q, q1, table)
+    ACCENT, STYLE, DPI, GOOD, INK, MUTED, WARN,
+    _figure, esc, fmt, q, q1, table)
+from . import plotstyle as ps    # noqa: E402  (the house figure style)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DOCS_DIR = REPO_ROOT / "docs" / "pipeline"
@@ -42,8 +44,9 @@ DEFAULT_CATALOG = Path(
     "/Volumes/OWC StudioStack HDD/DATA/ASTRO/rlmt-catalog.sqlite")
 DEFAULT_MANIFEST = REPO_ROOT / "products" / "manifest" / "rlmt-manifest.sqlite"
 
-OK_GREEN = "#7fc99a"     # repaired / correct
-MUTED = "#9aa4b2"
+#: "repaired / correct" in this page's two before/after figures.  The
+#: house GOOD, not a local green: one confirmation colour site-wide.
+OK_GREEN = GOOD
 
 
 # ---------------------------------------------------------------------------
@@ -65,7 +68,7 @@ def fig_anatomy(cat) -> str:
     else:
         o1, o2 = int(old[0][0]), int(old[0][1])
         n1, n2 = int(new[0][0]), int(new[0][1])
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (ax, ax2) = plt.subplots(
             1, 2, figsize=(9.4, 4.0), gridspec_kw={"width_ratios": [2.2, 1]})
 
@@ -74,7 +77,8 @@ def fig_anatomy(cat) -> str:
         # scale it is a HAIRLINE.  That is the whole point and it is left
         # un-exaggerated: an artifact this thin is exactly what nobody
         # noticed.  An arrow does the pointing instead of a fake width.
-        ax.add_patch(plt.Rectangle((0, 0), n1, n2, facecolor="#1d2633",
+        ax.add_patch(plt.Rectangle((0, 0), n1, n2,
+                                   facecolor=ps.tint(OK_GREEN, 0.88),
                                    edgecolor=OK_GREEN, lw=2.0))
         ax.add_patch(plt.Rectangle((0, 0), max(o1, n1 * 0.004), o2,
                                    facecolor=WARN, edgecolor=WARN, lw=1.0))
@@ -103,7 +107,7 @@ def fig_anatomy(cat) -> str:
         for b, v in zip(bars, [o1, n1]):
             ax2.annotate(f"{v:,}", (b.get_x() + b.get_width() / 2, v),
                          ha="center", va="bottom", fontsize=10,
-                         color="#e8eaed")
+                         color=INK)
         ax2.set_ylim(1, n1 * 6)
 
         fig.suptitle("The same frame, described two ways — one of them wrong")
@@ -122,7 +126,7 @@ def fig_blast(cat) -> str:
     counts = [r[1] for r in rows][::-1]
     changed = q1(cat, "SELECT count(*) FROM geom_rescan WHERE changed = 1")
     control = q1(cat, "SELECT count(*) FROM geom_rescan WHERE changed = 0")
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9.4, 3.8),
                                        gridspec_kw={"width_ratios": [3, 1.5]})
         bars = ax1.barh(names, counts, color=WARN)
@@ -131,14 +135,14 @@ def fig_blast(cat) -> str:
         ax1.set_xlim(0, max(counts) * 1.16)   # room for the value labels
         for b, c in zip(bars, counts):
             ax1.annotate(f" {c:,}", (c, b.get_y() + b.get_height() / 2),
-                         va="center", fontsize=8, color="#e8eaed")
+                         va="center", fontsize=8, color=INK)
         ax2.bar(["repaired", "control\n(left alone)"], [changed, control],
                 color=[OK_GREEN, MUTED])
         ax2.set_yscale("log")
         ax2.set_title("Rows re-read")
         for i, v in enumerate([changed, control]):
             ax2.annotate(f"{v:,}", (i, v), ha="center", va="bottom",
-                         fontsize=9, color="#e8eaed")
+                         fontsize=9, color=INK)
         fig.tight_layout()
         fig.savefig(FIG_DIR / "s0e_blast.png", dpi=DPI)
         plt.close(fig)
@@ -156,7 +160,7 @@ def fig_eras(cat) -> str:
     before = [r[1] or 0 for r in rows]
     after = [r[2] or 0 for r in rows]
     x = np.arange(len(ids))
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(9.4, 3.6))
         ax.bar(x - 0.2, before, 0.4, label="before (phantom geometry)",
                color=WARN)
@@ -168,9 +172,9 @@ def fig_eras(cat) -> str:
         ax.legend()
         for xi, (b, a) in enumerate(zip(before, after)):
             ax.annotate(f"{b:,}", (xi - 0.2, b), ha="center", va="bottom",
-                        fontsize=8, color="#e8eaed")
+                        fontsize=8, color=INK)
             ax.annotate(f"{a:,}", (xi + 0.2, a), ha="center", va="bottom",
-                        fontsize=8, color="#e8eaed")
+                        fontsize=8, color=INK)
         fig.tight_layout()
         fig.savefig(FIG_DIR / "s0e_eras.png", dpi=DPI)
         plt.close(fig)
@@ -188,7 +192,7 @@ def fig_requeue(cat) -> str:
     names = [r[0] for r in rows][::-1]
     counts = [r[1] for r in rows][::-1]
     colors = [WARN if n.startswith("(no stratum") else ACCENT for n in names]
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(9.4, 3.2))
         bars = ax.barh(names, counts, color=colors)
         ax.set_xlabel("frames to re-queue for astrometry")
@@ -196,7 +200,7 @@ def fig_requeue(cat) -> str:
         ax.set_xlim(0, max(counts) * 1.12)    # room for the value labels
         for b, c in zip(bars, counts):
             ax.annotate(f" {c:,}", (c, b.get_y() + b.get_height() / 2),
-                        va="center", fontsize=8, color="#e8eaed")
+                        va="center", fontsize=8, color=INK)
         fig.tight_layout()
         fig.savefig(FIG_DIR / "s0e_requeue.png", dpi=DPI)
         plt.close(fig)

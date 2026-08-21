@@ -15,13 +15,24 @@ It AUGMENTS the manifest with NEW tables only (S0/S0b tables untouched):
 
 * ``s1_strata``           — the design: definition, population, sample, seed
 * ``s1_populations``      — the candidate-universe census (what was excluded
-                            and why: grism spectra, 8-px photometry windows)
+                            and why: measured spectra, sub-frame windows)
+* ``s1_gate_comparison``  — the FILTER-label universe cross-tabbed against
+                            the measured-dispersion universe, per frame
+                            class: what the gate correction moves, and which
+                            way
 * ``s1_solve_experiment`` — one row per sampled frame with the solve outcome
 * ``s1_failure_autopsy``  — image-statistics post-mortem of failures
 * ``s1_build_meta``       — timestamp, versions, tooling inventory
 
+and, once ``snapshot`` has been run, a frozen copy of a previous experiment
+under ``s1_baseline_*`` so the report can render a before/after delta from
+the database rather than from anybody's memory.
+
 SUBCOMMANDS (run in this order)
 -------------------------------
+    snapshot  freeze the CURRENT experiment as the comparison baseline
+              (run BEFORE a design change; refuses to overwrite an
+              existing baseline without --force)
     design    build strata, draw the reproducible samples (idempotent:
               re-running replaces the s1 tables wholesale)
     run       solve pending frames until --batch-seconds elapses; SAFE TO
@@ -34,6 +45,8 @@ SUBCOMMANDS (run in this order)
 USAGE (a student's quick start)
 -------------------------------
     PY=/opt/miniconda3/envs/rlmt-checks/bin/python
+    $PY pipeline/scripts/run_s1_experiment.py snapshot      # only when the
+                                                            # design changes
     $PY pipeline/scripts/run_s1_experiment.py design
     $PY pipeline/scripts/run_s1_experiment.py run --batch-seconds 420
     ...repeat run until status shows no pending...
@@ -125,25 +138,160 @@ fetch_candidates = astrom.fetch_candidates
 
 
 # ---------------------------------------------------------------------------
+# snapshot — freeze the current experiment as the before/after baseline
+# ---------------------------------------------------------------------------
+#: The tables a snapshot copies, and the prefix it copies them under.  The
+#: baseline is what makes the report's delta section possible: without a
+#: frozen copy, ``design`` overwrites the previous experiment and the only
+#: record of the old rates is whatever a human happened to write down.
+SNAPSHOT_TABLES = ("s1_strata", "s1_populations", "s1_solve_experiment",
+                   "s1_failure_autopsy", "s1_build_meta")
+BASELINE_PREFIX = "s1_baseline_"
+
+
+def table_exists(con, name: str) -> bool:
+    """True when ``name`` is a table in this database."""
+    return con.execute(
+        "SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?",
+        (name,)).fetchone()[0] > 0
+
+
+def cmd_snapshot(args) -> int:
+    """Copy the live s1_* tables to s1_baseline_* — the comparison baseline.
+
+    Deliberately a SEPARATE command rather than something ``design`` does
+    automatically.  If ``design`` snapshotted on every run, the second run
+    would overwrite the baseline with the very design it is supposed to be
+    compared against, and the delta would silently become zero.  Taking
+    the snapshot is therefore an explicit act, and it refuses to clobber an
+    existing baseline without ``--force``.
+    """
+    con = connect(args.manifest)
+    with closing(con):
+        cur = con.cursor()
+        existing = [t for t in SNAPSHOT_TABLES
+                    if table_exists(con, BASELINE_PREFIX + t[len("s1_"):])]
+        if existing and not args.force:
+            print("snapshot: a baseline already exists "
+                  f"({len(existing)} tables) — refusing to overwrite it.  "
+                  "Re-run with --force only if you really mean to discard "
+                  "the comparison baseline.")
+            return 1
+        missing = [t for t in SNAPSHOT_TABLES if not table_exists(con, t)]
+        if missing:
+            print(f"snapshot: nothing to freeze — missing {missing}")
+            return 1
+        cur.execute("BEGIN IMMEDIATE")          # see cmd_design's note
+        for t in SNAPSHOT_TABLES:
+            dest = BASELINE_PREFIX + t[len("s1_"):]
+            cur.execute(f"DROP TABLE IF EXISTS {dest}")
+            # CREATE ... AS SELECT copies data and column names, not
+            # constraints — which is exactly right for a frozen record:
+            # the baseline is evidence, never something to write into.
+            cur.execute(f"CREATE TABLE {dest} AS SELECT * FROM {t}")
+        cur.execute(f"DROP TABLE IF EXISTS {BASELINE_PREFIX}meta")
+        cur.execute(f"""CREATE TABLE {BASELINE_PREFIX}meta
+                        (key TEXT PRIMARY KEY, value TEXT)""")
+        cur.executemany(
+            f"INSERT INTO {BASELINE_PREFIX}meta VALUES (?,?)",
+            [("frozen_utc", datetime.now(timezone.utc).isoformat()),
+             ("label", args.label),
+             ("n_sampled", str(con.execute(
+                 "SELECT count(*) FROM s1_solve_experiment"
+             ).fetchone()[0])),
+             ("n_solved", str(con.execute(
+                 "SELECT count(*) FROM s1_solve_experiment "
+                 "WHERE status='solved'").fetchone()[0])),
+             ("code_version", str(con.execute(
+                 "SELECT value FROM s1_build_meta WHERE key='code_version'"
+             ).fetchone()[0]))])
+        con.commit()
+        print(f"snapshot: froze {len(SNAPSHOT_TABLES)} tables as "
+              f"{BASELINE_PREFIX}* — label {args.label!r}")
+    return 0
+
+
+def carry_over_map(con) -> dict:
+    """Prior per-frame solve results, keyed by obs_rowid.
+
+    Read from the BASELINE when one exists (the frozen record of the
+    previous experiment), else from the live table.  Only finished rows
+    are carried — a 'pending' row carries no information.
+    """
+    src = (BASELINE_PREFIX + "solve_experiment"
+           if table_exists(con, BASELINE_PREFIX + "solve_experiment")
+           else "s1_solve_experiment")
+    if not table_exists(con, src):
+        return {}
+    cols = ["obs_rowid", "status", "used_hint", "solve_time_s", "solved_ra",
+            "solved_dec", "pixscale_arcsec", "rotation_deg", "n_matched",
+            "rms_arcsec", "log_tail"]
+    return {r[0]: dict(zip(cols, r)) for r in con.execute(
+        f"SELECT {', '.join(cols)} FROM {src} WHERE status != 'pending'")}
+
+
+# ---------------------------------------------------------------------------
 # design — build strata, sample, write the s1 design tables
 # ---------------------------------------------------------------------------
 def cmd_design(args) -> int:
     con = connect(args.manifest)
     with closing(con):
         rows = fetch_candidates(con)
-        # Census of the exclusions: the report must show what astrometry
-        # CANNOT apply to, with counts, before showing what it can.
+        # -- Census of the exclusions ------------------------------------
+        # The report must show what astrometry CANNOT apply to, with
+        # counts, before showing what it can.  Every count below is
+        # computed by calling the SAME pure gate the design uses, in the
+        # SAME order the gate applies them, so a class here can never
+        # describe a frame the gate treated differently.
         n_total = len(rows)
-        n_grism = sum(astrom.is_grism_filter(r["filter"]) for r in rows)
-        n_vocab = sum((not astrom.is_grism_filter(r["filter"]))
+        n_spectrum = sum(astrom.is_measured_spectrum(r["dispersion"])
+                         for r in rows)
+        n_vocab = sum((not astrom.is_measured_spectrum(r["dispersion"]))
                       and astrom.is_calib_vocab_filter(r["filter"])
                       for r in rows)
-        n_window = sum((not astrom.is_grism_filter(r["filter"]))
+        n_window = sum((not astrom.is_measured_spectrum(r["dispersion"]))
                        and (not astrom.is_calib_vocab_filter(r["filter"]))
                        and astrom.is_window_geometry(r["naxis1"],
                                                      r["naxis2"])
                        for r in rows)
         candidates = [r for r in rows if astrom.is_solvable_candidate(r)]
+        # -- The label-vs-measurement cross-tab --------------------------
+        # One row per (label class x dispersion class) cell, carrying both
+        # gates' verdicts and the movement between them.  This is the
+        # evidence for the correction: the report reads it instead of
+        # asserting numbers, and a cell that moves frames cannot hide.
+        cells: dict[tuple, int] = {}
+        for r in rows:
+            key = ("grism_label" if astrom.is_grism_filter(r["filter"])
+                   else "plain_label",
+                   astrom.dispersion_class(r["dispersion"]),
+                   astrom.is_solvable_candidate_by_label(r),
+                   astrom.is_solvable_candidate(r),
+                   astrom.gate_movement(r))
+            cells[key] = cells.get(key, 0) + 1
+        gate_rows = [(lab, disp, "included" if old else "excluded",
+                      "included" if new else "excluded", move, n)
+                     for (lab, disp, old, new, move), n
+                     in sorted(cells.items())]
+        # Headline totals the report interpolates directly.
+        n_label_solvable = sum(astrom.is_solvable_candidate_by_label(r)
+                               for r in rows)
+        n_moved_in = sum(1 for r in rows
+                         if astrom.gate_movement(r) == "moved_in")
+        n_moved_out = sum(1 for r in rows
+                          if astrom.gate_movement(r) == "moved_out")
+        n_in_direct = sum(1 for r in rows
+                          if astrom.gate_movement(r) == "moved_in"
+                          and astrom.dispersion_class(r["dispersion"])
+                          == astrom.DIRECT_VERDICT)
+        n_in_indet = sum(1 for r in rows
+                         if astrom.gate_movement(r) == "moved_in"
+                         and astrom.dispersion_class(r["dispersion"])
+                         == astrom.INDETERMINATE_VERDICT)
+        n_unmeasured = sum(
+            1 for r in rows
+            if astrom.dispersion_class(r["dispersion"])
+            == astrom.UNMEASURED_CLASS)
         # Classify every candidate; count strata populations + the residue.
         by_stratum: dict[str, list[dict]] = {s.stratum_id: []
                                              for s in astrom.STRATA}
@@ -154,6 +302,16 @@ def cmd_design(args) -> int:
                 n_residue += 1
             else:
                 by_stratum[sid].append(r)
+        # The SAME classification under the retired label gate — needed for
+        # the per-stratum before/after population column.
+        label_pop: dict[str, int] = {s.stratum_id: 0 for s in astrom.STRATA}
+        for r in rows:
+            sid = astrom.classify_stratum_by_label(r)
+            if sid is not None:
+                label_pop[sid] += 1
+        # Prior results, kept for frames that survive into the new sample.
+        prior = carry_over_map(con) if args.carry_over else {}
+        n_carried = 0
         # Draw the reproducible sample per stratum.
         sample_rows = []
         strata_rows = []
@@ -163,15 +321,37 @@ def cmd_design(args) -> int:
             picked = astrom.sample_frames(list(ids), args.n_per_stratum,
                                           astrom.SAMPLE_SEED, s.stratum_id)
             strata_rows.append((s.stratum_id, s.population, s.description,
-                                len(pop), len(picked), astrom.SAMPLE_SEED))
+                                len(pop), len(picked), astrom.SAMPLE_SEED,
+                                label_pop[s.stratum_id]))
             for order, rowid in enumerate(picked):
                 r = ids[rowid]
+                # Carry-over: a solve outcome is a property of the FRAME
+                # and the solver configuration, neither of which this
+                # change touched.  Re-solving a frame that was already
+                # solved under the identical configuration would spend
+                # CPU to reproduce a known answer AND would let solver
+                # nondeterminism leak into a delta that is supposed to
+                # isolate the gate change.  Frames new to the sample are
+                # left 'pending' and solved normally.
+                p = prior.get(rowid) if args.carry_over else None
+                if p is not None:
+                    n_carried += 1
                 sample_rows.append((
                     r["obs_rowid"], s.stratum_id, r["path"],
                     r["target_key"], r["canonical_target"], r["readoutm"],
                     r["xbinning"], r["filter"], r["exptime"],
                     r["naxis1"], r["naxis2"], r["ra_deg"], r["dec_deg"],
-                    r["night"], order, "pending"))
+                    r["night"], order,
+                    p["status"] if p else "pending",
+                    p["used_hint"] if p else None,
+                    p["solve_time_s"] if p else None,
+                    p["solved_ra"] if p else None,
+                    p["solved_dec"] if p else None,
+                    p["pixscale_arcsec"] if p else None,
+                    p["rotation_deg"] if p else None,
+                    p["n_matched"] if p else None,
+                    p["rms_arcsec"] if p else None,
+                    p["log_tail"] if p else None))
         # Tooling inventory recorded as build facts (the report quotes it).
         idx_files = sorted(Path(args.index_dir).glob("index-*.fits"))
         idx_bytes = sum(p.stat().st_size for p in idx_files)
@@ -202,22 +382,42 @@ def cmd_design(args) -> int:
         # the write lock up front, where the busy handler DOES apply, so
         # the swap simply waits its turn behind the batch's commits.
         cur.execute("BEGIN IMMEDIATE")
-        for t in ("s1_strata", "s1_populations", "s1_solve_experiment",
-                  "s1_failure_autopsy", "s1_build_meta"):
+        for t in ("s1_strata", "s1_populations", "s1_gate_comparison",
+                  "s1_solve_experiment", "s1_failure_autopsy",
+                  "s1_build_meta"):
             cur.execute(f"DROP TABLE IF EXISTS {t}_s1_tmp")
         cur.execute("""CREATE TABLE s1_strata_s1_tmp (
             stratum_id TEXT PRIMARY KEY, population TEXT, description TEXT,
-            n_population INTEGER, n_sample INTEGER, seed INTEGER)""")
-        cur.executemany("INSERT INTO s1_strata_s1_tmp VALUES (?,?,?,?,?,?)",
-                        strata_rows)
+            n_population INTEGER, n_sample INTEGER, seed INTEGER,
+            n_population_label_gate INTEGER)""")
+        cur.executemany(
+            "INSERT INTO s1_strata_s1_tmp VALUES (?,?,?,?,?,?,?)",
+            strata_rows)
+        # The key is the FULL cell, not just (label, dispersion): the two
+        # OTHER gates (the 'dark' filter-wheel glitch and the sub-frame
+        # geometry cut) are shared by both universes and can split a
+        # (label x dispersion) cell into an included and an excluded half.
+        # Keying on the pair alone collapsed those halves into a UNIQUE
+        # violation — which is the schema catching a real distinction, so
+        # the schema widened rather than the data being deduplicated away.
+        cur.execute("""CREATE TABLE s1_gate_comparison_s1_tmp (
+            label_class TEXT, dispersion_class TEXT,
+            label_gate TEXT, measured_gate TEXT, movement TEXT,
+            n_frames INTEGER,
+            PRIMARY KEY (label_class, dispersion_class,
+                         label_gate, measured_gate))""")
+        cur.executemany(
+            "INSERT INTO s1_gate_comparison_s1_tmp VALUES (?,?,?,?,?,?)",
+            gate_rows)
         cur.execute("""CREATE TABLE s1_populations_s1_tmp (
             class TEXT PRIMARY KEY, n_frames INTEGER, note TEXT)""")
         cur.executemany(
             "INSERT INTO s1_populations_s1_tmp VALUES (?,?,?)",
             [("unsolved_total", n_total,
               "canonical rawimage Light frames with pltsolvd != 1"),
-             ("excluded_grism", n_grism,
-              "FILTER names a grism — slitless spectra, never solvable"),
+             ("excluded_measured_spectrum", n_spectrum,
+              "S2c MEASURED dispersion traces on this frame — it is a "
+              "spectrum, whatever its FILTER string says"),
              ("excluded_calib_vocab_filter", n_vocab,
               "FILTER = 'dark'/'bias'/'flat' header glitch (S0b)"),
              # The note describes the GATE, not a shape anyone has seen.
@@ -235,7 +435,27 @@ def cmd_design(args) -> int:
              ("solvable_candidates", len(candidates),
               "frames the solver can be pointed at"),
              ("candidates_unstratified", n_residue,
-              "solvable but in no stratum (small heterogeneous residue)")])
+              "solvable but in no stratum (small heterogeneous residue)"),
+             # --- the retired label gate, for comparison only -----------
+             ("label_gate_solvable_candidates", n_label_solvable,
+              "what the RETIRED FILTER-label gate would have called the "
+              "candidate universe (comparison only — nothing gates on it)"),
+             ("gate_moved_in_total", n_moved_in,
+              "frames the label gate excluded that the measurement gate "
+              "keeps"),
+             ("gate_moved_in_direct", n_in_direct,
+              "...of those, MEASURED DIRECT IMAGES carrying a grism-looking "
+              "FILTER — images the label rule deleted unseen"),
+             ("gate_moved_in_indeterminate", n_in_indet,
+              "...of those, S2c-indeterminate frames: kept because "
+              "exclusion must be earned by a positive measurement"),
+             ("gate_moved_out_total", n_moved_out,
+              "frames the label gate INCLUDED that S2c measures as "
+              "dispersed — the contamination this correction removes"),
+             ("included_unmeasured", n_unmeasured,
+              "candidates S2c never measured: kept (absence of a "
+              "measurement is not evidence of a spectrum); this rule moves "
+              "ZERO frames — every unmeasured frame was already in")])
         cur.execute("""CREATE TABLE s1_solve_experiment_s1_tmp (
             obs_rowid INTEGER PRIMARY KEY, stratum_id TEXT, path TEXT,
             target_key TEXT, canonical_target TEXT, readoutm TEXT,
@@ -249,15 +469,24 @@ def cmd_design(args) -> int:
         cur.executemany("""INSERT INTO s1_solve_experiment_s1_tmp
             (obs_rowid, stratum_id, path, target_key, canonical_target,
              readoutm, xbinning, filter, exptime, naxis1, naxis2,
-             ra_hint_deg, dec_hint_deg, night, sample_order, status)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", sample_rows)
+             ra_hint_deg, dec_hint_deg, night, sample_order, status,
+             used_hint, solve_time_s, solved_ra, solved_dec,
+             pixscale_arcsec, rotation_deg, n_matched, rms_arcsec,
+             log_tail)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            sample_rows)
+        # ``dispersion_class`` is recorded on every autopsy row so the
+        # report can PROVE, from the table itself, that no frame in the
+        # failure taxonomy is a measured spectrum — the exact defect this
+        # version repairs.  A claim that can only be checked by re-running
+        # a join is a claim a reader has to take on trust.
         cur.execute("""CREATE TABLE s1_failure_autopsy_s1_tmp (
             obs_rowid INTEGER PRIMARY KEY, stratum_id TEXT,
             n_sources INTEGER, n_psf_sources INTEGER,
             median_elongation REAL, median_a_px REAL,
             bright_median_a_px REAL, saturated_fraction REAL,
             bkg_rms REAL, saturation_adu REAL,
-            diagnosis TEXT, thumb_path TEXT)""")
+            diagnosis TEXT, thumb_path TEXT, dispersion_class TEXT)""")
         cur.execute("""CREATE TABLE s1_build_meta_s1_tmp
                        (key TEXT PRIMARY KEY, value TEXT)""")
         cur.executemany("INSERT INTO s1_build_meta_s1_tmp VALUES (?,?)", [
@@ -277,9 +506,14 @@ def cmd_design(args) -> int:
             ("hint_radius_deg", str(astrom.HINT_RADIUS_DEG)),
             ("downsample", str(astrom.SOLVE_DOWNSAMPLE)),
             ("workers", str(args.workers)),
+            ("candidate_gate", "measured dispersion (frame_dispersion."
+                               "verdict = 'dispersed' excludes)"),
+            ("carry_over", "on" if args.carry_over else "off"),
+            ("n_carried_over", str(n_carried)),
         ])
-        for t in ("s1_strata", "s1_populations", "s1_solve_experiment",
-                  "s1_failure_autopsy", "s1_build_meta"):
+        for t in ("s1_strata", "s1_populations", "s1_gate_comparison",
+                  "s1_solve_experiment", "s1_failure_autopsy",
+                  "s1_build_meta"):
             cur.execute(f"DROP TABLE IF EXISTS {t}")
             cur.execute(f"ALTER TABLE {t}_s1_tmp RENAME TO {t}")
         con.commit()
@@ -287,8 +521,15 @@ def cmd_design(args) -> int:
         print(f"design: {n_total:,} unsolved -> {len(candidates):,} "
               f"solvable candidates -> {n_samp} sampled frames across "
               f"{len(astrom.STRATA)} strata (seed {astrom.SAMPLE_SEED})")
+        print(f"design: gate = MEASURED dispersion; the retired label gate "
+              f"would give {n_label_solvable:,} candidates "
+              f"({n_moved_in:,} frames move IN, {n_moved_out:,} move OUT)")
+        print(f"design: carried over {n_carried} prior solve results; "
+              f"{n_samp - n_carried} frames pending")
         for row in strata_rows:
-            print(f"  {row[0]:<24} pop {row[3]:>6,}  sample {row[4]:>3}")
+            delta = row[3] - row[6]
+            print(f"  {row[0]:<24} pop {row[3]:>6,}  sample {row[4]:>3}"
+                  f"  (label gate {row[6]:>6,}, {delta:+d})")
     return 0
 
 
@@ -375,13 +616,20 @@ def cmd_autopsy(args) -> int:
         # exactly the NO-GO strata where the taxonomy matters most.)
         # ``bad_solve`` rows — false-positive WCS caught by the
         # acceptance gate — are failures too and get the same treatment.
-        rows = con.execute("""
-            SELECT obs_rowid, stratum_id, path, readoutm
-            FROM s1_solve_experiment
-            WHERE status IN ('unsolved', 'timeout', 'bad_solve')
-            ORDER BY stratum_id, sample_order""").fetchall()
+        # The S2c verdict travels with each failure so the taxonomy can be
+        # audited for spectra without a second query.
+        has_disp = astrom.has_dispersion_table(con)
+        disp_sel = ("d.verdict" if has_disp else "NULL")
+        disp_join = ("LEFT JOIN frame_dispersion d USING (obs_rowid)"
+                     if has_disp else "")
+        rows = con.execute(f"""
+            SELECT s.obs_rowid, s.stratum_id, s.path, s.readoutm, {disp_sel}
+            FROM s1_solve_experiment s {disp_join}
+            WHERE s.status IN ('unsolved', 'timeout', 'bad_solve')
+            ORDER BY s.stratum_id, s.sample_order""").fetchall()
         con.execute("DELETE FROM s1_failure_autopsy")
-        for rowid, sid, relpath, readoutm in rows:
+        for rowid, sid, relpath, readoutm, verdict in rows:
+            disp_class = astrom.dispersion_class(verdict)
             src = args.archive / relpath
             try:
                 with fits.open(src) as hdul:
@@ -406,7 +654,7 @@ def cmd_autopsy(args) -> int:
                 fig.savefig(thumb, bbox_inches="tight", pad_inches=0.02)
                 plt.close(fig)
                 con.execute("""INSERT OR REPLACE INTO s1_failure_autopsy
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""", (
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
                     rowid, sid, m["n_sources"], m["n_psf_sources"],
                     m["median_elongation"], m["median_a_px"],
                     m["bright_median_a_px"], m["saturated_fraction"],
@@ -416,17 +664,28 @@ def cmd_autopsy(args) -> int:
                                             m["median_elongation"],
                                             m["saturated_fraction"],
                                             m["bright_median_a_px"]),
-                    str(thumb)))
+                    str(thumb), disp_class))
             except Exception as exc:    # noqa: BLE001 — recorded, not hidden
                 con.execute("""INSERT OR REPLACE INTO s1_failure_autopsy
-                    (obs_rowid, stratum_id, diagnosis, thumb_path)
-                    VALUES (?,?,?,NULL)""",
+                    (obs_rowid, stratum_id, diagnosis, thumb_path,
+                     dispersion_class)
+                    VALUES (?,?,?,NULL,?)""",
                             (rowid, sid,
-                             f"unreadable: {type(exc).__name__}"))
+                             f"unreadable: {type(exc).__name__}",
+                             disp_class))
             con.commit()
         n = con.execute(
             "SELECT count(*) FROM s1_failure_autopsy").fetchone()[0]
-        print(f"autopsy: {n} failures examined (all of them — no cap)")
+        # The invariant this stage now guarantees, checked out loud: a
+        # measured spectrum can no longer reach the failure taxonomy,
+        # because the candidate gate excluded it from the universe.
+        n_spec = con.execute(
+            "SELECT count(*) FROM s1_failure_autopsy "
+            "WHERE dispersion_class = ?",
+            (astrom.DISPERSED_VERDICT,)).fetchone()[0]
+        print(f"autopsy: {n} failures examined (all of them — no cap); "
+              f"{n_spec} of them are measured spectra "
+              f"(must be 0 under the measured-dispersion gate)")
     return 0
 
 
@@ -470,9 +729,24 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--index-dir", type=Path, default=DEFAULT_INDEX_DIR)
     p.add_argument("--workers", type=int, default=astrom.DEFAULT_WORKERS)
     sub = p.add_subparsers(dest="command", required=True)
+    sn = sub.add_parser("snapshot",
+                        help="freeze the current experiment as the "
+                             "before/after baseline")
+    sn.add_argument("--label", type=str, default="previous design",
+                    help="what this baseline IS, in a few words")
+    sn.add_argument("--force", action="store_true",
+                    help="overwrite an existing baseline (discards it)")
     d = sub.add_parser("design", help="build strata + draw samples")
     d.add_argument("--n-per-stratum", type=int,
                    default=astrom.N_PER_STRATUM)
+    # Carry-over defaults ON: a re-design that only changes WHICH frames
+    # are sampled must not re-spend CPU reproducing solve outcomes it
+    # already has for the frames it keeps.
+    d.add_argument("--no-carry-over", dest="carry_over",
+                   action="store_false",
+                   help="re-solve every sampled frame from scratch, even "
+                        "ones with a recorded prior outcome")
+    d.set_defaults(carry_over=True)
     r = sub.add_parser("run", help="solve pending frames (resumable batch)")
     r.add_argument("--batch-seconds", type=int, default=420)
     sub.add_parser("autopsy", help="post-mortem failures")
@@ -483,8 +757,9 @@ def parse_args(argv=None) -> argparse.Namespace:
 
 def main(argv=None) -> int:
     args = parse_args(argv)
-    return {"design": cmd_design, "run": cmd_run, "autopsy": cmd_autopsy,
-            "status": cmd_status, "report": cmd_report}[args.command](args)
+    return {"snapshot": cmd_snapshot, "design": cmd_design, "run": cmd_run,
+            "autopsy": cmd_autopsy, "status": cmd_status,
+            "report": cmd_report}[args.command](args)
 
 
 if __name__ == "__main__":

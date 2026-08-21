@@ -405,6 +405,59 @@ _reg(_t(
     ["rowid"],
     "Failure-mode autopsy behind the S1 report's diagnosis section. "
     "DESTROYED; spec kept so the loss is reported."))
+_reg(_t(
+    "table:s1_gate_comparison", "s1_gate_comparison",
+    "label_class || '/' || dispersion_class || '/' || label_gate "
+    "|| '/' || measured_gate",
+    ["label_class", "dispersion_class", "label_gate", "measured_gate",
+     "n_frames"],
+    "The FILTER-label candidate universe cross-tabbed against the "
+    "measured-dispersion universe (S1 v1.2).  Every column is in the "
+    "fingerprint INCLUDING n_frames: this table exists to record how many "
+    "frames the gate correction moves and which way, so a change in a "
+    "count IS a change in the finding — unlike most tables here, there is "
+    "no 'noise column' to leave out."))
+
+# ---- SN-G0 outputs (SN 2023ixf Gate 0) ------------------------------------
+# The three blocking activities of the SN paper's Gate 0, plus the verdicts
+# they decide.  All four tables are in the graph because all four are claims
+# a published page renders verbatim.
+_reg(_t(
+    "table:sn_g0_frames", "sn_g0_frames", "obs_rowid",
+    ["obs_rowid", "path", "night", "filter", "round(exptime, 3)",
+     "epoch_role", "band_role", "dispersion_class", "is_image"],
+    "Gate 0a: the frozen, globally deduplicated, ALIAS-MERGED frame list "
+    "the whole paper counts from.  dispersion_class and is_image are in the "
+    "fingerprint because they are S2c's verdict carried forward — if a "
+    "re-measurement turns one frame from a spectrum into an image, the "
+    "usable-frame census on the Gate 0 page changes and must be seen to."))
+_reg(_t(
+    "table:sn_g0_census", "sn_g0_census", "obs_rowid",
+    ["obs_rowid", "status", "quality", "round(coalesce(peak_adu, -1), 1)",
+     "round(coalesce(box_max_adu, -1), 1)",
+     "round(coalesce(isolation_px, -1), 1)", "saturation_class"],
+    "Gate 0b: the per-frame peak-ADU measurement of the supernova itself. "
+    "The predicted and found PIXEL POSITIONS are deliberately LEFT OUT of "
+    "the fingerprint — they move in the last decimal with any astropy WCS "
+    "revision without changing a single verdict, and a digest that churned "
+    "on them would send this stage stale for no reason.  What IS hashed is "
+    "every number a decision reads: the peak, the bound, the isolation "
+    "radius and the class they produce."))
+_reg(_t(
+    "table:sn_g0_bands", "sn_g0_bands", "band_role, filter",
+    ["band_role", "filter", "n_frames", "n_images", "n_clean", "n_suspect",
+     "n_rejected", "n_bounded_clean", "n_undetermined", "n_usable",
+     "first_clean_night"],
+    "Gate 0b's published per-band summary: the usable-frame counts and the "
+    "measured clean start per band.  n_usable is the deciding number of the "
+    "paper's first Gate 0 question, so it is hashed."))
+_reg(_t(
+    "table:sn_g0_verdict", "sn_g0_verdict", "question_id",
+    ["question_id", "verdict", "deciding_number", "moved"],
+    "The Gate 0 answers.  The DECIDING NUMBER string is hashed alongside "
+    "the verdict because the page renders it verbatim: a re-run that kept "
+    "the word 'NO-GO' while moving the number behind it would publish a "
+    "sentence nothing in the database supports."))
 
 _reg(_t(
     "table:s1_batch", "s1_batch", "obs_rowid",
@@ -1077,6 +1130,11 @@ _f("file:docs/pipeline/s0c_staging.html", "docs/pipeline/s0c_staging.html",
 _f("file:docs/pipeline/s1_astrometry.html", "docs/pipeline/s1_astrometry.html",
    "S1 astrometry verdict page: the GO/CAUTION/NO-GO calls per stratum, "
    "including the frames written off as unsolvable.  Whole-file hash.")
+_f("file:docs/SN2023ixf_LightCurve/sn_gate0.html",
+   "docs/SN2023ixf_LightCurve/sn_gate0.html",
+   "SN 2023ixf Gate 0 page: the manifest freeze, the saturation matrix, the "
+   "grism triage and the four verdicts that decide the paper's scope and "
+   "its venue posture.  Whole-file hash.")
 _f("file:docs/pipeline/s2_detector.html", "docs/pipeline/s2_detector.html",
    "S2 detector-truth page: ceiling, gain, read noise and linearity — the "
    "numbers every later error budget inherits.  Whole-file hash.")
@@ -1331,11 +1389,13 @@ def _code_versions() -> dict[str, str]:
     from macro_phot import S4_CODE_VERSION
     from rlmt_diagnostics import S2_CODE_VERSION
     from macro_grism.gate import G_CODE_VERSION
+    from macro_sn import SN_G0_CODE_VERSION
     return {"S0": S0_CODE_VERSION, "S0b": S0B_CODE_VERSION,
             "S0c": S0C_CODE_VERSION, "S1": S1_CODE_VERSION,
             "S1b": S1B_CODE_VERSION, "S2": S2_CODE_VERSION,
             "S3": S3_CODE_VERSION, "S4": S4_CODE_VERSION,
-            "G": G_CODE_VERSION}
+            "G": G_CODE_VERSION, "SN-G0": SN_G0_CODE_VERSION,
+            "R-SN-G0": SN_G0_CODE_VERSION}
 
 
 #: Commands that are typed by a person rather than run by a script.  They are
@@ -1390,8 +1450,19 @@ STAGES: tuple[Stage, ...] = (
     Stage(
         key="S1", title="Astrometry solvability experiment",
         code_version="S1_CODE_VERSION",
-        reads=("table:frames", "table:eras"),
+        # table:frame_dispersion is a NEW input as of S1 v1.2, and it is
+        # the edge that matters most here.  The candidate universe used to
+        # decide "this frame is a spectrum" from its FILTER string, which
+        # made S1 independent of S2c; it now reads S2c's per-frame
+        # dispersion MEASUREMENT, so a re-measurement upstream can change
+        # which frames S1 is even allowed to sample — and therefore its
+        # rates, its failure taxonomy and its verdicts.  Declaring the edge
+        # is what makes this stage go STALE when S2c moves, instead of
+        # quietly publishing rates over a denominator S2c has since
+        # revised.
+        reads=("table:frames", "table:eras", "table:frame_dispersion"),
         writes=("table:s1_strata", "table:s1_populations",
+                "table:s1_gate_comparison",
                 "table:s1_solve_experiment", "table:s1_failure_autopsy"),
         # Three subcommands, in this order: `design` builds the strata and
         # draws the samples, `run` solves them (resumable — re-invoke until
@@ -1458,6 +1529,57 @@ STAGES: tuple[Stage, ...] = (
              "REDERIVE verdict below is waiting on, so the strategy "
              "documents READ it: a verdict landing here must be able to "
              "make them stale."),
+    Stage(
+        key="SN-G0", title="SN 2023ixf Gate 0 (freeze, saturation census, "
+                           "grism triage)",
+        code_version="SN_G0_CODE_VERSION",
+        # Four real inputs, and the last two are the ones that make this
+        # stage possible at all.
+        #
+        # table:frame_dispersion — the imaging gate reads S2c's per-frame
+        # MEASUREMENT and never a filter label.  61 of this campaign's 83
+        # slot-'6' frames are spectra and 3 are images; a re-measurement
+        # that moves any of them moves the usable-frame census, the failure
+        # taxonomy and the grism triage all at once.
+        #
+        # table:s2_ceiling_modes — the saturation screen is derived from
+        # S2's MEASURED clip, not from the strategy's assumed ~3,500 ADU.
+        # This edge is why the project task SN-G0b could finally clear: it
+        # was BLOCKED for exactly as long as this input was missing, and
+        # declaring the edge is what makes the census go stale rather than
+        # silently keep publishing a screen S2 has since revised.
+        reads=("table:frames", "table:eras", "table:frame_dispersion",
+               "table:s2_ceiling_modes"),
+        writes=("table:sn_g0_frames", "table:sn_g0_census",
+                "table:sn_g0_bands", "table:sn_g0_verdict"),
+        # Six subcommands in dependency order.  `measure` is resumable and
+        # safe to re-invoke; the rest rebuild their tables from scratch each
+        # time.  The bare script exits 2: its subparser is required=True.
+        build_cmd=("python pipeline/scripts/run_sn_gate0.py freeze\n"
+                   "python pipeline/scripts/run_sn_gate0.py census\n"
+                   "python pipeline/scripts/run_sn_gate0.py measure\n"
+                   "python pipeline/scripts/run_sn_gate0.py matrix\n"
+                   "python pipeline/scripts/run_sn_gate0.py triage\n"
+                   "python pipeline/scripts/run_sn_gate0.py verdicts"),
+        meta_table="sn_g0_build_meta",
+        note="Opens 1,461 archive frames READ-ONLY and measures the "
+             "supernova's own peak ADU in each.  Answers the three "
+             "questions Gate 0 exists to answer and records each with the "
+             "number that decides it, so a re-run that changes a number "
+             "without changing a verdict is still visible."),
+    Stage(
+        key="R-SN-G0", title="Report: SN 2023ixf Gate 0 page",
+        code_version="SN_G0_CODE_VERSION",
+        # The page renders the matrix and the triage tables directly, and it
+        # re-derives the screen from s2_ceiling_modes rather than reading it
+        # back from the census — so that an S2 re-measurement the census has
+        # not yet absorbed shows up on the page instead of hiding in it.
+        reads=("table:sn_g0_frames", "table:sn_g0_census",
+               "table:sn_g0_bands", "table:sn_g0_verdict",
+               "table:s2_ceiling_modes", "table:s1_strata",
+               "table:s1_failure_autopsy"),
+        writes=("file:docs/SN2023ixf_LightCurve/sn_gate0.html",),
+        build_cmd="python pipeline/scripts/run_sn_gate0.py report"),
     Stage(
         key="S3", title="Timing (BJD_TDB, clock, cadence)",
         code_version="S3_CODE_VERSION",
@@ -1883,8 +2005,13 @@ STAGES: tuple[Stage, ...] = (
     Stage(
         key="R-S1", title="Report: S1 astrometry page",
         code_version="S1_CODE_VERSION",
+        # The report's section 3 renders the before/after delta from
+        # s1_gate_comparison and from frame_dispersion (which of the OLD
+        # experiment's failures were spectra), so both are real inputs to
+        # the page, not just to the experiment behind it.
         reads=("table:s1_solve_experiment", "table:s1_strata",
                "table:s1_populations", "table:s1_failure_autopsy",
+               "table:s1_gate_comparison", "table:frame_dispersion",
                "table:frames"),
         writes=("file:docs/pipeline/s1_astrometry.html",),
         build_cmd="python pipeline/scripts/run_s1_experiment.py report"),

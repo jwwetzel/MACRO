@@ -38,7 +38,9 @@ import matplotlib.pyplot as plt          # noqa: E402
 import numpy as np                       # noqa: E402
 
 from macro_core.report_s0 import (        # noqa: E402
-    ACCENT, DARK, DPI, WARN, esc, q, q1, table)
+    ACCENT, BAD, STYLE, DPI, GOOD, MUTED, WARN,
+    esc, q, q1, table)
+from macro_core import plotstyle as ps   # noqa: E402  (house figure style)
 from . import final_science as fs         # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -46,11 +48,8 @@ DOCS_DIR = REPO_ROOT / "docs" / "CV_TimeSeries"
 FIG_DIR = DOCS_DIR / "figures" / "cv_final"
 HTML_PATH = DOCS_DIR / "cv_final_science.html"
 
-GOOD = "#9fd8ae"
-BAD = "#f0a3a3"
-MUTED = "#6f7a8a"
-FILTER_COLOR = {"G": "#8fb3d9", "g": "#8fb3d9", "R": "#e6907a",
-                "r": "#e6907a", "I": "#c9a0dc", "i": "#c9a0dc"}
+FILTER_COLOR = ps.BAND_COLOR
+FILTER_MARKER = ps.BAND_MARKER
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +128,7 @@ def fig_census(con) -> str:
         return ""
     nights = sorted({r[0] for r in rows})
     xs = {n: i for i, n in enumerate(nights)}
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(10.5, 4.2))
         for r in rows:
             col = GOOD if r[1] == "QUIESCENT" else WARN
@@ -175,7 +174,7 @@ def fig_folds(con, db_path: Path) -> str:
     lc = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     ncol = 3
     nrow = int(math.ceil(len(scopes) / ncol))
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axes = plt.subplots(nrow, ncol, figsize=(11, 3.0 * nrow),
                                  squeeze=False)
         for k, s in enumerate(scopes):
@@ -240,7 +239,7 @@ def fig_two_nulls(con) -> str:
                   "AND amp90_self IS NOT NULL ORDER BY scope")
     if not rows:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(10, 0.55 * len(rows) + 2.2))
         y = np.arange(len(rows))
         ax.errorbar([1000 * r[1] for r in rows], y,
@@ -284,7 +283,7 @@ def fig_flicker(con) -> str:
                                  "WHERE state='QUIESCENT' ORDER BY era_id")]
     if not eras:
         return ""
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axes = plt.subplots(1, len(eras), figsize=(5.4 * len(eras), 4.4),
                                  squeeze=False, sharey=True)
         for j, era in enumerate(eras):
@@ -339,7 +338,7 @@ def fig_outburst(con, db_path: Path) -> str:
     lc = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     ncol = 3
     nrow = int(math.ceil(len(nights) / ncol))
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, axes = plt.subplots(nrow, ncol, figsize=(11, 3.0 * nrow),
                                  squeeze=False, sharey=True)
         for k, night in enumerate(nights):
@@ -404,7 +403,7 @@ def fig_anuma(con) -> str:
         labels.append(f"{r[0]}   {r[1]}")
         ratios.append(ratio)
         cols.append(GOOD if r[4] == "SUPPORTED" else BAD)
-    with plt.rc_context(DARK):
+    with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(10, 0.34 * len(labels) + 1.8))
         y = np.arange(len(labels))
         ax.barh(y, ratios, color=cols, alpha=0.85, height=0.65)
