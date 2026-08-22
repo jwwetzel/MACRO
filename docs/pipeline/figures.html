@@ -1,0 +1,214 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MACRO — Data &amp; Instrument Characterization: figures</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">0/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">2/34 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series"><span class="n">CV Time Series</span><span class="m">34/34 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf Early Light Curve"><span class="n">SN 2023ixf</span><span class="m">5/20 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/24 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf Galaxies + NGC 5548"><span class="n">Dwarf Galaxies</span><span class="m">1/31 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Rigel-Era Legacy Archive (candidate)"><span class="n">Legacy Rigel</span><span class="m">0/11 done</span></a></nav></div>
+<div class="tabbar"><nav class="tabbar-inner" aria-label="Data &amp; Instrument Characterization views"><a class="tab" href="../pipeline/index.html">The Case</a><a class="tab" aria-current="page" href="../pipeline/figures.html">Figures</a><a class="tab" href="../pipeline/pipeline_status.html">Freshness &amp; DAG</a><a class="tab" href="../pipeline/evidence.html">Evidence Detail</a></nav></div>
+<div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../pipeline/index.html">Data &amp; Instrument Characterization</a></li><li aria-current="page">Figures</li></ol></nav></div>
+<div class="layout">
+<aside class="rail" aria-label="Questions in this view"><h2>The questions</h2><p class="railnote">Every generated plot in this area, grouped by the analysis step that produced it.</p><ol><li><a href="#cat-s0e"><span class="qn">4</span> S0e — The Geometry Artifact</a></li><li><a href="#cat-s0"><span class="qn">7</span> S0 — Manifest &amp; Curation</a></li><li><a href="#cat-s0b"><span class="qn">3</span> S0b — Calibration Inventory &amp; Raw↔Reduced Links</a></li><li><a href="#cat-s0c"><span class="qn">2</span> S0c — Per-Project Staging Manifests</a></li><li><a href="#cat-s2"><span class="qn">6</span> S2 — Detector Truth</a></li><li><a href="#cat-s2c"><span class="qn">4</span> S2c — Filter Identity, Measured</a></li><li><a href="#cat-s1"><span class="qn">3</span> S1 — Astrometry Go/No-Go Experiment</a></li><li><a href="#cat-s3"><span class="qn">5</span> S3 — The Shared Time Axis</a></li><li><a href="#cat-s4"><span class="qn">6</span> S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></li></ol></aside>
+<div class="pane">
+<header><h1>Data &amp; Instrument Characterization — figures</h1>
+<p>40 generated plot(s) in 9 group(s). Every one is written by a script in this repository and carries the caption its own page gave it. Click a plot for the full-size PNG.</p></header>
+<div class="figwall" id="cat-s0e"><h2>S0e — The Geometry Artifact <span class="chip v-stale">S0e: STALE</span></h2>
+<p class="catnote">4 figure(s) &middot; <a href="../pipeline/s0e_geometry_fix.html">read the analysis they belong to</a></p>
+<div class="figgrid">
+<figure><a href="../pipeline/figures/s0e/s0e_anatomy.png"><img loading="lazy" src="../pipeline/figures/s0e/s0e_anatomy.png" alt="The phantom strip (yellow) drawn inside the frame that was actually recorded. Both shapes are described by the same header; only one of them is the image."></a>
+<figcaption>The phantom strip (yellow) drawn inside the frame that was actually recorded. Both shapes are described by the same header; only one of them is the image.</figcaption>
+<div class="figsrc"><a href="../pipeline/s0e_geometry_fix.html#artifact">in context: S0e — The Geometry Artifact</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s0e/s0e_blast.png"><img loading="lazy" src="../pipeline/figures/s0e/s0e_blast.png" alt="Left: which science targets lost frames to the artifact. Right: repaired rows against the untouched control group (log scale)."></a>
+<figcaption>Left: which science targets lost frames to the artifact. Right: repaired rows against the untouched control group (log scale).</figcaption>
+<div class="figsrc"><a href="../pipeline/s0e_geometry_fix.html#blast">in context: S0e — The Geometry Artifact</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s0e/s0e_eras.png"><img loading="lazy" src="../pipeline/figures/s0e/s0e_eras.png" alt="Frame counts before and after, for every era the repair moves. The phantom eras empty; the real ones absorb."></a>
+<figcaption>Frame counts before and after, for every era the repair moves. The phantom eras empty; the real ones absorb.</figcaption>
+<div class="figsrc"><a href="../pipeline/s0e_geometry_fix.html#eras">in context: S0e — The Geometry Artifact</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s0e/s0e_requeue.png"><img loading="lazy" src="../pipeline/figures/s0e/s0e_requeue.png" alt="The re-queue population by stratum. The yellow bar is the part a queue rebuild would NOT pick up."></a>
+<figcaption>The re-queue population by stratum. The yellow bar is the part a queue rebuild would NOT pick up.</figcaption>
+<div class="figsrc"><a href="../pipeline/s0e_geometry_fix.html#requeue">in context: S0e — The Geometry Artifact</a></div>
+</figure>
+</div></div>
+<div class="figwall" id="cat-s0"><h2>S0 — Manifest &amp; Curation <span class="chip v-wait">S0: STALE_UPSTREAM</span></h2>
+<p class="catnote">7 figure(s) &middot; <a href="../pipeline/s0_manifest.html">read the analysis they belong to</a></p>
+<div class="figgrid">
+<figure><a href="../pipeline/figures/s0/s0_dup_group_sizes.png"><img loading="lazy" src="../pipeline/figures/s0/s0_dup_group_sizes.png" alt="Duplicate-group size distribution: 198,294 groups from 330,865 rows; 132,571 rows are extra copies of an exposure that already exists."></a>
+<figcaption>Duplicate-group size distribution: 198,294 groups from 330,865 rows; 132,571 rows are extra copies of an exposure that already exists.</figcaption>
+<div class="figsrc"><a href="../pipeline/s0_manifest.html#dedup">in context: S0 — Manifest &amp; Curation</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s0/s0_alias_top25.png"><img loading="lazy" src="../pipeline/figures/s0/s0_alias_top25.png" alt="3,019 raw names resolve to 1,974 canonical targets; 2,654 names needed at least one normalization rule. Yellow = the largest single raw variant; blue = the merged total."></a>
+<figcaption>3,019 raw names resolve to 1,974 canonical targets; 2,654 names needed at least one normalization rule. Yellow = the largest single raw variant; blue = the merged total.</figcaption>
+<div class="figsrc"><a href="../pipeline/s0_manifest.html#aliases">in context: S0 — Manifest &amp; Curation</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s0/s0_era_timeline.png"><img loading="lazy" src="../pipeline/figures/s0/s0_era_timeline.png" alt="The 16 eras holding at least 100 canonical frames, on the calendar. Marker area scales with frames per night. Eras are numbered by first light."></a>
+<figcaption>The 16 eras holding at least 100 canonical frames, on the calendar. Marker area scales with frames per night. Eras are numbered by first light.</figcaption>
+<div class="figsrc"><a href="../pipeline/s0_manifest.html#eras">in context: S0 — Manifest &amp; Curation</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s0/s0_frames_per_night.png"><img loading="lazy" src="../pipeline/figures/s0/s0_frames_per_night.png" alt="641 distinct nights; median 198 canonical frames per night; the densest night (2026-05-31) holds 3,003."></a>
+<figcaption>641 distinct nights; median 198 canonical frames per night; the densest night (2026-05-31) holds 3,003.</figcaption>
+<div class="figsrc"><a href="../pipeline/s0_manifest.html#nights">in context: S0 — Manifest &amp; Curation</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s0/s0_night_boundary.png"><img loading="lazy" src="../pipeline/figures/s0/s0_night_boundary.png" alt="Left: all 3,003 frames of the densest night sit far inside the boundaries. Right: archive-wide, 1,557 canonical frames fall within one hour of a boundary, and only 127 of them is a Light frame — the rest are daytime bias/dark/flat frames. The boundary crosses no observing sequence."></a>
+<figcaption>Left: all 3,003 frames of the densest night sit far inside the boundaries. Right: archive-wide, 1,557 canonical frames fall within one hour of a boundary, and only 127 of them is a Light frame — the rest are daytime bias/dark/flat frames. The boundary crosses no observing sequence.</figcaption>
+<div class="figsrc"><a href="../pipeline/s0_manifest.html#nights">in context: S0 — Manifest &amp; Curation</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s0/s0_pointing_offsets.png"><img loading="lazy" src="../pipeline/figures/s0/s0_pointing_offsets.png" alt="Offsets for 185,586 canonical frames across 1,412 targets with a reference position (median of plate-solved canonical frames when at least 3 exist, otherwise the median of the target's header coordinates). 11,691 frames sit beyond 1 deg; 1,657 exact-zero offsets are clipped into the lowest bin (a log axis cannot hold zero)."></a>
+<figcaption>Offsets for 185,586 canonical frames across 1,412 targets with a reference position (median of plate-solved canonical frames when at least 3 exist, otherwise the median of the target's header coordinates). 11,691 frames sit beyond 1 deg; 1,657 exact-zero offsets are clipped into the lowest bin (a log axis cannot hold zero).</figcaption>
+<div class="figsrc"><a href="../pipeline/s0_manifest.html#pointing">in context: S0 — Manifest &amp; Curation</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s0/s0_qc_flags.png"><img loading="lazy" src="../pipeline/figures/s0/s0_qc_flags.png" alt="38,995 of all catalog rows carry at least one flag. exptime_nonpos: 3,466 rows, of which 197 claim to be Light frames (mostly biases; the light-frame subset is the real pathology)."></a>
+<figcaption>38,995 of all catalog rows carry at least one flag. exptime_nonpos: 3,466 rows, of which 197 claim to be Light frames (mostly biases; the light-frame subset is the real pathology).</figcaption>
+<div class="figsrc"><a href="../pipeline/s0_manifest.html#qc">in context: S0 — Manifest &amp; Curation</a></div>
+</figure>
+</div></div>
+<div class="figwall" id="cat-s0b"><h2>S0b — Calibration Inventory &amp; Raw↔Reduced Links <span class="chip v-wait">S0b: STALE_UPSTREAM</span></h2>
+<p class="catnote">3 figure(s) &middot; <a href="../pipeline/s0b_calibration_inventory.html">read the analysis they belong to</a></p>
+<div class="figgrid">
+<figure><a href="../pipeline/figures/s0b/s0b_link_methods.png"><img loading="lazy" src="../pipeline/figures/s0b/s0b_link_methods.png" alt="106,925 (raw, reduced) links across 106,942 reduced rows; 48 orphans remain. Right panel: the 47 stem_jd_drift frames carry JD rewrites of -4200 to 271 seconds — same file, re-stamped during reduction."></a>
+<figcaption>106,925 (raw, reduced) links across 106,942 reduced rows; 48 orphans remain. Right panel: the 47 stem_jd_drift frames carry JD rewrites of -4200 to 271 seconds — same file, re-stamped during reduction.</figcaption>
+<div class="figsrc"><a href="../pipeline/s0b_calibration_inventory.html#linkage">in context: S0b — Calibration Inventory &amp; Raw↔Reduced Links</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s0b/s0b_calib_timeline.png"><img loading="lazy" src="../pipeline/figures/s0b/s0b_calib_timeline.png" alt="All 4,976 canonical calibration frames (409 of them stacked master products) land in only 10 of the 81 camera eras that hold science frames."></a>
+<figcaption>All 4,976 canonical calibration frames (409 of them stacked master products) land in only 10 of the 81 camera eras that hold science frames.</figcaption>
+<div class="figsrc"><a href="../pipeline/s0b_calibration_inventory.html#census">in context: S0b — Calibration Inventory &amp; Raw↔Reduced Links</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s0b/s0b_coverage_heatmap.png"><img loading="lazy" src="../pipeline/figures/s0b/s0b_coverage_heatmap.png" alt="1,516 requirement cells across 81 science eras; only 68 are met. The page shows the 15 eras holding at least 100 science frames; every era is in the calib_coverage table."></a>
+<figcaption>1,516 requirement cells across 81 science eras; only 68 are met. The page shows the 15 eras holding at least 100 science frames; every era is in the calib_coverage table.</figcaption>
+<div class="figsrc"><a href="../pipeline/s0b_calibration_inventory.html#matrix">in context: S0b — Calibration Inventory &amp; Raw↔Reduced Links</a></div>
+</figure>
+</div></div>
+<div class="figwall" id="cat-s0c"><h2>S0c — Per-Project Staging Manifests <span class="chip v-wait">S0c: STALE_UPSTREAM</span></h2>
+<p class="catnote">2 figure(s) &middot; <a href="../pipeline/s0c_staging.html">read the analysis they belong to</a></p>
+<div class="figgrid">
+<figure><a href="../pipeline/figures/s0c/s0c_roles.png"><img loading="lazy" src="../pipeline/figures/s0c/s0c_roles.png" alt="Every staged row, by role. Science rows are the project's published selection; calibration rows are the era-matched families that ride along."></a>
+<figcaption>Every staged row, by role.  Science rows are the project's published selection; calibration rows are the era-matched families that ride along.</figcaption>
+<div class="figsrc"><a href="../pipeline/s0c_staging.html#staged">in context: S0c — Per-Project Staging Manifests</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s0c/s0c_eras.png"><img loading="lazy" src="../pipeline/figures/s0c/s0c_eras.png" alt="Where each working set lives in camera-era space. A project's calibration rows cover exactly the eras its science occupies."></a>
+<figcaption>Where each working set lives in camera-era space.  A project's calibration rows cover exactly the eras its science occupies.</figcaption>
+<div class="figsrc"><a href="../pipeline/s0c_staging.html#staged">in context: S0c — Per-Project Staging Manifests</a></div>
+</figure>
+</div></div>
+<div class="figwall" id="cat-s2"><h2>S2 — Detector Truth <span class="chip v-wait">S2: STALE_UPSTREAM</span></h2>
+<p class="catnote">6 figure(s) &middot; <a href="../pipeline/s2_detector.html">read the analysis they belong to</a></p>
+<div class="figgrid">
+<figure><a href="../pipeline/figures/s2/s2_ceiling_hist.png"><img loading="lazy" src="../pipeline/figures/s2/s2_ceiling_hist.png" alt="Terminal histogram structure per mode. A ceiling is a valley-then-mound at the very end of the occupied range (pileup); a smooth falling tail is honest headroom."></a>
+<figcaption>Terminal histogram structure per mode.  A ceiling is a valley-then-mound at the very end of the occupied range (pileup); a smooth falling tail is honest headroom.</figcaption>
+<div class="figsrc"><a href="../pipeline/s2_detector.html#ceiling">in context: S2 — Detector Truth</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s2/s2_frame_maxes.png"><img loading="lazy" src="../pipeline/figures/s2/s2_frame_maxes.png" alt="Per-frame maxima. High Gain frames pile at the mound; StackPro frames cluster at a multiple of the single-read clip (the measured ratio is on the panel); Low Gain's tight cluster failed the position-diversity test (same hot feature in every frame) and is NOT a ceiling."></a>
+<figcaption>Per-frame maxima.  High Gain frames pile at the mound; StackPro frames cluster at a multiple of the single-read clip (the measured ratio is on the panel); Low Gain's tight cluster failed the position-diversity test (same hot feature in every frame) and is NOT a ceiling.</figcaption>
+<div class="figsrc"><a href="../pipeline/s2_detector.html#ceiling">in context: S2 — Detector Truth</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s2/s2_ptc.png"><img loading="lazy" src="../pipeline/figures/s2/s2_ptc.png" alt="Left: half-difference variance vs level. Dark pairs (circles) run BELOW the Poisson line (part of the hot-pixel population barely fluctuates), light pairs (triangles) run above it at star levels (sub-pixel scene motion inflates the difference) — the two slopes bracket the true gain. Right: the StackPro/High-Gain ratio of bias offset and read-noise variance."></a>
+<figcaption>Left: half-difference variance vs level.  Dark pairs (circles) run BELOW the Poisson line (part of the hot-pixel population barely fluctuates), light pairs (triangles) run above it at star levels (sub-pixel scene motion inflates the difference) — the two slopes bracket the true gain.  Right: the StackPro/High-Gain ratio of bias offset and read-noise variance.</figcaption>
+<div class="figsrc"><a href="../pipeline/s2_detector.html#ptc">in context: S2 — Detector Truth</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s2/s2_recon_stamps.png"><img loading="lazy" src="../pipeline/figures/s2/s2_recon_stamps.png" alt="Reconstructed dark (left) and flat (middle) per era; right: era-47 reconstruction minus its archived master bias+scaled-dark — the ground-truth grade."></a>
+<figcaption>Reconstructed dark (left) and flat (middle) per era; right: era-47 reconstruction minus its archived master bias+scaled-dark — the ground-truth grade.</figcaption>
+<div class="figsrc"><a href="../pipeline/s2_detector.html#recon">in context: S2 — Detector Truth</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s2/s2_linearity.png"><img loading="lazy" src="../pipeline/figures/s2/s2_linearity.png" alt="Per-mode best ladder. Filled points: unsaturated rungs (the linearity measurement). Crosses: rungs whose peak sits above the saturation veto — they measure the ceiling, not linearity, and are excluded from the statistic."></a>
+<figcaption>Per-mode best ladder.  Filled points: unsaturated rungs (the linearity measurement).  Crosses: rungs whose peak sits above the saturation veto — they measure the ceiling, not linearity, and are excluded from the statistic.</figcaption>
+<div class="figsrc"><a href="../pipeline/s2_detector.html#linearity">in context: S2 — Detector Truth</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s2/s2_noise.png"><img loading="lazy" src="../pipeline/figures/s2/s2_noise.png" alt="Left: the measured variance of each mode against level, with the between-pair spread as error bars; dotted lines are each mode's measured floor, dashed lines the level where variance reaches twice it. Right: the same table expressed as the per-pixel sigma an error model multiplies by."></a>
+<figcaption>Left: the measured variance of each mode against level, with the between-pair spread as error bars; dotted lines are each mode's measured floor, dashed lines the level where variance reaches twice it.  Right: the same table expressed as the per-pixel sigma an error model multiplies by.</figcaption>
+<div class="figsrc"><a href="../pipeline/s2_detector.html#noise">in context: S2 — Detector Truth</a></div>
+</figure>
+</div></div>
+<div class="figwall" id="cat-s2c"><h2>S2c — Filter Identity, Measured <span class="chip v-stale">S2c: STALE</span></h2>
+<p class="catnote">4 figure(s) &middot; <a href="../pipeline/s2c_filter_identity.html">read the analysis they belong to</a></p>
+<div class="figgrid">
+<figure><a href="../pipeline/figures/s2c/s2c_calibration.png"><img loading="lazy" src="../pipeline/figures/s2c/s2c_calibration.png" alt="Left: the bright-set median a/b the first survey pass quoted — the classes overlap badly, because most bright detections on a grism frame are round field stars whose traces are too faint to resolve. Right: among frames that reached the trace gates at all, how tightly their traces share an axis. The grism populations collapse onto zero; the control keeps a long tail out to 80 deg, which is the defocused and satellite-crossed frames the gate exists to remove. Note the control ALSO has a spike at zero — those are the trailed frames discussed under Consequence, and they are the reason the false-positive rate is not zero."></a>
+<figcaption>Left: the bright-set median a/b the first survey pass quoted &mdash; the classes overlap badly, because most bright detections on a grism frame are round field stars whose traces are too faint to resolve. Right: among frames that reached the trace gates at all, how tightly their traces share an axis. The grism populations collapse onto zero; the control keeps a long tail out to 80 deg, which is the defocused and satellite-crossed frames the gate exists to remove. Note the control ALSO has a spike at zero &mdash; those are the trailed frames discussed under Consequence, and they are the reason the false-positive rate is not zero.</figcaption>
+<div class="figsrc"><a href="../pipeline/s2c_filter_identity.html#calibration">in context: S2c — Filter Identity, Measured</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s2c/s2c_strength.png"><img loading="lazy" src="../pipeline/figures/s2c/s2c_strength.png" alt="Left: trace aspect ratio — the two grisms overlap almost completely. Right: trace length as a fraction of frame width, which separates the medians but leaves broad overlapping tails. The dashed line is the adopted high-dispersion bound."></a>
+<figcaption>Left: trace aspect ratio &mdash; the two grisms overlap almost completely. Right: trace length as a fraction of frame width, which separates the medians but leaves broad overlapping tails. The dashed line is the adopted high-dispersion bound.</figcaption>
+<div class="figsrc"><a href="../pipeline/s2c_filter_identity.html#strength">in context: S2c — Filter Identity, Measured</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s2c/s2c_slot6_timeline.png"><img loading="lazy" src="../pipeline/figures/s2c/s2c_slot6_timeline.png" alt="Slot-'6' frames per month by measured verdict (top) and the dispersed fraction (bottom). A wheel that changed on a date would show a step; a wheel used both ways throughout would not."></a>
+<figcaption>Slot-'6' frames per month by measured verdict (top) and the dispersed fraction (bottom). A wheel that changed on a date would show a step; a wheel used both ways throughout would not.</figcaption>
+<div class="figsrc"><a href="../pipeline/s2c_filter_identity.html#slot6">in context: S2c — Filter Identity, Measured</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s2c/s2c_census.png"><img loading="lazy" src="../pipeline/figures/s2c/s2c_census.png" alt="Measured spectra per target for the 25 most-observed spectroscopic targets, split by grism unit."></a>
+<figcaption>Measured spectra per target for the 25 most-observed spectroscopic targets, split by grism unit.</figcaption>
+<div class="figsrc"><a href="../pipeline/s2c_filter_identity.html#census">in context: S2c — Filter Identity, Measured</a></div>
+</figure>
+</div></div>
+<div class="figwall" id="cat-s1"><h2>S1 — Astrometry Go/No-Go Experiment <span class="chip v-wait">S1: STALE_UPSTREAM</span></h2>
+<p class="catnote">3 figure(s) &middot; <a href="../pipeline/s1_astrometry.html">read the analysis they belong to</a></p>
+<div class="figgrid">
+<figure><a href="../pipeline/figures/s1/s1_success_rates.png"><img loading="lazy" src="../pipeline/figures/s1/s1_success_rates.png" alt="449 of 517 sampled frames solved (gate-accepted). Bars are point rates; whiskers the Wilson 95% interval; the dashed line the 80% GO bar the interval's LOWER bound must clear."></a>
+<figcaption>449 of 517 sampled frames solved (gate-accepted). Bars are point rates; whiskers the Wilson 95% interval; the dashed line the 80% GO bar the interval's LOWER bound must clear.</figcaption>
+<div class="figsrc"><a href="../pipeline/s1_astrometry.html#results">in context: S1 — Astrometry Go/No-Go Experiment</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s1/s1_solve_times.png"><img loading="lazy" src="../pipeline/figures/s1/s1_solve_times.png" alt="Successes cluster at seconds; failures burn the full CPU budget — the failure rate, not the solve speed, sets the batch cost."></a>
+<figcaption>Successes cluster at seconds; failures burn the full CPU budget — the failure rate, not the solve speed, sets the batch cost.</figcaption>
+<div class="figsrc"><a href="../pipeline/s1_astrometry.html#results">in context: S1 — Astrometry Go/No-Go Experiment</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s1/s1_failure_gallery.png"><img loading="lazy" src="../pipeline/figures/s1/s1_failure_gallery.png" alt="6 of the 68 autopsied failures — every failure is autopsied, no sampling cap — machine-diagnosed from source-extraction statistics."></a>
+<figcaption>6 of the 68 autopsied failures — every failure is autopsied, no sampling cap — machine-diagnosed from source-extraction statistics.</figcaption>
+<div class="figsrc"><a href="../pipeline/s1_astrometry.html#autopsy">in context: S1 — Astrometry Go/No-Go Experiment</a></div>
+</figure>
+</div></div>
+<div class="figwall" id="cat-s3"><h2>S3 — The Shared Time Axis <span class="chip v-wait">S3: STALE_UPSTREAM</span></h2>
+<p class="catnote">5 figure(s) &middot; <a href="../pipeline/s3_timing.html">read the analysis they belong to</a></p>
+<div class="figgrid">
+<figure><a href="../pipeline/figures/s3/s3_jdhelio_semantics.png"><img loading="lazy" src="../pipeline/figures/s3/s3_jdhelio_semantics.png" alt="Header JD-HELIO minus our own heliocentric JD, per sampled header. Left: evaluated at the JD instant, residuals climb exactly the EXPTIME/2 line. Right: evaluated at JD + EXPTIME/2, 35/38 residuals collapse to within 1 s. Yellow: the HDR family and one Mode0 focus frame, whose JD-HELIO is simply broken."></a>
+<figcaption>Header JD-HELIO minus our own heliocentric JD, per sampled header. Left: evaluated at the JD instant, residuals climb exactly the EXPTIME/2 line. Right: evaluated at JD + EXPTIME/2, 35/38 residuals collapse to within 1 s. Yellow: the HDR family and one Mode0 focus frame, whose JD-HELIO is simply broken.</figcaption>
+<div class="figsrc"><a href="../pipeline/s3_timing.html#stamp">in context: S3 — The Shared Time Axis</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s3/s3_cadence_overheads.png"><img loading="lazy" src="../pipeline/figures/s3/s3_cadence_overheads.png" alt="Back-to-back series cadence. If EXPTIME were per-sub-read, gaps would follow the dotted 15x line; instead StackPro overheads match the plain High Gain save/slew pipeline at every exposure time."></a>
+<figcaption>Back-to-back series cadence. If EXPTIME were per-sub-read, gaps would follow the dotted 15x line; instead StackPro overheads match the plain High Gain save/slew pipeline at every exposure time.</figcaption>
+<div class="figsrc"><a href="../pipeline/s3_timing.html#stackpro">in context: S3 — The Shared Time Axis</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s3/s3_bjd_offset.png"><img loading="lazy" src="../pipeline/figures/s3/s3_bjd_offset.png" alt="The correction S3 applies: the barycentric light-travel term spans -8.3 to +8.5 minutes over the archive's sky and seasons; the TDB-UTC scale offset adds 69.182-69.186 s. Ignoring either would be fatal for eclipse timing."></a>
+<figcaption>The correction S3 applies: the barycentric light-travel term spans -8.3 to +8.5 minutes over the archive's sky and seasons; the TDB-UTC scale offset adds 69.182-69.186 s. Ignoring either would be fatal for eclipse timing.</figcaption>
+<div class="figsrc"><a href="../pipeline/s3_timing.html#frametimes">in context: S3 — The Shared Time Axis</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s3/s3_clock_oc.png"><img loading="lazy" src="../pipeline/figures/s3/s3_clock_oc.png" alt="AG LMi folded on the literature ephemeris using this pipeline's own time axis. The eclipse lands where the ephemeris says it should; the fitted center measures the residual offset."></a>
+<figcaption>AG LMi folded on the literature ephemeris using this pipeline's own time axis. The eclipse lands where the ephemeris says it should; the fitted center measures the residual offset.</figcaption>
+<div class="figsrc"><a href="../pipeline/s3_timing.html#clock">in context: S3 — The Shared Time Axis</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s3/s3_clock_drift.png"><img loading="lazy" src="../pipeline/figures/s3/s3_clock_drift.png" alt="TELUT minus the end of the exposure DATE-OBS names, per sampled header, across the baseline. The scatter is header-write latency; a diverging pair of clocks would show as a trend."></a>
+<figcaption>TELUT minus the end of the exposure DATE-OBS names, per sampled header, across the baseline. The scatter is header-write latency; a diverging pair of clocks would show as a trend.</figcaption>
+<div class="figsrc"><a href="../pipeline/s3_timing.html#clock">in context: S3 — The Shared Time Axis</a></div>
+</figure>
+</div></div>
+<div class="figwall" id="cat-s4"><h2>S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup) <span class="chip v-stale">S4: STALE</span></h2>
+<p class="catnote">6 figure(s) &middot; <a href="../pipeline/s4_photometry.html">read the analysis they belong to</a></p>
+<div class="figgrid">
+<figure><a href="../pipeline/figures/s4/s4_match_qc.png"><img loading="lazy" src="../pipeline/figures/s4/s4_match_qc.png" alt="2,333 of 2,558 extraction-complete frames matched; 159 skipped for known S0 mispointing, 66 failed alignment; median matched fraction 94% of frame detections; median registration residual 0.509 ref-px."></a>
+<figcaption>2,333 of 2,558 extraction-complete frames matched; 159 skipped for known S0 mispointing, 66 failed alignment; median matched fraction 94% of frame detections; median registration residual 0.509 ref-px.</figcaption>
+<div class="figsrc"><a href="../pipeline/s4_photometry.html#matching">in context: S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s4/s4_zp_timeline.png"><img loading="lazy" src="../pipeline/figures/s4/s4_zp_timeline.png" alt="Frame zero points of all 10 series (10 converged). Cloud events and focus drifts appear as excursions; the ensemble absorbs them into ZP rather than into star magnitudes."></a>
+<figcaption>Frame zero points of all 10 series (10 converged). Cloud events and focus drifts appear as excursions; the ensemble absorbs them into ZP rather than into star magnitudes.</figcaption>
+<div class="figsrc"><a href="../pipeline/s4_photometry.html#ensemble">in context: S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s4/s4_rms_vs_mag.png"><img loading="lazy" src="../pipeline/figures/s4/s4_rms_vs_mag.png" alt="Star RMS vs ensemble magnitude per (era, filter): comparison stars (blue), held-out check stars (yellow), dropped variables (red), the target (pink), against the photon+sky floor predicted by the measurement errors (green line)."></a>
+<figcaption>Star RMS vs ensemble magnitude per (era, filter): comparison stars (blue), held-out check stars (yellow), dropped variables (red), the target (pink), against the photon+sky floor predicted by the measurement errors (green line).</figcaption>
+<div class="figsrc"><a href="../pipeline/s4_photometry.html#errors">in context: S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s4/s4_allan.png"><img loading="lazy" src="../pipeline/figures/s4/s4_allan.png" alt="Allan deviation of check star 2,763 (vvpup/era 72/g), night 2024-12-03: 5 tau rungs from 160s to 2560s. The longest-tau rungs rest on as few as 5 difference pairs (N annotated per rung; error bars are the 1σ sampling uncertainty adev/√(2N)) — any apparent flattening there is SUGGESTIVE, not statistically established; a claim of a correlated-noise floor awaits longer runs."></a>
+<figcaption>Allan deviation of check star 2,763 (vvpup/era 72/g), night 2024-12-03: 5 tau rungs from 160s to 2560s.  The longest-tau rungs rest on as few as 5 difference pairs (N annotated per rung; error bars are the 1&sigma; sampling uncertainty adev/&radic;(2N)) — any apparent flattening there is SUGGESTIVE, not statistically established; a claim of a correlated-noise floor awaits longer runs.</figcaption>
+<div class="figsrc"><a href="../pipeline/s4_photometry.html#errors">in context: S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s4/s4_anuma_lc.png"><img loading="lazy" src="../pipeline/figures/s4/s4_anuma_lc.png" alt="AN UMa: 1,043 ensemble-corrected target points across 13 nights (VV Pup holds 1,045 more). Times are header UTC start JDs — barycentric correction is stage S3, deliberately absent here."></a>
+<figcaption>AN UMa: 1,043 ensemble-corrected target points across 13 nights (VV Pup holds 1,045 more). Times are header UTC start JDs — barycentric correction is stage S3, deliberately absent here.</figcaption>
+<div class="figsrc"><a href="../pipeline/s4_photometry.html#lightcurves">in context: S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></div>
+</figure>
+<figure><a href="../pipeline/figures/s4/s4_anuma_folded.png"><img loading="lazy" src="../pipeline/figures/s4/s4_anuma_folded.png" alt="The same points folded on the literature period P = 0.0797528 d (AAVSO VSX (0.07975274 d)). Coherent per-night structure at the orbital period — plus night-to-night level shifts (accretion high/low states) — is exactly the phenomenology expected of a polar. Header-UTC times drift up to ~8 min from barycentric over a season (~0.07 in phase) — harmless for a sanity fold, fatal for timing, which is why BJD is S3's job."></a>
+<figcaption>The same points folded on the literature period P = 0.0797528 d (AAVSO VSX (0.07975274 d)). Coherent per-night structure at the orbital period — plus night-to-night level shifts (accretion high/low states) — is exactly the phenomenology expected of a polar. Header-UTC times drift up to ~8 min from barycentric over a season (~0.07 in phase) — harmless for a sanity fold, fatal for timing, which is why BJD is S3's job.</figcaption>
+<div class="figsrc"><a href="../pipeline/s4_photometry.html#lightcurves">in context: S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></div>
+</figure>
+</div></div>
+
+</div>
+</div>
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v1.0 (2026-08-18)), the provenance DAG (<code>macro_core.provenance</code>, P v1.0 (2026-08-18)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+</body></html>

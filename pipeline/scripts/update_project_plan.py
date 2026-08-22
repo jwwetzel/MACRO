@@ -233,8 +233,27 @@ def cmd_sync(args) -> int:
 # ---------------------------------------------------------------------------
 def cmd_render(args) -> int:
     from macro_core import report_projects as rp
+    from macro_core import site
+
     written = rp.render_all(args.manifest,
                             projects=[args.project] if args.project else None)
+    # A page a renderer has just rewritten has lost its chrome, so the site
+    # is reassembled in the same breath.  Doing it here rather than asking a
+    # person to remember a second command is the same reasoning that made
+    # `set` and `render` one workflow in the first place: the step nobody
+    # runs is the step that has to be automatic.
+    #
+    # `rp.DOCS_DIR` is read rather than assumed so a render into a temporary
+    # tree (which the tests do) assembles that tree and never touches the
+    # real docs/.
+    site_written = site.build_site(manifest=args.manifest,
+                                   docs_dir=rp.DOCS_DIR,
+                                   repo_root=REPO_ROOT)
+    # The chrome pass rewrites the project pages it just wrapped, so report
+    # each path once, in the order it was first produced.
+    seen = {p.resolve() for p in written}
+    written = list(written) + [p for p in site_written
+                               if p.resolve() not in seen]
     for path in written:
         # Repo-relative when it is under the repo; absolute otherwise, so a
         # render into a temporary tree reports rather than raises.

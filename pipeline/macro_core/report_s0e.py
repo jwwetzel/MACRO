@@ -573,9 +573,11 @@ def render_report(catalog_path: Path = DEFAULT_CATALOG) -> Path:
 <title>S0e — The Geometry Artifact</title>
 <link rel="stylesheet" href="../assets/macro.css">
 <style>
-pre.cards {{ background:#0b0d12; border:1px solid #2a3140; border-radius:6px;
-  padding:.8rem 1rem; overflow-x:auto; font-size:.78rem; line-height:1.45;
-  color:#c8d1dc; }}
+/* One page-specific rule: the header cards are a dense fixed-width dump
+   that wants tighter leading than the shared <pre>.  Colour and ground come
+   from the stylesheet's tokens, so this cannot drift from the site theme
+   the way the hard-coded #0b0d12/#c8d1dc pair did. */
+pre.cards {{ padding:.8rem 1rem; font-size:.78rem; line-height:1.45; }}
 </style>
 </head><body>
 
@@ -584,7 +586,7 @@ pre.cards {{ background:#0b0d12; border:1px solid #2a3140; border-radius:6px;
   <p>{fmt(n_read)} catalog rows re-read &middot; {fmt(n_changed)} repaired
   &middot; {fmt(n_new)} frames returned to astrometry &middot;
   {fmt(n_redef)} published era ids redefined &middot;
-  <a href="../index.html">back to the evidence hub</a></p>
+  <a href="../index.html">the front page</a></p>
 </header>
 
 <nav>

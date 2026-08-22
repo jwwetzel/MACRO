@@ -732,7 +732,7 @@ per-point precision is far larger.  That is the honest form of the answer:
 not &ldquo;the term is zero&rdquo;, which we cannot show, but &ldquo;the
 term cannot cost more than this, and this is small compared with what we
 can measure&rdquo;.</div>
-<ul style="font-size:13px;color:#9aa4b2;max-width:1100px">{notes}</ul>
+<ul class="legend">{notes}</ul>
 </div>
 
 <div class="stage"><h3>Consequence</h3>
@@ -1034,7 +1034,7 @@ unverifiable position is not a limit, it is a number.</div>
         "closure median (px)", "closure p95 (px)", "refused"], tab, cls)}
 
 <p><b>Blocks refused limits, and why:</b></p>
-<ul style="font-size:13px;color:#9aa4b2;max-width:1100px">{bl or
+<ul class="legend">{bl or
     "<li>None.</li>"}</ul>
 </div>
 
@@ -1147,7 +1147,7 @@ def render_report(db_path: Path) -> Path:
   on</a> &middot; <a href="cv_characterization.html">the characterization
   that set these thresholds</a> &middot;
   <a href="index.html">project hub</a> &middot;
-  <a href="../index.html">all reports</a></p>
+  <a href="../index.html">the front page</a></p>
 </header>
 
 <nav>

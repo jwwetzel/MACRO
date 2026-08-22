@@ -3,6 +3,13 @@
 <title>CV Time Series &mdash; External Survey Context</title>
 <link rel="stylesheet" href="../assets/macro.css">
 </head><body>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">0/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">2/34 done</span></a><a class="navitem" aria-current="page" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series"><span class="n">CV Time Series</span><span class="m">34/34 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf Early Light Curve"><span class="n">SN 2023ixf</span><span class="m">5/20 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/24 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf Galaxies + NGC 5548"><span class="n">Dwarf Galaxies</span><span class="m">1/31 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Rigel-Era Legacy Archive (candidate)"><span class="n">Legacy Rigel</span><span class="m">0/11 done</span></a></nav></div>
+<div class="tabbar"><nav class="tabbar-inner" aria-label="Cataclysmic-Variable Time Series views"><a class="tab" href="../CV_TimeSeries/case.html">The Case</a><a class="tab" href="../CV_TimeSeries/figures.html">Figures</a><a class="tab" href="../CV_TimeSeries/paper.html">Draft Paper</a><a class="tab" href="../CV_TimeSeries/index.html">Plan &amp; Status</a><a class="tab" aria-current="page" href="../CV_TimeSeries/evidence.html">Evidence Detail</a></nav></div>
+<div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../CV_TimeSeries/case.html">Cataclysmic-Variable Time Series</a></li><li><a href="../CV_TimeSeries/evidence.html">Evidence Detail</a></li><li aria-current="page">Cataclysmic-Variable Time Series — the external record</li></ol></nav></div>
+<div class="layout">
+<aside class="rail" aria-label="Questions in this view"><a class="railback" href="../CV_TimeSeries/case.html">&larr; Back to the case</a><h2>The questions</h2><p class="railnote">The questions this page answers, in order.</p><ol><li><a href="#sec-1"><span class="qn">1</span> Why ask anyone else at all?</a></li><li><a href="#sec-2"><span class="qn">2</span> Who was asked, and what came back</a></li><li><a href="#sec-3"><span class="qn">3</span> Whose data is this, actually?</a></li><li><a href="#sec-4"><span class="qn">4</span> What does “quiescence” mean here?</a></li><li><a href="#sec-5"><span class="qn">5</span> YZ Cnc in 2024, with our nights on it</a></li><li><a href="#sec-6"><span class="qn">6</span> Night by night, and what backs each one</a></li><li><a href="#sec-7"><span class="qn">7</span> The branch</a></li><li><a href="#sec-8"><span class="qn">8</span> The five targets: what the surveys add</a></li><li><a href="#sec-9"><span class="qn">9</span> What the external record adds — and where it cannot help</a></li><li><a href="#sec-10"><span class="qn">10</span> Provenance</a></li></ol></aside>
+<div class="pane">
+<!--MACRO-SITE:CONTENT-->
 
 <header>
   <h1>Cataclysmic-Variable Time Series &mdash; the external record</h1>
@@ -16,7 +23,7 @@
 
 <main>
 
-<section><div class="bhead"><h2>0 &middot; Why ask anyone else at all?</h2></div>
+<section id="sec-1"><div class="bhead"><h2>0 &middot; Why ask anyone else at all?</h2></div>
 <p>Our photometry is <b>differential</b>. Every light curve in this project
 was solved with the ensemble's gauge fixed by <code>mean(ZP) = 0</code>, and
 the catalogue tie moves a whole block onto a standard zero point &mdash; it
@@ -37,7 +44,7 @@ bright?&rdquo; but &ldquo;was it in a superoutburst on the nights we ran at
 answer it.</p>
 </section>
 
-<section><div class="bhead"><h2>1 &middot; Who was asked, and what came back</h2></div>
+<section id="sec-2"><div class="bhead"><h2>1 &middot; Who was asked, and what came back</h2></div>
 <p>Four sources, the ones the strategy's &sect;7 names. Every response is
 cached verbatim under <code>products/external/</code> with the query text,
 the pull date and a sha256, so nothing on this page rests on a query nobody
@@ -84,7 +91,7 @@ per target in <code>cv_ext_fetch</code> rather than left as an absence a
 later reader would mistake for &ldquo;ATLAS saw nothing&rdquo;.</p>
 </section>
 
-<section><div class="bhead"><h2>2 &middot; Whose data is this, actually?</h2></div>
+<section id="sec-3"><div class="bhead"><h2>2 &middot; Whose data is this, actually?</h2></div>
 <p>The first thing the AAVSO pull returned for YZ Cnc was <b>our own
 photometry</b>. Observer code <code>MALW</code>, comment
 &ldquo;TAKEN WITH MACRO CONSORTIUM'S ROBERT L. MUTEL TELESCOPE AT WINER
@@ -115,7 +122,7 @@ statement &ldquo;the star was at V&asymp;13 that night&rdquo;. It licenses
 nothing about our photometric precision.</p>
 </section>
 
-<section><div class="bhead"><h2>3 &middot; What does &ldquo;quiescence&rdquo; mean here?</h2></div>
+<section id="sec-4"><div class="bhead"><h2>3 &middot; What does &ldquo;quiescence&rdquo; mean here?</h2></div>
 <p>Not a number from a catalogue. The baseline is measured from the star's
 own record: the median of the faintest
 10% of independent nightly
@@ -133,7 +140,7 @@ star:</p>
 </table>
 </section>
 
-<section><div class="bhead"><h2>4 &middot; YZ Cnc in 2024, with our nights on it</h2></div>
+<section id="sec-5"><div class="bhead"><h2>4 &middot; YZ Cnc in 2024, with our nights on it</h2></div>
 <figure><a href="figures/cv_external/yzcnc_timeline.png"><img src="figures/cv_external/yzcnc_timeline.png" alt=""></a><figcaption>YZ Cnc across the 2024 season. Top: the independent AAVSO V-like record (filled), our own resubmitted photometry on the same ladder (open), the measured quiescent baseline (dashed) and the superoutburst level (dotted); the shaded span is the superoutburst plateau. Bottom: our RLMT frames per night, dense runs highlighted. The question the figure exists to answer is whether any tall bar stands inside the shaded span.</figcaption></figure>
 <p>Every outburst episode the independent record traces in this season:</p>
 <table class="data">
@@ -160,7 +167,7 @@ in it. The nearest we came was two frames on 2024-03-26 and two on
 2024-03-27 &mdash; the star went into superoutburst on 2024-03-28.</p>
 </section>
 
-<section><div class="bhead"><h2>5 &middot; Night by night, and what backs each one</h2></div>
+<section id="sec-6"><div class="bhead"><h2>5 &middot; Night by night, and what backs each one</h2></div>
 <div class="note"><b>The night label is not the UTC date.</b>
 <code>cv_frames.night</code> is the LOCAL evening date at Winer (UTC&minus;7),
 and every CV frame in this season was taken after local midnight &mdash; so
@@ -172,21 +179,21 @@ boundary would move every tag onto its neighbour, on a star that rises
 1.4 mag in a day.</div>
 <table class="data">
 <tr><th>UTC night</th><th>manifest night</th><th>frames</th><th>filters</th><th>state</th><th>V</th><th>amp</th><th>basis</th><th>episode</th><th>evidence</th></tr>
-<tr><td><b>2024-02-21</b></td><td><code>2024-02-20</code></td><td>313 <b>DENSE</b></td><td>R,G,I</td><td><b style="color:#0072B2">QUIESCENT</b></td><td>14.21</td><td>0.44</td><td>own</td><td>&amp;mdash;</td><td>no independent observer covered this night; RLMT photometry resubmitted to AAVSO gives V-equivalent 14.21 via measured band offsets. Superoutburst independently excluded: bracketed by 2024-02-20 (V=13.85, +0.80 mag above quiescence) and 2024-02-25 (V=13.63, +1.03) — only 5 d apart, so a &gt;= 8 d superoutburst plateau cannot fit between them, and neither endpoint is anywhere near superoutburst level</td></tr>
-<tr class="warn"><td><b>2024-02-22</b></td><td><code>2024-02-21</code></td><td>241 <b>DENSE</b></td><td>I,G,R</td><td><b style="color:#D55E00">OUTBURST</b></td><td>13.03</td><td>1.63</td><td>own</td><td>&amp;mdash;</td><td>no independent observer covered this night; RLMT photometry resubmitted to AAVSO gives V-equivalent 13.03 via measured band offsets. Superoutburst independently excluded: bracketed by 2024-02-20 (V=13.85, +0.80 mag above quiescence) and 2024-02-25 (V=13.63, +1.03) — only 5 d apart, so a &gt;= 8 d superoutburst plateau cannot fit between them, and neither endpoint is anywhere near superoutburst level</td></tr>
-<tr class="warn"><td><b>2024-02-23</b></td><td><code>2024-02-22</code></td><td>130 <b>DENSE</b></td><td>G,R,I</td><td><b style="color:#D55E00">OUTBURST</b></td><td>12.80</td><td>1.86</td><td>own</td><td>&amp;mdash;</td><td>no independent observer covered this night; RLMT photometry resubmitted to AAVSO gives V-equivalent 12.80 via measured band offsets. Superoutburst independently excluded: bracketed by 2024-02-20 (V=13.85, +0.80 mag above quiescence) and 2024-02-25 (V=13.63, +1.03) — only 5 d apart, so a &gt;= 8 d superoutburst plateau cannot fit between them, and neither endpoint is anywhere near superoutburst level</td></tr>
-<tr class="warn"><td><b>2024-02-24</b></td><td><code>2024-02-23</code></td><td>135 <b>DENSE</b></td><td>G,I,R</td><td><b style="color:#D55E00">OUTBURST</b></td><td>13.07</td><td>1.59</td><td>own</td><td>&amp;mdash;</td><td>no independent observer covered this night; RLMT photometry resubmitted to AAVSO gives V-equivalent 13.07 via measured band offsets. Superoutburst independently excluded: bracketed by 2024-02-20 (V=13.85, +0.80 mag above quiescence) and 2024-02-25 (V=13.63, +1.03) — only 5 d apart, so a &gt;= 8 d superoutburst plateau cannot fit between them, and neither endpoint is anywhere near superoutburst level</td></tr>
-<tr class="warn"><td><b>2024-03-01</b></td><td><code>2024-02-29</code></td><td>164 <b>DENSE</b></td><td>R,G,I</td><td><b style="color:#D55E00">OUTBURST</b></td><td>13.50</td><td>1.15</td><td>independent</td><td>NORMAL OUTBURST</td><td>1 independent point(s) from PYG in Vis.; median 13.50</td></tr>
-<tr class="warn"><td><b>2024-03-03</b></td><td><code>2024-03-02</code></td><td>97 <b>DENSE</b></td><td>G,I,R</td><td><b style="color:#D55E00">OUTBURST</b></td><td>13.50</td><td>1.15</td><td>independent</td><td>NORMAL OUTBURST</td><td>2 independent point(s) from KLO, VTY in Vis.; median 13.50</td></tr>
-<tr class="warn"><td><b>2024-03-04</b></td><td><code>2024-03-03</code></td><td>104 <b>DENSE</b></td><td>R,G,I</td><td><b style="color:#D55E00">OUTBURST</b></td><td>13.43</td><td>1.22</td><td>independent</td><td>NORMAL OUTBURST</td><td>8 independent point(s) from DFS, FJQ, MUY, PYG in V,Vis.; median 13.43</td></tr>
-<tr><td><b>2024-03-10</b></td><td><code>2024-03-09</code></td><td>45</td><td>R,G,I</td><td><b style="color:#D55E00">OUTBURST</b></td><td>12.90</td><td>1.76</td><td>independent</td><td>NORMAL OUTBURST</td><td>1 independent point(s) from HKEB in V; median 12.90</td></tr>
-<tr><td><b>2024-03-17</b></td><td><code>2024-03-16</code></td><td>16</td><td>R,G,I</td><td><b style="color:#D55E00">OUTBURST</b></td><td>13.35</td><td>1.31</td><td>own</td><td>&amp;mdash;</td><td>no independent observer covered this night; RLMT photometry resubmitted to AAVSO gives V-equivalent 13.35 via measured band offsets. Superoutburst independently excluded: bracketed by 2024-03-15 (V=13.84, +0.82 mag above quiescence) and 2024-03-23 (V=12.90, +1.75) — only 8 d apart, so a &gt;= 8 d superoutburst plateau cannot fit between them, and neither endpoint is anywhere near superoutburst level</td></tr>
-<tr><td><b>2024-03-26</b></td><td><code>2024-03-25</code></td><td>2</td><td>G</td><td><b style="color:#999999">NO DATA</b></td><td>&mdash;</td><td>&mdash;</td><td>none</td><td>SUPEROUTBURST</td><td>a bracketing point is itself at superoutburst level — the gap is inside an event, not outside one</td></tr>
-<tr><td><b>2024-03-27</b></td><td><code>2024-03-26</code></td><td>2</td><td>G</td><td><b style="color:#999999">NO DATA</b></td><td>&mdash;</td><td>&mdash;</td><td>none</td><td>SUPEROUTBURST</td><td>a bracketing point is itself at superoutburst level — the gap is inside an event, not outside one</td></tr>
-<tr><td><b>2024-04-17</b></td><td><code>2024-04-16</code></td><td>3</td><td>r</td><td><b style="color:#D55E00">OUTBURST</b></td><td>13.63</td><td>1.02</td><td>independent</td><td>SUPEROUTBURST</td><td>7 independent point(s) from DFS, FJQ, PYG in V,Vis.; median 13.63</td></tr>
-<tr><td><b>2024-05-01</b></td><td><code>2024-04-30</code></td><td>31</td><td>r</td><td><b style="color:#0072B2">QUIESCENT</b></td><td>14.29</td><td>0.36</td><td>independent</td><td>&amp;mdash;</td><td>1 independent point(s) from DFS in V; median 14.29</td></tr>
-<tr><td><b>2024-05-02</b></td><td><code>2024-05-01</code></td><td>189 <b>DENSE</b></td><td>g,i,r</td><td><b style="color:#0072B2">QUIESCENT</b></td><td>14.19</td><td>0.47</td><td>own</td><td>&amp;mdash;</td><td>no independent observer covered this night; RLMT photometry resubmitted to AAVSO gives V-equivalent 14.19 via measured band offsets. Superoutburst independently excluded: bracketed by 2024-05-01 (V=14.29, +0.36 mag above quiescence) and 2024-05-03 (V=14.65, +0.00) — only 2 d apart, so a &gt;= 8 d superoutburst plateau cannot fit between them, and neither endpoint is anywhere near superoutburst level</td></tr>
-<tr><td><b>2024-05-03</b></td><td><code>2024-05-02</code></td><td>237 <b>DENSE</b></td><td>g,i,r</td><td><b style="color:#0072B2">QUIESCENT</b></td><td>14.65</td><td>0.00</td><td>independent</td><td>&amp;mdash;</td><td>6 independent point(s) from DFS, FJQ in V; median 14.65</td></tr>
+<tr><td><b>2024-02-21</b></td><td><code>2024-02-20</code></td><td>313 <b>DENSE</b></td><td>R,G,I</td><td><b class="">QUIESCENT</b></td><td>14.21</td><td>0.44</td><td>own</td><td>&amp;mdash;</td><td>no independent observer covered this night; RLMT photometry resubmitted to AAVSO gives V-equivalent 14.21 via measured band offsets. Superoutburst independently excluded: bracketed by 2024-02-20 (V=13.85, +0.80 mag above quiescence) and 2024-02-25 (V=13.63, +1.03) — only 5 d apart, so a &gt;= 8 d superoutburst plateau cannot fit between them, and neither endpoint is anywhere near superoutburst level</td></tr>
+<tr class="warn"><td><b>2024-02-22</b></td><td><code>2024-02-21</code></td><td>241 <b>DENSE</b></td><td>I,G,R</td><td><b class="bad">OUTBURST</b></td><td>13.03</td><td>1.63</td><td>own</td><td>&amp;mdash;</td><td>no independent observer covered this night; RLMT photometry resubmitted to AAVSO gives V-equivalent 13.03 via measured band offsets. Superoutburst independently excluded: bracketed by 2024-02-20 (V=13.85, +0.80 mag above quiescence) and 2024-02-25 (V=13.63, +1.03) — only 5 d apart, so a &gt;= 8 d superoutburst plateau cannot fit between them, and neither endpoint is anywhere near superoutburst level</td></tr>
+<tr class="warn"><td><b>2024-02-23</b></td><td><code>2024-02-22</code></td><td>130 <b>DENSE</b></td><td>G,R,I</td><td><b class="bad">OUTBURST</b></td><td>12.80</td><td>1.86</td><td>own</td><td>&amp;mdash;</td><td>no independent observer covered this night; RLMT photometry resubmitted to AAVSO gives V-equivalent 12.80 via measured band offsets. Superoutburst independently excluded: bracketed by 2024-02-20 (V=13.85, +0.80 mag above quiescence) and 2024-02-25 (V=13.63, +1.03) — only 5 d apart, so a &gt;= 8 d superoutburst plateau cannot fit between them, and neither endpoint is anywhere near superoutburst level</td></tr>
+<tr class="warn"><td><b>2024-02-24</b></td><td><code>2024-02-23</code></td><td>135 <b>DENSE</b></td><td>G,I,R</td><td><b class="bad">OUTBURST</b></td><td>13.07</td><td>1.59</td><td>own</td><td>&amp;mdash;</td><td>no independent observer covered this night; RLMT photometry resubmitted to AAVSO gives V-equivalent 13.07 via measured band offsets. Superoutburst independently excluded: bracketed by 2024-02-20 (V=13.85, +0.80 mag above quiescence) and 2024-02-25 (V=13.63, +1.03) — only 5 d apart, so a &gt;= 8 d superoutburst plateau cannot fit between them, and neither endpoint is anywhere near superoutburst level</td></tr>
+<tr class="warn"><td><b>2024-03-01</b></td><td><code>2024-02-29</code></td><td>164 <b>DENSE</b></td><td>R,G,I</td><td><b class="bad">OUTBURST</b></td><td>13.50</td><td>1.15</td><td>independent</td><td>NORMAL OUTBURST</td><td>1 independent point(s) from PYG in Vis.; median 13.50</td></tr>
+<tr class="warn"><td><b>2024-03-03</b></td><td><code>2024-03-02</code></td><td>97 <b>DENSE</b></td><td>G,I,R</td><td><b class="bad">OUTBURST</b></td><td>13.50</td><td>1.15</td><td>independent</td><td>NORMAL OUTBURST</td><td>2 independent point(s) from KLO, VTY in Vis.; median 13.50</td></tr>
+<tr class="warn"><td><b>2024-03-04</b></td><td><code>2024-03-03</code></td><td>104 <b>DENSE</b></td><td>R,G,I</td><td><b class="bad">OUTBURST</b></td><td>13.43</td><td>1.22</td><td>independent</td><td>NORMAL OUTBURST</td><td>8 independent point(s) from DFS, FJQ, MUY, PYG in V,Vis.; median 13.43</td></tr>
+<tr><td><b>2024-03-10</b></td><td><code>2024-03-09</code></td><td>45</td><td>R,G,I</td><td><b class="bad">OUTBURST</b></td><td>12.90</td><td>1.76</td><td>independent</td><td>NORMAL OUTBURST</td><td>1 independent point(s) from HKEB in V; median 12.90</td></tr>
+<tr><td><b>2024-03-17</b></td><td><code>2024-03-16</code></td><td>16</td><td>R,G,I</td><td><b class="bad">OUTBURST</b></td><td>13.35</td><td>1.31</td><td>own</td><td>&amp;mdash;</td><td>no independent observer covered this night; RLMT photometry resubmitted to AAVSO gives V-equivalent 13.35 via measured band offsets. Superoutburst independently excluded: bracketed by 2024-03-15 (V=13.84, +0.82 mag above quiescence) and 2024-03-23 (V=12.90, +1.75) — only 8 d apart, so a &gt;= 8 d superoutburst plateau cannot fit between them, and neither endpoint is anywhere near superoutburst level</td></tr>
+<tr><td><b>2024-03-26</b></td><td><code>2024-03-25</code></td><td>2</td><td>G</td><td><b class="muted">NO DATA</b></td><td>&mdash;</td><td>&mdash;</td><td>none</td><td>SUPEROUTBURST</td><td>a bracketing point is itself at superoutburst level — the gap is inside an event, not outside one</td></tr>
+<tr><td><b>2024-03-27</b></td><td><code>2024-03-26</code></td><td>2</td><td>G</td><td><b class="muted">NO DATA</b></td><td>&mdash;</td><td>&mdash;</td><td>none</td><td>SUPEROUTBURST</td><td>a bracketing point is itself at superoutburst level — the gap is inside an event, not outside one</td></tr>
+<tr><td><b>2024-04-17</b></td><td><code>2024-04-16</code></td><td>3</td><td>r</td><td><b class="bad">OUTBURST</b></td><td>13.63</td><td>1.02</td><td>independent</td><td>SUPEROUTBURST</td><td>7 independent point(s) from DFS, FJQ, PYG in V,Vis.; median 13.63</td></tr>
+<tr><td><b>2024-05-01</b></td><td><code>2024-04-30</code></td><td>31</td><td>r</td><td><b class="">QUIESCENT</b></td><td>14.29</td><td>0.36</td><td>independent</td><td>&amp;mdash;</td><td>1 independent point(s) from DFS in V; median 14.29</td></tr>
+<tr><td><b>2024-05-02</b></td><td><code>2024-05-01</code></td><td>189 <b>DENSE</b></td><td>g,i,r</td><td><b class="">QUIESCENT</b></td><td>14.19</td><td>0.47</td><td>own</td><td>&amp;mdash;</td><td>no independent observer covered this night; RLMT photometry resubmitted to AAVSO gives V-equivalent 14.19 via measured band offsets. Superoutburst independently excluded: bracketed by 2024-05-01 (V=14.29, +0.36 mag above quiescence) and 2024-05-03 (V=14.65, +0.00) — only 2 d apart, so a &gt;= 8 d superoutburst plateau cannot fit between them, and neither endpoint is anywhere near superoutburst level</td></tr>
+<tr><td><b>2024-05-03</b></td><td><code>2024-05-02</code></td><td>237 <b>DENSE</b></td><td>g,i,r</td><td><b class="">QUIESCENT</b></td><td>14.65</td><td>0.00</td><td>independent</td><td>&amp;mdash;</td><td>6 independent point(s) from DFS, FJQ in V; median 14.65</td></tr>
 </table>
 <p><b>basis</b> is the honest part: <code>independent</code> means outside
 observers covered that night; <code>own</code> means only our own
@@ -208,7 +215,7 @@ rising ~1.2 mag on Feb 22, peaking V&asymp;12.8 on Feb 23, fading Feb 24 and
 back near quiescence by Feb 28.</div>
 </section>
 
-<section><div class="bhead"><h2>6 &middot; The branch</h2></div>
+<section id="sec-7"><div class="bhead"><h2>6 &middot; The branch</h2></div>
 <div class="decision"><b>Branch: <span class="bad">FALLBACK</span></b>
 &mdash; No dense run falls inside a superoutburst. 9 dense runs: 3 quiescent, 6 in outburst, 0 elevated, 0 unclassifiable. The brightest dense run reaches 1.86 mag above quiescence on 2024-02-23, short of the 3.0 mag a superoutburst reaches. Common superhumps are a superoutburst phenomenon in SU UMa systems, so the superhump branch has no data to stand on; the strategy's orbital-hump + flickering fallback is the branch this season supports — and the normal-outburst nights are a distinct, separately publishable data set, not a consolation.</div>
 <table class="data">
@@ -244,7 +251,7 @@ rather than folded into the fallback.</li>
 </ul>
 </section>
 
-<section><div class="bhead"><h2>7 &middot; The five targets: what the surveys add</h2></div>
+<section id="sec-8"><div class="bhead"><h2>7 &middot; The five targets: what the surveys add</h2></div>
 <p>Coverage span, cadence and bands per target and source, straight from
 <code>cv_external</code>.</p>
 <h3>YZ Cnc</h3><p class="sub">RLMT: 1,918 frames on 27 nights.</p><table class="data">
@@ -275,7 +282,7 @@ rather than folded into the fallback.</li>
 </table>
 </section>
 
-<section><div class="bhead"><h2>8 &middot; What the external record adds &mdash; and where it cannot help</h2></div>
+<section id="sec-9"><div class="bhead"><h2>8 &middot; What the external record adds &mdash; and where it cannot help</h2></div>
 <figure><a href="figures/cv_external/coverage.png"><img src="figures/cv_external/coverage.png" alt=""></a><figcaption>Coverage in time per target and source, with our own frames in white. The polars' RLMT campaigns are a few seasons inside 30-45 year records; YZ Cnc's is a 110-day sliver of a 65-year one.</figcaption></figure>
 <h3>What it adds, that our data cannot supply</h3>
 <ul>
@@ -314,7 +321,7 @@ constrain the state and nothing inside the cycle &mdash; which is precisely
 the gap this paper exists to fill.</li>
 </ul>
 </section>
-<section><div class="bhead"><h2>Provenance</h2></div>
+<section id="sec-10"><div class="bhead"><h2>Provenance</h2></div>
 <p>Every number and figure above is produced by a query against
 <code>products/phot/cv_timeseries.sqlite</code> executed by
 <code>pipeline/macro_phot/report_external.py</code>. The classification
@@ -332,4 +339,9 @@ in SU UMa systems, which is the literature fact the branch rule encodes.</p>
 <code>python pipeline/scripts/check_pipeline_status.py record CV-S7</code>.</p>
 </section>
 </main>
+<!--/MACRO-SITE:CONTENT-->
+<div class="prevnext"><a class="pv" href="../CV_TimeSeries/cv_catalogue_tie.html"><span class="dir">&larr; Previous</span>Cataclysmic-Variable Time Series — the catalogue tie</a><a class="nx" href="../CV_TimeSeries/cv_phase2_completion.html"><span class="dir">Next &rarr;</span>Cataclysmic-Variable Time Series — closing out Phase 2 photometry</a></div>
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v1.0 (2026-08-18)), the provenance DAG (<code>macro_core.provenance</code>, P v1.0 (2026-08-18)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+</div>
+</div>
 </body></html>

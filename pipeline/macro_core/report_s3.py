@@ -219,8 +219,15 @@ def fig_clock(con, meta: dict) -> str:
                 if not sel:
                     continue
                 lab = label if in_fit else "night excluded (one-sided)"
+                # Band gets a MARKER as well as a hue.  Hue alone made G, R
+                # and I one indistinguishable cloud in greyscale, which is
+                # the whole reason the house style pairs the two channels.
+                # The excluded points keep a plain open circle: they are one
+                # legend entry spanning every filter, so a per-band shape
+                # there would promise a distinction the label does not make.
                 ax.scatter([p[0] for p in sel], [p[1] for p in sel], s=14,
                            alpha=0.8 if in_fit else 0.55,
+                           marker=ps.band_marker(filt) if in_fit else "o",
                            color=colors.get(filt, ACCENT) if in_fit
                            else "none",
                            edgecolors=MUTED if not in_fit else "none",
@@ -1019,7 +1026,7 @@ def render_report(manifest_path: Path) -> Path:
   {clock_txt} &middot; built {esc(meta.get('built_utc', ''))[:16]}Z
   ({esc(meta.get('code_version', ''))},
   commit <code>{esc(meta.get('git_commit', '') or 'uncommitted')}</code>)
-  &middot; <a href="../index.html">back to the evidence hub</a></p>
+  &middot; <a href="../index.html">the front page</a></p>
 </header>
 
 <nav>

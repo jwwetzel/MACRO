@@ -1,63 +1,478 @@
-/* MACRO chain-of-evidence report stylesheet.
-   Adapted from the RADiCAL 2023 chain-of-evidence format: dark, figure-forward,
-   one sticky nav, sections per analysis stage. Shared by every report on this site
-   so all evidence pages read as one system. */
+/* ===========================================================================
+   MACRO site stylesheet — light, airy, one system.
 
-body{font-family:-apple-system,"Segoe UI",Roboto,sans-serif;margin:0;background:#0f1115;color:#e8eaed}
+   WHY THIS FILE WAS REWRITTEN
+   ---------------------------
+   The first version of this sheet was a dark, figure-forward report skin
+   adapted from the RADiCAL 2023 chain-of-evidence pages.  It was fine for a
+   single report read alone at night.  It was wrong for a site a colleague is
+   asked to circulate: dark chrome around 102 light-background scientific
+   figures reads as a console, not as a paper, and the reviewer who opened it
+   described the result as "quite intimidating, and quite a load of stuff to
+   crawl through".
 
-/* Masthead: report title + one-line scope statement */
-header{padding:22px 30px;background:#161a22;border-bottom:2px solid #2a3140}
-header h1{margin:0;font-size:22px}
-header p{margin:6px 0 0;color:#9aa4b2;font-size:14px;max-width:1100px}
-header a{color:#6cb6ff;text-decoration:none}
+   So this sheet now carries THREE things, in this order:
 
-/* Sticky section nav */
-nav{position:sticky;top:0;z-index:9;background:#11151c;padding:12px 30px;border-bottom:1px solid #2a3140;font-size:15px}
-nav a{color:#6cb6ff;text-decoration:none;margin-right:6px}
-nav a:hover{text-decoration:underline}
+     1. TOKENS      — one palette, defined once, used everywhere.
+     2. SITE CHROME — the three navigation layers every page wears:
+                      the project row, the view tabs, the breadcrumb,
+                      and the sticky question rail.
+     3. REPORT BODY — the styles the evidence pages themselves emit
+                      (sections, figures, tables, decision callouts).
 
-/* One <section> per analysis stage / project */
-section{padding:26px 30px;border-bottom:8px solid #0a0c10}
-.bhead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
-.bhead h2{margin:0;font-size:30px;color:#fff}
-.tag{background:#243049;color:#bcd;padding:3px 10px;border-radius:12px;font-size:13px}
-.tag2{color:#8a93a3;font-size:13px}
+   THE STATUS COLOURS ARE NOT DECORATION.  Five states have to stay apart for
+   a reader with deuteranopia or protanopia, and they have to survive a
+   greyscale print.  They are therefore taken from the Okabe–Ito safe set and
+   darkened for contrast on white, AND every chip carries its own word, so
+   colour is never the only channel — the same rule the figure renderers
+   follow in pipeline/macro_core/plotstyle.py.
 
-/* Status badges for the hub pages */
-.badge{padding:3px 10px;border-radius:12px;font-size:13px}
-.badge.done{background:#1d3a26;color:#9fd8ae}
-.badge.active{background:#3a3320;color:#e6cc7a}
-.badge.pending{background:#242a35;color:#8a93a3}
+   No page hand-writes a colour.  A renderer that needs one asks for a class.
+   =========================================================================== */
 
-/* A stage: the Socratic unit — question, evidence, decision */
-.stage{margin:18px 0}
-.stage h3{margin:0 0 2px;font-size:17px;color:#dfe6f0}
-.sub{margin:0 0 10px;color:#8a93a3;font-size:13px;max-width:1100px}
+/* ---------------------------------------------------------------------------
+   1.  TOKENS
+   --------------------------------------------------------------------------- */
+:root{
+  /* Ground and ink */
+  --bg:        #ffffff;
+  --bg-soft:   #f7f8fa;   /* cards, table headers, figure mats */
+  --bg-sunk:   #f0f2f5;   /* code, pre, inset strips */
+  --line:      #e3e6ec;
+  --line-firm: #c9cfda;
+  --ink:       #191c22;
+  --ink-soft:  #454b57;
+  --ink-mute:  #6b7280;
 
-/* Decision callout: the conclusion each stage's evidence supports */
-.decision{border-left:3px solid #6cb6ff;background:#141a24;padding:10px 14px;margin:10px 0;
-          font-size:14px;color:#cfe0f5;max-width:1100px}
-.decision b{color:#fff}
+  /* One accent.  Links, focus, the "you are here" marker. */
+  --accent:      #0b5394;
+  --accent-soft: #e8f0f9;
 
-/* Figures: click any figure to open the full-size PNG */
-.grid{display:flex;flex-wrap:wrap;gap:16px}
-figure{margin:0;background:#161a22;border:1px solid #2a3140;border-radius:8px;padding:8px;max-width:760px}
+  /* Status / verdict family — Okabe–Ito, darkened for white ground.
+     ok      bluish green   done, FRESH
+     info    blue           in progress, NEVER_RUN (built but not yet run)
+     warn    orange         stale, redo needed
+     bad     vermilion      blocked, failed
+     gone    purple         destroyed, output missing
+     idle    grey           pending, not applicable                        */
+  --ok:        #16704a;   --ok-bg:   #e4f2ea;   --ok-line:   #9ecdb6;
+  --info:      #12558f;   --info-bg: #e6eff8;   --info-line: #9dbfdf;
+  --warn:      #8a5300;   --warn-bg: #fbf0df;   --warn-line: #e0bf83;
+  --bad:       #9b2f13;   --bad-bg:  #fbebe6;   --bad-line:  #e5ac97;
+  --gone:      #5f2d8f;   --gone-bg: #f0eaf8;   --gone-line: #c1a9dd;
+  --idle:      #5b6270;   --idle-bg: #eef0f3;   --idle-line: #cdd2da;
+
+  /* Rhythm */
+  --measure: 74ch;        /* readable line length for prose */
+  --wide:    1180px;      /* the pane's own ceiling */
+  --rail:    258px;
+  --pad:     clamp(18px, 3.2vw, 40px);
+  --radius:  9px;
+
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+*{box-sizing:border-box}
+
+html{-webkit-text-size-adjust:100%}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:16px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+a:focus-visible,button:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+/* ---------------------------------------------------------------------------
+   2.  SITE CHROME — LAYER 1: the project row
+   ---------------------------------------------------------------------------
+   Present on every page.  Each entry states its own condition, so the row is
+   a status board as well as a switch: a project shows how much of its plan is
+   complete, the shared pipeline shows how many of its stages are still fresh.
+   --------------------------------------------------------------------------- */
+.topbar{
+  position:sticky;top:0;z-index:40;
+  background:rgba(255,255,255,.94);
+  backdrop-filter:saturate(160%) blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{
+  max-width:var(--wide);margin:0 auto;
+  padding:0 var(--pad);
+  display:flex;align-items:stretch;gap:2px;
+  overflow-x:auto;scrollbar-width:thin;
+}
+.topbar .brand{
+  display:flex;align-items:center;gap:8px;
+  padding:11px 16px 11px 0;margin-right:8px;
+  border-right:1px solid var(--line);
+  font-weight:700;letter-spacing:.02em;color:var(--ink);
+  white-space:nowrap;
+}
+.topbar .brand:hover{text-decoration:none;color:var(--accent)}
+.topbar .brand .dot{
+  width:9px;height:9px;border-radius:50%;background:var(--accent);
+  display:inline-block;flex:none}
+
+.navitem{
+  display:flex;flex-direction:column;justify-content:center;
+  padding:9px 13px;border-bottom:3px solid transparent;
+  color:var(--ink-soft);white-space:nowrap;line-height:1.25;
+}
+.navitem:hover{background:var(--bg-soft);text-decoration:none;color:var(--ink)}
+.navitem .n{font-size:14px;font-weight:600}
+.navitem .m{font-size:11.5px;color:var(--ink-mute);font-variant-numeric:tabular-nums}
+.navitem[aria-current]{
+  border-bottom-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.navitem[aria-current] .m{color:var(--accent)}
+.navitem.shared{border-right:1px solid var(--line);margin-right:6px;padding-right:16px}
+
+/* LAYER 2: the view tabs inside a project */
+.tabbar{
+  position:sticky;top:52px;z-index:35;
+  background:var(--bg-soft);border-bottom:1px solid var(--line);
+}
+.tabbar-inner{
+  max-width:var(--wide);margin:0 auto;padding:0 var(--pad);
+  display:flex;gap:4px;flex-wrap:wrap;align-items:center;
+}
+.tab{
+  padding:8px 14px;font-size:13.5px;font-weight:600;
+  color:var(--ink-soft);border-bottom:2px solid transparent;
+}
+.tab:hover{color:var(--ink);text-decoration:none}
+.tab[aria-current]{color:var(--accent);border-bottom-color:var(--accent)}
+.tab.absent{color:var(--ink-mute);font-weight:500;cursor:default;opacity:.75}
+.tab.absent:hover{text-decoration:none}
+
+/* Breadcrumb */
+.crumbs{
+  max-width:var(--wide);margin:0 auto;
+  padding:12px var(--pad) 0;
+  font-size:12.5px;color:var(--ink-mute);
+}
+.crumbs ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.crumbs li:not(:last-child)::after{content:"/";margin-left:6px;color:var(--line-firm)}
+.crumbs a{color:var(--ink-mute)}
+.crumbs a:hover{color:var(--accent)}
+.crumbs li:last-child{color:var(--ink-soft);font-weight:600}
+
+/* LAYER 3: the two-column shell with the sticky question rail */
+.layout{
+  max-width:var(--wide);margin:0 auto;padding:0 var(--pad) 64px;
+  display:grid;grid-template-columns:var(--rail) minmax(0,1fr);
+  gap:clamp(24px,3.4vw,52px);align-items:start;
+}
+.rail{
+  position:sticky;top:104px;
+  max-height:calc(100vh - 124px);overflow-y:auto;overscroll-behavior:contain;
+  padding:22px 0 24px;font-size:13px;scrollbar-width:thin;
+}
+.rail h2{
+  margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-mute)}
+.rail .railnote{margin:0 0 14px;color:var(--ink-mute);font-size:11.5px;line-height:1.45}
+.rail ol{list-style:none;margin:0 0 16px;padding:0;
+         border-left:2px solid var(--line)}
+.rail li{margin:0}
+.rail ol a{
+  display:block;padding:5px 10px 5px 12px;margin-left:-2px;
+  border-left:2px solid transparent;color:var(--ink-soft);line-height:1.4}
+.rail ol a:hover{color:var(--accent);background:var(--bg-soft);text-decoration:none}
+.rail ol a[aria-current]{
+  color:var(--accent);border-left-color:var(--accent);font-weight:600;
+  background:var(--accent-soft)}
+.rail .qn{
+  display:inline-block;min-width:1.8em;color:var(--ink-mute);
+  font-variant-numeric:tabular-nums;font-size:11.5px}
+.rail ol a[aria-current] .qn{color:var(--accent)}
+.rail .railgroup{
+  margin:16px 0 4px;font-size:11px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-mute)}
+.rail .railgroup:first-of-type{margin-top:0}
+.rail .railback{display:block;margin:0 0 16px;font-size:12.5px;font-weight:600}
+
+.pane{min-width:0;padding-top:18px}
+/* The evidence pages emit their own sticky section nav.  The rail supersedes
+   it — two lists of the same anchors, one of them scrolling away, is exactly
+   the "random links that take you places" complaint.  Kept in the markup so
+   the source page still stands alone if opened raw. */
+.pane > nav,.pane > main > nav{display:none}
+
+@media (max-width:940px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .rail{position:static;max-height:none;padding-bottom:8px;
+        border-bottom:1px solid var(--line);margin-bottom:8px}
+  .tabbar{position:static}
+}
+
+/* ---------------------------------------------------------------------------
+   3.  PAGE HEAD — the masthead the report pages emit
+   --------------------------------------------------------------------------- */
+.pane header{padding:0 0 18px;background:none;border:0}
+.pane header h1,h1{
+  margin:0 0 8px;font-size:clamp(25px,3.2vw,34px);line-height:1.18;
+  letter-spacing:-.017em;font-weight:700;color:var(--ink)}
+.pane header p{
+  margin:0;color:var(--ink-soft);font-size:14px;max-width:var(--measure)}
+.pane header p code{font-size:12px}
+
+/* The site's own page lead */
+.lead{font-size:17.5px;line-height:1.6;color:var(--ink-soft);
+      max-width:var(--measure);margin:0 0 22px}
+
+/* ---------------------------------------------------------------------------
+   4.  SECTIONS — the Socratic unit the evidence pages are built from
+   --------------------------------------------------------------------------- */
+section{padding:30px 0;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.bhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.bhead h2,h2{
+  margin:0;font-size:22px;line-height:1.28;font-weight:700;
+  letter-spacing:-.01em;color:var(--ink)}
+h3{margin:22px 0 4px;font-size:14.5px;font-weight:700;color:var(--ink)}
+
+/* The <h3>Question</h3> / Evidence / Decision labels the renderers emit.
+   They are structural signposts, not headings a reader should trip over. */
+.stage{margin:0 0 8px}
+.stage > h3{
+  margin:20px 0 3px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-mute);font-weight:700}
+.sub{margin:0 0 12px;color:var(--ink-soft);font-size:14.5px;max-width:var(--measure)}
+p{max-width:var(--measure)}
+
+.tag{background:var(--bg-soft);border:1px solid var(--line);color:var(--ink-soft);
+     padding:3px 10px;border-radius:12px;font-size:12.5px;line-height:1.4}
+.tag2{color:var(--ink-mute);font-size:12.5px}
+
+/* Decision callout: the conclusion the evidence above supports */
+.decision{
+  border-left:3px solid var(--accent);background:var(--accent-soft);
+  padding:12px 16px;margin:14px 0;border-radius:0 var(--radius) var(--radius) 0;
+  font-size:14.5px;color:var(--ink);max-width:var(--measure)}
+.decision b{font-weight:700}
+
+/* ---------------------------------------------------------------------------
+   5.  STATUS VOCABULARY — chips, bars, verdict inks
+   --------------------------------------------------------------------------- */
+.chip{
+  display:inline-block;padding:2px 9px;border-radius:11px;font-size:11.5px;
+  font-weight:700;white-space:nowrap;border:1px solid transparent;
+  letter-spacing:.01em}
+.chip.done,.chip.v-fresh   {background:var(--ok-bg);  color:var(--ok);  border-color:var(--ok-line)}
+.chip.in_progress,.chip.v-never{background:var(--info-bg);color:var(--info);border-color:var(--info-line)}
+.chip.redo_needed,.chip.v-stale{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-line)}
+.chip.blocked              {background:var(--bad-bg); color:var(--bad); border-color:var(--bad-line)}
+.chip.pending,.chip.v-wait {background:var(--idle-bg);color:var(--idle);border-color:var(--idle-line)}
+.chip.v-gone               {background:var(--gone-bg);color:var(--gone);border-color:var(--gone-line)}
+
+/* Semantic inks for renderer verdicts.  Renderers ask for these classes
+   instead of typing a hex value, which is how the old pale-on-dark greens
+   (#9fd8ae) stopped being legible the moment the ground turned white. */
+.ok{color:var(--ok);font-weight:700}
+.bad{color:var(--bad);font-weight:700}
+.warn{color:var(--warn);font-weight:700}
+.muted{color:var(--ink-mute)}
+
+.badge{padding:3px 10px;border-radius:12px;font-size:12.5px;font-weight:600;
+       border:1px solid transparent}
+.badge.done{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-line)}
+.badge.active{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-line)}
+.badge.pending{background:var(--idle-bg);color:var(--idle);border-color:var(--idle-line)}
+
+.bar{display:flex;height:10px;border-radius:6px;overflow:hidden;
+     max-width:var(--measure);border:1px solid var(--line);
+     background:var(--bg-sunk);margin:10px 0 6px}
+.bar span{display:block;height:100%}
+.bar .done{background:var(--ok)}
+.bar .in_progress{background:var(--info)}
+.bar .redo_needed{background:var(--warn)}
+.bar .blocked{background:var(--bad)}
+.bar .pending{background:var(--line-firm)}
+.legend{color:var(--ink-mute);font-size:12.5px;margin:0 0 16px;max-width:var(--measure)}
+.legend b{color:var(--ink)}
+
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.stat{background:var(--bg-soft);border:1px solid var(--line);border-radius:var(--radius);
+      padding:10px 15px;min-width:148px}
+.stat .n{display:block;font-size:21px;font-weight:700;color:var(--ink);
+         font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .k{display:block;font-size:11.5px;color:var(--ink-mute);margin-top:2px}
+
+.phase{border-left:2px solid var(--line);padding-left:16px;margin:24px 0}
+.phase h3{margin:0 0 2px;font-size:15.5px;color:var(--ink)}
+
+.blockcard,.nextcard,.unbacked{
+  padding:12px 16px;margin:12px 0;font-size:14px;max-width:var(--measure);
+  border-radius:0 var(--radius) var(--radius) 0}
+.blockcard,.unbacked{border-left:3px solid var(--bad);background:var(--bad-bg);color:var(--ink)}
+.nextcard{border-left:3px solid var(--info);background:var(--info-bg);color:var(--ink)}
+.blockcard b,.nextcard b,.unbacked b{font-weight:700}
+.src{color:var(--ink-mute);font-size:11.5px}
+
+/* ---------------------------------------------------------------------------
+   6.  FIGURES
+   --------------------------------------------------------------------------- */
+.grid{display:flex;flex-wrap:wrap;gap:20px}
+figure{
+  margin:18px 0;background:var(--bg);border:1px solid var(--line);
+  border-radius:var(--radius);padding:10px;max-width:780px}
 figure img{max-width:100%;height:auto;border-radius:4px;display:block}
-figcaption{color:#9aa4b2;font-size:12px;margin-top:6px}
-.missing{color:#c97;font-size:13px;font-style:italic;padding:10px}
+figcaption{color:var(--ink-soft);font-size:12.5px;margin-top:8px;line-height:1.5}
+.missing{color:var(--bad);font-size:13px;font-style:italic;padding:10px}
 
-/* Tables: script-emitted numbers only */
-table.data{border-collapse:collapse;font-size:13px;margin:10px 0}
-table.data th,table.data td{border:1px solid #2a3140;padding:5px 10px;text-align:left}
-table.data th{background:#161a22;color:#dfe6f0}
-table.data td{color:#c6ccd6}
-table.data tr.warn td{color:#e6cc7a}
+/* ---------------------------------------------------------------------------
+   7.  TABLES — script-emitted numbers only
+   --------------------------------------------------------------------------- */
+.scroll-x{overflow-x:auto;max-width:100%;margin:14px 0;
+          border:1px solid var(--line);border-radius:var(--radius)}
+.scroll-x table.data{margin:0;border:0}
+table.data{border-collapse:collapse;font-size:13px;margin:14px 0;
+           font-variant-numeric:tabular-nums}
+table.data th,table.data td{
+  border-bottom:1px solid var(--line);padding:7px 12px;text-align:left}
+/* Not sticky: these tables scroll with the page, under a chrome that is
+   already sticky, so a sticky header would park itself in the middle of the
+   viewport with the top bar above it and the rows below. */
+table.data th{background:var(--bg-soft);color:var(--ink);font-weight:700}
+table.data td{color:var(--ink-soft)}
+table.data tr:hover td{background:var(--bg-soft)}
+table.data tr.warn td{color:var(--warn)}
+table.data td.tight{white-space:nowrap}
 
-/* Inline code / SQL */
-code{background:#161a22;border:1px solid #2a3140;border-radius:4px;padding:1px 5px;font-size:12.5px;color:#cdd6e4}
-pre{background:#161a22;border:1px solid #2a3140;border-radius:8px;padding:12px;overflow-x:auto;
-    font-size:12.5px;color:#cdd6e4;max-width:1100px}
+/* ---------------------------------------------------------------------------
+   8.  CODE
+   --------------------------------------------------------------------------- */
+code{background:var(--bg-sunk);border:1px solid var(--line);border-radius:4px;
+     padding:1px 5px;font-size:12.5px;font-family:var(--mono);color:var(--ink-soft)}
+pre{background:var(--bg-sunk);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;overflow-x:auto;font-size:12.5px;font-family:var(--mono);
+    color:var(--ink-soft);max-width:100%;line-height:1.5}
 pre code{background:none;border:none;padding:0}
 
-footer{padding:20px 30px;color:#8a93a3;font-size:13px}
-footer a{color:#6cb6ff;text-decoration:none}
+/* ---------------------------------------------------------------------------
+   9.  SITE-GENERATED VIEWS — the landing, the Case, the Figures wall
+   --------------------------------------------------------------------------- */
+
+/* The landing hero: what this is, and what to read first. */
+.hero{padding:44px 0 8px;max-width:var(--measure)}
+.hero h1{font-size:clamp(30px,4.6vw,44px);margin:0 0 14px}
+.hero .kicker{font-size:12px;font-weight:700;letter-spacing:.12em;
+              text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+.hero p{font-size:18px;line-height:1.58;color:var(--ink-soft);margin:0 0 16px}
+.factstrip{display:flex;flex-wrap:wrap;gap:26px;margin:22px 0 6px;
+           padding:16px 0;border-top:1px solid var(--line);
+           border-bottom:1px solid var(--line)}
+.factstrip div{min-width:110px}
+.factstrip .n{display:block;font-size:22px;font-weight:700;
+              font-variant-numeric:tabular-nums;line-height:1.15}
+.factstrip .k{display:block;font-size:11.5px;color:var(--ink-mute);margin-top:2px}
+
+/* "Start here" — the three-door answer to 'what do I read first?' */
+.doors{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));
+       margin:8px 0 6px}
+.door{display:block;border:1px solid var(--line);border-radius:var(--radius);
+      padding:18px 20px;background:var(--bg);color:var(--ink)}
+.door:hover{border-color:var(--accent);background:var(--accent-soft);text-decoration:none}
+.door .step{font-size:11px;font-weight:700;letter-spacing:.1em;
+            text-transform:uppercase;color:var(--accent)}
+.door h3{margin:6px 0 5px;font-size:16.5px}
+.door p{margin:0;font-size:13.5px;color:var(--ink-soft);line-height:1.5;max-width:none}
+
+/* The project cards on the landing page */
+.cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(292px,1fr));
+       margin:14px 0}
+.card{border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;
+      background:var(--bg);display:flex;flex-direction:column;gap:8px}
+.card:hover{border-color:var(--line-firm)}
+.card h3{margin:0;font-size:16.5px}
+.card h3 a{color:var(--ink)}
+.card h3 a:hover{color:var(--accent)}
+.card .claim{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.5;max-width:none}
+.card .cardmeta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+                font-size:12px;color:var(--ink-mute)}
+.card .cardlinks{margin-top:auto;padding-top:6px;font-size:12.5px;
+                 display:flex;flex-wrap:wrap;gap:4px 12px}
+
+/* The Case view: one block per question */
+.qblock{padding:30px 0;border-bottom:1px solid var(--line);scroll-margin-top:118px}
+.qblock:last-of-type{border-bottom:0}
+.qhead{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.qnum{font-size:12px;font-weight:700;color:var(--accent);
+      font-variant-numeric:tabular-nums;letter-spacing:.04em;flex:none}
+.qblock h2{font-size:21px;margin:0}
+.qask{font-size:16px;color:var(--ink);max-width:var(--measure);margin:6px 0 12px;
+      line-height:1.58}
+.answer{margin:12px 0}
+.answer .lbl{font-size:11px;font-weight:700;letter-spacing:.09em;
+             text-transform:uppercase;color:var(--ink-mute);display:block;margin-bottom:3px}
+.deciding{
+  display:inline-block;background:var(--bg-soft);border:1px solid var(--line);
+  border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;
+  padding:10px 14px;font-size:14px;color:var(--ink);max-width:var(--measure);
+  font-variant-numeric:tabular-nums}
+.qfig{margin:16px 0;max-width:640px}
+.qfig img{width:100%;height:auto;border:1px solid var(--line);border-radius:var(--radius);
+          display:block;background:var(--bg)}
+.qfig figcaption{font-size:12px;color:var(--ink-mute);margin-top:7px}
+.qfoot{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;
+       margin-top:14px;font-size:12.5px;color:var(--ink-mute)}
+.qfoot .full{font-weight:600}
+.prevnext{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+          margin:26px 0 0;padding-top:18px;border-top:1px solid var(--line);
+          font-size:13.5px}
+.prevnext a{display:block;max-width:44ch}
+.prevnext .dir{display:block;font-size:11px;letter-spacing:.09em;
+               text-transform:uppercase;color:var(--ink-mute);font-weight:700}
+.prevnext .nx{text-align:right;margin-left:auto}
+
+/* The Figures wall */
+.figwall{margin:20px 0 34px;scroll-margin-top:118px}
+.figwall > h2{font-size:19px;margin:0 0 4px}
+.figwall .catnote{margin:0 0 16px;font-size:13px;color:var(--ink-mute);
+                  max-width:var(--measure)}
+.figgrid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(310px,1fr))}
+.figgrid figure{margin:0;max-width:none;display:flex;flex-direction:column}
+.figgrid figure img{width:100%}
+.figgrid figcaption{margin-top:8px}
+.figgrid .figsrc{margin-top:auto;padding-top:8px;font-size:11.5px;color:var(--ink-mute)}
+
+/* Open-question card (a question the plan has posed but not yet answered) */
+.openq{border-left:3px solid var(--line-firm);background:var(--bg-soft);
+       padding:12px 16px;border-radius:0 var(--radius) var(--radius) 0;
+       max-width:var(--measure);font-size:14px;margin:12px 0}
+
+/* A note the site itself makes about what is NOT here */
+.absentnote{border:1px dashed var(--line-firm);border-radius:var(--radius);
+            padding:16px 18px;background:var(--bg-soft);font-size:14px;
+            color:var(--ink-soft);max-width:var(--measure);margin:16px 0}
+
+/* ---------------------------------------------------------------------------
+   10.  FOOTER
+   --------------------------------------------------------------------------- */
+footer{
+  max-width:var(--wide);margin:0 auto;padding:26px var(--pad) 56px;
+  border-top:1px solid var(--line);color:var(--ink-mute);font-size:12.5px;
+  line-height:1.6}
+footer p{max-width:var(--measure)}
+.pane footer{max-width:none;margin:0;padding:26px 0 0}
+
+/* ---------------------------------------------------------------------------
+   11.  PRINT — a colleague who prints this should get the paper, not the app
+   --------------------------------------------------------------------------- */
+@media print{
+  .topbar,.tabbar,.crumbs,.rail,.prevnext{display:none}
+  .layout{display:block;padding:0}
+  a{color:inherit;text-decoration:none}
+  figure,.qblock{break-inside:avoid}
+}

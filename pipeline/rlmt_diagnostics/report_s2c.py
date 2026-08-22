@@ -1331,7 +1331,7 @@ def render_report(manifest_path: Path) -> Path:
   {fmt(n_disp)} dispersed &middot; {fmt(n_bad)} unreadable &middot;
   built {esc(meta.get('built_at', ''))[:16]}Z
   ({esc(meta.get('code_version', ''))})
-  &middot; <a href="../index.html">back to the evidence hub</a></p>
+  &middot; <a href="../index.html">the front page</a></p>
 </header>
 
 <nav>

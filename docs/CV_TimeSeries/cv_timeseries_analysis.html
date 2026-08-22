@@ -3,6 +3,13 @@
 <title>CV Time Series &mdash; Phase 3 Analysis</title>
 <link rel="stylesheet" href="../assets/macro.css">
 </head><body>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">0/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">2/34 done</span></a><a class="navitem" aria-current="page" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series"><span class="n">CV Time Series</span><span class="m">34/34 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf Early Light Curve"><span class="n">SN 2023ixf</span><span class="m">5/20 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/24 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf Galaxies + NGC 5548"><span class="n">Dwarf Galaxies</span><span class="m">1/31 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Rigel-Era Legacy Archive (candidate)"><span class="n">Legacy Rigel</span><span class="m">0/11 done</span></a></nav></div>
+<div class="tabbar"><nav class="tabbar-inner" aria-label="Cataclysmic-Variable Time Series views"><a class="tab" href="../CV_TimeSeries/case.html">The Case</a><a class="tab" href="../CV_TimeSeries/figures.html">Figures</a><a class="tab" href="../CV_TimeSeries/paper.html">Draft Paper</a><a class="tab" href="../CV_TimeSeries/index.html">Plan &amp; Status</a><a class="tab" aria-current="page" href="../CV_TimeSeries/evidence.html">Evidence Detail</a></nav></div>
+<div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../CV_TimeSeries/case.html">Cataclysmic-Variable Time Series</a></li><li><a href="../CV_TimeSeries/evidence.html">Evidence Detail</a></li><li aria-current="page">Cataclysmic-Variable Time Series — the Phase 3 analysis</li></ol></nav></div>
+<div class="layout">
+<aside class="rail" aria-label="Questions in this view"><a class="railback" href="../CV_TimeSeries/case.html">&larr; Back to the case</a><h2>The questions</h2><p class="railnote">The questions this page answers, in order.</p><ol><li><a href="#intro"><span class="qn">1</span> Phase 1 measured 6,130 target points across 27 series and Phase 2 decided…</a></li><li><a href="#periods"><span class="qn">2</span> Can this archive measure the orbital periods of these five stars, or can…</a></li><li><a href="#sigmat"><span class="qn">3</span> ST LMi on the local night 2025-02-27 (UTC night 2025-02-28) is the…</a></li><li><a href="#edges"><span class="qn">4</span> In a polar the optical emission is cyclotron radiation from an accretion…</a></li><li><a href="#oc"><span class="qn">5</span> An O−C diagram plots an observed epoch minus the epoch a linear ephemeris…</a></li><li><a href="#states"><span class="qn">6</span> Polars switch between high and low accretion states, and a duty cycle…</a></li><li><a href="#detrend"><span class="qn">7</span> Every light curve here has a trend under it — atmospheric transparency…</a></li></ol></aside>
+<div class="pane">
+<!--MACRO-SITE:CONTENT-->
 
 <header>
   <h1>Cataclysmic-Variable Time Series &mdash; the Phase&nbsp;3
@@ -21,7 +28,7 @@
   rests on</a> &middot; <a href="cv_characterization.html">the
   characterization that set these limits</a> &middot;
   <a href="index.html">project hub</a> &middot;
-  <a href="../index.html">all reports</a></p>
+  <a href="../index.html">the front page</a></p>
 </header>
 
 <nav>
@@ -170,31 +177,31 @@ than after it.</p>
 
 <table class="data">
 <tr><th>series</th><th>N</th><th>nights</th><th>baseline (d)</th><th>recovered P (d)</th><th>published P (d)</th><th>dev (σ)</th><th>agrees?</th><th>W(±1)</th><th>family chosen by</th><th>constraint</th><th>modulation detected?</th></tr>
-<tr><td>AN UMa e76 g</td><td>384</td><td>10</td><td>382.0</td><td>0.0797525 &plusmn; 0.0000084</td><td>0.0797527</td><td>-0.03</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.66</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>AN UMa e76 g</td><td>384</td><td>10</td><td>382.0</td><td>0.0797525 &plusmn; 0.0000084</td><td>0.0797527</td><td>-0.03</td><td><b class="ok">agrees</b></td><td>0.66</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
 <tr><td>AN UMa e76 i</td><td>232</td><td>8</td><td>347.1</td><td>0.0797110 &plusmn; 0.0000301</td><td>0.0797527</td><td>-1.39</td><td>&mdash; n/a</td><td>0.68</td><td>PRIOR</td><td>TIGHT</td><td><b>no</b></td></tr>
-<tr><td>AN UMa e76 r</td><td>337</td><td>11</td><td>347.1</td><td>0.0797532 &plusmn; 0.0000120</td><td>0.0797527</td><td>0.04</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.70</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
-<tr><td>EU UMa e76 g</td><td>169</td><td>10</td><td>431.9</td><td>0.0626166 &plusmn; 0.0000045</td><td>0.0626194</td><td>-0.63</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.86</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
-<tr><td>EU UMa e76 i</td><td>23</td><td>5</td><td>17.9</td><td>0.0619991 &plusmn; 0.0002631</td><td>0.0626194</td><td>-2.36</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.95</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
-<tr><td>EU UMa e76 r</td><td>44</td><td>4</td><td>127.6</td><td>0.0626163 &plusmn; 0.0000594</td><td>0.0626194</td><td>-0.05</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.57</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
-<tr><td>ST LMi e7 G</td><td>236</td><td>17</td><td>37.1</td><td>0.0790911 &plusmn; 0.0000537</td><td>0.0790891</td><td>0.04</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.70</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
-<tr><td>ST LMi e7 I</td><td>286</td><td>19</td><td>37.1</td><td>0.0790909 &plusmn; 0.0000113</td><td>0.0790891</td><td>0.16</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.66</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
-<tr><td>ST LMi e7 R</td><td>275</td><td>17</td><td>37.1</td><td>0.0790920 &plusmn; 0.0000131</td><td>0.0790891</td><td>0.22</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.70</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
-<tr><td>ST LMi e47 z</td><td>56</td><td>1</td><td>0.1</td><td>0.0889577 &plusmn; 0.0427499</td><td>0.0790891</td><td>0.23</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.97</td><td>SINGLE-NIGHT</td><td>UNINFORMATIVE</td><td>yes</td></tr>
-<tr><td>ST LMi e76 g</td><td>675</td><td>16</td><td>396.0</td><td>0.0790918 &plusmn; 0.0000067</td><td>0.0790891</td><td>0.41</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.54</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
-<tr><td>ST LMi e76 i</td><td>483</td><td>10</td><td>119.9</td><td>0.0790897 &plusmn; 0.0000013</td><td>0.0790891</td><td>0.43</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.64</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
-<tr><td>ST LMi e76 r</td><td>537</td><td>12</td><td>119.8</td><td>0.0790900 &plusmn; 0.0000014</td><td>0.0790891</td><td>0.61</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.55</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
-<tr><td>VV Pup e72 g</td><td>183</td><td>2</td><td>5.2</td><td>0.0687866 &plusmn; 0.0004578</td><td>0.0697468</td><td>-2.10</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.91</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
-<tr><td>VV Pup e72 i</td><td>74</td><td>1</td><td>0.2</td><td>0.0668127 &plusmn; 0.0134407</td><td>0.0697468</td><td>-0.22</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.91</td><td>SINGLE-NIGHT</td><td>UNINFORMATIVE</td><td>yes</td></tr>
-<tr><td>VV Pup e72 r</td><td>168</td><td>3</td><td>6.1</td><td>0.0706789 &plusmn; 0.0003960</td><td>0.0697468</td><td>2.35</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.91</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
-<tr><td>VV Pup e76 g</td><td>293</td><td>13</td><td>370.0</td><td>0.0697474 &plusmn; 0.0000130</td><td>0.0697468</td><td>0.05</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.55</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
-<tr><td>VV Pup e76 i</td><td>50</td><td>5</td><td>54.0</td><td>0.0697572 &plusmn; 0.0001051</td><td>0.0697468</td><td>0.10</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.92</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
-<tr><td>VV Pup e76 r</td><td>130</td><td>9</td><td>54.9</td><td>0.0697433 &plusmn; 0.0000807</td><td>0.0697468</td><td>-0.04</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.88</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
+<tr><td>AN UMa e76 r</td><td>337</td><td>11</td><td>347.1</td><td>0.0797532 &plusmn; 0.0000120</td><td>0.0797527</td><td>0.04</td><td><b class="ok">agrees</b></td><td>0.70</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>EU UMa e76 g</td><td>169</td><td>10</td><td>431.9</td><td>0.0626166 &plusmn; 0.0000045</td><td>0.0626194</td><td>-0.63</td><td><b class="ok">agrees</b></td><td>0.86</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>EU UMa e76 i</td><td>23</td><td>5</td><td>17.9</td><td>0.0619991 &plusmn; 0.0002631</td><td>0.0626194</td><td>-2.36</td><td><b class="ok">agrees</b></td><td>0.95</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
+<tr><td>EU UMa e76 r</td><td>44</td><td>4</td><td>127.6</td><td>0.0626163 &plusmn; 0.0000594</td><td>0.0626194</td><td>-0.05</td><td><b class="ok">agrees</b></td><td>0.57</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>ST LMi e7 G</td><td>236</td><td>17</td><td>37.1</td><td>0.0790911 &plusmn; 0.0000537</td><td>0.0790891</td><td>0.04</td><td><b class="ok">agrees</b></td><td>0.70</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>ST LMi e7 I</td><td>286</td><td>19</td><td>37.1</td><td>0.0790909 &plusmn; 0.0000113</td><td>0.0790891</td><td>0.16</td><td><b class="ok">agrees</b></td><td>0.66</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>ST LMi e7 R</td><td>275</td><td>17</td><td>37.1</td><td>0.0790920 &plusmn; 0.0000131</td><td>0.0790891</td><td>0.22</td><td><b class="ok">agrees</b></td><td>0.70</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>ST LMi e47 z</td><td>56</td><td>1</td><td>0.1</td><td>0.0889577 &plusmn; 0.0427499</td><td>0.0790891</td><td>0.23</td><td><b class="ok">agrees</b></td><td>0.97</td><td>SINGLE-NIGHT</td><td>UNINFORMATIVE</td><td>yes</td></tr>
+<tr><td>ST LMi e76 g</td><td>675</td><td>16</td><td>396.0</td><td>0.0790918 &plusmn; 0.0000067</td><td>0.0790891</td><td>0.41</td><td><b class="ok">agrees</b></td><td>0.54</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>ST LMi e76 i</td><td>483</td><td>10</td><td>119.9</td><td>0.0790897 &plusmn; 0.0000013</td><td>0.0790891</td><td>0.43</td><td><b class="ok">agrees</b></td><td>0.64</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>ST LMi e76 r</td><td>537</td><td>12</td><td>119.8</td><td>0.0790900 &plusmn; 0.0000014</td><td>0.0790891</td><td>0.61</td><td><b class="ok">agrees</b></td><td>0.55</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>VV Pup e72 g</td><td>183</td><td>2</td><td>5.2</td><td>0.0687866 &plusmn; 0.0004578</td><td>0.0697468</td><td>-2.10</td><td><b class="ok">agrees</b></td><td>0.91</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
+<tr><td>VV Pup e72 i</td><td>74</td><td>1</td><td>0.2</td><td>0.0668127 &plusmn; 0.0134407</td><td>0.0697468</td><td>-0.22</td><td><b class="ok">agrees</b></td><td>0.91</td><td>SINGLE-NIGHT</td><td>UNINFORMATIVE</td><td>yes</td></tr>
+<tr><td>VV Pup e72 r</td><td>168</td><td>3</td><td>6.1</td><td>0.0706789 &plusmn; 0.0003960</td><td>0.0697468</td><td>2.35</td><td><b class="ok">agrees</b></td><td>0.91</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
+<tr><td>VV Pup e76 g</td><td>293</td><td>13</td><td>370.0</td><td>0.0697474 &plusmn; 0.0000130</td><td>0.0697468</td><td>0.05</td><td><b class="ok">agrees</b></td><td>0.55</td><td>PRIOR</td><td>TIGHT</td><td>yes</td></tr>
+<tr><td>VV Pup e76 i</td><td>50</td><td>5</td><td>54.0</td><td>0.0697572 &plusmn; 0.0001051</td><td>0.0697468</td><td>0.10</td><td><b class="ok">agrees</b></td><td>0.92</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
+<tr><td>VV Pup e76 r</td><td>130</td><td>9</td><td>54.9</td><td>0.0697433 &plusmn; 0.0000807</td><td>0.0697468</td><td>-0.04</td><td><b class="ok">agrees</b></td><td>0.88</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
 <tr><td>YZ Cnc e7 G</td><td>382</td><td>21</td><td>46.0</td><td>0.0864062 &plusmn; 0.0001829</td><td>0.0868000</td><td>-2.08</td><td>&mdash; n/a</td><td>0.80</td><td>PRIOR</td><td>WEAK</td><td><b>no</b></td></tr>
 <tr><td>YZ Cnc e7 I</td><td>383</td><td>18</td><td>46.0</td><td>0.0863876 &plusmn; 0.0002644</td><td>0.0868000</td><td>-1.53</td><td>&mdash; n/a</td><td>0.79</td><td>PRIOR</td><td>WEAK</td><td><b>no</b></td></tr>
 <tr><td>YZ Cnc e7 R</td><td>385</td><td>19</td><td>46.0</td><td>0.0867646 &plusmn; 0.0002060</td><td>0.0868000</td><td>-0.17</td><td>&mdash; n/a</td><td>0.79</td><td>PRIOR</td><td>WEAK</td><td><b>no</b></td></tr>
-<tr><td>YZ Cnc e72 g</td><td>105</td><td>3</td><td>18.1</td><td>0.0855496 &plusmn; 0.0009573</td><td>0.0868000</td><td>-1.30</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.96</td><td>PRIOR</td><td>UNINFORMATIVE</td><td>yes</td></tr>
-<tr><td>YZ Cnc e72 i</td><td>107</td><td>2</td><td>1.1</td><td>0.0843240 &plusmn; 0.0031796</td><td>0.0868000</td><td>-0.78</td><td><b style="color:#9fd8ae">agrees</b></td><td>0.96</td><td>PRIOR</td><td>UNINFORMATIVE</td><td>yes</td></tr>
-<tr><td>YZ Cnc e72 r</td><td>133</td><td>3</td><td>2.1</td><td>0.0839560 &plusmn; 0.0007562</td><td>0.0868000</td><td>-3.75</td><td><b style="color:#f0a3a3">DISAGREES</b></td><td>0.96</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
+<tr><td>YZ Cnc e72 g</td><td>105</td><td>3</td><td>18.1</td><td>0.0855496 &plusmn; 0.0009573</td><td>0.0868000</td><td>-1.30</td><td><b class="ok">agrees</b></td><td>0.96</td><td>PRIOR</td><td>UNINFORMATIVE</td><td>yes</td></tr>
+<tr><td>YZ Cnc e72 i</td><td>107</td><td>2</td><td>1.1</td><td>0.0843240 &plusmn; 0.0031796</td><td>0.0868000</td><td>-0.78</td><td><b class="ok">agrees</b></td><td>0.96</td><td>PRIOR</td><td>UNINFORMATIVE</td><td>yes</td></tr>
+<tr><td>YZ Cnc e72 r</td><td>133</td><td>3</td><td>2.1</td><td>0.0839560 &plusmn; 0.0007562</td><td>0.0868000</td><td>-3.75</td><td><b class="bad">DISAGREES</b></td><td>0.96</td><td>PRIOR</td><td>WEAK</td><td>yes</td></tr>
 </table>
 
 <p><b>Two series whose tallest orbital-band peak is not the orbit:</b></p><ul><li><b>VV Pup e76 i</b> &mdash; the tallest peak in the orbital band is -0.958 c/d from the published frequency — the +/-1 c/d ALIAS, which is what the window predicts and what makes the prior necessary</li><li><b>YZ Cnc e7 I</b> &mdash; the tallest peak in the orbital band is -0.942 c/d from the published frequency — the +/-1 c/d ALIAS, which is what the window predicts and what makes the prior necessary</li></ul>
@@ -300,54 +307,54 @@ in&nbsp;&sect;3.</p>
 
 <table class="data">
 <tr><th>series</th><th>assumed width / true</th><th>assumed depth error</th><th>scatter σ<sub>t</sub> (s)</th><th>bias (s)</th><th><b>total (s)</b></th><th>95th pct |Δt| (s)</th><th>recovered</th><th>vs 60 s</th></tr>
-<tr><td>ST LMi e76 g</td><td>×1</td><td>+0%</td><td>100.4</td><td>-76.7</td><td><b>126.3</b></td><td>276.4</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×1</td><td>+10%</td><td>133.3</td><td>-43.8</td><td><b>140.3</b></td><td>300.8</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×1</td><td>+20%</td><td>149.7</td><td>0.0</td><td><b>149.7</b></td><td>306.9</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×1</td><td>+50%</td><td>161.6</td><td>0.0</td><td><b>161.6</b></td><td>377.5</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×2</td><td>+0%</td><td>101.4</td><td>-49.3</td><td><b>112.7</b></td><td>273.4</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×2</td><td>+10%</td><td>136.0</td><td>-5.5</td><td><b>136.1</b></td><td>290.4</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×2</td><td>+20%</td><td>141.5</td><td>-5.5</td><td><b>141.6</b></td><td>313.2</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×2</td><td>+50%</td><td>153.4</td><td>0.0</td><td><b>153.4</b></td><td>372.1</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×3</td><td>+0%</td><td>98.6</td><td>-21.9</td><td><b>101.0</b></td><td>249.0</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×3</td><td>+10%</td><td>122.3</td><td>-5.5</td><td><b>122.4</b></td><td>276.4</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×3</td><td>+20%</td><td>131.5</td><td>0.0</td><td><b>131.5</b></td><td>302.2</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×3</td><td>+50%</td><td>147.9</td><td>-5.5</td><td><b>148.0</b></td><td>361.1</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×5</td><td>+0%</td><td>79.5</td><td>-16.4</td><td><b>81.1</b></td><td>232.1</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×5</td><td>+10%</td><td>99.4</td><td>-11.0</td><td><b>100.0</b></td><td>254.5</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×5</td><td>+20%</td><td>108.6</td><td>-5.5</td><td><b>108.7</b></td><td>277.8</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 g</td><td>×5</td><td>+50%</td><td>130.5</td><td>-5.5</td><td><b>130.6</b></td><td>347.7</td><td>91%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×1</td><td>+0%</td><td>79.8</td><td>-54.8</td><td><b>96.8</b></td><td>205.0</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×1</td><td>+10%</td><td>131.5</td><td>0.0</td><td><b>131.5</b></td><td>315.7</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×1</td><td>+20%</td><td>137.0</td><td>0.0</td><td><b>137.0</b></td><td>321.4</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×1</td><td>+50%</td><td>145.2</td><td>-5.5</td><td><b>145.3</b></td><td>327.7</td><td>88%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×2</td><td>+0%</td><td>93.5</td><td>-27.4</td><td><b>97.4</b></td><td>183.0</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×2</td><td>+10%</td><td>115.4</td><td>0.0</td><td><b>115.4</b></td><td>323.3</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×2</td><td>+20%</td><td>116.6</td><td>2.7</td><td><b>116.7</b></td><td>305.0</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×2</td><td>+50%</td><td>134.3</td><td>-5.5</td><td><b>134.4</b></td><td>316.5</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×3</td><td>+0%</td><td>82.2</td><td>-11.0</td><td><b>82.9</b></td><td>168.8</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×3</td><td>+10%</td><td>96.2</td><td>0.0</td><td><b>96.2</b></td><td>309.1</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×3</td><td>+20%</td><td>102.9</td><td>2.7</td><td><b>103.0</b></td><td>294.0</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×3</td><td>+50%</td><td>126.1</td><td>-5.5</td><td><b>126.2</b></td><td>311.0</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×5</td><td>+0%</td><td>65.8</td><td>0.0</td><td><b>65.8</b></td><td>133.7</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×5</td><td>+10%</td><td>69.2</td><td>5.5</td><td><b>69.4</b></td><td>276.2</td><td>90%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×5</td><td>+20%</td><td>74.0</td><td>2.7</td><td><b>74.0</b></td><td>266.6</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>×5</td><td>+50%</td><td>104.1</td><td>-5.5</td><td><b>104.3</b></td><td>294.6</td><td>89%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×1</td><td>+0%</td><td>74.0</td><td>-52.1</td><td><b>90.5</b></td><td>243.9</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×1</td><td>+10%</td><td>126.1</td><td>0.0</td><td><b>126.1</b></td><td>217.9</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×1</td><td>+20%</td><td>126.1</td><td>0.0</td><td><b>126.1</b></td><td>219.2</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×1</td><td>+50%</td><td>137.0</td><td>-5.5</td><td><b>137.1</b></td><td>239.8</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×2</td><td>+0%</td><td>65.8</td><td>-21.9</td><td><b>69.3</b></td><td>208.3</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×2</td><td>+10%</td><td>104.1</td><td>0.0</td><td><b>104.1</b></td><td>197.3</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×2</td><td>+20%</td><td>109.6</td><td>0.0</td><td><b>109.6</b></td><td>201.4</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×2</td><td>+50%</td><td>126.1</td><td>-5.5</td><td><b>126.2</b></td><td>228.8</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×3</td><td>+0%</td><td>65.8</td><td>-13.7</td><td><b>67.2</b></td><td>194.6</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×3</td><td>+10%</td><td>79.5</td><td>0.0</td><td><b>79.5</b></td><td>175.4</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×3</td><td>+20%</td><td>90.4</td><td>0.0</td><td><b>90.4</b></td><td>185.0</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×3</td><td>+50%</td><td>115.1</td><td>-5.5</td><td><b>115.2</b></td><td>213.7</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×5</td><td>+0%</td><td>60.3</td><td>-5.5</td><td><b>60.5</b></td><td>138.4</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×5</td><td>+10%</td><td>60.3</td><td>2.7</td><td><b>60.4</b></td><td>131.5</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×5</td><td>+20%</td><td>60.3</td><td>0.0</td><td><b>60.3</b></td><td>146.6</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>×5</td><td>+50%</td><td>87.7</td><td>-5.5</td><td><b>87.9</b></td><td>186.3</td><td>92%</td><td><b style="color:#f0a3a3">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×1</td><td>+0%</td><td>100.4</td><td>-76.7</td><td><b>126.3</b></td><td>276.4</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×1</td><td>+10%</td><td>133.3</td><td>-43.8</td><td><b>140.3</b></td><td>300.8</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×1</td><td>+20%</td><td>149.7</td><td>0.0</td><td><b>149.7</b></td><td>306.9</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×1</td><td>+50%</td><td>161.6</td><td>0.0</td><td><b>161.6</b></td><td>377.5</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×2</td><td>+0%</td><td>101.4</td><td>-49.3</td><td><b>112.7</b></td><td>273.4</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×2</td><td>+10%</td><td>136.0</td><td>-5.5</td><td><b>136.1</b></td><td>290.4</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×2</td><td>+20%</td><td>141.5</td><td>-5.5</td><td><b>141.6</b></td><td>313.2</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×2</td><td>+50%</td><td>153.4</td><td>0.0</td><td><b>153.4</b></td><td>372.1</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×3</td><td>+0%</td><td>98.6</td><td>-21.9</td><td><b>101.0</b></td><td>249.0</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×3</td><td>+10%</td><td>122.3</td><td>-5.5</td><td><b>122.4</b></td><td>276.4</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×3</td><td>+20%</td><td>131.5</td><td>0.0</td><td><b>131.5</b></td><td>302.2</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×3</td><td>+50%</td><td>147.9</td><td>-5.5</td><td><b>148.0</b></td><td>361.1</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×5</td><td>+0%</td><td>79.5</td><td>-16.4</td><td><b>81.1</b></td><td>232.1</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×5</td><td>+10%</td><td>99.4</td><td>-11.0</td><td><b>100.0</b></td><td>254.5</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×5</td><td>+20%</td><td>108.6</td><td>-5.5</td><td><b>108.7</b></td><td>277.8</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 g</td><td>×5</td><td>+50%</td><td>130.5</td><td>-5.5</td><td><b>130.6</b></td><td>347.7</td><td>91%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×1</td><td>+0%</td><td>79.8</td><td>-54.8</td><td><b>96.8</b></td><td>205.0</td><td>90%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×1</td><td>+10%</td><td>131.5</td><td>0.0</td><td><b>131.5</b></td><td>315.7</td><td>90%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×1</td><td>+20%</td><td>137.0</td><td>0.0</td><td><b>137.0</b></td><td>321.4</td><td>89%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×1</td><td>+50%</td><td>145.2</td><td>-5.5</td><td><b>145.3</b></td><td>327.7</td><td>88%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×2</td><td>+0%</td><td>93.5</td><td>-27.4</td><td><b>97.4</b></td><td>183.0</td><td>90%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×2</td><td>+10%</td><td>115.4</td><td>0.0</td><td><b>115.4</b></td><td>323.3</td><td>90%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×2</td><td>+20%</td><td>116.6</td><td>2.7</td><td><b>116.7</b></td><td>305.0</td><td>89%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×2</td><td>+50%</td><td>134.3</td><td>-5.5</td><td><b>134.4</b></td><td>316.5</td><td>89%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×3</td><td>+0%</td><td>82.2</td><td>-11.0</td><td><b>82.9</b></td><td>168.8</td><td>90%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×3</td><td>+10%</td><td>96.2</td><td>0.0</td><td><b>96.2</b></td><td>309.1</td><td>90%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×3</td><td>+20%</td><td>102.9</td><td>2.7</td><td><b>103.0</b></td><td>294.0</td><td>89%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×3</td><td>+50%</td><td>126.1</td><td>-5.5</td><td><b>126.2</b></td><td>311.0</td><td>89%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×5</td><td>+0%</td><td>65.8</td><td>0.0</td><td><b>65.8</b></td><td>133.7</td><td>90%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×5</td><td>+10%</td><td>69.2</td><td>5.5</td><td><b>69.4</b></td><td>276.2</td><td>90%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×5</td><td>+20%</td><td>74.0</td><td>2.7</td><td><b>74.0</b></td><td>266.6</td><td>89%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>×5</td><td>+50%</td><td>104.1</td><td>-5.5</td><td><b>104.3</b></td><td>294.6</td><td>89%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×1</td><td>+0%</td><td>74.0</td><td>-52.1</td><td><b>90.5</b></td><td>243.9</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×1</td><td>+10%</td><td>126.1</td><td>0.0</td><td><b>126.1</b></td><td>217.9</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×1</td><td>+20%</td><td>126.1</td><td>0.0</td><td><b>126.1</b></td><td>219.2</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×1</td><td>+50%</td><td>137.0</td><td>-5.5</td><td><b>137.1</b></td><td>239.8</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×2</td><td>+0%</td><td>65.8</td><td>-21.9</td><td><b>69.3</b></td><td>208.3</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×2</td><td>+10%</td><td>104.1</td><td>0.0</td><td><b>104.1</b></td><td>197.3</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×2</td><td>+20%</td><td>109.6</td><td>0.0</td><td><b>109.6</b></td><td>201.4</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×2</td><td>+50%</td><td>126.1</td><td>-5.5</td><td><b>126.2</b></td><td>228.8</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×3</td><td>+0%</td><td>65.8</td><td>-13.7</td><td><b>67.2</b></td><td>194.6</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×3</td><td>+10%</td><td>79.5</td><td>0.0</td><td><b>79.5</b></td><td>175.4</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×3</td><td>+20%</td><td>90.4</td><td>0.0</td><td><b>90.4</b></td><td>185.0</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×3</td><td>+50%</td><td>115.1</td><td>-5.5</td><td><b>115.2</b></td><td>213.7</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×5</td><td>+0%</td><td>60.3</td><td>-5.5</td><td><b>60.5</b></td><td>138.4</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×5</td><td>+10%</td><td>60.3</td><td>2.7</td><td><b>60.4</b></td><td>131.5</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×5</td><td>+20%</td><td>60.3</td><td>0.0</td><td><b>60.3</b></td><td>146.6</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>×5</td><td>+50%</td><td>87.7</td><td>-5.5</td><td><b>87.9</b></td><td>186.3</td><td>92%</td><td><b class="bad">FAIL</b></td></tr>
 </table>
 
 <p class="note"><b>The grid runs the &ldquo;wrong&rdquo; way along the shape
@@ -529,11 +536,11 @@ Rather than invent one, the table reports how many times larger the true
 changes:</p>
 <table class="data">
 <tr><th>target</th><th>epochs</th><th>cycles since VSX epoch</th><th>σ(P) floor (d)</th><th>accumulated drift (cycles)</th><th>σ(P) that would still work (d)</th><th>margin</th><th>verdict</th></tr>
-<tr><td>AN UMa</td><td>4</td><td>54,437</td><td>5.00e-09</td><td>0.0034</td><td>7.33e-07</td><td>147&times;</td><td><b style="color:#9fd8ae">NOT ONE FEATURE — NO O-C</b></td></tr>
-<tr><td>EU UMa</td><td>2</td><td>45,131</td><td>5.00e-08</td><td>0.0360</td><td>6.94e-07</td><td>14&times;</td><td><b style="color:#9fd8ae">CYCLE COUNT UNIQUE</b></td></tr>
-<tr><td>ST LMi</td><td>63</td><td>21,869</td><td>5.00e-09</td><td>0.0014</td><td>1.81e-06</td><td>362&times;</td><td><b style="color:#9fd8ae">CYCLE COUNT UNIQUE</b></td></tr>
-<tr><td>VV Pup</td><td>3</td><td>474,793</td><td>5.00e-11</td><td>0.0003</td><td>7.34e-08</td><td>1,469&times;</td><td><b style="color:#9fd8ae">NOT ONE FEATURE — NO O-C</b></td></tr>
-<tr><td>YZ Cnc</td><td>&mdash;</td><td>&mdash;</td><td>5.00e-05</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td><b style="color:#f0a3a3">NO EPHEMERIS EPOCH</b></td></tr>
+<tr><td>AN UMa</td><td>4</td><td>54,437</td><td>5.00e-09</td><td>0.0034</td><td>7.33e-07</td><td>147&times;</td><td><b class="ok">NOT ONE FEATURE — NO O-C</b></td></tr>
+<tr><td>EU UMa</td><td>2</td><td>45,131</td><td>5.00e-08</td><td>0.0360</td><td>6.94e-07</td><td>14&times;</td><td><b class="ok">CYCLE COUNT UNIQUE</b></td></tr>
+<tr><td>ST LMi</td><td>63</td><td>21,869</td><td>5.00e-09</td><td>0.0014</td><td>1.81e-06</td><td>362&times;</td><td><b class="ok">CYCLE COUNT UNIQUE</b></td></tr>
+<tr><td>VV Pup</td><td>3</td><td>474,793</td><td>5.00e-11</td><td>0.0003</td><td>7.34e-08</td><td>1,469&times;</td><td><b class="ok">NOT ONE FEATURE — NO O-C</b></td></tr>
+<tr><td>YZ Cnc</td><td>&mdash;</td><td>&mdash;</td><td>5.00e-05</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td><b class="bad">NO EPHEMERIS EPOCH</b></td></tr>
 </table>
 
 <p><figure><a href="figures/cv_phase3/oc.png"><img src="figures/cv_phase3/oc.png" alt=""></a><figcaption>Left: the O−C of the bright-phase edge against cycle number, mean removed. Right: the cycle-count margin — the count is unique when the period uncertainty that would still work (green) exceeds the uncertainty we actually have (blue).</figcaption></figure></p>
@@ -634,31 +641,31 @@ silently assigned.</p>
 
 <table class="data">
 <tr><th>series</th><th>nights</th><th>gated</th><th>used</th><th>threshold (mag)</th><th>separability</th><th>H / L / I</th><th>limits used</th><th>duty (detections)</th><th>duty (with limits)</th><th>bias</th><th>verdict</th></tr>
-<tr><td>AN UMa e76 g</td><td>10</td><td>2</td><td>8</td><td>16.64 &plusmn; 0.05</td><td>0.81</td><td>4 / 4 / 0</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
-<tr><td>AN UMa e76 i</td><td>8</td><td>0</td><td>8</td><td>16.76 &plusmn; 0.04</td><td>0.87</td><td>6 / 2 / 0</td><td>0</td><td>0.750</td><td><b>0.750</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
-<tr><td>AN UMa e76 r</td><td>11</td><td>3</td><td>8</td><td>16.64 &plusmn; 0.10</td><td>0.76</td><td>3 / 3 / 2</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
-<tr><td>EU UMa e76 g</td><td>10</td><td>4</td><td>6</td><td>19.10 &plusmn; 0.15</td><td>0.72</td><td>1 / 2 / 3</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><span style="color:#e6cc7a">UNIMODAL — NO STATE CHANGE RESOLVED</span></td></tr>
-<tr><td>EU UMa e76 i</td><td>7</td><td>6</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>&mdash;</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
-<tr><td>EU UMa e76 r</td><td>4</td><td>3</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
-<tr><td>ST LMi e7 G</td><td>16</td><td>8</td><td>8</td><td>16.80 &plusmn; 0.10</td><td>0.69</td><td>2 / 3 / 3</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><span style="color:#e6cc7a">UNIMODAL — NO STATE CHANGE RESOLVED</span></td></tr>
-<tr><td>ST LMi e7 I</td><td>17</td><td>11</td><td>6</td><td>16.19 &plusmn; 0.08</td><td>0.89</td><td>3 / 3 / 0</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
-<tr><td>ST LMi e7 R</td><td>16</td><td>8</td><td>8</td><td>16.39 &plusmn; 0.11</td><td>0.81</td><td>2 / 5 / 1</td><td>0</td><td>0.375</td><td><b>0.375</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
-<tr><td>ST LMi e47 z</td><td>1</td><td>0</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
-<tr><td>ST LMi e76 g</td><td>16</td><td>2</td><td>14</td><td>16.14 &plusmn; 0.23</td><td>0.80</td><td>2 / 10 / 2</td><td>0</td><td>0.286</td><td><b>0.286</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
-<tr><td>ST LMi e76 i</td><td>10</td><td>2</td><td>8</td><td>16.17 &plusmn; 0.02</td><td>0.80</td><td>4 / 4 / 0</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
-<tr><td>ST LMi e76 r</td><td>12</td><td>2</td><td>10</td><td>16.48 &plusmn; 0.06</td><td>0.65</td><td>3 / 2 / 5</td><td>0</td><td>0.600</td><td><b>0.600</b></td><td>0.000</td><td><span style="color:#e6cc7a">UNIMODAL — NO STATE CHANGE RESOLVED</span></td></tr>
-<tr><td>VV Pup e72 g</td><td>3</td><td>1</td><td>2</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
-<tr><td>VV Pup e72 i</td><td>1</td><td>0</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
-<tr><td>VV Pup e72 r</td><td>4</td><td>2</td><td>2</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
-<tr><td>VV Pup e76 g</td><td>14</td><td>5</td><td>9</td><td>16.57 &plusmn; 0.19</td><td>0.99</td><td>3 / 6 / 0</td><td>0</td><td>0.333</td><td><b>0.333</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
-<tr><td>VV Pup e76 i</td><td>8</td><td>6</td><td>2</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
-<tr><td>VV Pup e76 r</td><td>10</td><td>6</td><td>4</td><td>17.59</td><td>0.90</td><td>2 / 2 / 0</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
-<tr><td>YZ Cnc e7 G</td><td>20</td><td>0</td><td>20</td><td>13.43 &plusmn; 0.12</td><td>0.76</td><td>9 / 8 / 3</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
-<tr><td>YZ Cnc e7 I</td><td>18</td><td>0</td><td>18</td><td>13.63 &plusmn; 0.16</td><td>0.71</td><td>7 / 6 / 5</td><td>0</td><td>0.611</td><td><b>0.611</b></td><td>0.000</td><td><span style="color:#e6cc7a">UNIMODAL — NO STATE CHANGE RESOLVED</span></td></tr>
-<tr><td>YZ Cnc e7 R</td><td>17</td><td>0</td><td>17</td><td>13.76 &plusmn; 0.18</td><td>0.77</td><td>12 / 5 / 0</td><td>0</td><td>0.706</td><td><b>0.706</b></td><td>0.000</td><td><b style="color:#9fd8ae">BIMODAL — TWO STATES RESOLVED</b></td></tr>
-<tr><td>YZ Cnc e72 g</td><td>3</td><td>0</td><td>3</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
-<tr><td>YZ Cnc e72 i</td><td>2</td><td>0</td><td>2</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
-<tr><td>YZ Cnc e72 r</td><td>3</td><td>0</td><td>3</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span style="color:#e6cc7a">NO THRESHOLD</span></td></tr>
+<tr><td>AN UMa e76 g</td><td>10</td><td>2</td><td>8</td><td>16.64 &plusmn; 0.05</td><td>0.81</td><td>4 / 4 / 0</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b class="ok">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>AN UMa e76 i</td><td>8</td><td>0</td><td>8</td><td>16.76 &plusmn; 0.04</td><td>0.87</td><td>6 / 2 / 0</td><td>0</td><td>0.750</td><td><b>0.750</b></td><td>0.000</td><td><b class="ok">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>AN UMa e76 r</td><td>11</td><td>3</td><td>8</td><td>16.64 &plusmn; 0.10</td><td>0.76</td><td>3 / 3 / 2</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b class="ok">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>EU UMa e76 g</td><td>10</td><td>4</td><td>6</td><td>19.10 &plusmn; 0.15</td><td>0.72</td><td>1 / 2 / 3</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><span class="warn">UNIMODAL — NO STATE CHANGE RESOLVED</span></td></tr>
+<tr><td>EU UMa e76 i</td><td>7</td><td>6</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>&mdash;</td><td><b>&mdash;</b></td><td>&mdash;</td><td><span class="warn">NO THRESHOLD</span></td></tr>
+<tr><td>EU UMa e76 r</td><td>4</td><td>3</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span class="warn">NO THRESHOLD</span></td></tr>
+<tr><td>ST LMi e7 G</td><td>16</td><td>8</td><td>8</td><td>16.80 &plusmn; 0.10</td><td>0.69</td><td>2 / 3 / 3</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><span class="warn">UNIMODAL — NO STATE CHANGE RESOLVED</span></td></tr>
+<tr><td>ST LMi e7 I</td><td>17</td><td>11</td><td>6</td><td>16.19 &plusmn; 0.08</td><td>0.89</td><td>3 / 3 / 0</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b class="ok">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>ST LMi e7 R</td><td>16</td><td>8</td><td>8</td><td>16.39 &plusmn; 0.11</td><td>0.81</td><td>2 / 5 / 1</td><td>0</td><td>0.375</td><td><b>0.375</b></td><td>0.000</td><td><b class="ok">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>ST LMi e47 z</td><td>1</td><td>0</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span class="warn">NO THRESHOLD</span></td></tr>
+<tr><td>ST LMi e76 g</td><td>16</td><td>2</td><td>14</td><td>16.14 &plusmn; 0.23</td><td>0.80</td><td>2 / 10 / 2</td><td>0</td><td>0.286</td><td><b>0.286</b></td><td>0.000</td><td><b class="ok">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>ST LMi e76 i</td><td>10</td><td>2</td><td>8</td><td>16.17 &plusmn; 0.02</td><td>0.80</td><td>4 / 4 / 0</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b class="ok">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>ST LMi e76 r</td><td>12</td><td>2</td><td>10</td><td>16.48 &plusmn; 0.06</td><td>0.65</td><td>3 / 2 / 5</td><td>0</td><td>0.600</td><td><b>0.600</b></td><td>0.000</td><td><span class="warn">UNIMODAL — NO STATE CHANGE RESOLVED</span></td></tr>
+<tr><td>VV Pup e72 g</td><td>3</td><td>1</td><td>2</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span class="warn">NO THRESHOLD</span></td></tr>
+<tr><td>VV Pup e72 i</td><td>1</td><td>0</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span class="warn">NO THRESHOLD</span></td></tr>
+<tr><td>VV Pup e72 r</td><td>4</td><td>2</td><td>2</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span class="warn">NO THRESHOLD</span></td></tr>
+<tr><td>VV Pup e76 g</td><td>14</td><td>5</td><td>9</td><td>16.57 &plusmn; 0.19</td><td>0.99</td><td>3 / 6 / 0</td><td>0</td><td>0.333</td><td><b>0.333</b></td><td>0.000</td><td><b class="ok">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>VV Pup e76 i</td><td>8</td><td>6</td><td>2</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span class="warn">NO THRESHOLD</span></td></tr>
+<tr><td>VV Pup e76 r</td><td>10</td><td>6</td><td>4</td><td>17.59</td><td>0.90</td><td>2 / 2 / 0</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b class="ok">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>YZ Cnc e7 G</td><td>20</td><td>0</td><td>20</td><td>13.43 &plusmn; 0.12</td><td>0.76</td><td>9 / 8 / 3</td><td>0</td><td>0.500</td><td><b>0.500</b></td><td>0.000</td><td><b class="ok">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>YZ Cnc e7 I</td><td>18</td><td>0</td><td>18</td><td>13.63 &plusmn; 0.16</td><td>0.71</td><td>7 / 6 / 5</td><td>0</td><td>0.611</td><td><b>0.611</b></td><td>0.000</td><td><span class="warn">UNIMODAL — NO STATE CHANGE RESOLVED</span></td></tr>
+<tr><td>YZ Cnc e7 R</td><td>17</td><td>0</td><td>17</td><td>13.76 &plusmn; 0.18</td><td>0.77</td><td>12 / 5 / 0</td><td>0</td><td>0.706</td><td><b>0.706</b></td><td>0.000</td><td><b class="ok">BIMODAL — TWO STATES RESOLVED</b></td></tr>
+<tr><td>YZ Cnc e72 g</td><td>3</td><td>0</td><td>3</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span class="warn">NO THRESHOLD</span></td></tr>
+<tr><td>YZ Cnc e72 i</td><td>2</td><td>0</td><td>2</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span class="warn">NO THRESHOLD</span></td></tr>
+<tr><td>YZ Cnc e72 r</td><td>3</td><td>0</td><td>3</td><td>&mdash;</td><td>&mdash;</td><td>0 / 0 / 0</td><td>0</td><td>0.000</td><td><b>0.000</b></td><td>0.000</td><td><span class="warn">NO THRESHOLD</span></td></tr>
 </table>
 
 <h3>Decision</h3>
@@ -725,15 +732,15 @@ recovered fraction is a measurement and not an opinion.</p>
 
 <table class="data">
 <tr><th>running-median window</th><th>detrend-then-search recovers</th><th>joint GP + signal recovers</th></tr>
-<tr><td>0.5 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">25.4%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
-<tr><td>0.8 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">57.9%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
-<tr><td>1 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">86.0%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
-<tr><td>1.5 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">123.3%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
-<tr><td>2 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">102.4%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
-<tr><td>3 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">99.0%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
-<tr><td>5 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">99.3%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
-<tr><td>10 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">101.0%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
-<tr><td>20 &times; P<sub>orb</sub></td><td><b style="color:#f0a3a3">101.0%</b></td><td><b style="color:#9fd8ae">101.7%</b></td></tr>
+<tr><td>0.5 &times; P<sub>orb</sub></td><td><b class="bad">25.4%</b></td><td><b class="ok">101.7%</b></td></tr>
+<tr><td>0.8 &times; P<sub>orb</sub></td><td><b class="bad">57.9%</b></td><td><b class="ok">101.7%</b></td></tr>
+<tr><td>1 &times; P<sub>orb</sub></td><td><b class="bad">86.0%</b></td><td><b class="ok">101.7%</b></td></tr>
+<tr><td>1.5 &times; P<sub>orb</sub></td><td><b class="bad">123.3%</b></td><td><b class="ok">101.7%</b></td></tr>
+<tr><td>2 &times; P<sub>orb</sub></td><td><b class="bad">102.4%</b></td><td><b class="ok">101.7%</b></td></tr>
+<tr><td>3 &times; P<sub>orb</sub></td><td><b class="bad">99.0%</b></td><td><b class="ok">101.7%</b></td></tr>
+<tr><td>5 &times; P<sub>orb</sub></td><td><b class="bad">99.3%</b></td><td><b class="ok">101.7%</b></td></tr>
+<tr><td>10 &times; P<sub>orb</sub></td><td><b class="bad">101.0%</b></td><td><b class="ok">101.7%</b></td></tr>
+<tr><td>20 &times; P<sub>orb</sub></td><td><b class="bad">101.0%</b></td><td><b class="ok">101.7%</b></td></tr>
 </table>
 
 <h3>Decision</h3>
@@ -784,4 +791,9 @@ AAVSO Variable Star Index under
 <code>products/external/vsx/</code>, fetched on the date shown in &sect;0.
 Regenerate with <code>pipeline/scripts/run_cv_phase3.py report</code>.
 </footer>
+<!--/MACRO-SITE:CONTENT-->
+<div class="prevnext"><a class="pv" href="../CV_TimeSeries/cv_phase2_completion.html"><span class="dir">&larr; Previous</span>Cataclysmic-Variable Time Series — closing out Phase 2 photometry</a><a class="nx" href="../CV_TimeSeries/cv_final_science.html"><span class="dir">Next &rarr;</span>Cataclysmic-Variable Time Series — the closing science decisions</a></div>
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v1.0 (2026-08-18)), the provenance DAG (<code>macro_core.provenance</code>, P v1.0 (2026-08-18)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+</div>
+</div>
 </body></html>

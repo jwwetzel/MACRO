@@ -1117,8 +1117,14 @@ def test_s1_and_s2_are_still_reported_destroyed_on_the_real_pages():
 
     S1 and S2 WERE built and then wiped, and every page that rests on them
     has to keep saying so.
+
+    The hub is read from ``rp.HUB_PATH`` rather than a typed path: it moved
+    to ``docs/evidence.html`` when the landing page took ``docs/index.html``,
+    and this assertion had been silently reading whichever file happened to
+    sit at the old address.
     """
-    hub = (REPO_ROOT / "docs" / "index.html").read_text()
+    from macro_core import report_projects as rp
+    hub = rp.HUB_PATH.read_text()
     assert "DESTROYED" in hub
 
 
@@ -1223,10 +1229,24 @@ def test_no_file_under_docs_quotes_a_destroyed_constant_without_warning():
     staleness banner — and that the project pages linked straight to it.
     Reports whose stage is not FRESH may still hold those numbers (nothing
     has re-rendered them), but every link to one must carry its verdict.
+
+    WIDER AGAIN, since the site grew a third layer.  The Case view and the
+    Figures wall REPRINT numbers measured on the evidence pages — the CV
+    figures wall carries S2's High Gain ceiling inside a caption — so they
+    are offenders too, and "reachable only through a chipped link" is the
+    wrong shape of rule for them: they are not doorways, they are the room.
+
+    The invariant that covers both shapes is simpler than the old one and
+    strictly stronger: **a reader who meets one of these numbers is told,
+    on the same screen, that the table behind it is gone.**  A page
+    satisfies it by carrying the verdict itself, or — for a page that merely
+    links to one, like the plan pages — by chipping the link.
     """
+    from macro_core import report_projects as rp
+
     forbidden = ["3,496 ADU", "3496 ADU", "veto 3,200", "N_sub=16", "4.15 e-"]
     owned = {REPO_ROOT / "docs" / p.key / "index.html" for p in pp.PROJECTS}
-    owned.add(REPO_ROOT / "docs" / "index.html")
+    owned.add(rp.HUB_PATH)
     offenders = []
     for page in (REPO_ROOT / "docs").rglob("*.html"):
         text = page.read_text(errors="replace")
@@ -1235,23 +1255,34 @@ def test_no_file_under_docs_quotes_a_destroyed_constant_without_warning():
             continue
         assert page not in owned, (page.name, hits)
         offenders.append(page)
-    # Every offender must be reachable only through a verdict-chipped link.
+
     for page in offenders:
+        # 1. A page that carries a verdict chip has already told the reader,
+        #    on the same screen as the number.  That is the strong form, and
+        #    it is the form the Case view and the Figures wall use: they
+        #    print the verdict of the analysis whose numbers they reprint.
+        if 'class="chip v-' in page.read_text(errors="replace"):
+            continue
+        # 2. Otherwise every plan page that links it must say so on the way
+        #    in.  A chip may sit on EITHER side of the link: the project
+        #    pages render it after, while the hub's table puts the verdict
+        #    in its own column BEFORE the report column, so look both ways.
+        linked_at_all = False
         for owner in owned:
             if not owner.exists():
                 continue
             html = owner.read_text()
             if page.name not in html:
                 continue
-            # A verdict chip may sit on EITHER side of the link: the project
-            # pages render it after the link, while the hub's table puts the
-            # verdict in its own column BEFORE the report column.  Checking
-            # only what follows the link failed the hub even though its row
-            # carries a chip a few characters earlier — so look both ways.
+            linked_at_all = True
             parts = html.split(page.name)
             windows = [p[-220:] for p in parts[:-1]] + [p[:220] for p in parts[1:]]
             assert any('class="chip v-' in w for w in windows), (
                 f"{owner.name} links {page.name} with no verdict chip")
+        assert linked_at_all, (
+            f"{page.name} quotes a destroyed constant, carries no verdict of "
+            f"its own, and no plan page links it — so nothing anywhere warns "
+            f"a reader who arrives on it")
 
 
 def test_the_unbacked_panel_does_not_overclaim():

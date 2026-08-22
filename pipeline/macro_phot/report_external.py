@@ -63,6 +63,15 @@ SOURCE_MARKER = {"aavso": "o", "ztf": "s", "asassn": "^", "atlas": "D"}
 STATE_COLOR = {ex.STATE_QUIESCENT: ACCENT, ex.STATE_ELEVATED: WARN,
                ex.STATE_OUTBURST: BAD, ex.STATE_UNKNOWN: FAINT}
 
+#: The same four states, for HTML rather than for a plot.  The figure inks
+#: above are chosen for marks on a light axis and are not the same problem as
+#: TEXT on a page: the fallback used to be a bare ``#ccc``, which on the
+#: site's white ground is an unreadable state label, and FAINT grey is not
+#: much better.  These names resolve in ``docs/assets/macro.css``, so the
+#: page and the stylesheet agree about what "bad" looks like.
+STATE_CLASS = {ex.STATE_QUIESCENT: "", ex.STATE_ELEVATED: "warn",
+               ex.STATE_OUTBURST: "bad", ex.STATE_UNKNOWN: "muted"}
+
 
 def _mjd_to_date(mjd) -> str:
     if mjd is None:
@@ -572,7 +581,7 @@ def section_nights(con) -> str:
             f"<b>{esc(utc)}</b>", f"<code>{esc(local)}</code>",
             f"{n:,}" + (" <b>DENSE</b>" if dense else ""),
             esc(filt or ""),
-            f'<b style="color:{STATE_COLOR.get(state, "#ccc")}">{esc(state)}</b>',
+            f'<b class="{STATE_CLASS.get(state, "muted")}">{esc(state)}</b>',
             _f(mag), _f(amp), esc(basis), esc(ep or "&mdash;"), esc(ev)])
         cls.append("warn" if dense and state == ex.STATE_OUTBURST else "")
     return f"""

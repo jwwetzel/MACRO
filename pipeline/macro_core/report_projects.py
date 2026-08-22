@@ -1,7 +1,14 @@
 """Project page renderer — the plan, the progress, and what's next.
 
 Writes ``docs/<Project>/index.html`` for every project in
-:data:`macro_core.project_plan.PROJECTS`, plus the hub ``docs/index.html``.
+:data:`macro_core.project_plan.PROJECTS`, plus the full evidence index
+``docs/evidence.html``.
+
+These pages are the **Plan & Status** view of each project.  The three
+navigation layers around them — the project row, the view tabs, the sticky
+question rail — are put there afterwards by :mod:`macro_core.site`, which
+re-reads what this module wrote and wraps it.  Nothing here needs to know
+that; keep emitting the same markup and the chrome will fit.
 
 WHY THIS EXISTS
 ---------------
@@ -52,7 +59,19 @@ from .report_s0 import esc, fmt, q, q1, table
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DOCS_DIR = REPO_ROOT / "docs"
-HUB_PATH = DOCS_DIR / "index.html"
+
+#: The full evidence index — every project and every pipeline stage, each
+#: with its live verdict.
+#:
+#: This used to be ``docs/index.html``, i.e. the front door.  It is the wrong
+#: front door: it opens on two long tables and sixteen stage rows, which is
+#: exactly the "quite a load of stuff to crawl through" a colleague met when
+#: the site was circulated.  ``docs/index.html`` is now the LANDING page
+#: written by :mod:`macro_core.site`, which orients a reader in thirty
+#: seconds and links here for the ones who want the audit.  Same content,
+#: one door further in.  Both files sit in ``docs/`` so every relative link
+#: computed against this path is unchanged.
+HUB_PATH = DOCS_DIR / "evidence.html"
 
 #: Stage table per project, for the live headline numbers.  Keyed off the
 #: manifest's own registry (s0c_stage_files) at render time; this map is
@@ -71,50 +90,21 @@ VERDICT_CLASS = {
     "UNKNOWN": "v-wait",
 }
 
-#: Extra CSS, inlined rather than added to docs/assets/macro.css so this
-#: renderer owns its own presentation and cannot break the pipeline reports
-#: that share the stylesheet.
-PAGE_CSS = """
-.chip{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12px;
-      white-space:nowrap;font-weight:600}
-.chip.done{background:#1d3a26;color:#9fd8ae}
-.chip.in_progress{background:#1b3247;color:#8fc4f0}
-.chip.blocked{background:#3d2224;color:#f0a3a3}
-.chip.pending{background:#242a35;color:#8a93a3}
-.chip.redo_needed{background:#3a3320;color:#e6cc7a}
-.chip.v-fresh{background:#1d3a26;color:#9fd8ae}
-.chip.v-stale{background:#3a3320;color:#e6cc7a}
-.chip.v-wait{background:#242a35;color:#8a93a3}
-.chip.v-never{background:#1b3247;color:#8fc4f0}
-.chip.v-gone{background:#3d2224;color:#f0a3a3}
-.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;max-width:1100px;
-     border:1px solid #2a3140;background:#11151c;margin:10px 0 6px}
-.bar span{display:block;height:100%}
-.bar .done{background:#3f8f5c}
-.bar .in_progress{background:#4a86c4}
-.bar .redo_needed{background:#b09134}
-.bar .blocked{background:#a24f52}
-.bar .pending{background:#2a3140}
-.legend{color:#8a93a3;font-size:12.5px;margin:0 0 14px}
-.legend b{color:#dfe6f0}
-.stats{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}
-.stat{background:#161a22;border:1px solid #2a3140;border-radius:8px;
-      padding:9px 14px;min-width:150px}
-.stat .n{display:block;font-size:21px;color:#fff}
-.stat .k{display:block;font-size:12px;color:#8a93a3;margin-top:2px}
-.phase{border-left:3px solid #2a3140;padding-left:14px;margin:20px 0}
-.phase h3{margin:0 0 2px;font-size:16px;color:#dfe6f0}
-.blockcard{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
-           margin:10px 0;font-size:13.5px;color:#e3d4d5;max-width:1100px}
-.blockcard b{color:#fff}
-.nextcard{border-left:3px solid #4a86c4;background:#131a24;padding:10px 14px;
-          margin:10px 0;font-size:13.5px;color:#cfe0f5;max-width:1100px}
-.nextcard b{color:#fff}
-.unbacked{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
-          margin:10px 0;font-size:13px;color:#e3d4d5;max-width:1100px}
-.src{color:#6f7a8a;font-size:11.5px}
-table.data td.tight{white-space:nowrap}
-"""
+#: The project pages once carried their whole presentation here, inlined,
+#: so this renderer "owns its own presentation and cannot break the pipeline
+#: reports that share the stylesheet".  That reasoning inverted the moment
+#: the site became one system: two definitions of a status chip is two
+#: chances for `done` to be a different green on two pages a reader compares
+#: side by side, and the inline copy was the dark-ground one, so it survived
+#: the move to a light theme by turning pale green text onto white.
+#:
+#: Every class this block defined — `.chip`, `.bar`, `.stat`, `.phase`,
+#: `.blockcard`, `.nextcard`, `.unbacked`, `.src` — now lives once, in
+#: `docs/assets/macro.css`, with the colour-blind-safe status palette.  This
+#: constant stays, empty, because it is a documented seam: a page-specific
+#: rule that genuinely belongs to one renderer goes here, and anything that
+#: describes a SHARED component belongs in the stylesheet instead.
+PAGE_CSS = ""
 
 
 # ---------------------------------------------------------------------------
@@ -977,7 +967,7 @@ def render_project(project: pp.Project, ctx: Context) -> Path:
   <h1>{esc(project.title)} — Plan &amp; Progress</h1>
   <p>{done} of {total} plan tasks complete{_masthead_extra(counts)}
   &middot; {esc(project.venue)}<br>
-  {strategy_link}<a href="../index.html">&larr; all reports</a></p>
+  {strategy_link}<a href="../index.html">&larr; the front page</a></p>
 </header>
 
 <nav>
@@ -1111,14 +1101,17 @@ def render_hub(ctx: Context) -> Path:
 
     html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MACRO — Analysis Evidence</title>
+<title>MACRO — the full evidence index</title>
 <link rel="stylesheet" href="assets/macro.css">
 <style>{PAGE_CSS}</style>
 </head><body>
 
 <header>
-  <h1>MACRO Consortium — Analysis Chain of Evidence</h1>
-  <p>Robert L. Mutel Telescope (0.5 m, Winer Observatory) &middot; 2023–2026
+  <h1>The full evidence index</h1>
+  <p>Every project and every pipeline stage, each with the verdict it carries
+     right now. This is the audit view — the long way round. For the short
+     one, start at <a href="index.html">the front page</a>.<br>
+     Robert L. Mutel Telescope (0.5 m, Winer Observatory) &middot; 2023–2026
      archive: 3.34 TiB, ~329k FITS, 628 nights &middot; Every analytical
      decision on this site is backed by a plot and a script-emitted number.
      Code: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a></p>

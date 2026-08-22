@@ -83,16 +83,24 @@ def _meta(con) -> dict:
 
 
 def _verdict_span(v: str) -> str:
-    """Colour a verdict word without inventing a scale for it."""
+    """Colour a verdict word without inventing a scale for it.
+
+    The class names resolve in ``docs/assets/macro.css``.  This used to
+    inline the FIGURE inks (Okabe-Ito ``#009E73`` and ``#E69F00``), which are
+    chosen for marks on a plot axis and are not the same problem as text on a
+    page: bold ``#E69F00`` on white measures about 2:1 contrast, which is a
+    verdict a reader has to squint at.  The stylesheet's ``.ok``/``.warn``/
+    ``.bad`` are the same hues darkened until they read as type.
+    """
     up = str(v).upper()
     if up.startswith("SUPPORTED") or up.startswith("DETECTED") \
             or up.startswith("MEASURED"):
-        col = GOOD
+        col = "ok"
     elif up.startswith("NOT ") or up.startswith("NO ") or up == "NO":
-        col = BAD
+        col = "bad"
     else:
-        col = WARN
-    return f'<b style="color:{col}">{esc(v)}</b>'
+        col = "warn"
+    return f'<b class="{col}">{esc(v)}</b>'
 
 
 def _fig(src: str, caption: str, missing: str) -> str:
@@ -498,7 +506,7 @@ def section_census(con, fig: str) -> str:
          "orbits sampled", "cadence (s)", "median cal_mag",
          "p5&ndash;p95 (mag)"],
         [[esc(r[0]), esc(r[1]),
-          f'<b style="color:{GOOD if r[2] == "QUIESCENT" else WARN}">'
+          f'<b class="{"ok" if r[2] == "QUIESCENT" else "warn"}">'
           f'{esc(r[2])}</b>', esc(r[3]), _i(r[4]), _n(r[5]), _n(r[6]),
           _n(r[7], 0), _n(r[8]), _n(r[9], 3)] for r in runs])
     return f"""
@@ -541,7 +549,7 @@ def section_gate(con, meta) -> str:
          "the numbers behind it"],
         [[f"<code>{esc(r[0])}</code>", esc(r[1].replace('yzcnc|', '')),
           esc(r[2]), _n(r[3]), _n(r[4]),
-          f'<b style="color:{GOOD if r[5] else BAD}">'
+          f'<b class="{"ok" if r[5] else "bad"}">'
           f'{"PASS" if r[5] else "FAIL"}</b>', esc(r[6])] for r in rows])
     n_pass = sum(1 for r in rows if r[5])
     fails = "".join(f"<li><code>{esc(r[0])}</code> on "
@@ -742,8 +750,8 @@ def section_flicker(con, fig: str) -> str:
          "excess &sigma;", "detected"],
         [[esc(r[0]), esc(r[1]), _n(r[3], 0), _i(r[6]), _mmag(r[4]),
           _mmag(r[7]), _i(r[8]), f"<b>{_mmag(r[9])}</b>", _n(r[10], 1),
-          ('<b style="color:%s">yes</b>' % GOOD) if r[11]
-          else '<span style="color:%s">no</span>' % MUTED] for r in rows])
+          '<b class="ok">yes</b>' if r[11]
+          else '<span class="muted">no</span>'] for r in rows])
     v = q(con, "SELECT verdict, deciding_number, reasoning, alternative "
                "FROM p4_verdict WHERE verdict_id='YZ-flicker'")
     vv = v[0] if v else ("", "", "", "")
@@ -1044,7 +1052,7 @@ def render_report(db_path: Path) -> Path:
   <a href="cv_timeseries_analysis.html">the Phase-3 analysis</a> &middot;
   <a href="cv_characterization.html">the characterization</a> &middot;
   <a href="index.html">project hub</a> &middot;
-  <a href="../index.html">all reports</a></p>
+  <a href="../index.html">the front page</a></p>
 </header>
 
 <nav>

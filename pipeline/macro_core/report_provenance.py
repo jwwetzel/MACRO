@@ -1026,11 +1026,14 @@ th{background:var(--card);font-weight:650}
 .note{background:var(--card);border-left:3px solid var(--muted);
       padding:10px 14px;margin:14px 0;border-radius:0 8px 8px 0}
 .mono-sm{font-family:ui-monospace,monospace;font-size:12px;color:var(--muted)}
-@media (prefers-color-scheme:dark){
- :root{--bg:#0f1115;--fg:#e6e8ec;--muted:#9aa1ad;--line:#262a31;--card:#171a20;
-       --ok:#3fae6a;--warn:#d29b2a;--bad:#e0555a;--gone:#a77ce0}
- .tag{color:#0f1115}
-}
+/* This page used to flip to a dark palette on `prefers-color-scheme: dark`.
+   It was the only page on the site that did, and it was also the only page
+   nothing linked to — so nobody ever saw the two side by side.  Now that
+   `macro_core.site` wraps it in the same chrome as everything else, a
+   reader with a dark OS got a light top bar, a light breadcrumb and a light
+   question rail wrapped around a black page.  The site commits to one
+   light, print-like ground; a stage-freshness audit is a document, and it
+   should look like the documents beside it. */
 """
 
 

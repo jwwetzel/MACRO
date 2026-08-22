@@ -167,8 +167,15 @@ def fig_moon(con) -> str:
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.2, 3.6))
         a1.scatter(ill[~up], sky[~up], s=4, alpha=0.3, color=MUTED,
                    label="moon below horizon")
+        # ps.SEQ_CMAP, not viridis: moon separation is a QUANTITY read off a
+        # colourbar, which is what the one house sequential ramp is for.
+        # viridis is reserved for pictures of things (ps.IMAGE_FLAT_CMAP) —
+        # a stamp read for its texture, not looked up against a key.
+        # ps.seq_from trims the palest end: these are 5-point markers at
+        # half opacity, and the near-white bottom of the full ramp would
+        # erase every close-separation night rather than merely mute it.
         sc = a1.scatter(ill[up], sky[up], s=5, alpha=0.5, c=sep[up],
-                        cmap="viridis", label="moon up")
+                        cmap=ps.seq_from(0.25), label="moon up")
         plt.colorbar(sc, ax=a1, label="moon separation (deg)")
         a1.set_yscale("log")
         a1.set_xlabel("moon illuminated fraction")
@@ -1520,7 +1527,7 @@ def render_report(char_db: Path, phot_db: Path) -> Path:
   built {esc(meta.get('built_utc', ''))[:16]}Z
   ({esc(meta.get('code_version', ''))}) &middot;
   <a href="index.html">project hub</a> &middot;
-  <a href="../index.html">all reports</a></p>
+  <a href="../index.html">the front page</a></p>
 </header>
 
 <nav>

@@ -501,6 +501,26 @@ SEQ_CMAP = LinearSegmentedColormap.from_list(
 DIV_CMAP = LinearSegmentedColormap.from_list(
     "macro_div", [BAD, "#f2c9ae", "#f4f4f4", "#9ecae1", ACCENT])
 
+def seq_from(start: float = 0.25):
+    """:data:`SEQ_CMAP` with its palest ``start`` fraction trimmed off.
+
+    The full ramp begins a hair off the paper because an empty HEATMAP CELL
+    must still read as a cell — a large filled area, where near-white is
+    exactly right.  A SCATTER POINT is the opposite case: a 5-point marker
+    at half opacity drawn in ``#f4f8fb`` is not faint, it is gone, and the
+    reader silently loses every row at the bottom of the colour scale.
+
+    Same lesson as :func:`ordinal_colors`, same fix, stated once here rather
+    than re-derived at each call site.  Truncating remaps the colours only —
+    the colourbar still reads in data units, so nothing about the scale's
+    meaning changes.
+    """
+    import numpy as _np
+    s = float(min(max(start, 0.0), 0.9))
+    return LinearSegmentedColormap.from_list(
+        f"macro_seq_{s:.2f}", SEQ_CMAP(_np.linspace(s, 1.0, 256)))
+
+
 #: PICTURES OF THINGS are not heatmaps of quantities, and they keep a
 #: perceptual astronomical ramp rather than the house blue: a 512-pixel
 #: stamp of a dark frame is read for its texture, not for a value looked up
@@ -508,6 +528,11 @@ DIV_CMAP = LinearSegmentedColormap.from_list(
 #: written down, and so a change reaches every stamp at once.
 IMAGE_CMAP = "magma"
 IMAGE_FLAT_CMAP = "viridis"
+#: A plain luminance ramp, for a thumbnail whose job is "is there a star
+#: here and is it clipped" rather than "what value is this".  Named here for
+#: the same reason as the other two: so that ``cmap=`` never takes a bare
+#: string anywhere in the repository, and the guard test can say so.
+IMAGE_GREY = "gray"
 
 
 def text_on(color: str) -> str:

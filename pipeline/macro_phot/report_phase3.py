@@ -731,8 +731,8 @@ def section_periods(con, figs: dict) -> str:
     body = []
     for r in rows:
         agree = ("&mdash; n/a" if r[9] is None
-                 else '<b style="color:#9fd8ae">agrees</b>' if r[9]
-                 else '<b style="color:#f0a3a3">DISAGREES</b>')
+                 else '<b class="ok">agrees</b>' if r[9]
+                 else '<b class="bad">DISAGREES</b>')
         body.append([
             _label(r[0]), _i(r[2]), _i(r[3]), _n(r[4], 1),
             _pm(r[5], r[6], 7), _n(r[7], 7),
@@ -908,8 +908,8 @@ def section_sigmat(con, fig: str) -> str:
          "95th pct |Δt| (s)", "recovered", "vs 60 s"],
         [[_label(r[0]), f"×{r[1]:g}", f"{r[2]:+.0%}", _n(r[3], 1),
           _n(r[4], 1), f"<b>{_n(r[5], 1)}</b>", _n(r[6], 1), _pct(r[7], 0),
-          ('<b style="color:#9fd8ae">PASS</b>' if r[8]
-           else '<b style="color:#f0a3a3">FAIL</b>')] for r in grid])
+          ('<b class="ok">PASS</b>' if r[8]
+           else '<b class="bad">FAIL</b>')] for r in grid])
     verdicts = "".join(
         f"<li><b>{_label(k.replace('sigmat_verdict_', ''))}</b>: "
         f"<b>{esc(v)}</b> &mdash; "
@@ -1061,7 +1061,7 @@ def section_edges(con, fig: str) -> str:
           f"{esc(r[2])} &minus; {esc(r[3])}", _i(r[4]),
           f"<b>{_n(r[5], 1)}</b>", _n(r[6], 1), _n(r[7], 2),
           _n(abs(r[5]) / r[6], 1) if r[6] else "&mdash;",
-          ('<b style="color:#f0a3a3">≥3σ from zero</b>' if r[8]
+          ('<b class="bad">≥3σ from zero</b>' if r[8]
            else "consistent with zero")] for r in pooled]) if pooled else ""
     pairs = q(con, """SELECT target_key, era_id, night, band_a, band_b,
                              n_cycles, delta_s, sigma_s, chi2nu, significant
@@ -1073,7 +1073,7 @@ def section_edges(con, fig: str) -> str:
         [[esc(TARGET_LABEL.get(r[0], r[0])), _i(r[1]), esc(r[2]),
           f"{esc(r[3])} &minus; {esc(r[4])}", _i(r[5]),
           f"<b>{_n(r[6], 1)}</b>", _n(r[7], 1), _n(r[8], 2),
-          ('<b style="color:#f0a3a3">≥3σ from zero</b>' if r[9]
+          ('<b class="bad">≥3σ from zero</b>' if r[9]
            else "consistent with zero")] for r in pairs]) if pairs else ""
     n_sig = sum(1 for r in pooled if r[8])
     best = max(pooled, key=lambda r: abs(r[5]) / r[6] if r[6] else 0,
@@ -1192,8 +1192,8 @@ def section_oc(con, fig: str) -> str:
           _sci(r[3]), _n(r[5], 4) if r[5] is not None else "&mdash;",
           _sci(r[7]),
           (f"{1.0 / r[8]:,.0f}&times;" if r[8] else "&mdash;"),
-          ('<b style="color:#9fd8ae">' + esc(r[13]) + "</b>"
-           if r[6] else '<b style="color:#f0a3a3">' + esc(r[13]) + "</b>")]
+          ('<b class="ok">' + esc(r[13]) + "</b>"
+           if r[6] else '<b class="bad">' + esc(r[13]) + "</b>")]
          for r in cc])
     notes = "".join(f"<li><b>{esc(TARGET_LABEL.get(r[0], r[0]))}</b>: "
                     f"{esc(r[14])}</li>" for r in cc if r[14])
@@ -1315,8 +1315,8 @@ def section_states(con, fig: str) -> str:
           _pm(r[4], r[5], 2), _n(r[6], 2),
           f"{_i(r[8])} / {_i(r[9])} / {_i(r[10])}", _i(r[15]),
           _n(r[12], 3), f"<b>{_n(r[13], 3)}</b>", _n(r[14], 3),
-          ('<b style="color:#9fd8ae">' + esc(r[16]) + "</b>" if r[7]
-           else '<span style="color:#e6cc7a">' + esc(r[16]) + "</span>")]
+          ('<b class="ok">' + esc(r[16]) + "</b>" if r[7]
+           else '<span class="warn">' + esc(r[16]) + "</span>")]
          for r in rows])
     n_bi = sum(1 for r in rows if r[7])
     n_thr = sum(1 for r in rows if r[4] is not None)
@@ -1434,8 +1434,8 @@ def section_detrend(con, fig: str) -> str:
         ["running-median window", "detrend-then-search recovers",
          "joint GP + signal recovers"],
         [[f"{r[0]:g} &times; P<sub>orb</sub>",
-          f'<b style="color:#f0a3a3">{_pct(r[1])}</b>',
-          f'<b style="color:#9fd8ae">{_pct(r[2])}</b>'] for r in rows])
+          f'<b class="bad">{_pct(r[1])}</b>',
+          f'<b class="ok">{_pct(r[2])}</b>'] for r in rows])
     chk_tbl = table(
         ["series", "N", "celerite2 amplitude", "dense amplitude",
          "relative difference", "Δ log-likelihood", "kernel ε", "verdict"],
@@ -1569,7 +1569,7 @@ def render_report(db_path: Path) -> Path:
   rests on</a> &middot; <a href="cv_characterization.html">the
   characterization that set these limits</a> &middot;
   <a href="index.html">project hub</a> &middot;
-  <a href="../index.html">all reports</a></p>
+  <a href="../index.html">the front page</a></p>
 </header>
 
 <nav>

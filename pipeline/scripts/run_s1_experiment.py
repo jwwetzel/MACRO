@@ -644,11 +644,12 @@ def cmd_autopsy(args) -> int:
                 import matplotlib
                 matplotlib.use("Agg")
                 import matplotlib.pyplot as plt
+                from macro_core import plotstyle as ps
                 lo, hi = np.percentile(data, [5.0, 99.5])
                 stretched = np.arcsinh((data - lo)
                                        / max(hi - lo, 1e-3) * 10.0)
                 fig, ax = plt.subplots(figsize=(3.2, 3.2), dpi=80)
-                ax.imshow(stretched, cmap="gray", origin="lower")
+                ax.imshow(stretched, cmap=ps.IMAGE_GREY, origin="lower")
                 ax.axis("off")
                 thumb = THUMB_DIR / f"{rowid}.png"
                 fig.savefig(thumb, bbox_inches="tight", pad_inches=0.02)

@@ -1,4 +1,5 @@
-<!doctype html><html lang='en'><head><meta charset='utf-8'>
+<!doctype html><html lang='en'><head>
+<link rel="stylesheet" href="../assets/macro.css"><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1'>
 <title>MACRO pipeline status &amp; invalidation audit</title>
 <style>
@@ -32,17 +33,27 @@ th{background:var(--card);font-weight:650}
 .note{background:var(--card);border-left:3px solid var(--muted);
       padding:10px 14px;margin:14px 0;border-radius:0 8px 8px 0}
 .mono-sm{font-family:ui-monospace,monospace;font-size:12px;color:var(--muted)}
-@media (prefers-color-scheme:dark){
- :root{--bg:#0f1115;--fg:#e6e8ec;--muted:#9aa1ad;--line:#262a31;--card:#171a20;
-       --ok:#3fae6a;--warn:#d29b2a;--bad:#e0555a;--gone:#a77ce0}
- .tag{color:#0f1115}
-}
-</style></head><body><div class='wrap'>
+/* This page used to flip to a dark palette on `prefers-color-scheme: dark`.
+   It was the only page on the site that did, and it was also the only page
+   nothing linked to — so nobody ever saw the two side by side.  Now that
+   `macro_core.site` wraps it in the same chrome as everything else, a
+   reader with a dark OS got a light top bar, a light breadcrumb and a light
+   question rail wrapped around a black page.  The site commits to one
+   light, print-like ground; a stage-freshness audit is a document, and it
+   should look like the documents beside it. */
+</style></head><body>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">0/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">2/34 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series"><span class="n">CV Time Series</span><span class="m">34/34 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf Early Light Curve"><span class="n">SN 2023ixf</span><span class="m">5/20 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/24 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf Galaxies + NGC 5548"><span class="n">Dwarf Galaxies</span><span class="m">1/31 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Rigel-Era Legacy Archive (candidate)"><span class="n">Legacy Rigel</span><span class="m">0/11 done</span></a></nav></div>
+<div class="tabbar"><nav class="tabbar-inner" aria-label="Data &amp; Instrument Characterization views"><a class="tab" href="../pipeline/index.html">The Case</a><a class="tab" href="../pipeline/figures.html">Figures</a><a class="tab" aria-current="page" href="../pipeline/pipeline_status.html">Freshness &amp; DAG</a><a class="tab" href="../pipeline/evidence.html">Evidence Detail</a></nav></div>
+<div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../pipeline/index.html">Data &amp; Instrument Characterization</a></li><li aria-current="page">Freshness &amp; DAG</li><li aria-current="page">Pipeline status &amp; invalidation audit</li></ol></nav></div>
+<div class="layout">
+<aside class="rail" aria-label="Questions in this view"><a class="railback" href="../pipeline/index.html">&larr; Back to the case</a><h2>The questions</h2><p class="railnote">The questions this page answers, in order.</p><ol><li><a href="#sec-1"><span class="qn">1</span> The dependency DAG, coloured by freshness</a></li><li><a href="#sec-2"><span class="qn">2</span> Stage freshness, from stage_provenance</a></li><li><a href="#sec-3"><span class="qn">3</span> Live header probe: which small geometries are real?</a></li><li><a href="#sec-4"><span class="qn">4</span> The invalidation matrix</a></li><li><a href="#sec-5"><span class="qn">5</span> 4b · The October shopping list, corrected</a></li><li><a href="#sec-6"><span class="qn">6</span> Ordered re-run plan</a></li><li><a href="#sec-7"><span class="qn">7</span> What is fingerprinted, and why</a></li><li><a href="#sec-8"><span class="qn">8</span> How to use this</a></li></ol></aside>
+<div class="pane">
+<!--MACRO-SITE:CONTENT--><div class='wrap'>
 <h1>Pipeline status &amp; invalidation audit</h1>
-<p class='sub'>Generated 2026-08-21T03:34:35+00:00 &middot; digest rules P v1.0 (2026-08-18) &middot; manifest <span class='mono-sm'>/Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/products/manifest/rlmt-manifest.sqlite</span><br>Every number below is a query result, a fingerprint, or a FITS header read at render time. Nothing here is typed by hand.</p>
+<p class='sub'>Generated 2026-08-21T15:44:11+00:00 &middot; digest rules P v1.0 (2026-08-18) &middot; manifest <span class='mono-sm'>/Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/products/manifest/rlmt-manifest.sqlite</span><br>Every number below is a query result, a fingerprint, or a FITS header read at render time. Nothing here is typed by hand.</p>
 <div class='note'><b>The question this page answers.</b> Two upstream re-characterizations landed after most stages had already run and published: a <b>geometry artifact</b> (tile-compressed BINTABLE NAXIS recorded instead of the true image size, for 0 canonical frames) and a <b>filter identity</b> finding (source elongation measured per frame; FILTER labels do not reliably say what is a spectrum). What we once considered done may not be done any longer &mdash; below, per stage and per published artifact, is which.</div>
-<h2>1 &middot; The dependency DAG, coloured by freshness</h2>
-<div class='key'><span class='tag' style='background:#D55E00'>OUTPUT_MISSING</span> 0 <span class='tag' style='background:#0072B2'>NEVER_RUN</span> 0 <span class='tag' style='background:#E69F00'>STALE</span> 15 <span class='tag' style='background:#999999'>STALE_UPSTREAM</span> 5 <span class='tag' style='background:#009E73'>FRESH</span> 17</div>
+<span class="qanchor" id="sec-1"></span><h2>1 &middot; The dependency DAG, coloured by freshness</h2>
+<div class='key'><span class='tag' style='background:#D55E00'>OUTPUT_MISSING</span> 0 <span class='tag' style='background:#0072B2'>NEVER_RUN</span> 0 <span class='tag' style='background:#E69F00'>STALE</span> 21 <span class='tag' style='background:#999999'>STALE_UPSTREAM</span> 18 <span class='tag' style='background:#009E73'>FRESH</span> 0</div>
 <div class='fig'><svg viewBox="0 0 2668 572" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif,system-ui,sans-serif" role="img" aria-label="pipeline dependency DAG">
 <defs><marker id="a" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 z" fill="#666666"/></marker></defs>
 <rect width="2668" height="572" fill="#ffffff"/>
@@ -56,6 +67,12 @@ th{background:var(--card);font-weight:650}
 <path d="M434,61 C468,61 724,317 758,317" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
 <path d="M680,125 C714,125 724,317 758,317" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
 <path d="M434,61 C468,61 478,253 512,253" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 970,381 1004,381" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M926,317 C960,317 970,381 1004,381" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M680,253 C714,253 970,381 1004,381" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M926,445 C960,445 1216,317 1250,317" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M926,317 C960,317 1216,317 1250,317" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M1172,381 C1206,381 1216,317 1250,317" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
 <path d="M434,61 C468,61 478,317 512,317" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
 <path d="M434,61 C468,61 970,317 1004,317" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
 <path d="M926,317 C960,317 970,317 1004,317" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
@@ -108,91 +125,95 @@ th{background:var(--card);font-weight:650}
 <path d="M1418,125 C1452,125 1462,189 1496,189" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
 <path d="M434,61 C468,61 724,125 758,125" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
 <path d="M680,125 C714,125 724,125 758,125" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
-<path d="M434,61 C468,61 970,381 1004,381" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
-<path d="M926,253 C960,253 970,381 1004,381" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
-<path d="M680,253 C714,253 970,381 1004,381" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
 <path d="M434,61 C468,61 970,445 1004,445" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
 <path d="M926,253 C960,253 970,445 1004,445" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
-<g><title>S0e: FRESH — Geometry repair of the external catalog</title><rect x="20" y="40" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="30" y="58" fill="#1a1a1a" font-size="13" font-weight="700">S0e</text><text x="30" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
-<g><title>S0: FRESH — Manifest (dedup, aliases, eras, pointing)</title><rect x="266" y="40" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="276" y="58" fill="#1a1a1a" font-size="13" font-weight="700">S0</text><text x="276" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
+<path d="M680,253 C714,253 970,445 1004,445" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M434,61 C468,61 970,509 1004,509" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<path d="M926,253 C960,253 970,509 1004,509" fill="none" stroke="#666666" stroke-width="1.3" marker-end="url(#a)" opacity="0.75"/>
+<g><title>S0e: STALE — Geometry repair of the external catalog</title><rect x="20" y="40" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="30" y="58" fill="#1a1a1a" font-size="13" font-weight="700">S0e</text><text x="30" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
+<g><title>S0: STALE_UPSTREAM — Manifest (dedup, aliases, eras, pointing)</title><rect x="266" y="40" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="276" y="58" fill="#1a1a1a" font-size="13" font-weight="700">S0</text><text x="276" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
 <g><title>R-S0: STALE — Report: S0 manifest page</title><rect x="512" y="40" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="522" y="58" fill="#1a1a1a" font-size="13" font-weight="700">R-S0</text><text x="522" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
-<g><title>S0b: FRESH — Calibration inventory (links, coverage, gaps)</title><rect x="512" y="104" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="522" y="122" fill="#1a1a1a" font-size="13" font-weight="700">S0b</text><text x="522" y="137" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
-<g><title>S1b: FRESH — Astrometry production batch</title><rect x="512" y="168" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="522" y="186" fill="#1a1a1a" font-size="13" font-weight="700">S1b</text><text x="522" y="201" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
+<g><title>S0b: STALE_UPSTREAM — Calibration inventory (links, coverage, gaps)</title><rect x="512" y="104" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="522" y="122" fill="#1a1a1a" font-size="13" font-weight="700">S0b</text><text x="522" y="137" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>S1b: STALE_UPSTREAM — Astrometry production batch</title><rect x="512" y="168" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="522" y="186" fill="#1a1a1a" font-size="13" font-weight="700">S1b</text><text x="522" y="201" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
 <g><title>S2c: STALE — Per-frame dispersion (is this FILTER a spectrum?)</title><rect x="512" y="232" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="522" y="250" fill="#1a1a1a" font-size="13" font-weight="700">S2c</text><text x="522" y="265" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
-<g><title>S3: FRESH — Timing (BJD_TDB, clock, cadence)</title><rect x="512" y="296" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="522" y="314" fill="#1a1a1a" font-size="13" font-weight="700">S3</text><text x="522" y="329" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
+<g><title>S3: STALE_UPSTREAM — Timing (BJD_TDB, clock, cadence)</title><rect x="512" y="296" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="522" y="314" fill="#1a1a1a" font-size="13" font-weight="700">S3</text><text x="522" y="329" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
 <g><title>G: STALE — Grism extraction + identity gate (T CrB)</title><rect x="758" y="40" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="768" y="58" fill="#1a1a1a" font-size="13" font-weight="700">G</text><text x="768" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
 <g><title>OPS: STALE — Observatory request (October shopping list)</title><rect x="758" y="104" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="768" y="122" fill="#1a1a1a" font-size="13" font-weight="700">OPS</text><text x="768" y="137" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
 <g><title>R-S0b: STALE — Report: S0b calibration inventory page</title><rect x="758" y="168" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="768" y="186" fill="#1a1a1a" font-size="13" font-weight="700">R-S0b</text><text x="768" y="201" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
-<g><title>S0c: FRESH — Per-project staging manifests</title><rect x="758" y="232" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="768" y="250" fill="#1a1a1a" font-size="13" font-weight="700">S0c</text><text x="768" y="265" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
-<g><title>S2: FRESH — Detector truth (ceiling, PTC, recon, linearity)</title><rect x="758" y="296" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="768" y="314" fill="#1a1a1a" font-size="13" font-weight="700">S2</text><text x="768" y="329" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
-<g><title>R-S2c: STALE_UPSTREAM — Report: S2c filter-identity page</title><rect x="758" y="360" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="768" y="378" fill="#1a1a1a" font-size="13" font-weight="700">R-S2c</text><text x="768" y="393" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>S0c: STALE_UPSTREAM — Per-project staging manifests</title><rect x="758" y="232" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="768" y="250" fill="#1a1a1a" font-size="13" font-weight="700">S0c</text><text x="768" y="265" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>S2: STALE_UPSTREAM — Detector truth (ceiling, PTC, recon, linearity)</title><rect x="758" y="296" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="768" y="314" fill="#1a1a1a" font-size="13" font-weight="700">S2</text><text x="768" y="329" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>R-S2c: STALE — Report: S2c filter-identity page</title><rect x="758" y="360" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="768" y="378" fill="#1a1a1a" font-size="13" font-weight="700">R-S2c</text><text x="768" y="393" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
 <g><title>S1: STALE_UPSTREAM — Astrometry solvability experiment</title><rect x="758" y="424" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="768" y="442" fill="#1a1a1a" font-size="13" font-weight="700">S1</text><text x="768" y="457" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
-<g><title>R-S3: FRESH — Report: S3 timing page</title><rect x="758" y="488" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="768" y="506" fill="#1a1a1a" font-size="13" font-weight="700">R-S3</text><text x="768" y="521" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
+<g><title>R-S3: STALE — Report: S3 timing page</title><rect x="758" y="488" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="768" y="506" fill="#1a1a1a" font-size="13" font-weight="700">R-S3</text><text x="768" y="521" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
 <g><title>R-S0c: STALE — Report: S0c staging page</title><rect x="1004" y="40" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1014" y="58" fill="#1a1a1a" font-size="13" font-weight="700">R-S0c</text><text x="1014" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
-<g><title>R-S2: FRESH — Report: S2 detector page</title><rect x="1004" y="104" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="1014" y="122" fill="#1a1a1a" font-size="13" font-weight="700">R-S2</text><text x="1014" y="137" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
+<g><title>R-S2: STALE — Report: S2 detector page</title><rect x="1004" y="104" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1014" y="122" fill="#1a1a1a" font-size="13" font-weight="700">R-S2</text><text x="1014" y="137" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
 <g><title>R-S1: STALE_UPSTREAM — Report: S1 astrometry page</title><rect x="1004" y="168" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="1014" y="186" fill="#1a1a1a" font-size="13" font-weight="700">R-S1</text><text x="1014" y="201" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
-<g><title>CV-S4: FRESH — Production CV photometry (five staged targets)</title><rect x="1004" y="232" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="1014" y="250" fill="#1a1a1a" font-size="13" font-weight="700">CV-S4</text><text x="1014" y="265" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
+<g><title>CV-S4: STALE_UPSTREAM — Production CV photometry (five staged targets)</title><rect x="1004" y="232" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="1014" y="250" fill="#1a1a1a" font-size="13" font-weight="700">CV-S4</text><text x="1014" y="265" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
 <g><title>S4: STALE — Ensemble photometry (AN UMa / VV Pup prototype)</title><rect x="1004" y="296" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1014" y="314" fill="#1a1a1a" font-size="13" font-weight="700">S4</text><text x="1014" y="329" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
-<g><title>STRAT: STALE — Five ANALYSIS_STRATEGY.md documents + ROADMAP</title><rect x="1004" y="360" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1014" y="378" fill="#1a1a1a" font-size="13" font-weight="700">STRAT</text><text x="1014" y="393" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
-<g><title>WEB: FRESH — Public project pages (docs/*/index.html)</title><rect x="1004" y="424" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="1014" y="442" fill="#1a1a1a" font-size="13" font-weight="700">WEB</text><text x="1014" y="457" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
+<g><title>SN-G0: STALE_UPSTREAM — SN 2023ixf Gate 0 (freeze, saturation census, grism triage)</title><rect x="1004" y="360" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="1014" y="378" fill="#1a1a1a" font-size="13" font-weight="700">SN-G0</text><text x="1014" y="393" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>STRAT: STALE — Five ANALYSIS_STRATEGY.md documents + ROADMAP</title><rect x="1004" y="424" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1014" y="442" fill="#1a1a1a" font-size="13" font-weight="700">STRAT</text><text x="1014" y="457" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
+<g><title>WEB: STALE — Public project pages (docs/*/index.html)</title><rect x="1004" y="488" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1014" y="506" fill="#1a1a1a" font-size="13" font-weight="700">WEB</text><text x="1014" y="521" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
 <g><title>CV-S5: STALE — CV data characterization (quality, noise, sampling, detectability, timing)</title><rect x="1250" y="40" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1260" y="58" fill="#1a1a1a" font-size="13" font-weight="700">CV-S5</text><text x="1260" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
-<g><title>CV-S6: FRESH — CV catalogue tie (relative magnitudes -&gt; natural-system magnitudes on a standard zero point)</title><rect x="1250" y="104" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="1260" y="122" fill="#1a1a1a" font-size="13" font-weight="700">CV-S6</text><text x="1260" y="137" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
-<g><title>CV-S7: FRESH — External survey record + YZ Cnc accretion-state branch decision</title><rect x="1250" y="168" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="1260" y="186" fill="#1a1a1a" font-size="13" font-weight="700">CV-S7</text><text x="1260" y="201" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
-<g><title>R-S4: STALE_UPSTREAM — Report: S4 photometry page</title><rect x="1250" y="232" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="1260" y="250" fill="#1a1a1a" font-size="13" font-weight="700">R-S4</text><text x="1260" y="265" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
-<g><title>CV-S8: FRESH — CV Phase-2 completion (cloud veto, colour extinction, cross-era metadata, faint limits)</title><rect x="1496" y="40" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="1506" y="58" fill="#1a1a1a" font-size="13" font-weight="700">CV-S8</text><text x="1506" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
+<g><title>CV-S6: STALE_UPSTREAM — CV catalogue tie (relative magnitudes -&gt; natural-system magnitudes on a standard zero point)</title><rect x="1250" y="104" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="1260" y="122" fill="#1a1a1a" font-size="13" font-weight="700">CV-S6</text><text x="1260" y="137" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>CV-S7: STALE_UPSTREAM — External survey record + YZ Cnc accretion-state branch decision</title><rect x="1250" y="168" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="1260" y="186" fill="#1a1a1a" font-size="13" font-weight="700">CV-S7</text><text x="1260" y="201" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>R-S4: STALE — Report: S4 photometry page</title><rect x="1250" y="232" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1260" y="250" fill="#1a1a1a" font-size="13" font-weight="700">R-S4</text><text x="1260" y="265" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
+<g><title>R-SN-G0: STALE — Report: SN 2023ixf Gate 0 page</title><rect x="1250" y="296" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1260" y="314" fill="#1a1a1a" font-size="13" font-weight="700">R-SN-G0</text><text x="1260" y="329" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
+<g><title>CV-S8: STALE_UPSTREAM — CV Phase-2 completion (cloud veto, colour extinction, cross-era metadata, faint limits)</title><rect x="1496" y="40" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="1506" y="58" fill="#1a1a1a" font-size="13" font-weight="700">CV-S8</text><text x="1506" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
 <g><title>R-CV-S5: STALE — Report: CV characterization + verdict page</title><rect x="1496" y="104" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1506" y="122" fill="#1a1a1a" font-size="13" font-weight="700">R-CV-S5</text><text x="1506" y="137" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
 <g><title>R-CV-S6: STALE — Report: CV catalogue-tie + calibration page</title><rect x="1496" y="168" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1506" y="186" fill="#1a1a1a" font-size="13" font-weight="700">R-CV-S6</text><text x="1506" y="201" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
 <g><title>R-CV-S7: STALE — Report: CV external-context + branch page</title><rect x="1496" y="232" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1506" y="250" fill="#1a1a1a" font-size="13" font-weight="700">R-CV-S7</text><text x="1506" y="265" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
-<g><title>CV-S9: FRESH — CV Phase-3 time-series analysis (periods, sigma_t, edge timing, O-C, states, detrending)</title><rect x="1742" y="40" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="1752" y="58" fill="#1a1a1a" font-size="13" font-weight="700">CV-S9</text><text x="1752" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
-<g><title>R-CV-S8: FRESH — Report: CV Phase-2 completion page</title><rect x="1742" y="104" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="1752" y="122" fill="#1a1a1a" font-size="13" font-weight="700">R-CV-S8</text><text x="1752" y="137" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
-<g><title>CV-S10: FRESH — CV closing science decisions (YZ Cnc fallback branch; AN UMa go/no-go per filter)</title><rect x="1988" y="40" width="168" height="42" rx="7" fill="#009E73" stroke="#00000033"/><text x="1998" y="58" fill="#1a1a1a" font-size="13" font-weight="700">CV-S10</text><text x="1998" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">FRESH</text></g>
-<g><title>R-CV-S9: STALE — Report: CV Phase-3 time-series analysis page</title><rect x="1988" y="104" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1998" y="122" fill="#1a1a1a" font-size="13" font-weight="700">R-CV-S9</text><text x="1998" y="137" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
-<g><title>CV-S11: STALE — CV manuscript figure set (the thirteen figures of the strategy&#x27;s §7)</title><rect x="2234" y="40" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="2244" y="58" fill="#1a1a1a" font-size="13" font-weight="700">CV-S11</text><text x="2244" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
+<g><title>CV-S9: STALE_UPSTREAM — CV Phase-3 time-series analysis (periods, sigma_t, edge timing, O-C, states, detrending)</title><rect x="1742" y="40" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="1752" y="58" fill="#1a1a1a" font-size="13" font-weight="700">CV-S9</text><text x="1752" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>R-CV-S8: STALE — Report: CV Phase-2 completion page</title><rect x="1742" y="104" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="1752" y="122" fill="#1a1a1a" font-size="13" font-weight="700">R-CV-S8</text><text x="1752" y="137" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
+<g><title>CV-S10: STALE_UPSTREAM — CV closing science decisions (YZ Cnc fallback branch; AN UMa go/no-go per filter)</title><rect x="1988" y="40" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="1998" y="58" fill="#1a1a1a" font-size="13" font-weight="700">CV-S10</text><text x="1998" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>R-CV-S9: STALE_UPSTREAM — Report: CV Phase-3 time-series analysis page</title><rect x="1988" y="104" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="1998" y="122" fill="#1a1a1a" font-size="13" font-weight="700">R-CV-S9</text><text x="1998" y="137" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
+<g><title>CV-S11: STALE_UPSTREAM — CV manuscript figure set (the thirteen figures of the strategy&#x27;s §7)</title><rect x="2234" y="40" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="2244" y="58" fill="#1a1a1a" font-size="13" font-weight="700">CV-S11</text><text x="2244" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
 <g><title>R-CV-S10: STALE — Report: CV closing-decisions page</title><rect x="2234" y="104" width="168" height="42" rx="7" fill="#E69F00" stroke="#00000033"/><text x="2244" y="122" fill="#1a1a1a" font-size="13" font-weight="700">R-CV-S10</text><text x="2244" y="137" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE</text></g>
 <g><title>R-CV-S11: STALE_UPSTREAM — CV manuscript numbers, captions and tables</title><rect x="2480" y="40" width="168" height="42" rx="7" fill="#999999" stroke="#00000033"/><text x="2490" y="58" fill="#1a1a1a" font-size="13" font-weight="700">R-CV-S11</text><text x="2490" y="73" fill="#1a1a1a" opacity="0.8" font-size="10.5">STALE_UPSTREAM</text></g>
 </svg></div>
 <p>Arrows run from a stage to every stage that reads one of its outputs. Depth is the longest path from a root, so an arrow never points backwards. A stage is coloured on its own verdict; a stage that is internally consistent but sits downstream of a non-fresh parent is marked stale by propagation, and its reason says so.</p>
-<h2>2 &middot; Stage freshness, from <code>stage_provenance</code></h2>
+<span class="qanchor" id="sec-2"></span><h2>2 &middot; Stage freshness, from <code>stage_provenance</code></h2>
 <div class='scroll'><table><thead><tr><th>Stage</th><th>Verdict</th><th>Last recorded run</th><th>Code version</th><th>Why</th></tr></thead><tbody>
-<tr><td><b>S0e</b><br><span class='mono-sm'>Geometry repair of the external catalog</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-19T00:57:26Z</td><td class='mono-sm'>(external tool)</td><td>&mdash;</td></tr>
-<tr><td><b>S0</b><br><span class='mono-sm'>Manifest (dedup, aliases, eras, pointing)</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-19T01:02:03.121169+00:00</td><td class='mono-sm'>S0_CODE_VERSION</td><td>&mdash;</td></tr>
-<tr><td><b>R-S0</b><br><span class='mono-sm'>Report: S0 manifest page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-18T18:49:43Z</td><td class='mono-sm'>S0_CODE_VERSION</td><td>input table:aliases: content changed (3020 rows, digest c5783df01c9b9d94 -&gt; 0e60ab5214022791)<br>input table:eras: content changed (84 rows, digest 34e7c8d1c2cde7b6 -&gt; 92ac7bba3062f54c)<br>input table:frames: content changed (330865 rows, digest 2d9b5ff26d639a00 -&gt; fe04123f56412cbb)<br>input table:project_counts: content changed (18 rows, digest 4f4f4805ed14f6cf -&gt; b97b903559297fe3)<br>output file:docs/pipeline/s0_manifest.html changed since it was recorded (39611:e39035887da5d514 -&gt; 40296:72254eba728ae07d) — written out of band</td></tr>
-<tr><td><b>S0b</b><br><span class='mono-sm'>Calibration inventory (links, coverage, gaps)</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-19T01:05:11.999468+00:00</td><td class='mono-sm'>S0B_CODE_VERSION</td><td>&mdash;</td></tr>
+<tr><td><b>S0e</b><br><span class='mono-sm'>Geometry repair of the external catalog</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-19T00:57:26Z</td><td class='mono-sm'>(external tool)</td><td>output file:docs/pipeline/s0e_geometry_fix.html changed since it was recorded (17971:8b4c95759531f805 -&gt; 17531:e8fb9f92824be178) — written out of band</td></tr>
+<tr><td><b>S0</b><br><span class='mono-sm'>Manifest (dedup, aliases, eras, pointing)</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-19T01:02:03.121169+00:00</td><td class='mono-sm'>S0_CODE_VERSION</td><td>upstream not fresh: S0e (STALE) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>R-S0</b><br><span class='mono-sm'>Report: S0 manifest page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-18T18:49:43Z</td><td class='mono-sm'>S0_CODE_VERSION</td><td>input table:aliases: content changed (3020 rows, digest c5783df01c9b9d94 -&gt; 0e60ab5214022791)<br>input table:eras: content changed (84 rows, digest 34e7c8d1c2cde7b6 -&gt; 92ac7bba3062f54c)<br>input table:frames: content changed (330865 rows, digest 2d9b5ff26d639a00 -&gt; fe04123f56412cbb)<br>input table:project_counts: content changed (18 rows, digest 4f4f4805ed14f6cf -&gt; b97b903559297fe3)<br>output file:docs/pipeline/s0_manifest.html changed since it was recorded (39611:e39035887da5d514 -&gt; 40043:20ed5108d4c44ec8) — written out of band</td></tr>
+<tr><td><b>S0b</b><br><span class='mono-sm'>Calibration inventory (links, coverage, gaps)</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-19T01:05:11.999468+00:00</td><td class='mono-sm'>S0B_CODE_VERSION</td><td>upstream not fresh: S0 (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
 <tr><td><b>G</b><br><span class='mono-sm'>Grism extraction + identity gate (T CrB)</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-18T16:07:39Z</td><td class='mono-sm'>G_CODE_VERSION</td><td>input table:eras: content changed (84 rows, digest 34e7c8d1c2cde7b6 -&gt; 92ac7bba3062f54c)<br>input table:frames@grism: content changed (723 rows, digest e7e84d878041bde9 -&gt; d41e35d63a44608f)</td></tr>
 <tr><td><b>OPS</b><br><span class='mono-sm'>Observatory request (October shopping list)</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-18T02:52:50Z</td><td class='mono-sm'>(hand-authored)</td><td>input table:calib_coverage: changed after this stage ran — S0b changed 2026-08-18T15:04:14.574732+00:00, after this stage ran 2026-08-18T02:52:50Z<br>input table:calib_gaps: changed after this stage ran — S0b changed 2026-08-18T15:04:14.574732+00:00, after this stage ran 2026-08-18T02:52:50Z<br>input table:eras: changed after this stage ran — S0 changed 2026-08-18T15:03:50.623928+00:00, after this stage ran 2026-08-18T02:52:50Z</td></tr>
-<tr><td><b>R-S0b</b><br><span class='mono-sm'>Report: S0b calibration inventory page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-18T15:04:31Z</td><td class='mono-sm'>S0B_CODE_VERSION</td><td>input table:calib_coverage: rows 1563 -&gt; 1516<br>input table:calib_gaps: rows 1494 -&gt; 1447<br>input table:eras: content changed (84 rows, digest 34e7c8d1c2cde7b6 -&gt; 92ac7bba3062f54c)<br>output file:docs/pipeline/s0b_calibration_inventory.html changed since it was recorded (26513:d90f70014ca7634c -&gt; 26266:c5bccb322327b1d3) — written out of band</td></tr>
-<tr><td><b>S0c</b><br><span class='mono-sm'>Per-project staging manifests</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-19T01:05:41.590923+00:00</td><td class='mono-sm'>S0C_CODE_VERSION</td><td>&mdash;</td></tr>
-<tr><td><b>R-S0c</b><br><span class='mono-sm'>Report: S0c staging page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-18T18:55:13Z</td><td class='mono-sm'>S0C_CODE_VERSION</td><td>input table:s0c_stage_files: content changed (5 rows, digest 9c24632ef5a95bec -&gt; 66d3ad4a1014aeb7)<br>input table:stage_bestar_grism: content changed (4869 rows, digest 152587bb9b5d914a -&gt; 95e2d2c89bf820a5)<br>input table:stage_cv_timeseries: content changed (13484 rows, digest 3cfac70e4a801486 -&gt; 2eca993ba8531923)<br>input table:stage_tcrb_monitoring: content changed (2292 rows, digest 765fcd05bbbc06fe -&gt; 0485d9890988d163)<br>output file:docs/pipeline/s0c_staging.html changed since it was recorded (24129:e3ca627ad1189c5a -&gt; 24188:bcff28e97457d858) — written out of band</td></tr>
-<tr><td><b>S1b</b><br><span class='mono-sm'>Astrometry production batch</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-20T05:28:06+00:00</td><td class='mono-sm'>S1B_CODE_VERSION</td><td>&mdash;</td></tr>
-<tr><td><b>S2</b><br><span class='mono-sm'>Detector truth (ceiling, PTC, recon, linearity)</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-20T01:54:30</td><td class='mono-sm'>S2_CODE_VERSION</td><td>&mdash;</td></tr>
-<tr><td><b>R-S2</b><br><span class='mono-sm'>Report: S2 detector page</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-20T01:55:35Z</td><td class='mono-sm'>S2_CODE_VERSION</td><td>&mdash;</td></tr>
+<tr><td><b>R-S0b</b><br><span class='mono-sm'>Report: S0b calibration inventory page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-18T15:04:31Z</td><td class='mono-sm'>S0B_CODE_VERSION</td><td>input table:calib_coverage: rows 1563 -&gt; 1516<br>input table:calib_gaps: rows 1494 -&gt; 1447<br>input table:eras: content changed (84 rows, digest 34e7c8d1c2cde7b6 -&gt; 92ac7bba3062f54c)<br>output file:docs/pipeline/s0b_calibration_inventory.html changed since it was recorded (26513:d90f70014ca7634c -&gt; 25985:30ca27856b48e8d3) — written out of band</td></tr>
+<tr><td><b>S0c</b><br><span class='mono-sm'>Per-project staging manifests</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-19T01:05:41.590923+00:00</td><td class='mono-sm'>S0C_CODE_VERSION</td><td>upstream not fresh: S0 (STALE_UPSTREAM), S0b (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>R-S0c</b><br><span class='mono-sm'>Report: S0c staging page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-18T18:55:13Z</td><td class='mono-sm'>S0C_CODE_VERSION</td><td>input table:s0c_stage_files: content changed (5 rows, digest 9c24632ef5a95bec -&gt; 66d3ad4a1014aeb7)<br>input table:stage_bestar_grism: content changed (4869 rows, digest 152587bb9b5d914a -&gt; 95e2d2c89bf820a5)<br>input table:stage_cv_timeseries: content changed (13484 rows, digest 3cfac70e4a801486 -&gt; 2eca993ba8531923)<br>input table:stage_tcrb_monitoring: content changed (2292 rows, digest 765fcd05bbbc06fe -&gt; 0485d9890988d163)<br>output file:docs/pipeline/s0c_staging.html changed since it was recorded (24129:e3ca627ad1189c5a -&gt; 23928:a652057d840d9bfb) — written out of band</td></tr>
+<tr><td><b>S1b</b><br><span class='mono-sm'>Astrometry production batch</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-20T05:28:06+00:00</td><td class='mono-sm'>S1B_CODE_VERSION</td><td>upstream not fresh: S0 (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>S2</b><br><span class='mono-sm'>Detector truth (ceiling, PTC, recon, linearity)</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-20T01:54:30</td><td class='mono-sm'>S2_CODE_VERSION</td><td>upstream not fresh: S0 (STALE_UPSTREAM), S0b (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>R-S2</b><br><span class='mono-sm'>Report: S2 detector page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-20T01:55:35Z</td><td class='mono-sm'>S2_CODE_VERSION</td><td>output file:docs/pipeline/s2_detector.html changed since it was recorded (23943:95432ad768627f28 -&gt; 23699:5fea2160d5521bed) — written out of band</td></tr>
 <tr><td><b>S2c</b><br><span class='mono-sm'>Per-frame dispersion (is this FILTER a spectrum?)</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-19T00:55:00Z</td><td class='mono-sm'>DISPERSION_CODE_VERSION</td><td>code version &#x27;S2c v1.0 (2026-08-18)&#x27; -&gt; &#x27;S2c v1.1 (2026-08-18)&#x27;<br>input table:eras: content changed (84 rows, digest 34e7c8d1c2cde7b6 -&gt; 92ac7bba3062f54c)<br>input table:frames: content changed (330865 rows, digest 2d9b5ff26d639a00 -&gt; fe04123f56412cbb)</td></tr>
-<tr><td><b>R-S2c</b><br><span class='mono-sm'>Report: S2c filter-identity page</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-19T00:57:04Z</td><td class='mono-sm'>DISPERSION_CODE_VERSION</td><td>upstream not fresh: S2c (STALE) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
-<tr><td><b>S1</b><br><span class='mono-sm'>Astrometry solvability experiment</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-21T02:45:25.488881+00:00</td><td class='mono-sm'>S1_CODE_VERSION</td><td>upstream not fresh: S2c (STALE) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
-<tr><td><b>R-S1</b><br><span class='mono-sm'>Report: S1 astrometry page</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-21T03:09:01Z</td><td class='mono-sm'>S1_CODE_VERSION</td><td>upstream not fresh: S1 (STALE_UPSTREAM), S2c (STALE) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
-<tr><td><b>S3</b><br><span class='mono-sm'>Timing (BJD_TDB, clock, cadence)</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-19T23:47:10.112143+00:00</td><td class='mono-sm'>S3_CODE_VERSION</td><td>&mdash;</td></tr>
-<tr><td><b>CV-S4</b><br><span class='mono-sm'>Production CV photometry (five staged targets)</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-20T03:32:08.324116+00:00</td><td class='mono-sm'>CV_CODE_VERSION</td><td>&mdash;</td></tr>
+<tr><td><b>R-S2c</b><br><span class='mono-sm'>Report: S2c filter-identity page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-19T00:57:04Z</td><td class='mono-sm'>DISPERSION_CODE_VERSION</td><td>output file:docs/pipeline/s2c_filter_identity.html changed since it was recorded (44616:d6a56ba7cd20c795 -&gt; 44370:98bd201236599879) — written out of band</td></tr>
+<tr><td><b>S1</b><br><span class='mono-sm'>Astrometry solvability experiment</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-21T02:45:25.488881+00:00</td><td class='mono-sm'>S1_CODE_VERSION</td><td>upstream not fresh: S0 (STALE_UPSTREAM), S2c (STALE) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>R-S1</b><br><span class='mono-sm'>Report: S1 astrometry page</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-21T03:09:01Z</td><td class='mono-sm'>S1_CODE_VERSION</td><td>upstream not fresh: S0 (STALE_UPSTREAM), S1 (STALE_UPSTREAM), S2c (STALE) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>S3</b><br><span class='mono-sm'>Timing (BJD_TDB, clock, cadence)</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-19T23:47:10.112143+00:00</td><td class='mono-sm'>S3_CODE_VERSION</td><td>upstream not fresh: S0 (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>CV-S4</b><br><span class='mono-sm'>Production CV photometry (five staged targets)</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-20T03:32:08.324116+00:00</td><td class='mono-sm'>CV_CODE_VERSION</td><td>upstream not fresh: S0 (STALE_UPSTREAM), S0b (STALE_UPSTREAM), S0c (STALE_UPSTREAM), S2 (STALE_UPSTREAM), S3 (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
 <tr><td><b>CV-S5</b><br><span class='mono-sm'>CV data characterization (quality, noise, sampling, detectability, timing)</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-19T03:00:16Z</td><td class='mono-sm'>CODE_VERSION</td><td>input db:cvphot:cv_selection: rows 34 -&gt; 33</td></tr>
-<tr><td><b>CV-S6</b><br><span class='mono-sm'>CV catalogue tie (relative magnitudes -&gt; natural-system magnitudes on a standard zero point)</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-20T04:08:25Z</td><td class='mono-sm'>CATTIE_CODE_VERSION</td><td>&mdash;</td></tr>
-<tr><td><b>CV-S7</b><br><span class='mono-sm'>External survey record + YZ Cnc accretion-state branch decision</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-20T02:57:31Z</td><td class='mono-sm'>EXTERNAL_CODE_VERSION</td><td>&mdash;</td></tr>
-<tr><td><b>CV-S8</b><br><span class='mono-sm'>CV Phase-2 completion (cloud veto, colour extinction, cross-era metadata, faint limits)</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-20T04:51:12Z</td><td class='mono-sm'>PHASE2_CODE_VERSION</td><td>&mdash;</td></tr>
-<tr><td><b>CV-S9</b><br><span class='mono-sm'>CV Phase-3 time-series analysis (periods, sigma_t, edge timing, O-C, states, detrending)</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-20T09:33:58Z</td><td class='mono-sm'>PHASE3_CODE_VERSION</td><td>&mdash;</td></tr>
-<tr><td><b>CV-S10</b><br><span class='mono-sm'>CV closing science decisions (YZ Cnc fallback branch; AN UMa go/no-go per filter)</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-20T12:03:29Z</td><td class='mono-sm'>FINAL_CODE_VERSION</td><td>&mdash;</td></tr>
-<tr><td><b>CV-S11</b><br><span class='mono-sm'>CV manuscript figure set (the thirteen figures of the strategy&#x27;s §7)</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-20T20:09:08Z</td><td class='mono-sm'>PAPER_CODE_VERSION</td><td>input file:pipeline/macro_phot/figures_cv.py: rows 138950 -&gt; 137870</td></tr>
-<tr><td><b>R-CV-S10</b><br><span class='mono-sm'>Report: CV closing-decisions page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-20T07:12:18Z</td><td class='mono-sm'>FINAL_CODE_VERSION</td><td>input db:cvphot:p4_anuma: rows 15 -&gt; 18<br>input db:cvphot:p4_verdict: content changed (5 rows, digest ac3371dcafbc66c2 -&gt; 66d7aac80104c542)<br>input file:pipeline/macro_phot/final_science.py: rows 34302 -&gt; 37130<br>output file:docs/CV_TimeSeries/cv_final_science.html changed since it was recorded (78235:32b236877cf8c5aa -&gt; 84122:df20ed16fb38beb8) — written out of band</td></tr>
-<tr><td><b>R-CV-S11</b><br><span class='mono-sm'>CV manuscript numbers, captions and tables</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-20T20:09:25Z</td><td class='mono-sm'>PAPER_CODE_VERSION</td><td>upstream not fresh: CV-S11 (STALE), CV-S5 (STALE) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
-<tr><td><b>R-CV-S5</b><br><span class='mono-sm'>Report: CV characterization + verdict page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-19T03:00:09Z</td><td class='mono-sm'>CODE_VERSION</td><td>output file:docs/CV_TimeSeries/cv_characterization.html changed since it was recorded (117907:3dbc55f5bb59a955 -&gt; 117907:4aa3bd8ca8a425b5) — written out of band</td></tr>
-<tr><td><b>R-CV-S6</b><br><span class='mono-sm'>Report: CV catalogue-tie + calibration page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-19T05:40:49Z</td><td class='mono-sm'>CATTIE_CODE_VERSION</td><td>input db:cvphot:cv_cattie: content changed (26 rows, digest 7fa7fbd8a582b1e5 -&gt; 7812a9274cb2b71c)<br>output file:docs/CV_TimeSeries/cv_catalogue_tie.html changed since it was recorded (93376:bff600dc1a5c4f40 -&gt; 94788:92915ebc9ce86d8f) — written out of band</td></tr>
-<tr><td><b>R-CV-S7</b><br><span class='mono-sm'>Report: CV external-context + branch page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-20T02:57:14Z</td><td class='mono-sm'>EXTERNAL_CODE_VERSION</td><td>output file:docs/CV_TimeSeries/cv_external_context.html changed since it was recorded (37151:c749e9cd9b3b333e -&gt; 37151:59a4a536393dfec0) — written out of band</td></tr>
-<tr><td><b>R-CV-S8</b><br><span class='mono-sm'>Report: CV Phase-2 completion page</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-20T04:59:28Z</td><td class='mono-sm'>PHASE2_CODE_VERSION</td><td>&mdash;</td></tr>
-<tr><td><b>R-CV-S9</b><br><span class='mono-sm'>Report: CV Phase-3 time-series analysis page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-20T06:06:45Z</td><td class='mono-sm'>PHASE3_CODE_VERSION</td><td>output file:docs/CV_TimeSeries/cv_timeseries_analysis.html changed since it was recorded (71486:43612270db23d52a -&gt; 72527:421bde397927162f) — written out of band</td></tr>
-<tr><td><b>R-S3</b><br><span class='mono-sm'>Report: S3 timing page</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-19T23:47:22Z</td><td class='mono-sm'>S3_CODE_VERSION</td><td>&mdash;</td></tr>
+<tr><td><b>CV-S6</b><br><span class='mono-sm'>CV catalogue tie (relative magnitudes -&gt; natural-system magnitudes on a standard zero point)</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-20T04:08:25Z</td><td class='mono-sm'>CATTIE_CODE_VERSION</td><td>upstream not fresh: CV-S4 (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>CV-S7</b><br><span class='mono-sm'>External survey record + YZ Cnc accretion-state branch decision</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-20T02:57:31Z</td><td class='mono-sm'>EXTERNAL_CODE_VERSION</td><td>upstream not fresh: CV-S4 (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>CV-S8</b><br><span class='mono-sm'>CV Phase-2 completion (cloud veto, colour extinction, cross-era metadata, faint limits)</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-20T04:51:12Z</td><td class='mono-sm'>PHASE2_CODE_VERSION</td><td>upstream not fresh: CV-S4 (STALE_UPSTREAM), CV-S6 (STALE_UPSTREAM), S0 (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>CV-S9</b><br><span class='mono-sm'>CV Phase-3 time-series analysis (periods, sigma_t, edge timing, O-C, states, detrending)</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-20T09:33:58Z</td><td class='mono-sm'>PHASE3_CODE_VERSION</td><td>upstream not fresh: CV-S4 (STALE_UPSTREAM), CV-S6 (STALE_UPSTREAM), CV-S8 (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>CV-S10</b><br><span class='mono-sm'>CV closing science decisions (YZ Cnc fallback branch; AN UMa go/no-go per filter)</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-20T12:03:29Z</td><td class='mono-sm'>FINAL_CODE_VERSION</td><td>upstream not fresh: CV-S4 (STALE_UPSTREAM), CV-S7 (STALE_UPSTREAM), CV-S8 (STALE_UPSTREAM), CV-S9 (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>CV-S11</b><br><span class='mono-sm'>CV manuscript figure set (the thirteen figures of the strategy&#x27;s §7)</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-21T03:47:21Z</td><td class='mono-sm'>PAPER_CODE_VERSION</td><td>upstream not fresh: CV-S10 (STALE_UPSTREAM), CV-S9 (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>R-CV-S10</b><br><span class='mono-sm'>Report: CV closing-decisions page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-20T07:12:18Z</td><td class='mono-sm'>FINAL_CODE_VERSION</td><td>input db:cvphot:p4_anuma: rows 15 -&gt; 18<br>input db:cvphot:p4_verdict: content changed (5 rows, digest ac3371dcafbc66c2 -&gt; 66d7aac80104c542)<br>input file:pipeline/macro_phot/final_science.py: rows 34302 -&gt; 37130<br>output file:docs/CV_TimeSeries/cv_final_science.html changed since it was recorded (78235:32b236877cf8c5aa -&gt; 83847:4693501986e262ea) — written out of band</td></tr>
+<tr><td><b>R-CV-S11</b><br><span class='mono-sm'>CV manuscript numbers, captions and tables</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-20T20:09:25Z</td><td class='mono-sm'>PAPER_CODE_VERSION</td><td>upstream not fresh: CV-S10 (STALE_UPSTREAM), CV-S11 (STALE_UPSTREAM), CV-S4 (STALE_UPSTREAM), CV-S5 (STALE), CV-S6 (STALE_UPSTREAM), CV-S8 (STALE_UPSTREAM), CV-S9 (STALE_UPSTREAM), S2 (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>R-CV-S5</b><br><span class='mono-sm'>Report: CV characterization + verdict page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-19T03:00:09Z</td><td class='mono-sm'>CODE_VERSION</td><td>output file:docs/CV_TimeSeries/cv_characterization.html changed since it was recorded (117907:3dbc55f5bb59a955 -&gt; 117614:9d00f20bcafabba3) — written out of band</td></tr>
+<tr><td><b>R-CV-S6</b><br><span class='mono-sm'>Report: CV catalogue-tie + calibration page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-19T05:40:49Z</td><td class='mono-sm'>CATTIE_CODE_VERSION</td><td>input db:cvphot:cv_cattie: content changed (26 rows, digest 7fa7fbd8a582b1e5 -&gt; 7812a9274cb2b71c)<br>output file:docs/CV_TimeSeries/cv_catalogue_tie.html changed since it was recorded (93376:bff600dc1a5c4f40 -&gt; 94502:d38d2073bd331009) — written out of band</td></tr>
+<tr><td><b>R-CV-S7</b><br><span class='mono-sm'>Report: CV external-context + branch page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-20T02:57:14Z</td><td class='mono-sm'>EXTERNAL_CODE_VERSION</td><td>output file:docs/CV_TimeSeries/cv_external_context.html changed since it was recorded (37151:c749e9cd9b3b333e -&gt; 36993:437aaea60c7319ed) — written out of band</td></tr>
+<tr><td><b>R-CV-S8</b><br><span class='mono-sm'>Report: CV Phase-2 completion page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-20T04:59:28Z</td><td class='mono-sm'>PHASE2_CODE_VERSION</td><td>output file:docs/CV_TimeSeries/cv_phase2_completion.html changed since it was recorded (63138:ecee891d1845eddc -&gt; 63060:8ca263d0d9fe0b88) — written out of band</td></tr>
+<tr><td><b>R-CV-S9</b><br><span class='mono-sm'>Report: CV Phase-3 time-series analysis page</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-21T15:43:23Z</td><td class='mono-sm'>PHASE3_CODE_VERSION</td><td>upstream not fresh: CV-S9 (STALE_UPSTREAM) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>R-S3</b><br><span class='mono-sm'>Report: S3 timing page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-19T23:47:22Z</td><td class='mono-sm'>S3_CODE_VERSION</td><td>output file:docs/pipeline/s3_timing.html changed since it was recorded (28141:d00cf16495a71b99 -&gt; 27864:f8b0373bb5ae5dbb) — written out of band</td></tr>
 <tr><td><b>S4</b><br><span class='mono-sm'>Ensemble photometry (AN UMa / VV Pup prototype)</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-18T09:06:22.298272+00:00</td><td class='mono-sm'>S4_CODE_VERSION</td><td>input file:pipeline/macro_phot/series.py: changed after this stage ran — external source changed 2026-08-18T20:00:29Z, after this stage ran 2026-08-18T09:06:22.298272+00:00<br>input table:detector_params: appeared (now 82:61da6f94ffe2a4f5)<br>input table:eras: changed after this stage ran — S0 changed 2026-08-18T15:03:50.623928+00:00, after this stage ran 2026-08-18T09:06:22.298272+00:00<br>input table:frames@s4proto: changed after this stage ran — S0 changed 2026-08-18T15:03:50.623928+00:00, after this stage ran 2026-08-18T09:06:22.298272+00:00<br>input table:s2_ceiling_modes: appeared (now 8:600abaa1937f6c60)</td></tr>
-<tr><td><b>R-S4</b><br><span class='mono-sm'>Report: S4 photometry page</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-18T09:06:42Z</td><td class='mono-sm'>S4_CODE_VERSION</td><td>upstream not fresh: S4 (STALE) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>R-S4</b><br><span class='mono-sm'>Report: S4 photometry page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-18T09:06:42Z</td><td class='mono-sm'>S4_CODE_VERSION</td><td>output file:docs/pipeline/s4_photometry.html changed since it was recorded (21039:5d2f20692ad561b9 -&gt; 20758:f87771a7274e7f1d) — written out of band</td></tr>
+<tr><td><b>SN-G0</b><br><span class='mono-sm'>SN 2023ixf Gate 0 (freeze, saturation census, grism triage)</span></td><td><span class='tag' style='background:#999999;color:#1a1a1a'>STALE_UPSTREAM</span></td><td class='mono-sm'>2026-08-21T03:52:33Z</td><td class='mono-sm'>SN_G0_CODE_VERSION</td><td>upstream not fresh: S0 (STALE_UPSTREAM), S2 (STALE_UPSTREAM), S2c (STALE) — this stage&#x27;s own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr><td><b>R-SN-G0</b><br><span class='mono-sm'>Report: SN 2023ixf Gate 0 page</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-21T04:03:34Z</td><td class='mono-sm'>SN_G0_CODE_VERSION</td><td>output file:docs/SN2023ixf_LightCurve/sn_gate0.html changed since it was recorded (41231:dc393c83e06451bf -&gt; 40987:83da67261c24747b) — written out of band</td></tr>
 <tr><td><b>STRAT</b><br><span class='mono-sm'>Five ANALYSIS_STRATEGY.md documents + ROADMAP</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-18T18:47:50Z</td><td class='mono-sm'>(hand-authored)</td><td>input table:frame_dispersion: changed after this stage ran — S2c changed 2026-08-18T19:06:48+00:00, after this stage ran 2026-08-18T18:47:50Z<br>input table:frames: content changed (330865 rows, digest 2d9b5ff26d639a00 -&gt; fe04123f56412cbb)<br>input table:project_counts: content changed (18 rows, digest 4f4f4805ed14f6cf -&gt; b97b903559297fe3)<br>input table:s0c_stage_files: changed after this stage ran — S0c changed 2026-08-18T18:54:04.305718+00:00, after this stage ran 2026-08-18T18:47:50Z</td></tr>
-<tr><td><b>WEB</b><br><span class='mono-sm'>Public project pages (docs/*/index.html)</span></td><td><span class='tag' style='background:#009E73;color:#1a1a1a'>FRESH</span></td><td class='mono-sm'>2026-08-20T20:14:33Z</td><td class='mono-sm'>(hand-authored)</td><td>&mdash;</td></tr>
+<tr><td><b>WEB</b><br><span class='mono-sm'>Public project pages (docs/*/index.html)</span></td><td><span class='tag' style='background:#E69F00;color:#1a1a1a'>STALE</span></td><td class='mono-sm'>2026-08-21T15:35:07Z</td><td class='mono-sm'>(hand-authored)</td><td>output file:docs/index.html changed since it was recorded (11319:09dbc59efb8d59c7 -&gt; 11272:e3fa9432c67688a9) — written out of band</td></tr>
 </tbody></table></div>
-<h2>3 &middot; Live header probe: which small geometries are real?</h2>
+<span class="qanchor" id="sec-3"></span><h2>3 &middot; Live header probe: which small geometries are real?</h2>
 <p>Read from the archive at render time. The test is <code>recorded NAXIS == ZNAXIS</code> &rarr; genuine subframe; <code>recorded NAXIS == BINTABLE NAXIS &ne; ZNAXIS</code> &rarr; phantom. This is what separates the four tiny eras from the two phantom ones, and it is measured rather than assumed.</p>
 <div class='scroll'><table><thead><tr><th>Era</th><th>File</th><th>Recorded</th><th>BINTABLE NAXIS</th><th>True ZNAXIS</th><th>Verdict</th></tr></thead><tbody>
 <tr><td>58</td><td class='mono-sm'>CCD Image 1147.fts.fz</td><td>57&times;48</td><td>8&times;48</td><td>57&times;48</td><td><span class='tag ok'>GENUINE subframe</span></td></tr>
@@ -204,7 +225,7 @@ th{background:var(--card);font-weight:650}
 <tr><td>65</td><td class='mono-sm'>CCD Image 1348.fts.fz</td><td>16&times;23</td><td>8&times;23</td><td>16&times;23</td><td><span class='tag ok'>GENUINE subframe</span></td></tr>
 <tr><td>65</td><td class='mono-sm'>CCD Image 1349.fts.fz</td><td>16&times;23</td><td>8&times;23</td><td>16&times;23</td><td><span class='tag ok'>GENUINE subframe</span></td></tr>
 </tbody></table></div>
-<h2>4 &middot; The invalidation matrix</h2>
+<span class="qanchor" id="sec-4"></span><h2>4 &middot; The invalidation matrix</h2>
 <p><span class='tag ok'>VALID</span> the re-characterizations cannot have changed it &middot; <span class='tag warn'>STALE-RECOMPUTE</span> mechanically re-runnable, no judgement needed &middot; <span class='tag bad'>STALE-REDERIVE</span> a human decision inside it may change &middot; <span class='tag gone'>EVIDENCE-DESTROYED</span> the tables it rests on are absent from the database.</p>
 <h3>Stages</h3>
 <div class='scroll'><table><thead><tr><th style='width:19%'>Subject</th><th style='width:9%'>Verdict</th><th>Evidence</th><th style='width:20%'>What to do</th></tr></thead><tbody>
@@ -238,7 +259,7 @@ th{background:var(--card);font-weight:650}
 <tr><td><b>SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</b></td><td><span class='tag warn'>STALE-RECOMPUTE</span></td><td>Geometry-clean: 0 staged rows in phantom eras.  One filter caveat: 83 of the target&#x27;s canonical frames carry slot &#x27;6&#x27;, which measures AMBIGUOUS on this target (5.8) — between the direct controls (~1.1) and the dispersed grisms (24–45).  Those frames need a per-frame verdict before they enter or leave the light curve.</td><td>Re-stage after S0/S0c; classify the 83 slot-&#x27;6&#x27; frames per frame.</td></tr>
 <tr><td><b>ROADMAP.md</b></td><td><span class='tag warn'>STALE-RECOMPUTE</span></td><td>Quotes stage status and counts that move with S0/S0b/S0c; contains no independent measurement of its own.</td><td>Refresh after the pipeline re-runs.</td></tr>
 </tbody></table></div>
-<h2>4b &middot; The October shopping list, corrected</h2>
+<span class="qanchor" id="sec-5"></span><h2>4b &middot; The October shopping list, corrected</h2>
 <p>The observatory request's Item B table, regenerated from <code>calib_gaps</code> as it stands today and with the phantom eras folded into the configurations they actually are (80&nbsp;&rarr;&nbsp;78, 83&nbsp;&rarr;&nbsp;81). This is a preview of what the request should say, not a replacement for re-running S0/S0b &mdash; the merge is applied here by query so the size of the correction is visible before the rebuild.</p>
 <div class='scroll'><table><thead><tr><th>Era (merged)</th><th>Camera / readout</th><th>Need</th><th>Science frames blocked</th><th>Papers affected</th></tr></thead><tbody>
 <tr><td>78</td><td>Fast</td><td>bias x &gt;=20</td><td>26,937</td><td>BeStar_Grism,CV_TimeSeries,TCrB_Monitoring</td></tr>
@@ -255,48 +276,97 @@ th{background:var(--card);font-weight:650}
 <tr><td>7</td><td>High Gain</td><td>dark 32s x &gt;=15</td><td>6,621</td><td>CV_TimeSeries,TCrB_Monitoring</td></tr>
 </tbody></table></div>
 <p class='mono-sm'>Compare with the shipped request, whose top two rows are 'era 76 Mode0 bias 68,965' and 'era 76 Mode0 flat g 40,031': era 76's bias coverage now reads <b>ok</b>, and the archive's last calibration night is now 2026-01-23, not 2024-11-18.</p>
-<h2>5 &middot; Ordered re-run plan</h2>
-<p>20 stages, in dependency order. Running them top to bottom never rebuilds a stage before the stage it reads. Record each one as it finishes, so the next status check is truthful.</p>
-<pre># 1. R-S0 [STALE] Report: S0 manifest page
+<span class="qanchor" id="sec-6"></span><h2>5 &middot; Ordered re-run plan</h2>
+<p>39 stages, in dependency order. Running them top to bottom never rebuilds a stage before the stage it reads. Record each one as it finishes, so the next status check is truthful.</p>
+<pre># 1. S0e [STALE] Geometry repair of the external catalog
+python pipeline/scripts/rescan_geometry.py run
+python pipeline/scripts/check_pipeline_status.py record S0e
+
+# 2. S0 [STALE_UPSTREAM] Manifest (dedup, aliases, eras, pointing)
+python pipeline/scripts/build_s0_manifest.py
+python pipeline/scripts/check_pipeline_status.py record S0
+
+# 3. R-S0 [STALE] Report: S0 manifest page
 python pipeline/scripts/check_pipeline_status.py render R-S0
 python pipeline/scripts/check_pipeline_status.py record R-S0
 
-# 2. G [STALE] Grism extraction + identity gate (T CrB)
+# 4. S0b [STALE_UPSTREAM] Calibration inventory (links, coverage, gaps)
+python pipeline/scripts/build_s0b_inventory.py
+python pipeline/scripts/check_pipeline_status.py record S0b
+
+# 5. G [STALE] Grism extraction + identity gate (T CrB)
 python pipeline/scripts/run_g_tcrb_validation.py --all
 python pipeline/scripts/check_pipeline_status.py record G
 
-# 3. OPS [STALE] Observatory request (October shopping list)
+# 6. OPS [STALE] Observatory request (October shopping list)
 (hand-authored — regenerate the numbers from calib_gaps)
 python pipeline/scripts/check_pipeline_status.py record OPS
 
-# 4. R-S0b [STALE] Report: S0b calibration inventory page
+# 7. R-S0b [STALE] Report: S0b calibration inventory page
 python pipeline/scripts/check_pipeline_status.py render R-S0b
 python pipeline/scripts/check_pipeline_status.py record R-S0b
 
-# 5. R-S0c [STALE] Report: S0c staging page
+# 8. S0c [STALE_UPSTREAM] Per-project staging manifests
+python pipeline/scripts/build_s0c_staging.py
+python pipeline/scripts/check_pipeline_status.py record S0c
+
+# 9. R-S0c [STALE] Report: S0c staging page
 python pipeline/scripts/check_pipeline_status.py render R-S0c
 python pipeline/scripts/check_pipeline_status.py record R-S0c
 
-# 6. S2c [STALE] Per-frame dispersion (is this FILTER a spectrum?)
+# 10. S1b [STALE_UPSTREAM] Astrometry production batch
+python pipeline/scripts/run_s1_batch.py enqueue
+python pipeline/scripts/run_s1_batch.py run
+python pipeline/scripts/check_pipeline_status.py record S1b
+
+# 11. S2 [STALE_UPSTREAM] Detector truth (ceiling, PTC, recon, linearity)
+python pipeline/scripts/run_s2_campaign.py ceiling
+python pipeline/scripts/run_s2_campaign.py ceilpos
+python pipeline/scripts/run_s2_campaign.py params
+python pipeline/scripts/run_s2_campaign.py ptc
+python pipeline/scripts/run_s2_campaign.py noise
+python pipeline/scripts/run_s2_campaign.py reconstruct
+python pipeline/scripts/run_s2_campaign.py linearity
+python pipeline/scripts/run_s2_campaign.py params
+python pipeline/scripts/check_pipeline_status.py record S2
+
+# 12. R-S2 [STALE] Report: S2 detector page
+python pipeline/scripts/run_s2_campaign.py report
+python pipeline/scripts/check_pipeline_status.py record R-S2
+
+# 13. S2c [STALE] Per-frame dispersion (is this FILTER a spectrum?)
 python pipeline/scripts/run_s2c_dispersion.py build
 python pipeline/scripts/run_s2c_dispersion.py run
 python pipeline/scripts/check_pipeline_status.py record S2c
 
-# 7. R-S2c [STALE_UPSTREAM] Report: S2c filter-identity page
+# 14. R-S2c [STALE] Report: S2c filter-identity page
 python pipeline/scripts/run_s2c_dispersion.py report
 python pipeline/scripts/check_pipeline_status.py record R-S2c
 
-# 8. S1 [STALE_UPSTREAM] Astrometry solvability experiment
+# 15. S1 [STALE_UPSTREAM] Astrometry solvability experiment
 python pipeline/scripts/run_s1_experiment.py design
 python pipeline/scripts/run_s1_experiment.py run
 python pipeline/scripts/run_s1_experiment.py autopsy
 python pipeline/scripts/check_pipeline_status.py record S1
 
-# 9. R-S1 [STALE_UPSTREAM] Report: S1 astrometry page
+# 16. R-S1 [STALE_UPSTREAM] Report: S1 astrometry page
 python pipeline/scripts/run_s1_experiment.py report
 python pipeline/scripts/check_pipeline_status.py record R-S1
 
-# 10. CV-S5 [STALE] CV data characterization (quality, noise, sampling, detectability, timing)
+# 17. S3 [STALE_UPSTREAM] Timing (BJD_TDB, clock, cadence)
+python pipeline/scripts/build_s3_timing.py
+python pipeline/scripts/check_pipeline_status.py record S3
+
+# 18. CV-S4 [STALE_UPSTREAM] Production CV photometry (five staged targets)
+python pipeline/scripts/run_cv_photometry.py init
+python pipeline/scripts/run_cv_photometry.py extract
+python pipeline/scripts/run_cv_photometry.py match
+python pipeline/scripts/run_cv_photometry.py field
+python pipeline/scripts/run_cv_photometry.py ensemble
+python pipeline/scripts/run_cv_photometry.py errors
+python pipeline/scripts/check_pipeline_status.py record CV-S4
+
+# 19. CV-S5 [STALE] CV data characterization (quality, noise, sampling, detectability, timing)
 python pipeline/scripts/run_cv_characterization.py quality
 python pipeline/scripts/run_cv_characterization.py trail
 python pipeline/scripts/run_cv_characterization.py noise
@@ -306,35 +376,86 @@ python pipeline/scripts/run_cv_characterization.py timing
 python pipeline/scripts/run_cv_characterization.py verdict
 python pipeline/scripts/check_pipeline_status.py record CV-S5
 
-# 11. CV-S11 [STALE] CV manuscript figure set (the thirteen figures of the strategy&#x27;s §7)
+# 20. CV-S6 [STALE_UPSTREAM] CV catalogue tie (relative magnitudes -&gt; natural-system magnitudes on a standard zero point)
+python pipeline/scripts/run_cv_cattie.py fieldfix
+python pipeline/scripts/run_cv_cattie.py fetch
+python pipeline/scripts/run_cv_cattie.py match
+python pipeline/scripts/run_cv_cattie.py solve
+python pipeline/scripts/run_cv_cattie.py validate
+python pipeline/scripts/run_cv_cattie.py apply
+python pipeline/scripts/check_pipeline_status.py record CV-S6
+
+# 21. CV-S7 [STALE_UPSTREAM] External survey record + YZ Cnc accretion-state branch decision
+python pipeline/scripts/run_cv_external.py fetch
+python pipeline/scripts/run_cv_external.py classify
+python pipeline/scripts/check_pipeline_status.py record CV-S7
+
+# 22. CV-S8 [STALE_UPSTREAM] CV Phase-2 completion (cloud veto, colour extinction, cross-era metadata, faint limits)
+python pipeline/scripts/run_cv_phase2.py cloud
+python pipeline/scripts/run_cv_phase2.py extinction
+python pipeline/scripts/run_cv_phase2.py crossera
+python pipeline/scripts/run_cv_phase2.py forced
+python pipeline/scripts/run_cv_phase2.py report
+python pipeline/scripts/check_pipeline_status.py record CV-S8
+
+# 23. CV-S9 [STALE_UPSTREAM] CV Phase-3 time-series analysis (periods, sigma_t, edge timing, O-C, states, detrending)
+python pipeline/scripts/run_cv_phase3.py ephem
+python pipeline/scripts/run_cv_phase3.py periods
+python pipeline/scripts/run_cv_phase3.py sigmat
+python pipeline/scripts/run_cv_phase3.py edges
+python pipeline/scripts/run_cv_phase3.py oc
+python pipeline/scripts/run_cv_phase3.py states
+python pipeline/scripts/run_cv_phase3.py detrend
+python pipeline/scripts/run_cv_phase3.py report
+python pipeline/scripts/check_pipeline_status.py record CV-S9
+
+# 24. CV-S10 [STALE_UPSTREAM] CV closing science decisions (YZ Cnc fallback branch; AN UMa go/no-go per filter)
+python pipeline/scripts/run_cv_final.py hump
+python pipeline/scripts/run_cv_final.py flicker
+python pipeline/scripts/run_cv_final.py outburst
+python pipeline/scripts/run_cv_final.py gate
+python pipeline/scripts/run_cv_final.py anuma
+python pipeline/scripts/run_cv_final.py verdict
+python pipeline/scripts/run_cv_final.py report
+python pipeline/scripts/check_pipeline_status.py record CV-S10
+
+# 25. CV-S11 [STALE_UPSTREAM] CV manuscript figure set (the thirteen figures of the strategy&#x27;s §7)
 python pipeline/scripts/run_cv_paper.py figures
 python pipeline/scripts/check_pipeline_status.py record CV-S11
 
-# 12. R-CV-S10 [STALE] Report: CV closing-decisions page
+# 26. R-CV-S10 [STALE] Report: CV closing-decisions page
 python pipeline/scripts/run_cv_final.py report
 python pipeline/scripts/check_pipeline_status.py record R-CV-S10
 
-# 13. R-CV-S11 [STALE_UPSTREAM] CV manuscript numbers, captions and tables
+# 27. R-CV-S11 [STALE_UPSTREAM] CV manuscript numbers, captions and tables
 python pipeline/scripts/run_cv_paper.py report
 python pipeline/scripts/check_pipeline_status.py record R-CV-S11
 
-# 14. R-CV-S5 [STALE] Report: CV characterization + verdict page
+# 28. R-CV-S5 [STALE] Report: CV characterization + verdict page
 python pipeline/scripts/run_cv_characterization.py report
 python pipeline/scripts/check_pipeline_status.py record R-CV-S5
 
-# 15. R-CV-S6 [STALE] Report: CV catalogue-tie + calibration page
+# 29. R-CV-S6 [STALE] Report: CV catalogue-tie + calibration page
 python pipeline/scripts/run_cv_cattie.py report
 python pipeline/scripts/check_pipeline_status.py record R-CV-S6
 
-# 16. R-CV-S7 [STALE] Report: CV external-context + branch page
+# 30. R-CV-S7 [STALE] Report: CV external-context + branch page
 python pipeline/scripts/run_cv_external.py report
 python pipeline/scripts/check_pipeline_status.py record R-CV-S7
 
-# 17. R-CV-S9 [STALE] Report: CV Phase-3 time-series analysis page
+# 31. R-CV-S8 [STALE] Report: CV Phase-2 completion page
+python pipeline/scripts/run_cv_phase2.py report
+python pipeline/scripts/check_pipeline_status.py record R-CV-S8
+
+# 32. R-CV-S9 [STALE_UPSTREAM] Report: CV Phase-3 time-series analysis page
 python pipeline/scripts/run_cv_phase3.py report
 python pipeline/scripts/check_pipeline_status.py record R-CV-S9
 
-# 18. S4 [STALE] Ensemble photometry (AN UMa / VV Pup prototype)
+# 33. R-S3 [STALE] Report: S3 timing page
+python pipeline/scripts/build_s3_timing.py --stage report
+python pipeline/scripts/check_pipeline_status.py record R-S3
+
+# 34. S4 [STALE] Ensemble photometry (AN UMa / VV Pup prototype)
 python pipeline/scripts/build_s4_photometry.py init
 python pipeline/scripts/build_s4_photometry.py extract
 python pipeline/scripts/build_s4_photometry.py match
@@ -343,15 +464,32 @@ python pipeline/scripts/build_s4_photometry.py ensemble
 python pipeline/scripts/build_s4_photometry.py errors
 python pipeline/scripts/check_pipeline_status.py record S4
 
-# 19. R-S4 [STALE_UPSTREAM] Report: S4 photometry page
+# 35. R-S4 [STALE] Report: S4 photometry page
 python pipeline/scripts/build_s4_photometry.py report
 python pipeline/scripts/check_pipeline_status.py record R-S4
 
-# 20. STRAT [STALE] Five ANALYSIS_STRATEGY.md documents + ROADMAP
+# 36. SN-G0 [STALE_UPSTREAM] SN 2023ixf Gate 0 (freeze, saturation census, grism triage)
+python pipeline/scripts/run_sn_gate0.py freeze
+python pipeline/scripts/run_sn_gate0.py census
+python pipeline/scripts/run_sn_gate0.py measure
+python pipeline/scripts/run_sn_gate0.py matrix
+python pipeline/scripts/run_sn_gate0.py triage
+python pipeline/scripts/run_sn_gate0.py verdicts
+python pipeline/scripts/check_pipeline_status.py record SN-G0
+
+# 37. R-SN-G0 [STALE] Report: SN 2023ixf Gate 0 page
+python pipeline/scripts/run_sn_gate0.py report
+python pipeline/scripts/check_pipeline_status.py record R-SN-G0
+
+# 38. STRAT [STALE] Five ANALYSIS_STRATEGY.md documents + ROADMAP
 (hand-authored — reconcile against project_counts and the per-frame verdicts in frame_dispersion)
 python pipeline/scripts/check_pipeline_status.py record STRAT
+
+# 39. WEB [STALE] Public project pages (docs/*/index.html)
+(hand-authored — reconcile against project_counts)
+python pipeline/scripts/check_pipeline_status.py record WEB
 </pre>
-<h2>6 &middot; What is fingerprinted, and why</h2>
+<span class="qanchor" id="sec-7"></span><h2>6 &middot; What is fingerprinted, and why</h2>
 <p>A fingerprint over every column would mark everything permanently stale; a fingerprint over nothing marks everything permanently fresh. Each resource below hashes exactly the columns a downstream stage reads to make a decision, and says which columns were deliberately left out.</p>
 <div class='scroll'><table><thead><tr><th style='width:20%'>Resource</th><th style='width:30%'>Columns hashed</th><th>Why these</th><th style='width:12%'>Current</th></tr></thead><tbody>
 <tr><td class='mono-sm'>db:cvchar:ch_contour</td><td class='mono-sm'>scope, regime, score, printf(&#x27;%.6f&#x27;, period_d), printf(&#x27;%.6f&#x27;, coalesce(amp90,-1))</td><td>The detection contours, keyed by SCORE MODE.  The score column is part of the identity: the same injections scored as blind period determination rather than as detection at a known period give answers 3-8x apart, and quoting one under the other&#x27;s name is the defect this column exists to prevent.</td><td class='mono-sm'>224:9edabf5a3d6a80fa</td></tr>
@@ -399,28 +537,29 @@ python pipeline/scripts/check_pipeline_status.py record STRAT
 <tr><td class='mono-sm'>file:ROADMAP.md</td><td class='mono-sm'>(whole file)</td><td>The roadmap quotes stage status and per-project frame counts drawn from project_counts and s0c_stage_files.  It contains no independent measurement, so every number in it moves when those tables move.</td><td class='mono-sm'>31834:0be38850db37525b</td></tr>
 <tr><td class='mono-sm'>file:SN2023ixf_LightCurve/ANALYSIS_STRATEGY.md</td><td class='mono-sm'>(whole file)</td><td>SN2023ixf_LightCurve strategy document — quotes staged counts and filter rules.</td><td class='mono-sm'>48143:c0a997b0df669d64</td></tr>
 <tr><td class='mono-sm'>file:TCrB_Monitoring/ANALYSIS_STRATEGY.md</td><td class='mono-sm'>(whole file)</td><td>TCrB_Monitoring strategy document — quotes staged counts and filter rules.</td><td class='mono-sm'>47283:4b3e9240686d702f</td></tr>
-<tr><td class='mono-sm'>file:docs/BeStar_Grism/index.html</td><td class='mono-sm'>(whole file)</td><td>Public BeStar_Grism page — hand-authored, quoting staged counts and per-target totals.  Whole-file hash.</td><td class='mono-sm'>30876:b06dbbd9e2c2132f</td></tr>
-<tr><td class='mono-sm'>file:docs/CV_TimeSeries/cv_catalogue_tie.html</td><td class='mono-sm'>(whole file)</td><td>CV-S6 catalogue-tie page: which catalogue, which stars carried the tie, the zero point and colour term per block, the accuracy achieved on independent check stars, the cross-catalogue systematic, and the list of blocks left RELATIVE with the reason for each.  Whole-file hash — every byte of a published page is the claim.</td><td class='mono-sm'>94788:92915ebc9ce86d8f</td></tr>
-<tr><td class='mono-sm'>file:docs/CV_TimeSeries/cv_characterization.html</td><td class='mono-sm'>(whole file)</td><td>CV-S5 characterization page: measured image quality, noise floor, spectral window, detectability contours, epoch precision, and the goal-by-goal verdict on ANALYSIS_STRATEGY.md.  Whole-file hash.</td><td class='mono-sm'>117907:4aa3bd8ca8a425b5</td></tr>
-<tr><td class='mono-sm'>file:docs/CV_TimeSeries/cv_external_context.html</td><td class='mono-sm'>(whole file)</td><td>CV-S7 external-context page: the YZ Cnc state timeline with our nights overlaid, the per-target survey coverage, the branch decision and the explicit statement of what the external record cannot do.  Whole-file hash — every byte of a published page is the claim.</td><td class='mono-sm'>37151:59a4a536393dfec0</td></tr>
-<tr><td class='mono-sm'>file:docs/CV_TimeSeries/cv_final_science.html</td><td class='mono-sm'>(whole file)</td><td>CV-S10 closing-decisions page: YZ Cnc&#x27;s quiescent orbital hump against TWO nulls (magnitude-matched field stars and the star&#x27;s own rolled residuals), flickering amplitude against timescale over a measured floor, the strategy&#x27;s §4.19 signal-to-noise gate executed, the normal-outburst runs characterised on their own terms with the blind-search contour that closes the superhump question, and AN UMa graded capability by capability per filter.  Whole-file hash -- every byte of a published page is the claim.</td><td class='mono-sm'>84122:df20ed16fb38beb8</td></tr>
-<tr><td class='mono-sm'>file:docs/CV_TimeSeries/cv_phase2_completion.html</td><td class='mono-sm'>(whole file)</td><td>CV-S8 Phase-2 completion page: the ensemble-flux-ratio cloud veto with its ZMAG calibration and its sculpting test, the second-order colour-extinction coefficients with the star-bootstrap uncertainties that decide whether any of them survive, the cross-era transformation metadata with the discipline assertions, and the faint-phase upper limits with the state statistics recomputed both ways.  Whole-file hash — every byte of a published page is the claim.</td><td class='mono-sm'>63138:ecee891d1845eddc</td></tr>
-<tr><td class='mono-sm'>file:docs/CV_TimeSeries/cv_timeseries_analysis.html</td><td class='mono-sm'>(whole file)</td><td>CV-S9 Phase-3 page: the period verification with the spectral window beside every periodogram, the sigma_t injection contour against the 60 s threshold, the per-band bright-phase edge timing, the O-C with its cycle-count and one-feature gates, the accretion-state duty cycles computed with the Phase-2 limits, and the detrend-versus-joint-fit demonstration.  Whole-file hash -- every byte of a published page is the claim.</td><td class='mono-sm'>72527:421bde397927162f</td></tr>
-<tr><td class='mono-sm'>file:docs/CV_TimeSeries/index.html</td><td class='mono-sm'>(whole file)</td><td>Public CV_TimeSeries page — hand-authored, quoting staged counts and per-target totals.  Whole-file hash.</td><td class='mono-sm'>36002:89b79675826dbac7</td></tr>
-<tr><td class='mono-sm'>file:docs/DwarfGalaxy_AGN_Survey/index.html</td><td class='mono-sm'>(whole file)</td><td>Public DwarfGalaxy_AGN_Survey page — hand-authored, quoting staged counts and per-target totals.  Whole-file hash.</td><td class='mono-sm'>41246:721d87ab7153ee34</td></tr>
-<tr><td class='mono-sm'>file:docs/Legacy_Rigel/index.html</td><td class='mono-sm'>(whole file)</td><td>Public Legacy_Rigel page — hand-authored, quoting staged counts and per-target totals.  Whole-file hash.</td><td class='mono-sm'>18610:68610124fb60f108</td></tr>
-<tr><td class='mono-sm'>file:docs/SN2023ixf_LightCurve/index.html</td><td class='mono-sm'>(whole file)</td><td>Public SN2023ixf_LightCurve page — hand-authored, quoting staged counts and per-target totals.  Whole-file hash.</td><td class='mono-sm'>31043:e7a11f956719ead3</td></tr>
-<tr><td class='mono-sm'>file:docs/TCrB_Monitoring/index.html</td><td class='mono-sm'>(whole file)</td><td>Public TCrB_Monitoring page — hand-authored, quoting staged counts and per-target totals.  Whole-file hash.</td><td class='mono-sm'>40956:853f1d6a6971aba0</td></tr>
-<tr><td class='mono-sm'>file:docs/index.html</td><td class='mono-sm'>(whole file)</td><td>The public index, linking and summarising every project page.  Declared so the gate covers it; this module never writes it.</td><td class='mono-sm'>10605:c2838b6e7a36fc48</td></tr>
-<tr><td class='mono-sm'>file:docs/pipeline/s0_manifest.html</td><td class='mono-sm'>(whole file)</td><td>S0 chain-of-evidence page: published dedup, alias, era and pointing numbers.  Whole-file hash — every byte of a published page is the claim.</td><td class='mono-sm'>40296:72254eba728ae07d</td></tr>
-<tr><td class='mono-sm'>file:docs/pipeline/s0b_calibration_inventory.html</td><td class='mono-sm'>(whole file)</td><td>S0b inventory page — the source the October observatory request quotes its era-resolved shopping list from.  Whole-file hash.</td><td class='mono-sm'>26266:c5bccb322327b1d3</td></tr>
-<tr><td class='mono-sm'>file:docs/pipeline/s0c_staging.html</td><td class='mono-sm'>(whole file)</td><td>S0c staging page: the per-project selection rules and staged counts each ANALYSIS_STRATEGY.md is diffed against.  Whole-file hash.</td><td class='mono-sm'>24188:bcff28e97457d858</td></tr>
-<tr><td class='mono-sm'>file:docs/pipeline/s0e_geometry_fix.html</td><td class='mono-sm'>(whole file)</td><td>S0e geometry-repair page: which frames carried BINTABLE geometry, which were repaired, and which small-NAXIS eras are genuine subframes.  Whole-file hash.</td><td class='mono-sm'>17971:8b4c95759531f805</td></tr>
+<tr><td class='mono-sm'>file:docs/BeStar_Grism/index.html</td><td class='mono-sm'>(whole file)</td><td>Public BeStar_Grism page — hand-authored, quoting staged counts and per-target totals.  Whole-file hash.</td><td class='mono-sm'>30061:ed79e84fc5ae77c1</td></tr>
+<tr><td class='mono-sm'>file:docs/CV_TimeSeries/cv_catalogue_tie.html</td><td class='mono-sm'>(whole file)</td><td>CV-S6 catalogue-tie page: which catalogue, which stars carried the tie, the zero point and colour term per block, the accuracy achieved on independent check stars, the cross-catalogue systematic, and the list of blocks left RELATIVE with the reason for each.  Whole-file hash — every byte of a published page is the claim.</td><td class='mono-sm'>94502:d38d2073bd331009</td></tr>
+<tr><td class='mono-sm'>file:docs/CV_TimeSeries/cv_characterization.html</td><td class='mono-sm'>(whole file)</td><td>CV-S5 characterization page: measured image quality, noise floor, spectral window, detectability contours, epoch precision, and the goal-by-goal verdict on ANALYSIS_STRATEGY.md.  Whole-file hash.</td><td class='mono-sm'>117614:9d00f20bcafabba3</td></tr>
+<tr><td class='mono-sm'>file:docs/CV_TimeSeries/cv_external_context.html</td><td class='mono-sm'>(whole file)</td><td>CV-S7 external-context page: the YZ Cnc state timeline with our nights overlaid, the per-target survey coverage, the branch decision and the explicit statement of what the external record cannot do.  Whole-file hash — every byte of a published page is the claim.</td><td class='mono-sm'>36993:437aaea60c7319ed</td></tr>
+<tr><td class='mono-sm'>file:docs/CV_TimeSeries/cv_final_science.html</td><td class='mono-sm'>(whole file)</td><td>CV-S10 closing-decisions page: YZ Cnc&#x27;s quiescent orbital hump against TWO nulls (magnitude-matched field stars and the star&#x27;s own rolled residuals), flickering amplitude against timescale over a measured floor, the strategy&#x27;s §4.19 signal-to-noise gate executed, the normal-outburst runs characterised on their own terms with the blind-search contour that closes the superhump question, and AN UMa graded capability by capability per filter.  Whole-file hash -- every byte of a published page is the claim.</td><td class='mono-sm'>83847:4693501986e262ea</td></tr>
+<tr><td class='mono-sm'>file:docs/CV_TimeSeries/cv_phase2_completion.html</td><td class='mono-sm'>(whole file)</td><td>CV-S8 Phase-2 completion page: the ensemble-flux-ratio cloud veto with its ZMAG calibration and its sculpting test, the second-order colour-extinction coefficients with the star-bootstrap uncertainties that decide whether any of them survive, the cross-era transformation metadata with the discipline assertions, and the faint-phase upper limits with the state statistics recomputed both ways.  Whole-file hash — every byte of a published page is the claim.</td><td class='mono-sm'>63060:8ca263d0d9fe0b88</td></tr>
+<tr><td class='mono-sm'>file:docs/CV_TimeSeries/cv_timeseries_analysis.html</td><td class='mono-sm'>(whole file)</td><td>CV-S9 Phase-3 page: the period verification with the spectral window beside every periodogram, the sigma_t injection contour against the 60 s threshold, the per-band bright-phase edge timing, the O-C with its cycle-count and one-feature gates, the accretion-state duty cycles computed with the Phase-2 limits, and the detrend-versus-joint-fit demonstration.  Whole-file hash -- every byte of a published page is the claim.</td><td class='mono-sm'>71327:cd0001989a989c66</td></tr>
+<tr><td class='mono-sm'>file:docs/CV_TimeSeries/index.html</td><td class='mono-sm'>(whole file)</td><td>Public CV_TimeSeries page — hand-authored, quoting staged counts and per-target totals.  Whole-file hash.</td><td class='mono-sm'>37158:9cf69b2e81462f71</td></tr>
+<tr><td class='mono-sm'>file:docs/DwarfGalaxy_AGN_Survey/index.html</td><td class='mono-sm'>(whole file)</td><td>Public DwarfGalaxy_AGN_Survey page — hand-authored, quoting staged counts and per-target totals.  Whole-file hash.</td><td class='mono-sm'>40950:3492bde3f96d8a70</td></tr>
+<tr><td class='mono-sm'>file:docs/Legacy_Rigel/index.html</td><td class='mono-sm'>(whole file)</td><td>Public Legacy_Rigel page — hand-authored, quoting staged counts and per-target totals.  Whole-file hash.</td><td class='mono-sm'>17392:b465ab85953e72e5</td></tr>
+<tr><td class='mono-sm'>file:docs/SN2023ixf_LightCurve/index.html</td><td class='mono-sm'>(whole file)</td><td>Public SN2023ixf_LightCurve page — hand-authored, quoting staged counts and per-target totals.  Whole-file hash.</td><td class='mono-sm'>30893:8d61a5a12546c637</td></tr>
+<tr><td class='mono-sm'>file:docs/SN2023ixf_LightCurve/sn_gate0.html</td><td class='mono-sm'>(whole file)</td><td>SN 2023ixf Gate 0 page: the manifest freeze, the saturation matrix, the grism triage and the four verdicts that decide the paper&#x27;s scope and its venue posture.  Whole-file hash.</td><td class='mono-sm'>40987:83da67261c24747b</td></tr>
+<tr><td class='mono-sm'>file:docs/TCrB_Monitoring/index.html</td><td class='mono-sm'>(whole file)</td><td>Public TCrB_Monitoring page — hand-authored, quoting staged counts and per-target totals.  Whole-file hash.</td><td class='mono-sm'>40304:b0ad9e75fa9f9195</td></tr>
+<tr><td class='mono-sm'>file:docs/index.html</td><td class='mono-sm'>(whole file)</td><td>The public index, linking and summarising every project page.  Declared so the gate covers it; this module never writes it.</td><td class='mono-sm'>11272:e3fa9432c67688a9</td></tr>
+<tr><td class='mono-sm'>file:docs/pipeline/s0_manifest.html</td><td class='mono-sm'>(whole file)</td><td>S0 chain-of-evidence page: published dedup, alias, era and pointing numbers.  Whole-file hash — every byte of a published page is the claim.</td><td class='mono-sm'>40043:20ed5108d4c44ec8</td></tr>
+<tr><td class='mono-sm'>file:docs/pipeline/s0b_calibration_inventory.html</td><td class='mono-sm'>(whole file)</td><td>S0b inventory page — the source the October observatory request quotes its era-resolved shopping list from.  Whole-file hash.</td><td class='mono-sm'>25985:30ca27856b48e8d3</td></tr>
+<tr><td class='mono-sm'>file:docs/pipeline/s0c_staging.html</td><td class='mono-sm'>(whole file)</td><td>S0c staging page: the per-project selection rules and staged counts each ANALYSIS_STRATEGY.md is diffed against.  Whole-file hash.</td><td class='mono-sm'>23928:a652057d840d9bfb</td></tr>
+<tr><td class='mono-sm'>file:docs/pipeline/s0e_geometry_fix.html</td><td class='mono-sm'>(whole file)</td><td>S0e geometry-repair page: which frames carried BINTABLE geometry, which were repaired, and which small-NAXIS eras are genuine subframes.  Whole-file hash.</td><td class='mono-sm'>17531:e8fb9f92824be178</td></tr>
 <tr><td class='mono-sm'>file:docs/pipeline/s1_astrometry.html</td><td class='mono-sm'>(whole file)</td><td>S1 astrometry verdict page: the GO/CAUTION/NO-GO calls per stratum, including the frames written off as unsolvable.  Whole-file hash.</td><td class='mono-sm'>33878:3c7d43e7e16144fe</td></tr>
-<tr><td class='mono-sm'>file:docs/pipeline/s2_detector.html</td><td class='mono-sm'>(whole file)</td><td>S2 detector-truth page: ceiling, gain, read noise and linearity — the numbers every later error budget inherits.  Whole-file hash.</td><td class='mono-sm'>23943:95432ad768627f28</td></tr>
-<tr><td class='mono-sm'>file:docs/pipeline/s2c_filter_identity.html</td><td class='mono-sm'>(whole file)</td><td>S2c filter-identity page: the per-frame dispersion verdicts that decide which FILTER labels denote a spectrum.  Whole-file hash.</td><td class='mono-sm'>44616:d6a56ba7cd20c795</td></tr>
-<tr><td class='mono-sm'>file:docs/pipeline/s3_timing.html</td><td class='mono-sm'>(whole file)</td><td>S3 timing page: BJD_TDB method, clock drift and the frame-center caveat.  Whole-file hash.</td><td class='mono-sm'>28141:d00cf16495a71b99</td></tr>
-<tr><td class='mono-sm'>file:docs/pipeline/s4_photometry.html</td><td class='mono-sm'>(whole file)</td><td>S4 photometry page: the AN UMa / VV Pup prototype light curves and their empirical error model.  Whole-file hash.</td><td class='mono-sm'>21039:5d2f20692ad561b9</td></tr>
+<tr><td class='mono-sm'>file:docs/pipeline/s2_detector.html</td><td class='mono-sm'>(whole file)</td><td>S2 detector-truth page: ceiling, gain, read noise and linearity — the numbers every later error budget inherits.  Whole-file hash.</td><td class='mono-sm'>23699:5fea2160d5521bed</td></tr>
+<tr><td class='mono-sm'>file:docs/pipeline/s2c_filter_identity.html</td><td class='mono-sm'>(whole file)</td><td>S2c filter-identity page: the per-frame dispersion verdicts that decide which FILTER labels denote a spectrum.  Whole-file hash.</td><td class='mono-sm'>44370:98bd201236599879</td></tr>
+<tr><td class='mono-sm'>file:docs/pipeline/s3_timing.html</td><td class='mono-sm'>(whole file)</td><td>S3 timing page: BJD_TDB method, clock drift and the frame-center caveat.  Whole-file hash.</td><td class='mono-sm'>27864:f8b0373bb5ae5dbb</td></tr>
+<tr><td class='mono-sm'>file:docs/pipeline/s4_photometry.html</td><td class='mono-sm'>(whole file)</td><td>S4 photometry page: the AN UMa / VV Pup prototype light curves and their empirical error model.  Whole-file hash.</td><td class='mono-sm'>20758:f87771a7274e7f1d</td></tr>
 <tr><td class='mono-sm'>file:ops/2026-08_observatory_request.md</td><td class='mono-sm'>(whole file)</td><td>The October shopping list, quoting calib_gaps rows by number.</td><td class='mono-sm'>9574:2dfad1b6c4a21432</td></tr>
 <tr><td class='mono-sm'>file:pipeline/macro_phot/cattie.py</td><td class='mono-sm'>(whole file)</td><td>The catalogue-tie arithmetic: the cleanliness gate, the robust ZP + colour-term fit, the colour-range rules and every verdict threshold.  A change here changes what a published magnitude is, so it is an INPUT to the tie stage and to its page.</td><td class='mono-sm'>69846:34dced0c197e78ef</td></tr>
 <tr><td class='mono-sm'>file:pipeline/macro_phot/characterize.py</td><td class='mono-sm'>(whole file)</td><td>The pure characterization arithmetic: the detector constants quoted from S2, the degradation factor that sets every quality cut, the false-alarm probability and the recovery level.  Changing any of them changes every verdict on the CV-S5 page, so the page is stale the moment this file moves.</td><td class='mono-sm'>66286:2bdeb29243192f2f</td></tr>
@@ -462,17 +601,26 @@ python pipeline/scripts/check_pipeline_status.py record STRAT
 <tr><td class='mono-sm'>table:s3_cadence</td><td class='mono-sm'>rowid</td><td>Cadence roll-up; identity-only for the same reason as s3_clock_drift.</td><td class='mono-sm'>174:729ddea7d8948b1b</td></tr>
 <tr><td class='mono-sm'>table:s3_clock_drift</td><td class='mono-sm'>rowid</td><td>Clock-drift evidence rows; identity-only fingerprint (row count is the meaningful signal, the residuals are float-noisy by construction).</td><td class='mono-sm'>239:ef223dc06053aecc</td></tr>
 <tr><td class='mono-sm'>table:s3_header_audit</td><td class='mono-sm'>path, coalesce(era_id,-1), naxis1, naxis2, round(coalesce(corner_ltt_s,-1),6), coalesce(pixscale_source,&#x27;&#x27;)</td><td>The header-semantics + field-geometry audit.  Its naxis columns come from re-reading each FITS header, NOT from frames — which is why this table already carries TRUE geometry while frames does not.</td><td class='mono-sm'>40:76114244a9709986</td></tr>
+<tr><td class='mono-sm'>table:sn_g0_bands</td><td class='mono-sm'>band_role, filter, n_frames, n_images, n_clean, n_suspect, n_rejected, n_bounded_clean, n_undetermined, n_usable, first_clean_night</td><td>Gate 0b&#x27;s published per-band summary: the usable-frame counts and the measured clean start per band.  n_usable is the deciding number of the paper&#x27;s first Gate 0 question, so it is hashed.</td><td class='mono-sm'>8:216cf1f7b66f7cae</td></tr>
+<tr><td class='mono-sm'>table:sn_g0_census</td><td class='mono-sm'>obs_rowid, status, quality, round(coalesce(peak_adu, -1), 1), round(coalesce(box_max_adu, -1), 1), round(coalesce(isolation_px, -1), 1), saturation_class</td><td>Gate 0b: the per-frame peak-ADU measurement of the supernova itself. The predicted and found PIXEL POSITIONS are deliberately LEFT OUT of the fingerprint — they move in the last decimal with any astropy WCS revision without changing a single verdict, and a digest that churned on them would send this stage stale for no reason.  What IS hashed is every number a decision reads: the peak, the bound, the isolation radius and the class they produce.</td><td class='mono-sm'>1461:ea9ef99609a65d86</td></tr>
+<tr><td class='mono-sm'>table:sn_g0_frames</td><td class='mono-sm'>obs_rowid, path, night, filter, round(exptime, 3), epoch_role, band_role, dispersion_class, is_image</td><td>Gate 0a: the frozen, globally deduplicated, ALIAS-MERGED frame list the whole paper counts from.  dispersion_class and is_image are in the fingerprint because they are S2c&#x27;s verdict carried forward — if a re-measurement turns one frame from a spectrum into an image, the usable-frame census on the Gate 0 page changes and must be seen to.</td><td class='mono-sm'>1461:b7a4044d7e086506</td></tr>
+<tr><td class='mono-sm'>table:sn_g0_verdict</td><td class='mono-sm'>question_id, verdict, deciding_number, moved</td><td>The Gate 0 answers.  The DECIDING NUMBER string is hashed alongside the verdict because the page renders it verbatim: a re-run that kept the word &#x27;NO-GO&#x27; while moving the number behind it would publish a sentence nothing in the database supports.</td><td class='mono-sm'>4:85b72b46c2e34d78</td></tr>
 <tr><td class='mono-sm'>table:stage_bestar_grism</td><td class='mono-sm'>path, role, coalesce(era_id,-1), lower(coalesce(filter,&#x27;&#x27;)), coalesce(match_basis,&#x27;&#x27;)</td><td>Which file is staged in which role for this project.  LEFT OUT: stage_build_id — it embeds the build TIMESTAMP, so hashing it would mark this table changed on every rebuild even when the selection is byte-identical.  That column is the canonical example of the volatile-column trap this module exists to avoid.</td><td class='mono-sm'>4869:95e2d2c89bf820a5</td></tr>
 <tr><td class='mono-sm'>table:stage_cv_timeseries</td><td class='mono-sm'>path, role, coalesce(era_id,-1), lower(coalesce(filter,&#x27;&#x27;)), coalesce(match_basis,&#x27;&#x27;)</td><td>Which file is staged in which role for this project.  LEFT OUT: stage_build_id — it embeds the build TIMESTAMP, so hashing it would mark this table changed on every rebuild even when the selection is byte-identical.  That column is the canonical example of the volatile-column trap this module exists to avoid.</td><td class='mono-sm'>13484:2eca993ba8531923</td></tr>
 <tr><td class='mono-sm'>table:stage_dwarfgalaxy_agn_survey</td><td class='mono-sm'>path, role, coalesce(era_id,-1), lower(coalesce(filter,&#x27;&#x27;)), coalesce(match_basis,&#x27;&#x27;)</td><td>Which file is staged in which role for this project.  LEFT OUT: stage_build_id — it embeds the build TIMESTAMP, so hashing it would mark this table changed on every rebuild even when the selection is byte-identical.  That column is the canonical example of the volatile-column trap this module exists to avoid.</td><td class='mono-sm'>1367:3c63dad874f84312</td></tr>
 <tr><td class='mono-sm'>table:stage_sn2023ixf_lightcurve</td><td class='mono-sm'>path, role, coalesce(era_id,-1), lower(coalesce(filter,&#x27;&#x27;)), coalesce(match_basis,&#x27;&#x27;)</td><td>Which file is staged in which role for this project.  LEFT OUT: stage_build_id — it embeds the build TIMESTAMP, so hashing it would mark this table changed on every rebuild even when the selection is byte-identical.  That column is the canonical example of the volatile-column trap this module exists to avoid.</td><td class='mono-sm'>1852:5b8225e442b97e7d</td></tr>
 <tr><td class='mono-sm'>table:stage_tcrb_monitoring</td><td class='mono-sm'>path, role, coalesce(era_id,-1), lower(coalesce(filter,&#x27;&#x27;)), coalesce(match_basis,&#x27;&#x27;)</td><td>Which file is staged in which role for this project.  LEFT OUT: stage_build_id — it embeds the build TIMESTAMP, so hashing it would mark this table changed on every rebuild even when the selection is byte-identical.  That column is the canonical example of the volatile-column trap this module exists to avoid.</td><td class='mono-sm'>2292:0485d9890988d163</td></tr>
 </tbody></table></div>
-<h2>7 &middot; How to use this</h2>
+<span class="qanchor" id="sec-8"></span><h2>7 &middot; How to use this</h2>
 <pre>python pipeline/scripts/check_pipeline_status.py status
 python pipeline/scripts/check_pipeline_status.py plan
 python pipeline/scripts/check_pipeline_status.py record S0c
 python pipeline/scripts/check_pipeline_status.py report
 </pre>
 <p><code>status</code> exits 0 when every stage is fresh and 1 when work is outstanding, so it can gate a publish step. Run <code>record &lt;stage&gt;</code> immediately after each build script &mdash; a stage that is not recorded reads as NEVER_RUN, which is the honest default.</p>
-</div></body></html>
+</div><!--/MACRO-SITE:CONTENT-->
+<div class="prevnext"><a class="pv" href="../pipeline/s4_photometry.html"><span class="dir">&larr; Previous</span>S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></div>
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v1.0 (2026-08-18)), the provenance DAG (<code>macro_core.provenance</code>, P v1.0 (2026-08-18)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+</div>
+</div>
+</body></html>

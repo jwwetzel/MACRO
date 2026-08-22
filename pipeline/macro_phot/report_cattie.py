@@ -485,7 +485,11 @@ def fig_resid_xy(con) -> str:
             y = np.array([s[1] for s in st])
             r = 1000 * np.array([s[2] for s in st])
             lim = float(np.percentile(np.abs(r), 90)) or 1.0
-            sc = ax.scatter(x, y, c=r, s=16, cmap="coolwarm",
+            # ps.DIV_CMAP, not matplotlib's "coolwarm": a signed residual
+            # about a meaningful zero is exactly what the house diverging
+            # ramp is for, and a second diverging map on the site would mean
+            # a reader has to check which blue-to-red they are looking at.
+            sc = ax.scatter(x, y, c=r, s=16, cmap=ps.DIV_CMAP,
                             vmin=-lim, vmax=lim)
             sw = q(con, """SELECT axis, swing, significant
                            FROM cv_cattie_trend WHERE series_key=?
@@ -2018,7 +2022,7 @@ def render_report(db_path: Path, cache_root: Path | None = None) -> Path:
   &middot; <a href="cv_characterization.html">the characterization that
   graded this NOT SUPPORTED</a> &middot;
   <a href="index.html">project hub</a> &middot;
-  <a href="../index.html">all reports</a></p>
+  <a href="../index.html">the front page</a></p>
 </header>
 
 <nav>

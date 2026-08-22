@@ -666,12 +666,22 @@ def test_every_published_page_is_a_declared_resource():
     project pages while its exit code ignored them — a page issuing
     judgements its own gate could not enforce.
     """
+    from macro_core import site
+
     declared = _declared_paths()
     undeclared = []
     for path in sorted((REPO_ROOT / "docs").rglob("*.html")):
         rel = str(path.relative_to(REPO_ROOT))
         if rel == "docs/pipeline/pipeline_status.html":
             continue                      # this module's own output
+        if path.name in site.CONDITIONAL_VIEWS:
+            # A Figures wall exists only where there are figures and a Draft
+            # Paper page only where there is prose, so declaring them would
+            # make WEB report OUTPUT_MISSING forever for the areas that have
+            # neither.  The reason is on the record in site.CONDITIONAL_VIEWS
+            # and their gate is `build_site.py --check`, which rebuilds and
+            # compares rather than fingerprinting.
+            continue
         if rel not in declared and rel not in UNDECLARED_ON_PURPOSE:
             undeclared.append(rel)
     assert not undeclared, \

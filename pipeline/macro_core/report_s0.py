@@ -1069,7 +1069,7 @@ def render_report(manifest_path: Path) -> Path:
   <code>{esc(Path(meta.get('catalog_path', '')).name)}</code>
   ({esc(meta.get('code_version', ''))},
   commit <code>{esc(meta.get('git_commit', '') or 'uncommitted')}</code>)
-  &middot; <a href="../index.html">back to the evidence hub</a></p>
+  &middot; <a href="../index.html">the front page</a></p>
 </header>
 
 <nav>

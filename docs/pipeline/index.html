@@ -1,0 +1,586 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MACRO — Data &amp; Instrument Characterization: the case</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">0/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">2/34 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series"><span class="n">CV Time Series</span><span class="m">34/34 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf Early Light Curve"><span class="n">SN 2023ixf</span><span class="m">5/20 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/24 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf Galaxies + NGC 5548"><span class="n">Dwarf Galaxies</span><span class="m">1/31 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Rigel-Era Legacy Archive (candidate)"><span class="n">Legacy Rigel</span><span class="m">0/11 done</span></a></nav></div>
+<div class="tabbar"><nav class="tabbar-inner" aria-label="Data &amp; Instrument Characterization views"><a class="tab" aria-current="page" href="../pipeline/index.html">The Case</a><a class="tab" href="../pipeline/figures.html">Figures</a><a class="tab" href="../pipeline/pipeline_status.html">Freshness &amp; DAG</a><a class="tab" href="../pipeline/evidence.html">Evidence Detail</a></nav></div>
+<div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../pipeline/index.html">Data &amp; Instrument Characterization</a></li><li aria-current="page">The Case</li></ol></nav></div>
+<div class="layout">
+<aside class="rail" aria-label="Questions in this view"><h2>The questions</h2><p class="railnote">Every entry is a question this project had to answer. Click the one you doubt.</p><div class="railgroup">S0e — The Geometry Artifact</div><ol><li><a href="#q0"><span class="qn">1</span> The catalog said the observatory had taken thousands of 8 × 3211-pixel…</a></li><li><a href="#q1"><span class="qn">2</span> How far did the phantom geometry travel — how many rows, which cameras…</a></li><li><a href="#q2"><span class="qn">3</span> Camera eras are keyed on (READOUTM, NAXIS1, NAXIS2, XBINNING, EGAIN) , so…</a></li><li><a href="#q3"><span class="qn">4</span> S1 excludes frames narrower than MIN_SOLVABLE_NAXIS = 512 px as…</a></li></ol><div class="railgroup">S0 — Manifest &amp; Curation</div><ol><li><a href="#q4"><span class="qn">5</span> The catalog holds 330,865 rows. How many distinct exposures is that, and…</a></li><li><a href="#q5"><span class="qn">6</span> The catalog carries 3,019 distinct raw target names. How many real…</a></li><li><a href="#q6"><span class="qn">7</span> How many distinct camera configurations produced this archive, and when…</a></li><li><a href="#q7"><span class="qn">8</span> What is “a night”, such that no contiguous observing sequence is ever…</a></li><li><a href="#q8"><span class="qn">9</span> Is each frame actually pointed at the target its name claims? (The T CrB…</a></li><li><a href="#q9"><span class="qn">10</span> Which frames carry defects that downstream stages must know about before…</a></li><li><a href="#q10"><span class="qn">11</span> Do the inventory numbers published in the five strategy documents (all…</a></li></ol><div class="railgroup">S0b — Calibration Inventory &amp; Raw↔Reduced Links</div><ol><li><a href="#q11"><span class="qn">12</span> S0 proved the reduced/ tree holds renamed copies that (basename, JD)…</a></li><li><a href="#q12"><span class="qn">13</span> What calibration data does the archive actually hold, and for which…</a></li><li><a href="#q13"><span class="qn">14</span> For each camera era with science frames, which calibration requirements…</a></li><li><a href="#q14"><span class="qn">15</span> Winer is offline for monsoon until October 2026. When the roof opens…</a></li></ol><div class="railgroup">S0c — Per-Project Staging Manifests</div><ol><li><a href="#q15"><span class="qn">16</span> Each project needs a working set: its science frames plus the calibration…</a></li><li><a href="#q16"><span class="qn">17</span> What exactly does each project's staging manifest claim — and where is…</a></li><li><a href="#q17"><span class="qn">18</span> Which calibration frames belong in a project's working set, and on what…</a></li><li><a href="#q18"><span class="qn">19</span> A manuscript quotes &quot;30 frames/band&quot;, &quot;20 frames&quot;, &quot;403 frames / 40…</a></li><li><a href="#q19"><span class="qn">20</span> When a stage opens a frame through a staging manifest, what chain of…</a></li></ol><div class="railgroup">S2 — Detector Truth</div><ol><li><a href="#q20"><span class="qn">21</span> The SN panel measured the High Gain clip at ~3,530–3,550 ADU; the CV team…</a></li><li><a href="#q21"><span class="qn">22</span> Roadmap R2: the 2023-06-07 repeated darks were shot for a StackPro…</a></li><li><a href="#q22"><span class="qn">23</span> The reduced/ tree was produced by a pipeline whose calibration files we…</a></li><li><a href="#q23"><span class="qn">24</span> Does flux scale with exposure time — and can the 2024-05-20 Vega BeStar…</a></li><li><a href="#q24"><span class="qn">25</span> §2's photon transfer needed one very special night, and that night was…</a></li></ol><div class="railgroup">S2c — Filter Identity, Measured</div><ol><li><a href="#q25"><span class="qn">26</span> The FILTER card names the RLMT's grism slots three different ways across…</a></li><li><a href="#q26"><span class="qn">27</span> Two dispersers flew: a high-dispersion H-alpha unit and a low-dispersion…</a></li><li><a href="#q27"><span class="qn">28</span> One panel called slot 6 a grism; another called it luminance. Both were…</a></li><li><a href="#q28"><span class="qn">29</span> Two live projects depend on slot 6 in opposite directions. The Dwarf/AGN…</a></li><li><a href="#q29"><span class="qn">30</span> Two figures circulate in the project write-ups: the T CrB series is…</a></li></ol><div class="railgroup">S1 — Astrometry Go/No-Go Experiment</div><ol><li><a href="#q30"><span class="qn">31</span> No local plate-solving stack existed on this machine (no solve-field , no…</a></li><li><a href="#q31"><span class="qn">32</span> The manifest counts 78,225 unsolved canonical raw Light frames. How many…</a></li><li><a href="#q32"><span class="qn">33</span> Astrometry cannot apply to a slitless spectrum, so the candidate universe…</a></li><li><a href="#q33"><span class="qn">34</span> Per stratum — camera family × exposure band × project — what fraction of…</a></li><li><a href="#q34"><span class="qn">35</span> sampled frames failed to solve (the gate-rejected false positive…</a></li><li><a href="#q35"><span class="qn">36</span> Per population: is batch re-solving viable, how many new WCS solutions…</a></li></ol><div class="railgroup">S3 — The Shared Time Axis</div><ol><li><a href="#q36"><span class="qn">37</span> Every MACRO paper folds its data on a period; a half-exposure ambiguity…</a></li><li><a href="#q37"><span class="qn">38</span> A StackPro frame is the on-camera SUM of 16 sub-reads (S2's PTC result)…</a></li><li><a href="#q38"><span class="qn">39</span> Every downstream product needs one authoritative mid-exposure BJD_TDB per…</a></li><li><a href="#q39"><span class="qn">40</span> Header consistency (sections 1-3) proves the stamps agree with EACH OTHER…</a></li></ol><div class="railgroup">S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</div><ol><li><a href="#q40"><span class="qn">41</span> Which frames may the photometry prototype touch, and under what…</a></li><li><a href="#q41"><span class="qn">42</span> Most polar frames are unsolved (73–95% of the Sloan series carry…</a></li><li><a href="#q42"><span class="qn">43</span> With no photometric nights guaranteed and clouds in the data, how does…</a></li><li><a href="#q43"><span class="qn">44</span> What ties these WCS-free pixel catalogs to the sky — and how far toward…</a></li><li><a href="#q44"><span class="qn">45</span> Are the formal error bars TRUE? Both targets are polars whose modulation…</a></li><li><a href="#q45"><span class="qn">46</span> Does the assembled machinery produce a light curve a CV astronomer…</a></li></ol><div class="railgroup">Pipeline status &amp; invalidation audit</div><ol><li><a href="#q46"><span class="qn">47</span> The dependency DAG, coloured by freshness</a></li><li><a href="#q47"><span class="qn">48</span> Stage freshness, from stage_provenance</a></li><li><a href="#q48"><span class="qn">49</span> Live header probe: which small geometries are real?</a></li><li><a href="#q49"><span class="qn">50</span> The invalidation matrix</a></li><li><a href="#q50"><span class="qn">51</span> 4b · The October shopping list, corrected</a></li><li><a href="#q51"><span class="qn">52</span> Ordered re-run plan</a></li><li><a href="#q52"><span class="qn">53</span> What is fingerprinted, and why</a></li><li><a href="#q53"><span class="qn">54</span> How to use this</a></li></ol></aside>
+<div class="pane">
+<header><h1>Data &amp; Instrument Characterization — the case</h1>
+<p>The instrument and the archive, argued one question at a time. Every project on this site stands on the answers below; when one of them stops being true, the projects that rest on it say so on their own pages.</p></header>
+<p class="lead"><b>54</b> question(s) answered on these pages.</p>
+<h2 id="answered">The argument so far</h2>
+<div class="qblock" id="q0"><div class="qhead"><span class="qnum">Q1</span><h2>The artifact</h2><span class="chip v-stale">S0e: STALE</span></div><p class="qask">The catalog said the observatory had taken thousands of
+8&nbsp;&times;&nbsp;3211-pixel exposures &mdash; strips one hundredth the
+width of the detector. No observing programme in the archive asks for that
+shape. Are they real?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">an 8-pixel strip that was never there</div></div><figure class="qfig"><a href="../pipeline/figures/s0e/s0e_anatomy.png"><img loading="lazy" src="../pipeline/figures/s0e/s0e_anatomy.png" alt="The phantom strip (yellow) drawn inside the frame that was actually recorded. Both shapes are described by the same header; only one of them is the image."></a><figcaption>The phantom strip (yellow) drawn inside the frame that was actually recorded. Both shapes are described by the same header; only one of them is the image.</figcaption></figure><div class="qfoot"><span class="full"><a href="../pipeline/s0e_geometry_fix.html#artifact">Full working: S0e — The Geometry Artifact</a></span><span><a href="#q1">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q1"><div class="qhead"><span class="qnum">Q2</span><h2>Blast radius</h2><span class="chip v-stale">S0e: STALE</span></div><p class="qask">How far did the phantom geometry travel &mdash; how many
+rows, which cameras, which science targets, and how many frames did it cost
+the astrometry batch?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">counted before anything was changed</div></div><figure class="qfig"><a href="../pipeline/figures/s0e/s0e_blast.png"><img loading="lazy" src="../pipeline/figures/s0e/s0e_blast.png" alt="Left: which science targets lost frames to the artifact. Right: repaired rows against the untouched control group (log scale)."></a><figcaption>Left: which science targets lost frames to the artifact. Right: repaired rows against the untouched control group (log scale).</figcaption></figure><div class="qfoot"><span class="full"><a href="../pipeline/s0e_geometry_fix.html#blast">Full working: S0e — The Geometry Artifact</a></span><span><a href="#q0">&larr; previous question</a></span><span><a href="#q2">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q2"><div class="qhead"><span class="qnum">Q3</span><h2>What happens to the eras</h2><span class="chip v-stale">S0e: STALE</span></div><p class="qask">Camera eras are keyed on
+<code>(READOUTM, NAXIS1, NAXIS2, XBINNING, EGAIN)</code>, so correcting the
+geometry changes the key of every affected frame. Era ids are also a
+<strong>pinned registry</strong>: reports, five strategy documents and the
+ops request cite &ldquo;era&nbsp;76&rdquo;, &ldquo;era&nbsp;47&rdquo;. Does
+any published id change meaning underneath a citation?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">rehearsed on a copy, never on the live manifest</div></div><figure class="qfig"><a href="../pipeline/figures/s0e/s0e_eras.png"><img loading="lazy" src="../pipeline/figures/s0e/s0e_eras.png" alt="Frame counts before and after, for every era the repair moves. The phantom eras empty; the real ones absorb."></a><figcaption>Frame counts before and after, for every era the repair moves. The phantom eras empty; the real ones absorb.</figcaption></figure><div class="qfoot"><span class="full"><a href="../pipeline/s0e_geometry_fix.html#eras">Full working: S0e — The Geometry Artifact</a></span><span><a href="#q1">&larr; previous question</a></span><span><a href="#q3">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q3"><div class="qhead"><span class="qnum">Q4</span><h2>What astrometry must reconsider</h2><span class="chip v-stale">S0e: STALE</span></div><p class="qask">S1 excludes frames narrower than
+<code>MIN_SOLVABLE_NAXIS</code> = 512&nbsp;px as &ldquo;sub-frame photometry
+windows&rdquo; &mdash; too little sky for quad matching. Given the geometry
+was wrong, how many of those exclusions were wrong too?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">18k frames that were never unsolvable</div></div><figure class="qfig"><a href="../pipeline/figures/s0e/s0e_requeue.png"><img loading="lazy" src="../pipeline/figures/s0e/s0e_requeue.png" alt="The re-queue population by stratum. The yellow bar is the part a queue rebuild would NOT pick up."></a><figcaption>The re-queue population by stratum. The yellow bar is the part a queue rebuild would NOT pick up.</figcaption></figure><div class="qfoot"><span class="full"><a href="../pipeline/s0e_geometry_fix.html#requeue">Full working: S0e — The Geometry Artifact</a></span><span><a href="#q2">&larr; previous question</a></span><span><a href="#q4">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q4"><div class="qhead"><span class="qnum">Q5</span><h2>Duplication</h2><span class="chip v-wait">S0: STALE_UPSTREAM</span></div><p class="qask">The catalog holds 330,865 rows.  How many distinct
+exposures is that, and which copy of each is the one the pipeline reads?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">dedup global on (basename, JD)</div></div><figure class="qfig"><a href="../pipeline/figures/s0/s0_dup_group_sizes.png"><img loading="lazy" src="../pipeline/figures/s0/s0_dup_group_sizes.png" alt="Duplicate-group size distribution: 198,294 groups from 330,865 rows; 132,571 rows are extra copies of an exposure that already exists."></a><figcaption>Duplicate-group size distribution: 198,294 groups from 330,865 rows; 132,571 rows are extra copies of an exposure that already exists.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Duplicate identity is (basename, JD), globally —
+across and within trees.</b>  One canonical row per group, chosen by tree
+policy: <code>rawimage</code> first, <code>reduced</code> last, ties broken
+by earliest path; documented per-target exception: NGC&nbsp;5548 prefers
+<code>macalester</code> (the superset tree).  Renamed <code>reduced/</code>
+copies survive dedup by construction, so <b>downstream accounting uses
+canonical frames from each target&rsquo;s primary tree</b> (as section 7
+does), and the (target,&nbsp;JD)-collision population above is handed to S1
+as a suspect list.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0_manifest.html#dedup">Full working: S0 — Manifest &amp; Curation</a></span><span><a href="#q3">&larr; previous question</a></span><span><a href="#q5">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q5"><div class="qhead"><span class="qnum">Q6</span><h2>Alias consolidation</h2><span class="chip v-wait">S0: STALE_UPSTREAM</span></div><p class="qask">The catalog carries 3,019 distinct raw target names.
+How many real targets is that, and by exactly what rule does each variant
+map to its canonical name?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">rules + cone-gated synonyms, never fuzzy matching</div></div><figure class="qfig"><a href="../pipeline/figures/s0/s0_alias_top25.png"><img loading="lazy" src="../pipeline/figures/s0/s0_alias_top25.png" alt="3,019 raw names resolve to 1,974 canonical targets; 2,654 names needed at least one normalization rule. Yellow = the largest single raw variant; blue = the merged total."></a><figcaption>3,019 raw names resolve to 1,974 canonical targets; 2,654 names needed at least one normalization rule. Yellow = the largest single raw variant; blue = the merged total.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>A merge happens through a named pure rule
+(case/whitespace/separators, junk prefixes, exposure-token strip, series
+suffix, genitive spelling) or through the explicit two-entry synonym table
+(Alpha&nbsp;Lyr&rarr;Vega, NGC&nbsp;5457&rarr;M101), gated by the
+0.2&deg; coordinate cone.  Fuzzy string similarity is
+banned.</b>  Every alias row records which rules fired and its cone-audit
+result.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0_manifest.html#aliases">Full working: S0 — Manifest &amp; Curation</a></span><span><a href="#q4">&larr; previous question</a></span><span><a href="#q6">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q6"><div class="qhead"><span class="qnum">Q7</span><h2>Era structure</h2><span class="chip v-wait">S0: STALE_UPSTREAM</span></div><p class="qask">How many distinct camera configurations produced this
+archive, and when was each one live?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">keyed on (READOUTM, geometry, binning, EGAIN) — never
+filter or date</div></div><figure class="qfig"><a href="../pipeline/figures/s0/s0_era_timeline.png"><img loading="lazy" src="../pipeline/figures/s0/s0_era_timeline.png" alt="The 16 eras holding at least 100 canonical frames, on the calendar. Marker area scales with frames per night. Eras are numbered by first light."></a><figcaption>The 16 eras holding at least 100 canonical frames, on the calendar. Marker area scales with frames per night. Eras are numbered by first light.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Era assignment keys on (READOUTM, NAXIS1&times;
+NAXIS2, XBINNING, EGAIN rounded to 3 decimals) — never on
+filter name or date</b> (BeStar lesson: hrg/lrg-labeled frames taken with
+the era-A camera; HaGrism running past its nominal end date).  The
+repackaged-FITS population the BeStar panel flagged surfaces here on its
+own: 0 canonical frames carry the NAXIS1=8 extension-HDU
+geometry and form their own eras rather than polluting their neighbors.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0_manifest.html#eras">Full working: S0 — Manifest &amp; Curation</a></span><span><a href="#q5">&larr; previous question</a></span><span><a href="#q7">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q7"><div class="qhead"><span class="qnum">Q8</span><h2>Night labeling</h2><span class="chip v-wait">S0: STALE_UPSTREAM</span></div><p class="qask">What is &ldquo;a night&rdquo;, such that no contiguous
+observing sequence is ever split across two labels?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">local-noon-to-noon: date(JD &minus; 0.7917)</div></div><figure class="qfig"><a href="../pipeline/figures/s0/s0_frames_per_night.png"><img loading="lazy" src="../pipeline/figures/s0/s0_frames_per_night.png" alt="641 distinct nights; median 198 canonical frames per night; the densest night (2026-05-31) holds 3,003."></a><figcaption>641 distinct nights; median 198 canonical frames per night; the densest night (2026-05-31) holds 3,003.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>night = calendar date of (JD &minus;
+0.7917)</b> — the date rolls over at 19:00&nbsp;UT =
+12:00 local (Winer, UTC&minus;7), and the label equals the local evening
+date.  Header JD itself is stored untouched: it is the UTC exposure
+<i>start</i>, and mid-exposure BJD_TDB is S3&rsquo;s job, not S0&rsquo;s.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0_manifest.html#nights">Full working: S0 — Manifest &amp; Curation</a></span><span><a href="#q6">&larr; previous question</a></span><span><a href="#q8">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q8"><div class="qhead"><span class="qnum">Q9</span><h2>Pointing validation</h2><span class="chip v-wait">S0: STALE_UPSTREAM</span></div><p class="qask">Is each frame actually pointed at the target its name
+claims?  (The T CrB panel proved header pointings lie.)</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">frame coords vs alias-resolved target reference</div></div><figure class="qfig"><a href="../pipeline/figures/s0/s0_pointing_offsets.png"><img loading="lazy" src="../pipeline/figures/s0/s0_pointing_offsets.png" alt="Offsets for 185,586 canonical frames across 1,412 targets with a reference position (median of plate-solved canonical frames when at least 3 exist, otherwise the median of the target's header coordinates). 11,691 frames sit beyond 1 deg; 1,657 exact-zero offsets are clipped into the lowest bin (a log axis cannot hold zero)."></a><figcaption>Offsets for 185,586 canonical frames across 1,412 targets with a reference position (median of plate-solved canonical frames when at least 3 exist, otherwise the median of the target's header coordinates). 11,691 frames sit beyond 1 deg; 1,657 exact-zero offsets are clipped into the lowest bin (a log axis cannot hold zero).</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Reference position = RA-wrap-aware median of a
+target&rsquo;s plate-solved canonical frames when
+&ge;3 solves exist, else the median of that
+target&rsquo;s header coordinates; the choice is recorded per frame in
+<code>pointing_ref_basis</code>.</b>  Every frame with coordinates gets
+<code>pointing_offset_deg</code>; offsets
+&gt;1&deg; are flagged
+<code>pointing_gt1deg</code> — flagged, never deleted.  Solved-WCS
+validation for the currently unsolvable campaigns arrives with S1; until
+then the fallback is stated as fallback, not passed off as a solve.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0_manifest.html#pointing">Full working: S0 — Manifest &amp; Curation</a></span><span><a href="#q7">&larr; previous question</a></span><span><a href="#q9">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q9"><div class="qhead"><span class="qnum">Q10</span><h2>QC flags</h2><span class="chip v-wait">S0: STALE_UPSTREAM</span></div><p class="qask">Which frames carry defects that downstream stages must know
+about before trusting a header?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">marks, never deletions</div></div><figure class="qfig"><a href="../pipeline/figures/s0/s0_qc_flags.png"><img loading="lazy" src="../pipeline/figures/s0/s0_qc_flags.png" alt="38,995 of all catalog rows carry at least one flag. exptime_nonpos: 3,466 rows, of which 197 claim to be Light frames (mostly biases; the light-frame subset is the real pathology)."></a><figcaption>38,995 of all catalog rows carry at least one flag. exptime_nonpos: 3,466 rows, of which 197 claim to be Light frames (mostly biases; the light-frame subset is the real pathology).</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>QC flags mark; they never delete.</b>  Header
+airmass outside [1, 10] (387 rows)
+is flagged and left alone — recomputation from coordinates and time is
+S3&rsquo;s job (ROADMAP convention 7), and camtemp is untrusted wholesale.
+ZMAG is carried as QC-only metadata and was used in <i>no</i> S0
+decision (ROADMAP convention 8).</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0_manifest.html#qc">Full working: S0 — Manifest &amp; Curation</a></span><span><a href="#q8">&larr; previous question</a></span><span><a href="#q10">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q10"><div class="qhead"><span class="qnum">Q11</span><h2>Strategy-count reconciliation</h2><span class="chip v-wait">S0: STALE_UPSTREAM</span></div><p class="qask">Do the inventory numbers published in the five strategy
+documents (all rev. 2026-08-16) survive contact with a single, global,
+rule-based manifest?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">the key output — five papers, one frame accounting</div></div><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>The manifest is the single source of frame counts
+from S0 onward.</b>  The disagreements stand as corrections, not mysteries:
+T&nbsp;CrB&rsquo;s &ldquo;471 unique&rdquo; counted rawimage
+<i>rows</i> and misses 69 within-rawimage duplicate copies
+(manifest: 402); the SN&rsquo;s &ldquo;35
+nights&rdquo; includes two saturated first epochs whose frames are labeled
+NGC5457/M101, not 2023ixf (manifest: 34 nights under the 2023ixf
+name); NGC&nbsp;5548&rsquo;s &ldquo;133/15&rdquo;
+excludes the mispointed 2023-03-25 night, which the manifest keeps —
+143 frames / 16 nights, mispointing being a
+pointing fact, not a deduplication fact.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0_manifest.html#recon">Full working: S0 — Manifest &amp; Curation</a></span><span><a href="#q9">&larr; previous question</a></span><span><a href="#q11">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q11"><div class="qhead"><span class="qnum">Q12</span><h2>Raw ↔ reduced linkage</h2><span class="chip v-wait">S0b: STALE_UPSTREAM</span></div><p class="qask">S0 proved the <code>reduced/</code> tree holds renamed copies
+that (basename, JD) dedup cannot see.  Can every one of its
+106,942 rows be tied to the raw exposure it came from — and what
+is left over when we try?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">every reduced file must prove its raw parent</div></div><figure class="qfig"><a href="../pipeline/figures/s0b/s0b_link_methods.png"><img loading="lazy" src="../pipeline/figures/s0b/s0b_link_methods.png" alt="106,925 (raw, reduced) links across 106,942 reduced rows; 48 orphans remain. Right panel: the 47 stem_jd_drift frames carry JD rewrites of -4200 to 271 seconds — same file, re-stamped during reduction."></a><figcaption>106,925 (raw, reduced) links across 106,942 reduced rows; 48 orphans remain. Right panel: the 47 stem_jd_drift frames carry JD rewrites of -4200 to 271 seconds — same file, re-stamped during reduction.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>The reduced tree is derived data: no reduced file
+is ever a canonical science frame, and <code>raw_reduced_links</code> is
+the only bridge between the two populations.</b>  The match ladder accepts
+exactly four kinds of evidence — S0&rsquo;s own dup_group, a filename stem
+with a known processing suffix at the same JD, the same stem on the same
+night with a rewritten JD, and the (target,&nbsp;JD) collision pairs S0
+handed over — deterministically, strongest first.  Orphans are recorded
+with NULL raw columns and quarantined from every science count.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0b_calibration_inventory.html#linkage">Full working: S0b — Calibration Inventory &amp; Raw↔Reduced Links</a></span><span><a href="#q10">&larr; previous question</a></span><span><a href="#q12">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q12"><div class="qhead"><span class="qnum">Q13</span><h2>Calibration census</h2><span class="chip v-wait">S0b: STALE_UPSTREAM</span></div><p class="qask">What calibration data does the archive actually hold, and
+for which cameras?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">kind normalized from IMAGETYP + filename conventions</div></div><figure class="qfig"><a href="../pipeline/figures/s0b/s0b_calib_timeline.png"><img loading="lazy" src="../pipeline/figures/s0b/s0b_calib_timeline.png" alt="All 4,976 canonical calibration frames (409 of them stacked master products) land in only 10 of the 81 camera eras that hold science frames."></a><figcaption>All 4,976 canonical calibration frames (409 of them stacked master products) land in only 10 of the 81 camera eras that hold science frames.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Calibration kind is normalized by explicit header
+IMAGETYP first, and by three observed filename conventions second</b>
+(<code>master&hellip;</code> products written as
+&lsquo;Light&nbsp;Frame&rsquo;, with <i>dark</i> checked before <i>flat</i>
+so a flat-field dark stays a dark; the <code>&lt;filter&gt;.flatN</code>
+twilight series).  &lsquo;Fringe field&rsquo; sky exposures remain science
+— they calibrate fringing, not the detector.  Era identity is joined from
+S0&rsquo;s <code>frames.era_id</code>, never recomputed.  Roadmap
+cross-checks: no Mode0 240&nbsp;s dark and no RAW StackPro flat exists;
+the 11 master flat <i>products</i> carrying the
+StackPro readout string are quarantined evidence for S2&rsquo;s PTC work
+(they claim a readout mode the roadmap says was never flat-fielded — most
+likely a header inherited at stacking time, to be settled from pixels,
+not headers).</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0b_calibration_inventory.html#census">Full working: S0b — Calibration Inventory &amp; Raw↔Reduced Links</a></span><span><a href="#q11">&larr; previous question</a></span><span><a href="#q13">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q13"><div class="qhead"><span class="qnum">Q14</span><h2>The coverage matrix</h2><span class="chip v-wait">S0b: STALE_UPSTREAM</span></div><p class="qask">For each camera era with science frames, which calibration
+requirements are actually met — to spec, from raw frames?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">per era: bias &middot; dark per exposure &middot; flat per
+filter</div></div><figure class="qfig"><a href="../pipeline/figures/s0b/s0b_coverage_heatmap.png"><img loading="lazy" src="../pipeline/figures/s0b/s0b_coverage_heatmap.png" alt="1,516 requirement cells across 81 science eras; only 68 are met. The page shows the 15 eras holding at least 100 science frames; every era is in the calib_coverage table."></a><figcaption>1,516 requirement cells across 81 science eras; only 68 are met. The page shows the 15 eras holding at least 100 science frames; every era is in the calib_coverage table.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>A dark matches a science exposure when
+|&Delta;t| &le; max(0.02&nbsp;s,
+0.5% &middot; t) — exact-match policy with a
+tolerance that absorbs driver float fuzz (&sim;10<sup>&minus;5</sup>
+relative) and can never bridge two real exposure settings (the archive
+ladder steps by &ge;25%).</b>  Specs count RAW frames only
+(&ge;20 bias, &ge;15 darks per exposure,
+&ge;10 flats per filter); master products satisfy nothing
+but are tallied (<code>master_only</code> status) because they remain
+usable.  Scaled-dark fallback is noted only where an era has bias frames
+(eras: 47, 72, 76) — without a bias, dark scaling is arithmetic
+fiction.  Science FILTER strings that collide with the calibration vocabulary (&lsquo;dark&rsquo;/&lsquo;bias&rsquo;/&lsquo;flat&rsquo; — filter-wheel/header glitches passed through verbatim) keep their matrix cells (1 cell(s), 83 science frames) but are excluded from the shopping list: a flat &ldquo;in filter dark&rdquo; is not an acquirable item.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0b_calibration_inventory.html#matrix">Full working: S0b — Calibration Inventory &amp; Raw↔Reduced Links</a></span><span><a href="#q12">&larr; previous question</a></span><span><a href="#q14">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q14"><div class="qhead"><span class="qnum">Q15</span><h2>The October shopping list</h2><span class="chip v-wait">S0b: STALE_UPSTREAM</span></div><p class="qask">Winer is offline for monsoon until October 2026.  When the
+roof opens, exactly which calibration frames should the first nights
+acquire — for which camera configuration, in what quantity, and in what
+order?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">what the re-opening run must acquire, ranked</div></div><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>The October re-opening run acquires, before any
+science: (1) a full bias/dark/flat set — including the hrg/lrg grism
+flats — in the configuration actually running at re-opening, i.e. the
+era-81/82 header state (READOUTM
+&ldquo;(blank READOUTM)&rdquo;, EGAIN 56.0),
+because every new science frame will land there; (2) the rest of the
+current-instrument set — 23 flat requirement(s) blocking 29,149 frames; 49 dark requirement(s) blocking 29,149 frames; 3 bias requirement(s) blocking 29,149 frames; (3) a Mode0 240&nbsp;s dark series
+(&ge;15 frames) plus Mode0 bias set for the T&nbsp;CrB
+grism archive, provided the mount&rsquo;s camera still exposes the Mode0
+readout; (4) filter flats in the order of the blocked-frame ranking
+above.</b>  Ops should also fix — or at least document — the blank
+READOUTM/IMAGETYP header cards of the era-81/82
+configuration while the dome is open, so October&rsquo;s frames stop
+minting header-convention eras.  Retired-era gaps that no October night can fill
+(cameras no longer on the telescope) stay on this list as permanent
+facts — their science frames proceed only through scaled-dark fallbacks
+(where an era has biases) or uncalibrated-photometry error budgets, and
+every such choice must cite this table.  The ops request
+(<code>ops/2026-08_observatory_request.md</code>) cites this section as
+its calibration annex.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0b_calibration_inventory.html#shopping">Full working: S0b — Calibration Inventory &amp; Raw↔Reduced Links</a></span><span><a href="#q13">&larr; previous question</a></span><span><a href="#q15">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q15"><div class="qhead"><span class="qnum">Q16</span><h2>The no-copy law</h2><span class="chip v-wait">S0c: STALE_UPSTREAM</span></div><p class="qask">Each project needs a working set: its science frames plus
+the calibration frames that go with them.  Should S0c <b>copy</b> those
+files into per-project <code>data/</code> directories?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">the staging manifest IS the working set</div></div><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>No project ever copies a frame.  The staging
+manifest — a script-emitted, provenance-complete frame list per project —
+is the working set itself.</b>  Every row carries the archive-relative
+path, the absolute path, the S0 era/night/target/QC provenance, and a
+size-byte integrity surrogate; stages read the immutable archive directly
+through it.  The only materialization on offer is an optional, disposable
+<i>symlink</i> farm for human browsing (default off; Dropbox does not sync
+symlink targets, and deleting the farm loses nothing).</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0c_staging.html#nocopy">Full working: S0c — Per-Project Staging Manifests</a></span><span><a href="#q14">&larr; previous question</a></span><span><a href="#q16">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q16"><div class="qhead"><span class="qnum">Q17</span><h2>The five working sets</h2><span class="chip v-wait">S0c: STALE_UPSTREAM</span></div><p class="qask">What exactly does each project's staging manifest claim —
+and where is the claim written down so a reviewer can diff it?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">selection rules are reviewable data, not code</div></div><figure class="qfig"><a href="../pipeline/figures/s0c/s0c_roles.png"><img loading="lazy" src="../pipeline/figures/s0c/s0c_roles.png" alt="Every staged row, by role. Science rows are the project's published selection; calibration rows are the era-matched families that ride along."></a><figcaption>Every staged row, by role.  Science rows are the project's published selection; calibration rows are the era-matched families that ride along.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>The five target lists and filter rules are encoded
+as data (<code>PROJECT_SELECTIONS</code>, <code>DW_FIELDS</code>,
+filter whitelists/blacklists) and unit-tested against
+<code>STRATEGY_CLAIMS</code></b> — every target a strategy document claims
+is staged by exactly one project's rule, and the reduced tree, duplicate
+copies, and header-error frames never stage.  QC flags and pointing
+offsets travel WITH the rows: staging marks, it never drops.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0c_staging.html#staged">Full working: S0c — Per-Project Staging Manifests</a></span><span><a href="#q15">&larr; previous question</a></span><span><a href="#q17">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q17"><div class="qhead"><span class="qnum">Q18</span><h2>Calibration attachment</h2><span class="chip v-wait">S0c: STALE_UPSTREAM</span></div><p class="qask">Which calibration frames belong in a project's working set,
+and on what evidence is each one attached?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">match_basis: era_exact</div></div><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Era is the ONLY match key at staging time.</b>
+Narrowing to the right kind, exposure bin, and filter is each stage's job,
+guided by the S0b coverage matrix — S0c refuses to pre-judge (a dark that
+misses spec can still be exposure-scaled; a cross-mode flat may enter with
+a measured penalty term per the T&nbsp;CrB chair's ruling&nbsp;7).
+Over-inclusion at this layer costs rows in a CSV; under-inclusion would
+cost a stage a trip back to the census.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0c_staging.html#calib">Full working: S0c — Per-Project Staging Manifests</a></span><span><a href="#q16">&larr; previous question</a></span><span><a href="#q18">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q18"><div class="qhead"><span class="qnum">Q19</span><h2>Documents vs the working set</h2><span class="chip v-wait">S0c: STALE_UPSTREAM</span></div><p class="qask">A manuscript quotes "30 frames/band", "20 frames",
+"403 frames / 40 nights".  Where is the machinery that notices when a
+sentence in a strategy document stops matching the frames that actually
+exist?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">25 of 25 published numbers reconcile</div></div><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Each published inventory number lives next to the
+query that reproduces it, and the diff is rendered on this page.</b>  Three
+numbers failed this test at the 2026-08-18 review — the SN template stacks
+("30 frames/band"; canonical reality 15, the other 15 being reduced-tree
+copies), the NGC&nbsp;5548 revisit ("20 frames"; 10), and the &theta;&nbsp;CrB
+calibrator series ("403 / 40 nights"; 412 / 42, because two more nights
+arrived after the sentence was written).  Staging was correct in all three
+cases; only the prose drifted, and nothing made the drift visible.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0c_staging.html#reconcile">Full working: S0c — Per-Project Staging Manifests</a></span><span><a href="#q17">&larr; previous question</a></span><span><a href="#q19">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q19"><div class="qhead"><span class="qnum">Q20</span><h2>The provenance chain</h2><span class="chip v-wait">S0c: STALE_UPSTREAM</span></div><p class="qask">When a stage opens a frame through a staging manifest, what
+chain of evidence connects that row back to a file in the immutable
+archive — and where can each link be audited?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">archive &rarr; manifest &rarr; stage table &rarr; CSV</div></div><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Every stage row carries its whole chain:</b>
+<code>obs_rowid</code> joins back to the catalog scan and the manifest,
+<code>dup_group</code>/<code>era_id</code>/<code>qc_flags</code> carry the
+S0 rulings, <code>match_basis</code> says why the row exists,
+<code>size_bytes</code> is the read-time integrity tripwire, and
+<code>stage_build_id</code> pins which build emitted it.  The CSV and the
+DB table are the same rows in the same order — two views of one build,
+regenerated together, never edited by hand.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s0c_staging.html#provenance">Full working: S0c — Per-Project Staging Manifests</a></span><span><a href="#q18">&larr; previous question</a></span><span><a href="#q20">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q20"><div class="qhead"><span class="qnum">Q21</span><h2>The ceiling memo: where every mode's scale actually ends</h2><span class="chip v-wait">S2: STALE_UPSTREAM</span></div><p class="qask">The SN panel measured the High Gain clip at
+~3,530&ndash;3,550
+ADU; the CV team adopted 3,500 with a
+3,200 veto (external priors, quoted from the
+facility notes as documented constants).  Which number is right, is the
+detector 12-bit, and what are the ceilings of the OTHER seven modes nobody
+measured?</p><figure class="qfig"><a href="../pipeline/figures/s2/s2_ceiling_hist.png"><img loading="lazy" src="../pipeline/figures/s2/s2_ceiling_hist.png" alt="Terminal histogram structure per mode. A ceiling is a valley-then-mound at the very end of the occupied range (pileup); a smooth falling tail is honest headroom."></a><figcaption>Terminal histogram structure per mode.  A ceiling is a valley-then-mound at the very end of the occupied range (pileup); a smooth falling tail is honest headroom.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Adopted per-mode ceilings and vetoes as tabled
+above: High Gain 3,496 ADU (veto 3,200), StackPro
+56,062 (= 16.04&nbsp;&times; the single-read clip),
+Mode0/Fast/blank-2026 at the full 16-bit code 65,535 (veto
+60,200), iKon
+1&nbsp;MHz at 64,674.
+The GSENSE4040 High Gain scale is <i>12-bit-consistent</i>: the mound at
+3,496 fits in 12 bits
+(2<sup>12</sup> = 4,096) and leaves 599
+codes of the 16-bit FITS container unused — but a per-pixel mound spread
+over tens of ADU cannot distinguish a 12-bit digitization clip
+(which lands on ONE shared code, as Mode0/Fast do at 65,535) from
+per-pixel analog full-well saturation or a clamp below 4,096, so
+&ldquo;confirmed&rdquo; waits for the vendor ADC readback (October).  The
+veto rule is floor(0.92 &times; ceiling) to
+100 ADU; against the CV team's prior veto of
+3,200, the measured 3,200
+reproduces it exactly.</b></div></div><div class="qfoot"><span class="full"><a href="../pipeline/s2_detector.html#ceiling">Full working: S2 — Detector Truth</a></span><span><a href="#q19">&larr; previous question</a></span><span><a href="#q21">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q21"><div class="qhead"><span class="qnum">Q22</span><h2>Photon transfer: read noise, the gain bracket, and StackPro's 16 sub-frames</h2><span class="chip v-wait">S2: STALE_UPSTREAM</span></div><p class="qask">Roadmap R2: the 2023-06-07 repeated darks were shot for a StackPro
+photon-transfer curve that was never computed.  What do those frames —
+plus the same night's repeated Albireo star fields — actually support?</p><figure class="qfig"><a href="../pipeline/figures/s2/s2_ptc.png"><img loading="lazy" src="../pipeline/figures/s2/s2_ptc.png" alt="Left: half-difference variance vs level. Dark pairs (circles) run BELOW the Poisson line (part of the hot-pixel population barely fluctuates), light pairs (triangles) run above it at star levels (sub-pixel scene motion inflates the difference) — the two slopes bracket the true gain. Right: the StackPro/High-Gain ratio of bias offset and read-noise variance."></a><figcaption>Left: half-difference variance vs level.  Dark pairs (circles) run BELOW the Poisson line (part of the hot-pixel population barely fluctuates), light pairs (triangles) run above it at star levels (sub-pixel scene motion inflates the difference) — the two slopes bracket the true gain.  Right: the StackPro/High-Gain ratio of bias offset and read-noise variance.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Error models use: read noise
+3.93 ADU (High Gain single read); gain =
+header EGAIN as nominal with the measured
+[0.60,
+1.77] e<sup>-</sup>/ADU bracket
+as its systematic; StackPro frames modeled as sums of 16 sub-reads
+(noise variance 16&times;, read noise 4&times; in ADU), NOT as
+single reads.</b>  The repeated darks cannot deliver a full PTC gain — that
+limit is stated here rather than papered over, and the flat-field PTC
+joins the October list.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s2_detector.html#ptc">Full working: S2 — Detector Truth</a></span><span><a href="#q20">&larr; previous question</a></span><span><a href="#q22">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q22"><div class="qhead"><span class="qnum">Q23</span><h2>The master-reconstruction experiment: auditing reductions nobody can re-run</h2><span class="chip v-wait">S2: STALE_UPSTREAM</span></div><p class="qask">The <code>reduced/</code> tree was produced by a pipeline whose
+calibration files we mostly do not hold.  Can the raw&harr;reduced pairs
+themselves reveal — per pixel — what dark D and flat F were applied, and
+can era&nbsp;47 (whose actual masters ARE archived) grade the method?</p><figure class="qfig"><a href="../pipeline/figures/s2/s2_recon_stamps.png"><img loading="lazy" src="../pipeline/figures/s2/s2_recon_stamps.png" alt="Reconstructed dark (left) and flat (middle) per era; right: era-47 reconstruction minus its archived master bias+scaled-dark — the ground-truth grade."></a><figcaption>Reconstructed dark (left) and flat (middle) per era; right: era-47 reconstruction minus its archived master bias+scaled-dark — the ground-truth grade.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>The experiment stands: per-pixel line fits
+recover the reduction's calibration to a few ADU RMS wherever
+&ge;8 clean pairs exist, and the era-47 control
+grades the method at 5.29 ADU RMS against ground truth
+(an upper bound — see the degeneracy note above).  Reduced-tree
+photometry is hereby AUDITED for the fitted eras with the table's
+verdicts attached.  Era 79: the 137 rawimage-tree frames are
+misfiled copies of calibrated products and must NOT be used as raw data
+(no true raws exist in the archive for that era); its reduced tree stays
+in service as calibrated data.</b>
+The reconstructed D/F stamps ship as regenerable products
+(<code>products/detector/recon/era*.npz</code>) for downstream flat/dark
+sanity checks.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s2_detector.html#recon">Full working: S2 — Detector Truth</a></span><span><a href="#q21">&larr; previous question</a></span><span><a href="#q23">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q23"><div class="qhead"><span class="qnum">Q24</span><h2>Linearity from archival exposure ladders</h2><span class="chip v-wait">S2: STALE_UPSTREAM</span></div><p class="qask">Does flux scale with exposure time — and can the 2024-05-20 Vega
+BeStar ladder (0.0001&ndash;0.1&nbsp;s) calibrate the short end?</p><figure class="qfig"><a href="../pipeline/figures/s2/s2_linearity.png"><img loading="lazy" src="../pipeline/figures/s2/s2_linearity.png" alt="Per-mode best ladder. Filled points: unsaturated rungs (the linearity measurement). Crosses: rungs whose peak sits above the saturation veto — they measure the ceiling, not linearity, and are excluded from the statistic."></a><figcaption>Per-mode best ladder.  Filled points: unsaturated rungs (the linearity measurement).  Crosses: rungs whose peak sits above the saturation veto — they measure the ceiling, not linearity, and are excluded from the statistic.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Adopted per-mode linearity bounds as tabled:
+best-witnessed modes (Mode0, Fast, iKon 1&nbsp;MHz) are linear to
+&le;1.4%
+over their witnessed ranges; the High Gain family carries a
+&le;4.2%
+bound that is sky/cloud-limited, not detector-limited — treat it as an
+upper limit, not a measured non-linearity.  Sub-10-ms commanded exposure
+times are untrustworthy on the iKon and must not be used for absolute
+photometric scaling.</b>  The loosest bound in the table belongs to <b>5MHz High Sensitivity 16-bit</b> at 10.92% (rung scatter 5.77%), from its ONLY archival ladder — a single sparse witness, and the weakest linearity statement S2 makes about any mode.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s2_detector.html#linearity">Full working: S2 — Detector Truth</a></span><span><a href="#q22">&larr; previous question</a></span><span><a href="#q24">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q24"><div class="qhead"><span class="qnum">Q25</span><h2>The empirical noise model: what a pixel actually does, per mode</h2><span class="chip v-wait">S2: STALE_UPSTREAM</span></div><p class="qask">&sect;2's photon transfer needed one very special night, and that night
+was shot entirely in <code>High&nbsp;Gain</code>.  The CV time-series
+project puts an error bar on every point it measures, in every mode it ever
+observed in — so it needs the question answered without that night and
+without a gain: <i>at a measured level of L&nbsp;ADU, how much does a pixel
+of this mode actually fluctuate?</i></p><figure class="qfig"><a href="../pipeline/figures/s2/s2_noise.png"><img loading="lazy" src="../pipeline/figures/s2/s2_noise.png" alt="Left: the measured variance of each mode against level, with the between-pair spread as error bars; dotted lines are each mode's measured floor, dashed lines the level where variance reaches twice it. Right: the same table expressed as the per-pixel sigma an error model multiplies by."></a><figcaption>Left: the measured variance of each mode against level, with the between-pair spread as error bars; dotted lines are each mode's measured floor, dashed lines the level where variance reaches twice it.  Right: the same table expressed as the per-pixel sigma an error model multiplies by.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>The table above IS the adopted error model
+(<code>s2_noise_curve</code>, one row per measured level bin per mode);
+downstream code interpolates it and is refused an answer outside the
+measured span rather than handed an extrapolation.</b>  Where a formula is
+wanted anyway, &sect;2's gain bracket and read noise remain the High Gain
+statement &mdash; but they are a cross-check on this table, not its
+source.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s2_detector.html#noise">Full working: S2 — Detector Truth</a></span><span><a href="#q23">&larr; previous question</a></span><span><a href="#q25">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q25"><div class="qhead"><span class="qnum">Q26</span><h2>Calibration: can the pixels tell a spectrum from an image?</h2><span class="chip v-stale">S2c: STALE</span></div><p class="qask">The <code>FILTER</code> card names the RLMT's grism slots three different
+ways across three years, and the earliest name &mdash; the bare slot number
+<code>6</code> &mdash; is contested: one review panel read it as a grism,
+another as a luminance filter. Before that argument can be settled we need a
+measurement that does not consult the label at all. So: <b>is dispersion
+detectable directly in the pixels, and how cleanly?</b> The only honest way
+to answer is to calibrate on the labels nobody disputes &mdash;
+<code>hrg</code>, <code>lrg</code>, <code>HaGrism</code>,
+<code>OGGrism</code> as dispersed; <code>g r i V R I B L</code> as direct
+&mdash; and report the separation achieved, overlap included.</p><figure class="qfig"><a href="../pipeline/figures/s2c/s2c_calibration.png"><img loading="lazy" src="../pipeline/figures/s2c/s2c_calibration.png" alt="Left: the bright-set median a/b the first survey pass quoted — the classes overlap badly, because most bright detections on a grism frame are round field stars whose traces are too faint to resolve. Right: among frames that reached the trace gates at all, how tightly their traces share an axis. The grism populations collapse onto zero; the control keeps a long tail out to 80 deg, which is the defocused and satellite-crossed frames the gate exists to remove. Note the control ALSO has a spike at zero — those are the trailed frames discussed under Consequence, and they are the reason the false-positive rate is not zero."></a><figcaption>Left: the bright-set median a/b the first survey pass quoted &mdash; the classes overlap badly, because most bright detections on a grism frame are round field stars whose traces are too faint to resolve. Right: among frames that reached the trace gates at all, how tightly their traces share an axis. The grism populations collapse onto zero; the control keeps a long tail out to 80 deg, which is the defocused and satellite-crossed frames the gate exists to remove. Note the control ALSO has a spike at zero &mdash; those are the trailed frames discussed under Consequence, and they are the reason the false-positive rate is not zero.</figcaption></figure><div class="qfoot"><span class="full"><a href="../pipeline/s2c_filter_identity.html#calibration">Full working: S2c — Filter Identity, Measured</a></span><span><a href="#q24">&larr; previous question</a></span><span><a href="#q26">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q26"><div class="qhead"><span class="qnum">Q27</span><h2>The second axis: which grism was in the beam?</h2><span class="chip v-stale">S2c: STALE</span></div><p class="qask">Two dispersers flew: a high-dispersion H-alpha unit and a low-dispersion
+broad-spectrum one. Under the modern vocabulary the card distinguishes them
+(<code>hrg</code> vs <code>lrg</code>), but under slot <code>6</code> it does
+not &mdash; and a spectrum is useless if you do not know its dispersion. So:
+<b>can the pixels say which unit was in the beam?</b></p><figure class="qfig"><a href="../pipeline/figures/s2c/s2c_strength.png"><img loading="lazy" src="../pipeline/figures/s2c/s2c_strength.png" alt="Left: trace aspect ratio — the two grisms overlap almost completely. Right: trace length as a fraction of frame width, which separates the medians but leaves broad overlapping tails. The dashed line is the adopted high-dispersion bound."></a><figcaption>Left: trace aspect ratio &mdash; the two grisms overlap almost completely. Right: trace length as a fraction of frame width, which separates the medians but leaves broad overlapping tails. The dashed line is the adopted high-dispersion bound.</figcaption></figure><div class="qfoot"><span class="full"><a href="../pipeline/s2c_filter_identity.html#strength">Full working: S2c — Filter Identity, Measured</a></span><span><a href="#q25">&larr; previous question</a></span><span><a href="#q27">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q27"><div class="qhead"><span class="qnum">Q28</span><h2>Slot 6 : the committee's open conflict, settled</h2><span class="chip v-stale">S2c: STALE</span></div><p class="qask">One panel called slot <code>6</code> a grism; another called it
+luminance. Both were reading the same header card, so at most one of them
+could be right &mdash; unless the slot is genuinely mixed, in which case
+neither is. <b>What fraction of slot-<code>6</code> frames are actually
+dispersed, and does the answer depend on when or on what was observed?</b></p><figure class="qfig"><a href="../pipeline/figures/s2c/s2c_slot6_timeline.png"><img loading="lazy" src="../pipeline/figures/s2c/s2c_slot6_timeline.png" alt="Slot-'6' frames per month by measured verdict (top) and the dispersed fraction (bottom). A wheel that changed on a date would show a step; a wheel used both ways throughout would not."></a><figcaption>Slot-'6' frames per month by measured verdict (top) and the dispersed fraction (bottom). A wheel that changed on a date would show a step; a wheel used both ways throughout would not.</figcaption></figure><div class="qfoot"><span class="full"><a href="../pipeline/s2c_filter_identity.html#slot6">Full working: S2c — Filter Identity, Measured</a></span><span><a href="#q26">&larr; previous question</a></span><span><a href="#q28">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q28"><div class="qhead"><span class="qnum">Q29</span><h2>Two projects that were about to analyse the wrong pixels</h2><span class="chip v-stale">S2c: STALE</span></div><p class="qask">Two live projects depend on slot <code>6</code> in opposite directions.
+The Dwarf/AGN survey is building an <b>AGN light curve for NGC&nbsp;5548</b>
+from those frames, which requires them to be photometry. The SN&nbsp;2023ixf
+programme holds <b>83 slot-<code>6</code> frames</b> that it hoped were a
+flash-phase spectral series, which requires them to be spectra. Both cannot
+be safely assumed. <b>Which is which?</b></p><div class="qfoot"><span class="full"><a href="../pipeline/s2c_filter_identity.html#projects">Full working: S2c — Filter Identity, Measured</a></span><span><a href="#q27">&larr; previous question</a></span><span><a href="#q29">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q29"><div class="qhead"><span class="qnum">Q30</span><h2>How many spectra does the archive actually hold?</h2><span class="chip v-stale">S2c: STALE</span></div><p class="qask">Two figures circulate in the project write-ups: the T&nbsp;CrB series is
+quoted as <b>247 Mode0 spectra</b>, and the BeStar campaign as
+<b>~23,000 grism frames</b>. Both were counted from header labels. <b>Do
+they survive measurement?</b></p><figure class="qfig"><a href="../pipeline/figures/s2c/s2c_census.png"><img loading="lazy" src="../pipeline/figures/s2c/s2c_census.png" alt="Measured spectra per target for the 25 most-observed spectroscopic targets, split by grism unit."></a><figcaption>Measured spectra per target for the 25 most-observed spectroscopic targets, split by grism unit.</figcaption></figure><div class="qfoot"><span class="full"><a href="../pipeline/s2c_filter_identity.html#census">Full working: S2c — Filter Identity, Measured</a></span><span><a href="#q28">&larr; previous question</a></span><span><a href="#q30">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q30"><div class="qhead"><span class="qnum">Q31</span><h2>Tooling</h2><span class="chip v-wait">S1: STALE_UPSTREAM</span></div><p class="qask">No local plate-solving stack existed on this machine (no
+<code>solve-field</code>, no index files anywhere on the attached disks).
+Can one be assembled that solves RLMT frames at all — and at what
+per-frame cost?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">local astrometry.net + downloaded index files</div></div><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>The local stack is real and the scale priors are
+verified from the gate-accepted WCS headers themselves</b> — Mode0/Fast
+is the IMX455 optic at &sim;0.45&Prime;/px binned, the GSENSE4040 sits at
+its facility-fact 0.54&Prime;/px, and the Andor iKon lands inside its
+deliberately wide prior.  Every future solve can reuse these bounds
+tightened to the measured band, behind the same acceptance gate.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s1_astrometry.html#tooling">Full working: S1 — Astrometry Go/No-Go Experiment</a></span><span><a href="#q29">&larr; previous question</a></span><span><a href="#q31">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q31"><div class="qhead"><span class="qnum">Q32</span><h2>The candidate universe</h2><span class="chip v-wait">S1: STALE_UPSTREAM</span></div><p class="qask">The manifest counts 78,225 unsolved canonical raw
+Light frames.  How many of them can a plate solver even be pointed at?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">what astrometry cannot even apply to, counted first</div></div><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>The astrometry batch universe is the
+61,583 solvable candidates: not MEASURED dispersed, both axes
+&ge; 512 px.</b>  Exclusions are recorded
+per class in <code>s1_populations</code> — nothing is silently dropped,
+and the window-strip populations are handed to the time-series pipeline
+as a named fact, not a failure.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s1_astrometry.html#universe">Full working: S1 — Astrometry Go/No-Go Experiment</a></span><span><a href="#q30">&larr; previous question</a></span><span><a href="#q32">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q32"><div class="qhead"><span class="qnum">Q33</span><h2>Label vs measurement: the gate correction</h2><span class="chip v-wait">S1: STALE_UPSTREAM</span></div><p class="qask">Astrometry cannot apply to a slitless spectrum, so the
+candidate universe must exclude spectra.  Earlier versions of this page
+decided which frames were spectra by <b>reading the FILTER string</b> and
+matching it against five known grism names
+(<code>grism</code>, <code>hagrism</code>, <code>hrg</code>, <code>lrg</code>, <code>oggrism</code>).
+Stage <a href="s2c_filter_identity.html">S2c</a> has since <b>measured</b>
+dispersion per frame — parallel traces along a common grating axis.  Do
+the label and the measurement agree about what a spectrum is?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">a published rate, taxonomy and verdict were computed
+over the wrong denominator</div></div><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>A frame is excluded as a spectrum when, and only
+when, S2c MEASURED it dispersed.</b>  The FILTER label no longer gates
+anything; it survives in the code
+(<code>is_solvable_candidate_by_label</code>) purely to compute the table
+above.  The rule for each of the four dispersion classes, stated so that
+none of them defaults silently:
+<ul>
+<li><code>dispersed</code> &rarr; <b>EXCLUDED</b>. Measured traces on a
+common grating axis. It is a spectrum.</li>
+<li><code>direct</code> &rarr; <b>INCLUDED, whatever the FILTER says</b>.
+178 frames carrying a grism-looking label are measured
+direct images. A label loses to a measurement of the same fact; these
+return to the universe.</li>
+<li><code>indeterminate</code> &rarr; <b>INCLUDED</b>. S2c looked and
+could not certify either way. This moves 960 frames in
+(the indeterminate frames that carried a grism-looking label; the rest
+were already in). The reason is that the gate's question is ontological
+&mdash; <i>is this an image?</i> &mdash; never predictive &mdash;
+<i>will it solve?</i>. Excluding frames because they look unlikely to
+solve would inflate the very rate this experiment measures. S2c's
+commonest indeterminate reason is literally &ldquo;no usable sources
+extracted&rdquo;, which describes a blank IMAGE far more often than a
+spectrum &mdash; and the production batch corroborates it (below).</li>
+<li><code>unmeasured</code> &rarr; <b>INCLUDED</b>. S2c targeted the
+dispersion-suspect population, so 58,599 candidates were
+never measured at all. This rule moves <b>zero</b> frames &mdash; every
+unmeasured frame carries an ordinary label and was already in &mdash;
+but it still has to be stated, because the alternative (exclude anything
+not certified direct) would delete most of the backlog on no evidence
+whatever.</li>
+</ul>
+In one sentence: <b>exclusion must be earned by a positive
+measurement.</b>  The old label rule and its mirror image (&ldquo;exclude
+whatever is not certified direct&rdquo;) share one flaw — removing frames
+from a denominator without evidence.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s1_astrometry.html#correction">Full working: S1 — Astrometry Go/No-Go Experiment</a></span><span><a href="#q31">&larr; previous question</a></span><span><a href="#q33">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q33"><div class="qhead"><span class="qnum">Q34</span><h2>The experiment</h2><span class="chip v-wait">S1: STALE_UPSTREAM</span></div><p class="qask">Per stratum — camera family &times; exposure band &times;
+project — what fraction of sampled frames does the local solver actually
+solve, how fast, and how well?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">517 frames, 11 strata, seed
+20260817</div></div><figure class="qfig"><a href="../pipeline/figures/s1/s1_success_rates.png"><img loading="lazy" src="../pipeline/figures/s1/s1_success_rates.png" alt="449 of 517 sampled frames solved (gate-accepted). Bars are point rates; whiskers the Wilson 95% interval; the dashed line the 80% GO bar the interval's LOWER bound must clear."></a><figcaption>449 of 517 sampled frames solved (gate-accepted). Bars are point rates; whiskers the Wilson 95% interval; the dashed line the 80% GO bar the interval's LOWER bound must clear.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Verdicts are mechanical: GO when the Wilson 95%
+lower bound clears 80%, CAUTION above
+50%, NO-GO below — judged on the
+worst rate each sample still allows, never on the point estimate (census
+strata are judged on their exact, fully-enumerated rate).</b>  Solutions
+are trustworthy where the gate accepts them: median astrometric RMS
+&sim;0.81&Prime; against the 2MASS index across all strata,
+with plate scales landing inside every family prior.  <b>The frame-level
+intervals assume within-stratum independence that weather demonstrably
+violates</b> — under the harsher night-level collapse, the perfect strata
+keep lower bounds of
+78%/82%/65%
+across far fewer effective trials, and each stratum samples only a
+minority of its backlog&rsquo;s nights (the coverage column above) — so
+unsampled bad nights are expected in any batch.  The mitigation is not a
+wider interval but the QC pre-gate of section 5: starless frames from
+unsampled cloudy nights are detected and skipped at batch time, they do
+not silently drag the yield.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s1_astrometry.html#results">Full working: S1 — Astrometry Go/No-Go Experiment</a></span><span><a href="#q32">&larr; previous question</a></span><span><a href="#q34">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q34"><div class="qhead"><span class="qnum">Q35</span><h2>Failure autopsy</h2><span class="chip v-wait">S1: STALE_UPSTREAM</span></div><p class="qask">68 sampled frames failed to solve (the
+gate-rejected false positive included).  Is the solver missing solvable
+fields — or were these frames never solvable?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">read the pixels before blaming the solver</div></div><figure class="qfig"><a href="../pipeline/figures/s1/s1_failure_gallery.png"><img loading="lazy" src="../pipeline/figures/s1/s1_failure_gallery.png" alt="6 of the 68 autopsied failures — every failure is autopsied, no sampling cap — machine-diagnosed from source-extraction statistics."></a><figcaption>6 of the 68 autopsied failures — every failure is autopsied, no sampling cap — machine-diagnosed from source-extraction statistics.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>The failures are frame-quality facts, not solver
+shortfalls — and the claim now covers every failure, because every
+failure was autopsied: blank/cloud frames, defocused sequences, and
+wind-trailed exposures.</b>  No solver setting recovers a frame with no
+stars on it; these frames should be flagged by the same statistics at
+batch time and spent zero further CPU.
+<p><b>One line of the old version of this paragraph is retracted.</b>  It
+named &ldquo;the filter-&lsquo;6&rsquo; series on the GSENSE&rdquo; as
+the archetype of a badly defocused sequence.  Slot <code>6</code> is the
+telescope&rsquo;s MIXED slot, and S2c has since measured most of those
+frames to be <i>spectra</i>: the &ldquo;giant blobs, no point
+sources&rdquo; the autopsy saw were dispersion traces, not defocused
+stars.  A source-extraction statistic cannot tell those apart — it was
+never asked to.  The measured-dispersion gate now keeps spectra out of
+the universe entirely, so the diagnosis is never put in that position
+again.  See section 3 for the full accounting.</p></div></div><div class="qfoot"><span class="full"><a href="../pipeline/s1_astrometry.html#autopsy">Full working: S1 — Astrometry Go/No-Go Experiment</a></span><span><a href="#q33">&larr; previous question</a></span><span><a href="#q35">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q35"><div class="qhead"><span class="qnum">Q36</span><h2>Verdict &amp; batch cost</h2><span class="chip v-wait">S1: STALE_UPSTREAM</span></div><p class="qask">Per population: is batch re-solving viable, how many new
+WCS solutions should it yield, and what does it cost in wall-clock?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">the Week-2 review's decision table</div></div><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>GO for the CV polars&rsquo;
+Sloan series — the paper-gating population solved
+214 of
+229 sampled frames
+(93%; the
+per-stratum table in section 4 locates every miss) — and the same
+mechanical rule for every population: GO where the Wilson lower bound
+clears 80%.</b>  The projected cost of the
+project-critical populations (5,361 frames) is
+&sim;1&nbsp;h; the stratified backlog
+(55,817 of the 61,583 solvable frames) is
+&sim;5&nbsp;h and should yield
+&sim;45,900&ndash;54,000 new WCS solutions.  The remaining 5,766 solvable
+candidates fit no stratum (a heterogeneous residue of one-off configs):
+they carry <b>no measured rate</b> and are excluded from the yield and
+hours projections — batching them means extrapolating, and that choice
+belongs to the review.  Populations below GO stay viable as
+<i>filtered</i> batches: run the QC pre-gate from section 5, solve what
+has stars, and book the starless/defocused frames as facts.  <b>No batch
+runs before the Week-2 review accepts this report</b> — S1&rsquo;s
+mandate ends at the experiment.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s1_astrometry.html#verdict">Full working: S1 — Astrometry Go/No-Go Experiment</a></span><span><a href="#q34">&larr; previous question</a></span><span><a href="#q36">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q36"><div class="qhead"><span class="qnum">Q37</span><h2>What instant does the header stamp?</h2><span class="chip v-wait">S3: STALE_UPSTREAM</span></div><p class="qask">Every MACRO paper folds its data on a period; a
+half-exposure ambiguity in the time stamp would smear or shift every
+phase.  The headers offer JD, DATE-OBS, and JD-HELIO — do they agree, and
+which instant of the exposure do they name?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">JD = DATE-OBS = UTC exposure start &mdash; proven for
+189,401 frames, assumed for 3,917</div></div><figure class="qfig"><a href="../pipeline/figures/s3/s3_jdhelio_semantics.png"><img loading="lazy" src="../pipeline/figures/s3/s3_jdhelio_semantics.png" alt="Header JD-HELIO minus our own heliocentric JD, per sampled header. Left: evaluated at the JD instant, residuals climb exactly the EXPTIME/2 line. Right: evaluated at JD + EXPTIME/2, 35/38 residuals collapse to within 1 s. Yellow: the HDR family and one Mode0 focus frame, whose JD-HELIO is simply broken."></a><figcaption>Header JD-HELIO minus our own heliocentric JD, per sampled header. Left: evaluated at the JD instant, residuals climb exactly the EXPTIME/2 line. Right: evaluated at JD + EXPTIME/2, 35/38 residuals collapse to within 1 s. Yellow: the HDR family and one Mode0 focus frame, whose JD-HELIO is simply broken.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Header JD (&equiv; DATE-OBS) is the UTC exposure
+START — proven by two independent probes for the
+189,401 frames whose readout family carries a
+discriminating JD-HELIO or TELUT card, and ASSUMED (not proven) for the
+3,917 that do not.</b>  Those rows say so on their face:
+<code>frame_times.start_evidence</code> =
+<code>unverified_no_helio_no_telut</code>.  Header JD-HELIO is never used as a
+time stamp — it is heliocentric-only (up to ~4 s from barycentric),
+UTC-scale (~69 s from TDB), computed by uncontrolled acquisition-software
+approximations, and demonstrably garbage in the HDR family.  The
+re-stamped reduced-tree copies do NOT quietly reinforce the S0 rule: they
+were on the shared axis, and this build takes them off it.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s3_timing.html#stamp">Full working: S3 — The Shared Time Axis</a></span><span><a href="#q35">&larr; previous question</a></span><span><a href="#q37">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q37"><div class="qhead"><span class="qnum">Q38</span><h2>StackPro: the midpoint of a 16-fold sum</h2><span class="chip v-wait">S3: STALE_UPSTREAM</span></div><p class="qask">A StackPro frame is the on-camera SUM of
+16 sub-reads (S2's PTC result).  Header EXPTIME could
+mean the total span or the per-sub-read time, and any dead time between
+sub-reads would shift the photon-weighted midpoint.  What is the
+mid-time of 20,364 StackPro science frames, and what is the
+worst case if the contiguity assumption is wrong?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">worst case 5.67 s &mdash;
+seconds, not milliseconds</div></div><figure class="qfig"><a href="../pipeline/figures/s3/s3_cadence_overheads.png"><img loading="lazy" src="../pipeline/figures/s3/s3_cadence_overheads.png" alt="Back-to-back series cadence. If EXPTIME were per-sub-read, gaps would follow the dotted 15x line; instead StackPro overheads match the plain High Gain save/slew pipeline at every exposure time."></a><figcaption>Back-to-back series cadence. If EXPTIME were per-sub-read, gaps would follow the dotted 15x line; instead StackPro overheads match the plain High Gain save/slew pipeline at every exposure time.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>StackPro mid-time = start + EXPTIME/2, under the
+stated assumption that the 16 sub-reads are contiguous
+and span EXPTIME.  Worst case if dead time hides between sub-reads: the
+true midpoint shifts late by at most
+5.67&nbsp;s</b> — half the measured
+11.35&nbsp;s ceiling, recorded as
+<code>stackpro_sum_midpoint_half_exptime</code> in <code>frame_times.mid_method</code> so
+any user can query which frames carry it.  That ceiling is honest but
+WEAK: the gap it measures is dominated by readout and file save, and
+cadence cannot separate those from anything happening between sub-reads.
+It is an upper limit, not an estimate of the error.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s3_timing.html#stackpro">Full working: S3 — The Shared Time Axis</a></span><span><a href="#q36">&larr; previous question</a></span><span><a href="#q38">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q38"><div class="qhead"><span class="qnum">Q39</span><h2>frame_times: BJD_TDB for every canonical science frame</h2><span class="chip v-wait">S3: STALE_UPSTREAM</span></div><p class="qask">Every downstream product needs one authoritative
+mid-exposure BJD_TDB per frame — computed once, from scratch, with its
+inputs recorded, so no paper ever re-derives (or worse, half-derives)
+its own time axis.</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">191,858 of 193,318 frames on the shared
+time axis</div></div><figure class="qfig"><a href="../pipeline/figures/s3/s3_bjd_offset.png"><img loading="lazy" src="../pipeline/figures/s3/s3_bjd_offset.png" alt="The correction S3 applies: the barycentric light-travel term spans -8.3 to +8.5 minutes over the archive's sky and seasons; the TDB-UTC scale offset adds 69.182-69.186 s. Ignoring either would be fatal for eclipse timing."></a><figcaption>The correction S3 applies: the barycentric light-travel term spans -8.3 to +8.5 minutes over the archive's sky and seasons; the TDB-UTC scale offset adds 69.182-69.186 s. Ignoring either would be fatal for eclipse timing.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>The <code>frame_times</code> table (one row per
+canonical science frame, keyed by path) is the portfolio's time axis:
+<code>bjd_tdb</code> = UTC start + EXPTIME/2 &rarr; TDB scale &rarr; +
+barycentric light travel toward the frame's cataloged sky position,
+ephemeris <code>de440s</code>, Winer EarthLocation
+(31.6656&deg;, -110.6018&deg;,
+1515&nbsp;m).</b>  Frames without JD or coordinates keep
+a row with a NULL BJD and an explanatory method — nothing silently
+falls off the axis.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s3_timing.html#frametimes">Full working: S3 — The Shared Time Axis</a></span><span><a href="#q37">&larr; previous question</a></span><span><a href="#q39">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q39"><div class="qhead"><span class="qnum">Q40</span><h2>Clock validation: AG LMi as the standard</h2><span class="chip v-wait">S3: STALE_UPSTREAM</span></div><p class="qask">Header consistency (sections 1-3) proves the stamps agree
+with EACH OTHER — not that the acquisition computer's clock agrees with
+UTC.  Does an external astrophysical clock confirm the time axis?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">an astrophysical event checks the wall clock</div></div><figure class="qfig"><a href="../pipeline/figures/s3/s3_clock_oc.png"><img loading="lazy" src="../pipeline/figures/s3/s3_clock_oc.png" alt="AG LMi folded on the literature ephemeris using this pipeline's own time axis. The eclipse lands where the ephemeris says it should; the fitted center measures the residual offset."></a><figcaption>AG LMi folded on the literature ephemeris using this pipeline's own time axis. The eclipse lands where the ephemeris says it should; the fitted center measures the residual offset.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>The eclipse arrives at O&minus;C = -294 &plusmn; 59&nbsp;s against the VSX ephemeris. The absolute observatory clock is therefore consistent with zero error at the |&Delta;t| &lt; 4517&nbsp;s (75&nbsp;min) level &mdash; a ceiling set almost entirely by how badly AG&nbsp;LMi's own ephemeris is known, not by our measurement.</b>  Of that 4517&nbsp;s, 294&nbsp;s is the measured offset, 59&nbsp;s its fit error, and 4165&nbsp;s the ephemeris term.  That last number propagates the period uncertainty from the independent Gaia DR3 eclipsing-binary solution (1.3590118&nbsp;d &plusmn;3.01e-05, Gaia DR3 vari_eclipsing_binary via Vizier I/358/veb, recorded 2026-08-18) over the 1584.0 cycles since the epoch.  Propagating VSX's QUOTED LAST DIGIT instead would give only 50&nbsp;s and a bound roughly eight times tighter &mdash; a printer's precision, not a measurement's, and this page will not quote it.  The same Gaia-vs-VSX period difference predicts an O&minus;C of -797&nbsp;s at our epoch with a &plusmn;4121&nbsp;s envelope, inside which our measurement sits comfortably: the offset belongs to the EPHEMERIS, not to the clock.  <b>What this test rules out is gross error &mdash; a wrong time zone, a missing leap second, a mis-set clock &mdash; and nothing finer.</b></div></div><div class="qfoot"><span class="full"><a href="../pipeline/s3_timing.html#clock">Full working: S3 — The Shared Time Axis</a></span><span><a href="#q38">&larr; previous question</a></span><span><a href="#q40">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q40"><div class="qhead"><span class="qnum">Q41</span><h2>Frame selection &amp; provenance</h2><span class="chip v-stale">S4: STALE</span></div><p class="qask">Which frames may the photometry prototype touch, and under
+what provenance rule?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">server-reduced pixels only — one provenance per series</div></div><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>The prototype reads SERVER-REDUCED pixels only:
+canonical raw light frames of the two reduction-complete polars whose
+reduced counterpart exists in <code>raw_reduced_links</code>
+(2,558 of 2,632 raw frames; 2,558 selected), and
+reduction provenances are never mixed within a (target,&nbsp;era) series
+(decision 2026-08-18).</b>  Frames without a reduced counterpart are
+counted in the ledger above and excluded — when S2 delivers our own
+master-calibrated reductions, they rejoin as a NEW provenance series, not
+as patches to this one.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s4_photometry.html#selection">Full working: S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></span><span><a href="#q39">&larr; previous question</a></span><span><a href="#q41">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q41"><div class="qhead"><span class="qnum">Q42</span><h2>Star matching without a WCS</h2><span class="chip v-stale">S4: STALE</span></div><p class="qask">Most polar frames are unsolved (73&ndash;95% of the Sloan
+series carry <code>pltsolvd=0</code> — S1&rsquo;s future business).  Can
+stars be matched across thousands of frames using GEOMETRY alone?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">astroalign triangles &rarr; one reference per (target, era)</div></div><figure class="qfig"><a href="../pipeline/figures/s4/s4_match_qc.png"><img loading="lazy" src="../pipeline/figures/s4/s4_match_qc.png" alt="2,333 of 2,558 extraction-complete frames matched; 159 skipped for known S0 mispointing, 66 failed alignment; median matched fraction 94% of frame detections; median registration residual 0.509 ref-px."></a><figcaption>2,333 of 2,558 extraction-complete frames matched; 159 skipped for known S0 mispointing, 66 failed alignment; median matched fraction 94% of frame detections; median registration residual 0.509 ref-px.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Each (target,&nbsp;era) series is registered to
+ONE reference frame — chosen as the most-populated frame within the
+sharpest 75% of the series, PROVIDED it passes
+double-image quality control — by astroalign triangle matching, followed
+by one-to-one nearest-neighbour assignment with a seeing-scaled tolerance
+(max(2&nbsp;px, 0.8&nbsp;&times;
+ref FWHM)).</b>  Quality control exists because a guiding jump doubles
+every star into an equal-brightness pair and thereby INFLATES the
+detection count — the very statistic the selection rewards: a candidate
+is rejected when more than 20% of its
+stars have a companion within 3&nbsp;&times;
+FWHM at a flux ratio under 2 (the paired-star
+fraction and rejection count are tabulated above — clean frames sit near
+zero, doubled frames near one).  The star catalog IS the reference
+frame&rsquo;s detection list; star identity is its detection id — stable,
+auditable, and WCS-free.  astroalign&rsquo;s RANSAC is seeded per frame
+(<code>seeded_ransac</code>), so every transform and star identity
+reproduces bit-for-bit on re-run.  Frames that cannot produce
+8 detections or defeat the triangle fit are marked
+<code>failed_match</code>, counted, and excluded — never force-fitted.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s4_photometry.html#matching">Full working: S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></span><span><a href="#q40">&larr; previous question</a></span><span><a href="#q42">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q42"><div class="qhead"><span class="qnum">Q43</span><h2>The Honeycutt ensemble</h2><span class="chip v-stale">S4: STALE</span></div><p class="qask">With no photometric nights guaranteed and clouds in the
+data, how does every frame get a zero point it can defend?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">robust ZP per frame + mean mag per star, per (target, era, filter)</div></div><figure class="qfig"><a href="../pipeline/figures/s4/s4_zp_timeline.png"><img loading="lazy" src="../pipeline/figures/s4/s4_zp_timeline.png" alt="Frame zero points of all 10 series (10 converged). Cloud events and focus drifts appear as excursions; the ensemble absorbs them into ZP rather than into star magnitudes."></a><figcaption>Frame zero points of all 10 series (10 converged). Cloud events and focus drifts appear as excursions; the ensemble absorbs them into ZP rather than into star magnitudes.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Honeycutt&rsquo;s (1992) inhomogeneous ensemble,
+solved by alternating weighted least squares with a
+4&sigma; robust re-solve, a
+5&nbsp;mmag systematic weight floor, and the
+mean-ZP gauge.</b>  Comparison stars are chosen by stability iteration —
+candidates must appear on &ge;50% of
+frames, and stars whose residual RMS exceeds
+max(2.5&nbsp;&times;&nbsp;median,
+20&nbsp;mmag) are dropped each pass; the
+TARGET is excluded from comp duty a priori (a polar&rsquo;s modulation
+must never set the zero point).  4 stable stars nearest
+the target&rsquo;s magnitude are held OUT of the solve as check stars —
+their statistics below are honest hold-outs, not self-graded
+homework.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s4_photometry.html#ensemble">Full working: S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></span><span><a href="#q41">&larr; previous question</a></span><span><a href="#q43">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q43"><div class="qhead"><span class="qnum">Q44</span><h2>The Gaia DR3 anchor</h2><span class="chip v-stale">S4: STALE</span></div><p class="qask">What ties these WCS-free pixel catalogs to the sky — and
+how far toward absolute photometry does that tie honestly reach?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">identity + geometry check + an honest offset, not absolute cal</div></div><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Gaia supplies three things: star identity
+(source_id + G), an independent plate-scale/orientation measurement, and
+a single median (G&nbsp;&minus;&nbsp;ensemble) offset per series.  The
+ensemble magnitudes remain INSTRUMENTAL: no color terms are fitted, and
+the quoted MAD of each offset is dominated by star color — which is
+precisely why applying the offset is a courtesy scale, not absolute
+calibration.</b>  Absolute calibration (color terms per filter per era)
+is a later S4 milestone; relative photometry is the product here.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s4_photometry.html#gaia">Full working: S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></span><span><a href="#q42">&larr; previous question</a></span><span><a href="#q44">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q44"><div class="qhead"><span class="qnum">Q45</span><h2>The empirical error model (S5 seed)</h2><span class="chip v-stale">S4: STALE</span></div><p class="qask">Are the formal error bars TRUE?  Both targets are polars
+whose modulation is signal, so the question is answered entirely by field
+CHECK stars held out of the ensemble solve.</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">check stars only — the target never grades its own errors</div></div><figure class="qfig"><a href="../pipeline/figures/s4/s4_rms_vs_mag.png"><img loading="lazy" src="../pipeline/figures/s4/s4_rms_vs_mag.png" alt="Star RMS vs ensemble magnitude per (era, filter): comparison stars (blue), held-out check stars (yellow), dropped variables (red), the target (pink), against the photon+sky floor predicted by the measurement errors (green line)."></a><figcaption>Star RMS vs ensemble magnitude per (era, filter): comparison stars (blue), held-out check stars (yellow), dropped variables (red), the target (pink), against the photon+sky floor predicted by the measurement errors (green line).</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>Three statistics form the standard validation
+set every downstream paper reuses: (1) check-star RMS vs magnitude
+against the photon-noise floor; (2) the error INFLATION FACTOR
+sqrt(median &chi;&sup2;<sub>&nu;</sub>) of constant-star fits; (3) the
+Allan deviation of one long night, whose departure from
+&tau;<sup>&minus;1/2</sup> probes the correlated noise that averaging
+cannot remove.</b>  Three fine-print clauses S5 must honor: the
+&chi;&sup2; denominators are the formal errors WITH the
+5&nbsp;mmag systematic floor added in
+quadrature, so the factor calibrates floored errors, not raw photon
+errors; application is ONE-SIDED — use max(1,&nbsp;inflation), because a
+factor below 1 (see era&nbsp;76&nbsp;r) licenses no shrinking of error
+bars; and the check population passed the same stability screen as comps
+before being held out (RMS below
+max(2.5&nbsp;&times;&nbsp;median comp RMS,
+20&nbsp;mmag)), so the check floor is
+measured on pre-selected quiet stars — with only
+4&nbsp;checks per series (era-76 rows pool the sparse
+AN&nbsp;UMa field with the crowded b&nbsp;&asymp;&nbsp;+2&deg;
+VV&nbsp;Pup field, 4&nbsp;+&nbsp;4), the tabulated medians are coarse.
+The iKon era (72) writes EGAIN=0, so its predicted errors omit the
+source shot term and its inflation factor is expected &gt;1 by
+construction — the empirical model absorbs exactly this kind of header
+poverty, which is why S5 builds on measured scatter, never on claimed
+gains.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s4_photometry.html#errors">Full working: S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></span><span><a href="#q43">&larr; previous question</a></span><span><a href="#q45">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q45"><div class="qhead"><span class="qnum">Q46</span><h2>Light-curve sanity — pipeline evidence, not science</h2><span class="chip v-stale">S4: STALE</span></div><p class="qask">Does the assembled machinery produce a light curve a CV
+astronomer recognizes?</p><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">AN UMa is a polar: its modulation is EXPECTED signal</div></div><figure class="qfig"><a href="../pipeline/figures/s4/s4_anuma_lc.png"><img loading="lazy" src="../pipeline/figures/s4/s4_anuma_lc.png" alt="AN UMa: 1,043 ensemble-corrected target points across 13 nights (VV Pup holds 1,045 more). Times are header UTC start JDs — barycentric correction is stage S3, deliberately absent here."></a><figcaption>AN UMa: 1,043 ensemble-corrected target points across 13 nights (VV Pup holds 1,045 more). Times are header UTC start JDs — barycentric correction is stage S3, deliberately absent here.</figcaption></figure><div class="answer"><span class="lbl">The decision it produced</span><div class="decision"><b>The light curves are exhibited as EVIDENCE THAT
+THE PIPELINE WORKS — orbital-phase coherence and state changes are
+consistent with AN UMa&rsquo;s known behaviour — and every scientific
+claim about the system (state durations, period work, accretion
+geometry) is explicitly deferred to the CV_TimeSeries paper, which will
+consume this database, not this page.</b>  The fold uses the literature
+period P&nbsp;=&nbsp;0.0797528&nbsp;d — source
+AAVSO VSX (0.07975274 d), recorded beside the constant in
+<code>macro_phot.report_s4</code>; nothing here measures a period.</div></div><div class="qfoot"><span class="full"><a href="../pipeline/s4_photometry.html#lightcurves">Full working: S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></span><span><a href="#q44">&larr; previous question</a></span><span><a href="#q46">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q46"><div class="qhead"><span class="qnum">Q47</span><h2>The dependency DAG, coloured by freshness</h2></div><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">OUTPUT_MISSING</div></div><div class="qfoot"><span class="full"><a href="../pipeline/pipeline_status.html#sec-1">Full working: Pipeline status &amp; invalidation audit</a></span><span><a href="#q45">&larr; previous question</a></span><span><a href="#q47">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q47"><div class="qhead"><span class="qnum">Q48</span><h2>Stage freshness, from stage_provenance</h2></div><div class="answer"><span class="lbl">The deciding number</span><div class="deciding">STALE</div></div><div class="qfoot"><span class="full"><a href="../pipeline/pipeline_status.html#sec-2">Full working: Pipeline status &amp; invalidation audit</a></span><span><a href="#q46">&larr; previous question</a></span><span><a href="#q48">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q48"><div class="qhead"><span class="qnum">Q49</span><h2>Live header probe: which small geometries are real?</h2></div><div class="qfoot"><span class="full"><a href="../pipeline/pipeline_status.html#sec-3">Full working: Pipeline status &amp; invalidation audit</a></span><span><a href="#q47">&larr; previous question</a></span><span><a href="#q49">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q49"><div class="qhead"><span class="qnum">Q50</span><h2>The invalidation matrix</h2></div><div class="qfoot"><span class="full"><a href="../pipeline/pipeline_status.html#sec-4">Full working: Pipeline status &amp; invalidation audit</a></span><span><a href="#q48">&larr; previous question</a></span><span><a href="#q50">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q50"><div class="qhead"><span class="qnum">Q51</span><h2>4b · The October shopping list, corrected</h2></div><div class="qfoot"><span class="full"><a href="../pipeline/pipeline_status.html#sec-5">Full working: Pipeline status &amp; invalidation audit</a></span><span><a href="#q49">&larr; previous question</a></span><span><a href="#q51">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q51"><div class="qhead"><span class="qnum">Q52</span><h2>Ordered re-run plan</h2></div><div class="qfoot"><span class="full"><a href="../pipeline/pipeline_status.html#sec-6">Full working: Pipeline status &amp; invalidation audit</a></span><span><a href="#q50">&larr; previous question</a></span><span><a href="#q52">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q52"><div class="qhead"><span class="qnum">Q53</span><h2>What is fingerprinted, and why</h2></div><div class="qfoot"><span class="full"><a href="../pipeline/pipeline_status.html#sec-7">Full working: Pipeline status &amp; invalidation audit</a></span><span><a href="#q51">&larr; previous question</a></span><span><a href="#q53">next question &rarr;</a></span></div></div>
+<div class="qblock" id="q53"><div class="qhead"><span class="qnum">Q54</span><h2>How to use this</h2></div><div class="qfoot"><span class="full"><a href="../pipeline/pipeline_status.html#sec-8">Full working: Pipeline status &amp; invalidation audit</a></span><span><a href="#q52">&larr; previous question</a></span></div></div>
+
+</div>
+</div>
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v1.0 (2026-08-18)), the provenance DAG (<code>macro_core.provenance</code>, P v1.0 (2026-08-18)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+</body></html>

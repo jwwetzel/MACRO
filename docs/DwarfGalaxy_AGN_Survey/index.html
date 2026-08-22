@@ -2,54 +2,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MACRO — Dwarf Galaxies + NGC 5548</title>
 <link rel="stylesheet" href="../assets/macro.css">
-<style>
-.chip{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12px;
-      white-space:nowrap;font-weight:600}
-.chip.done{background:#1d3a26;color:#9fd8ae}
-.chip.in_progress{background:#1b3247;color:#8fc4f0}
-.chip.blocked{background:#3d2224;color:#f0a3a3}
-.chip.pending{background:#242a35;color:#8a93a3}
-.chip.redo_needed{background:#3a3320;color:#e6cc7a}
-.chip.v-fresh{background:#1d3a26;color:#9fd8ae}
-.chip.v-stale{background:#3a3320;color:#e6cc7a}
-.chip.v-wait{background:#242a35;color:#8a93a3}
-.chip.v-never{background:#1b3247;color:#8fc4f0}
-.chip.v-gone{background:#3d2224;color:#f0a3a3}
-.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;max-width:1100px;
-     border:1px solid #2a3140;background:#11151c;margin:10px 0 6px}
-.bar span{display:block;height:100%}
-.bar .done{background:#3f8f5c}
-.bar .in_progress{background:#4a86c4}
-.bar .redo_needed{background:#b09134}
-.bar .blocked{background:#a24f52}
-.bar .pending{background:#2a3140}
-.legend{color:#8a93a3;font-size:12.5px;margin:0 0 14px}
-.legend b{color:#dfe6f0}
-.stats{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}
-.stat{background:#161a22;border:1px solid #2a3140;border-radius:8px;
-      padding:9px 14px;min-width:150px}
-.stat .n{display:block;font-size:21px;color:#fff}
-.stat .k{display:block;font-size:12px;color:#8a93a3;margin-top:2px}
-.phase{border-left:3px solid #2a3140;padding-left:14px;margin:20px 0}
-.phase h3{margin:0 0 2px;font-size:16px;color:#dfe6f0}
-.blockcard{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
-           margin:10px 0;font-size:13.5px;color:#e3d4d5;max-width:1100px}
-.blockcard b{color:#fff}
-.nextcard{border-left:3px solid #4a86c4;background:#131a24;padding:10px 14px;
-          margin:10px 0;font-size:13.5px;color:#cfe0f5;max-width:1100px}
-.nextcard b{color:#fff}
-.unbacked{border-left:3px solid #a24f52;background:#1a1315;padding:10px 14px;
-          margin:10px 0;font-size:13px;color:#e3d4d5;max-width:1100px}
-.src{color:#6f7a8a;font-size:11.5px}
-table.data td.tight{white-space:nowrap}
-</style>
+<style></style>
 </head><body>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">0/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">2/34 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series"><span class="n">CV Time Series</span><span class="m">34/34 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf Early Light Curve"><span class="n">SN 2023ixf</span><span class="m">5/20 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/24 done</span></a><a class="navitem" aria-current="page" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf Galaxies + NGC 5548"><span class="n">Dwarf Galaxies</span><span class="m">1/31 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Rigel-Era Legacy Archive (candidate)"><span class="n">Legacy Rigel</span><span class="m">0/11 done</span></a></nav></div>
+<div class="tabbar"><nav class="tabbar-inner" aria-label="Dwarf Galaxies + NGC 5548 views"><a class="tab" href="../DwarfGalaxy_AGN_Survey/case.html">The Case</a><span class="tab absent" title="no generated plots belong to this area yet">Figures — none yet</span><span class="tab absent" title="no compiled draft yet — only the AASTeX skeleton; see Plan &amp; Status for the writing task and its blocker">Draft Paper — none yet</span><a class="tab" aria-current="page" href="../DwarfGalaxy_AGN_Survey/index.html">Plan &amp; Status</a><a class="tab" href="../DwarfGalaxy_AGN_Survey/evidence.html">Evidence Detail</a></nav></div>
+<div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../DwarfGalaxy_AGN_Survey/case.html">Dwarf Galaxies + NGC 5548</a></li><li aria-current="page">Plan &amp; Status</li><li aria-current="page">Dwarf Galaxies + NGC 5548 — Plan &amp; Progress</li></ol></nav></div>
+<div class="layout">
+<aside class="rail" aria-label="Questions in this view"><a class="railback" href="../DwarfGalaxy_AGN_Survey/case.html">&larr; Back to the case</a><h2>The questions</h2><p class="railnote">The questions this page answers, in order.</p><ol><li><a href="#claim"><span class="qn">1</span> What this paper will claim</a></li><li><a href="#progress"><span class="qn">2</span> Progress at a glance</a></li><li><a href="#plan"><span class="qn">3</span> The plan</a></li><li><a href="#blocking"><span class="qn">4</span> What's blocking</a></li><li><a href="#next"><span class="qn">5</span> Next up</a></li><li><a href="#evidence"><span class="qn">6</span> Evidence</a></li></ol></aside>
+<div class="pane">
+<!--MACRO-SITE:CONTENT-->
 
 <header>
   <h1>Dwarf Galaxies + NGC 5548 — Plan &amp; Progress</h1>
   <p>1 of 31 plan tasks complete (8 blocked)
   &middot; ApJ (NGC 5548 section conditional; pre-authorised RNAAS fallback)<br>
-  Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a> &middot; <a href="../index.html">&larr; all reports</a></p>
+  Strategy: <a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">ANALYSIS_STRATEGY.md</a> &middot; <a href="../index.html">&larr; the front page</a></p>
 </header>
 
 <nav>
@@ -113,12 +80,12 @@ table.data td.tight{white-space:nowrap}
 <tr><td><code>OGGrism</code></td><td>2</td><td>2</td><td>0</td><td>0</td><td>0 of 2 low</td><td>too few measured</td></tr>
 <tr><td><code>r</code></td><td>1</td><td>0</td><td>1</td><td>0</td><td>&mdash;</td><td>too few measured</td></tr>
 </table>
-<h3>What the strategy claims vs what the manifest holds <span class="chip v-fresh">FRESH</span></h3><p class="sub">Reconciliation rows written by S0 — and re-checked at render time by looking for the sentence S0 says it transcribed in the strategy document as it stands now. A non-zero diff is not necessarily an error — it is a question that has an answer in the <code>source</code> column of <code>project_counts</code>. A SUPERSEDED row is a different thing: the question itself has expired.</p><table class="data">
+<h3>What the strategy claims vs what the manifest holds <span class="chip v-wait">STALE_UPSTREAM</span></h3><p class="sub">Reconciliation rows written by S0 — and re-checked at render time by looking for the sentence S0 says it transcribed in the strategy document as it stands now. A non-zero diff is not necessarily an error — it is a question that has an answer in the <code>source</code> column of <code>project_counts</code>. A SUPERSEDED row is a different thing: the question itself has expired.</p><table class="data">
 <tr><th>Target</th><th>Metric</th><th>Strategy claims</th><th>Manifest holds</th><th>Reconciliation</th></tr>
 <tr><td>Dw survey (19 fields)</td><td><code>unique_light</code></td><td>499</td><td>499</td><td>agrees <span class="src">(quote unverifiable)</span></td></tr>
 <tr class="warn"><td>NGC 5548</td><td><code>unique_light</code></td><td>133</td><td>143</td><td><b>10</b></td></tr>
 <tr><td>NGC5238</td><td><code>unique_light</code></td><td>528</td><td>528</td><td>agrees <span class="src">(quote unverifiable)</span></td></tr>
-</table>
+</table><p class="sub">S0, which wrote these rows, is currently <b>STALE_UPSTREAM</b>. Every quoted sentence still matches the strategy text, so the transcriptions are current even though the stage is not.</p>
 </div>
 </section>
 
@@ -138,12 +105,12 @@ reason attached.</p>
 <p class="sub">Nothing else starts until these finish, and no frame count enters the manuscript until 0.3 closes.</p>
 <table class="data">
 <tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
-<tr><td><span class="chip done">done</span></td><td><b>Working set staged by reference</b><br><code>DW-P0-staging</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 0.1</span></td><td>stage_dwarfgalaxy_agn_survey: the Dw fields, NGC 5238 and NGC 5548 with era-matched calibration.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a></td></tr>
-<tr><td><span class="chip in_progress">in progress</span></td><td><b>Deduplicate and validate pointing</b><br><code>DW-P01-dedup-pointing</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 0.1</span></td><td>A per-frame disposition with pointing columns — including the 2023-03-25 NGC 5548 tracking failure, which unique-JD counting alone missed.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a></td><td><a href="../pipeline/s0_manifest.html">s0_manifest.html</a></td></tr>
+<tr><td><span class="chip done">done</span></td><td><b>Working set staged by reference</b><br><code>DW-P0-staging</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 0.1</span></td><td>stage_dwarfgalaxy_agn_survey: the Dw fields, NGC 5238 and NGC 5548 with era-matched calibration.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a></td></tr>
+<tr><td><span class="chip in_progress">in progress</span></td><td><b>Deduplicate and validate pointing</b><br><code>DW-P01-dedup-pointing</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 0.1</span></td><td>A per-frame disposition with pointing columns — including the 2023-03-25 NGC 5548 tracking failure, which unique-JD counting alone missed.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0_manifest.html">s0_manifest.html</a></td></tr>
 <tr><td><span class="chip in_progress">in progress</span></td><td><b>Measure whether slot '6' disperses</b><br><code>DW-P02-slot6-dispersion</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 0.2(b)</span></td><td>A per-frame direct/dispersed verdict for the NGC 5548 campaign — the measurement that decides whether the AGN section is photometry at all.</td><td><code>S2c</code> <a href="../pipeline/s2c_filter_identity.html">s2c_filter_identity.html</a> <span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s2c_filter_identity.html">s2c_filter_identity.html</a></td></tr>
 <tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>The filter-slot dossier, science and calibration</b><br><code>DW-P02-filter-dossier</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 0.2</span></td><td>An appendix table mapping every slot letter to a physical bandpass per epoch, from config logs AND a colour-locus regression — both required, and they must agree.</td><td><code>S2c</code> <a href="../pipeline/s2c_filter_identity.html">s2c_filter_identity.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
 <tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Plate-solve everything</b><br><code>DW-P03-plate-solve</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 0.3</span></td><td>WCS, FWHM and a pointing-jitter distribution for NGC 5548 for the first time; ~250 unsolved Dw rows recovered.</td><td><code>S1b</code> &mdash;</td><td>&mdash;</td></tr>
-<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>StackPro/High Gain noise model</b><br><code>DW-P04-noise-model</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 0.4</span></td><td>Photon-transfer curves from the named 2023-06-07/08 dark repeats, an effective gain and read noise, and the ADU level where variance departs from linear.</td><td><code>S2</code> <a href="../pipeline/s2_detector.html">s2_detector.html</a></td><td>&mdash;</td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>StackPro/High Gain noise model</b><br><code>DW-P04-noise-model</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 0.4</span></td><td>Photon-transfer curves from the named 2023-06-07/08 dark repeats, an effective gain and read noise, and the ADU level where variance departs from linear.</td><td><code>S2</code> <a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td></tr>
 </table>
 </div>
 <div class="phase">
@@ -151,7 +118,7 @@ reason attached.</p>
 <p class="sub">An executable path per band, including for the band that has no flat at any epoch.</p>
 <table class="data">
 <tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
-<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Flat strategy per campaign per filter</b><br><code>DW-P11-flats</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 1.1</span></td><td>Delta sky flats where dithering allows; for slot '6' either a dither flat or a COMPUTED jitter × gradient bound carried in the error budget.</td><td><code>S0b</code> <a href="../pipeline/s0b_calibration_inventory.html">s0b_calibration_inventory.html</a></td><td><a href="../pipeline/s0b_calibration_inventory.html">s0b_calibration_inventory.html</a></td></tr>
+<tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Flat strategy per campaign per filter</b><br><code>DW-P11-flats</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 1.1</span></td><td>Delta sky flats where dithering allows; for slot '6' either a dither flat or a COMPUTED jitter × gradient bound carried in the error budget.</td><td><code>S0b</code> <a href="../pipeline/s0b_calibration_inventory.html">s0b_calibration_inventory.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0b_calibration_inventory.html">s0b_calibration_inventory.html</a></td></tr>
 <tr><td><span class="chip pending">pending</span></td><td><b>Fringing and moonlight gradients</b><br><code>DW-P12-fringe-moon</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 1.2</span></td><td>A measured answer per filter rather than an assumption, plus per-moon-regime delta flats if the Hα residuals demand them.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
 </table>
 </div>
@@ -160,7 +127,7 @@ reason attached.</p>
 <p class="sub">Shared across all three campaigns; ZMAG is QC only.</p>
 <table class="data">
 <tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
-<tr><td><span class="chip pending">pending</span></td><td><b>Per-image catalog ZMAG is QC only</b><br><code>DW-P21-zmag-qc</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 2.1</span></td><td>A written rule and a per-frame QC flag: PinPoint's ZMAG carries unmodelled colour terms and is absent for every NGC 5548 frame, so it never becomes science calibration.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Per-image catalog ZMAG is QC only</b><br><code>DW-P21-zmag-qc</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 2.1</span></td><td>A written rule and a per-frame QC flag: PinPoint's ZMAG carries unmodelled colour terms and is absent for every NGC 5548 frame, so it never becomes science calibration.</td><td><code>S0</code> <a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td></tr>
 <tr><td><span class="chip pending">pending</span></td><td><b>REFCAT2 ensemble zero points</b><br><code>DW-P2-ensemble-zp</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 2.2</span></td><td>ZP plus a linear colour term per filter per readout-mode epoch, with PS1 as the independent check.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
 <tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Publish the band transformations</b><br><code>DW-P2-band-transformations</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 2.3</span></td><td>Every depth and surface-brightness limit quoted in an IDENTIFIED band — never as 'L'.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
 </table>
@@ -170,7 +137,7 @@ reason attached.</p>
 <p class="sub">Cross-match first — it fixes the counts, the framing and the title.</p>
 <table class="data">
 <tr><th>Status</th><th>Task</th><th>What it produces</th><th>Stage &amp; its report</th><th>Evidence</th></tr>
-<tr><td><span class="chip pending">pending</span></td><td><b>Literature cross-match per candidate</b><br><code>DW-P31-crossmatch</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 3.1</span></td><td>The table that defines the remaining novelty: ELVES/HSC status, existing Kaisin &amp; Karachentsev Hα, and DESI spectroscopy per candidate.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>Literature cross-match per candidate</b><br><code>DW-P31-crossmatch</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 3.1</span></td><td>The table that defines the remaining novelty: ELVES/HSC status, existing Kaisin &amp; Karachentsev Hα, and DESI spectroscopy per candidate.</td><td><code>S0c</code> <a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td></tr>
 <tr><td><span class="chip pending">pending</span></td><td><b>Uniform QC gates</b><br><code>DW-P32-qc-gates</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 3.2</span></td><td>A pipeline-emitted disposition table — the only rejection authority; no hand-written night lists anywhere.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
 <tr><td><span class="chip pending">pending</span></td><td><b>Weighted coadds per field per filter</b><br><code>DW-P33-stacks</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 3.3</span></td><td>Deep stacks with a constant per-frame sky — never a mesh background, which eats LSB flux.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
 <tr><td><span class="chip pending">pending</span></td><td><b>Measured depth and the detectability gate</b><br><code>DW-P34-depth-detectability</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 3.4</span></td><td>Román+2020 limits, synthetic-dwarf recovery contours, and the per-candidate table that decides which candidates we may say anything about.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
@@ -188,7 +155,7 @@ reason attached.</p>
 <tr class="warn"><td><span class="chip blocked">blocked</span></td><td><b>Differential ensemble light curve</b><br><code>DW-P42-ensemble</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 4.2–4.3</span></td><td>Nightly means with comparison-star null light curves and χ²-validated empirical errors.</td><td><code>S1b</code> &mdash;</td><td>&mdash;</td></tr>
 <tr><td><span class="chip pending">pending</span></td><td><b>Variability statistics</b><br><code>DW-P44-statistics</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 4.4</span></td><td>χ² vs constancy, F_var with host dilution stated, and a structure function with per-bin pair counts published.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
 <tr><td><span class="chip pending">pending</span></td><td><b>The Phase 4.5 value gate</b><br><code>DW-P45-gate</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 4.5</span></td><td>A coverage/precision table against ZTF g / ASAS-SN g / ATLAS o. If it shows no gain, the RNAAS fallback executes without regret.</td><td><code>S4</code> <a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>&mdash;</td></tr>
-<tr><td><span class="chip pending">pending</span></td><td><b>BJD_TDB for everything in the paper</b><br><code>DW-P46-bjd</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 4.6</span></td><td>Barycentric mid-exposure times for every NGC 5548 frame — the headers carry UTC JD, which is not what a variability paper may quote.</td><td><code>S3</code> <a href="../pipeline/s3_timing.html">s3_timing.html</a></td><td>&mdash;</td></tr>
+<tr><td><span class="chip pending">pending</span></td><td><b>BJD_TDB for everything in the paper</b><br><code>DW-P46-bjd</code><br><span class="src"><a href="https://github.com/jwwetzel/MACRO/blob/main/DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md">DwarfGalaxy_AGN_Survey/ANALYSIS_STRATEGY.md</a> §4 Phase 4.6</span></td><td>Barycentric mid-exposure times for every NGC 5548 frame — the headers carry UTC JD, which is not what a variability paper may quote.</td><td><code>S3</code> <a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td></tr>
 </table>
 </div>
 <div class="phase">
@@ -235,7 +202,7 @@ edited by hand.</p>
 
 <section id="evidence">
 <div class="bhead"><h2>Evidence</h2>
-<span class="tag">2 of 8 stages are not FRESH</span></div>
+<span class="tag">8 of 8 stages are not FRESH</span></div>
 <div class="stage">
 <p class="sub">The pipeline stages this project's plan rests on, each with
 the verdict <code>macro_core.provenance</code> returns right now.
@@ -244,20 +211,20 @@ numbers moved, destroyed means the table the number came from is not in the
 database at all. A reader is never invited to trust an orphaned report.</p>
 <table class="data">
 <tr><th>Stage</th><th>What it produces</th><th>Verdict now</th><th>Report</th><th>Why</th></tr>
-<tr><td><code>S0</code></td><td>Manifest (dedup, aliases, eras, pointing)</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s0_manifest.html">s0_manifest.html</a></td><td>&mdash;</td></tr>
-<tr><td><code>S0b</code></td><td>Calibration inventory (links, coverage, gaps)</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s0b_calibration_inventory.html">s0b_calibration_inventory.html</a></td><td>&mdash;</td></tr>
-<tr><td><code>S0c</code></td><td>Per-project staging manifests</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a></td><td>&mdash;</td></tr>
-<tr><td><code>S1b</code></td><td>Astrometry production batch</td><td><span class="chip v-fresh">FRESH</span></td><td>&mdash;</td><td>&mdash;</td></tr>
-<tr><td><code>S2</code></td><td>Detector truth (ceiling, PTC, recon, linearity)</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s2_detector.html">s2_detector.html</a></td><td>&mdash;</td></tr>
+<tr class="warn"><td><code>S0</code></td><td>Manifest (dedup, aliases, eras, pointing)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0_manifest.html">s0_manifest.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0e (STALE) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>S0b</code></td><td>Calibration inventory (links, coverage, gaps)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0b_calibration_inventory.html">s0b_calibration_inventory.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE_UPSTREAM) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>S0c</code></td><td>Per-project staging manifests</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s0c_staging.html">s0c_staging.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE_UPSTREAM), S0b (STALE_UPSTREAM) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>S1b</code></td><td>Astrometry production batch</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td>&mdash;</td><td>upstream not fresh: S0 (STALE_UPSTREAM) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
+<tr class="warn"><td><code>S2</code></td><td>Detector truth (ceiling, PTC, recon, linearity)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s2_detector.html">s2_detector.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE_UPSTREAM), S0b (STALE_UPSTREAM) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
 <tr class="warn"><td><code>S2c</code></td><td>Per-frame dispersion (is this FILTER a spectrum?)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s2c_filter_identity.html">s2c_filter_identity.html</a> <span class="chip v-stale">STALE</span></td><td>code version 'S2c v1.0 (2026-08-18)' -&gt; 'S2c v1.1 (2026-08-18)'</td></tr>
-<tr><td><code>S3</code></td><td>Timing (BJD_TDB, clock, cadence)</td><td><span class="chip v-fresh">FRESH</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a></td><td>&mdash;</td></tr>
+<tr class="warn"><td><code>S3</code></td><td>Timing (BJD_TDB, clock, cadence)</td><td><span class="chip v-wait">STALE_UPSTREAM</span></td><td><a href="../pipeline/s3_timing.html">s3_timing.html</a> <span class="chip v-wait">STALE_UPSTREAM</span></td><td>upstream not fresh: S0 (STALE_UPSTREAM) — this stage's own declared inputs still match what it recorded, so re-run it only after those ancestors, and only if its own fingerprints move</td></tr>
 <tr class="warn"><td><code>S4</code></td><td>Ensemble photometry (AN UMa / VV Pup prototype)</td><td><span class="chip v-stale">STALE</span></td><td><a href="../pipeline/s4_photometry.html">s4_photometry.html</a> <span class="chip v-stale">STALE</span></td><td>input file:pipeline/macro_phot/series.py: changed after this stage ran — external source changed 2026-08-18T20:00:29Z, after this stage ran 2026-08-18T09:06:22.298272+00:00</td></tr>
 </table>
 
 </div>
 </section>
 
-<footer>Generated 2026-08-21T04:01:43Z by
+<footer>Generated 2026-08-21T16:18:43Z by
 <code>macro_core.report_projects</code> from the plan ledger in
 <code>macro_core.project_plan</code> (PLAN v1.0 (2026-08-18)), the
 progress recorded in <code>project_plan_status</code>, and live queries
@@ -273,4 +240,9 @@ descriptions quote figures from the strategy documents, and a quoted figure
 can disagree with the table beside it when the two count under different
 rules. Where a quoted number gates a decision, the accounting rule is stated
 with it. Prose is prose; the tables are the measurement.</footer>
+<!--/MACRO-SITE:CONTENT-->
+
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v1.0 (2026-08-18)), the provenance DAG (<code>macro_core.provenance</code>, P v1.0 (2026-08-18)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+</div>
+</div>
 </body></html>

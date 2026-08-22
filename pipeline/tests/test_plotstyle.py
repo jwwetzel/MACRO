@@ -321,6 +321,79 @@ def test_no_renderer_declares_its_own_hex_palette():
                            + ", ".join(offenders))
 
 
+def test_no_renderer_names_a_matplotlib_colormap_directly():
+    """``cmap=`` takes a plotstyle constant, never a bare string.
+
+    The categorical guard above catches ``tab10``/``tab20``, and the hex
+    guard catches a literal colour — but neither caught ``cmap="coolwarm"``
+    in the catalogue-tie residual panels or ``cmap="viridis"`` on the moon
+    figure's separation colourbar, both of which were live on the site after
+    the dark theme was removed.  A named ramp is a second definition of the
+    house style in exactly the way a hex literal is: it just spells the
+    colours with a word instead of a number.
+
+    The sanctioned ramps all live in plotstyle (:data:`SEQ_CMAP`,
+    :data:`DIV_CMAP`, :data:`IMAGE_CMAP`, :data:`IMAGE_FLAT_CMAP`,
+    :data:`IMAGE_GREY`), so a compliant line reads ``cmap=ps.SOMETHING``
+    and never ``cmap="something"``.
+    """
+    offenders = []
+    for path in sorted((REPO_ROOT / "pipeline").rglob("*.py")):
+        if path.name in ("plotstyle.py", "test_plotstyle.py"):
+            continue
+        for i, line in enumerate(path.read_text().splitlines(), 1):
+            if re.search(r"""\bcmap\s*=\s*["']""", line):
+                offenders.append(f"{path.relative_to(REPO_ROOT)}:{i}"
+                                 f"  {line.strip()}")
+    assert not offenders, (
+        "a colormap must be named through macro_core.plotstyle "
+        "(SEQ_CMAP / DIV_CMAP / IMAGE_CMAP / IMAGE_FLAT_CMAP / IMAGE_GREY), "
+        "not passed as a bare string: " + "; ".join(offenders))
+
+
+def test_the_sanctioned_colormaps_are_all_resolvable():
+    """A guard naming five constants is only as good as their existing."""
+    import matplotlib
+    for name in ("SEQ_CMAP", "DIV_CMAP", "IMAGE_CMAP",
+                 "IMAGE_FLAT_CMAP", "IMAGE_GREY"):
+        value = getattr(ps, name)
+        # Either an actual colormap object, or a name matplotlib knows.
+        if isinstance(value, str):
+            assert matplotlib.colormaps[value] is not None, name
+        else:
+            assert callable(value), name
+
+
+def _relative_luminance(rgb) -> float:
+    """WCAG relative luminance of an (r, g, b) triple in 0..1.
+
+    The same formula ``plotstyle.text_on`` uses, restated here rather than
+    imported so the test measures the property independently of the code it
+    is checking.
+    """
+    def lin(c):
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = rgb
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+
+
+def test_the_one_sequential_ramp_survives_greyscale():
+    """SEQ_CMAP's ends must be far apart in LUMINANCE, not just in hue.
+
+    This is the property the SN saturation matrix lost: its old
+    vermilion->orange->green ramp put "none usable" at grey 128 and "all
+    usable" at grey 138 — ten levels apart out of 255 — with the midpoint
+    at 171, LIGHTER than either end.  Photocopied, that figure read
+    inverted.  A ramp carrying a quantity has to keep its ends separable
+    when the colour is thrown away.
+    """
+    lo = _relative_luminance(ps.SEQ_CMAP(0.0)[:3])
+    hi = _relative_luminance(ps.SEQ_CMAP(1.0)[:3])
+    assert lo - hi > 0.5, ("the sequential ramp's ends are too close in "
+                           f"luminance to survive greyscale: {lo:.3f} "
+                           f"vs {hi:.3f}")
+
+
 # ---------------------------------------------------------------------------
 # THE GUARD: no published figure may have a dark ground
 # ---------------------------------------------------------------------------

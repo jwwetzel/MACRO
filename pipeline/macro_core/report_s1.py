@@ -974,11 +974,13 @@ def section_autopsy(con) -> str:
     else:
         # Fails loud rather than printing a comforting sentence: if a
         # spectrum reaches the autopsy again, the gate has regressed.
-        # No bare .warn rule exists for paragraphs in macro.css (it styles
-        # table rows only), so the regression banner carries its own colour
-        # rather than silently rendering as ordinary body text.
+        # macro.css now carries a semantic `.bad` ink for text, so the
+        # banner asks for it by name.  It used to hard-code #e07a7a, a pale
+        # red chosen for a dark ground, precisely because no such class
+        # existed — and that literal would have gone nearly invisible when
+        # the site turned white.
         invariant = (
-            f"<p class=\"sub\" style=\"color:#e07a7a\">"
+            f"<p class=\"sub bad\">"
             f"<b>REGRESSION: {fmt(n_spec_now)} "
             f"autopsied failure(s) are measured spectra.</b>  The "
             f"candidate gate should have excluded them; this taxonomy is "
@@ -1186,7 +1188,7 @@ def render_report(manifest_path: Path) -> Path:
   built {esc(meta.get('built_utc', ''))[:16]}Z
   ({esc(meta.get('code_version', ''))},
   commit <code>{esc(meta.get('git_commit', '') or 'uncommitted')}</code>)
-  &middot; <a href="../index.html">back to the evidence hub</a></p>
+  &middot; <a href="../index.html">the front page</a></p>
 </header>
 
 <nav>

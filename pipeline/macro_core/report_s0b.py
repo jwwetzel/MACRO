@@ -737,7 +737,7 @@ def render_report(manifest_path: Path) -> Path:
   built {esc(meta.get('built_utc', ''))[:16]}Z
   ({esc(meta.get('code_version', ''))},
   commit <code>{esc(meta.get('git_commit', '') or 'uncommitted')}</code>)
-  &middot; <a href="../index.html">back to the evidence hub</a></p>
+  &middot; <a href="../index.html">the front page</a></p>
 </header>
 
 <nav>

@@ -121,20 +121,44 @@ def fig_matrix(con) -> str:
 
     with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(12.4, 4.2))
-        cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
-            "usable", [BAD, WARN, GOOD])
+        # The house sequential ramp, NOT a red-to-green one.  This cell
+        # carries its value in colour alone — no number is printed in it —
+        # so the ramp has to survive both colour-blindness and a greyscale
+        # print.  vermilion->orange->green fails BOTH: deuteranopes cannot
+        # separate its ends, and in greyscale those ends land on 128 and 138
+        # of 255 while the MIDDLE sits at 171, so a half-usable night prints
+        # lighter than either extreme and the map reads inverted.
+        # ps.SEQ_CMAP is monotonic in lightness, so pale still means "little
+        # usable" after any amount of photocopying.
+        cmap = ps.SEQ_CMAP
         # The house web profile draws a grid; on a heat map its white rules
         # cut every cell in half and read as cell boundaries that are not
         # there.  Off for this figure only.
         ax.grid(False)
         im = ax.imshow(grid, aspect="auto", cmap=cmap, vmin=0, vmax=1,
                        interpolation="nearest")
+
+        def _overlay_ink(pts):
+            """Marker colour per cell: dark on pale cells, white on deep ones.
+
+            A fixed INK dot disappears on a fully-usable cell now that the
+            top of the ramp is dark blue.  ps.ink_on makes the same
+            luminance decision every other heatmap in the repository makes.
+            """
+            out = []
+            for j, i in pts:
+                v = grid[i, j]
+                out.append(ps.ink_on(0.0 if np.isnan(v) else float(v)))
+            return out
+
         if dots:
             ax.scatter([d[0] for d in dots], [d[1] for d in dots], s=9,
-                       color=INK, zorder=3, marker="o", linewidths=0)
+                       color=_overlay_ink(dots), zorder=3, marker="o",
+                       linewidths=0)
         if undet:
             ax.scatter([d[0] for d in undet], [d[1] for d in undet], s=26,
-                       color=INK, zorder=3, marker="x", linewidths=1.0)
+                       color=_overlay_ink(undet), zorder=3, marker="x",
+                       linewidths=1.0)
         ax.set_yticks(range(len(filts)))
         ax.set_yticklabels([f"{f}  ({g0.band_role(f)[:4]})" for f in filts])
         step = max(1, len(nights) // 18)
@@ -976,7 +1000,7 @@ def render_report(manifest_path: Path) -> Path:
   built {esc(meta.get('verdicts_built_at', ''))[:16]}Z
   ({esc(meta.get('code_version', SN_G0_CODE_VERSION))})
   &middot; <a href="index.html">back to the project page</a>
-  &middot; <a href="../index.html">evidence hub</a></p>
+  &middot; <a href="../index.html">the front page</a></p>
 </header>
 
 <nav>
