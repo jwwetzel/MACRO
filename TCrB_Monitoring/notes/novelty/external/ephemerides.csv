@@ -1,0 +1,4 @@
+ephemeris,period_d,period_err_d,t0_hjd,t0_err_d,source
+"Munari et al. 2025 (A&A 701, A176), Table 3",227.5528,0.0002,2459978.37,0.08,https://arxiv.org/abs/2507.23323
+"Hinkle et al. 2025 (arXiv:2502.20664), circular orbit",227.5494,0.0049,2455427.51,0.10,https://arxiv.org/abs/2502.20664
+"Fekel et al. 2000 (AJ 119, 1375), as quoted by Zamanov et al. 2025",227.5687,0.0099,2447918.62,,https://arxiv.org/abs/2504.06029

@@ -1,0 +1,137 @@
+
+=== edges ===
+database: /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/products/phot/cv_timeseries.sqlite
+  stlmi|e47|z      1 edges, three estimators each
+  stlmi|e76|g     19 edges, three estimators each
+  stlmi|e76|i     16 edges, three estimators each
+  stlmi|e76|r     14 edges, three estimators each
+  stlmi|e7|G       3 edges, three estimators each
+  stlmi|e7|I       6 edges, three estimators each
+  stlmi|e7|R       4 edges, three estimators each
+  63 edges; published epochs reproduced to 0 s
+
+=== inject ===
+database: /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/products/phot/cv_timeseries.sqlite
+  18 night x noise-model jobs, 500 realisations x 5 widths x 3 estimators each, 6 workers
+    [1/18] 2024-02-04 (rolled)
+    [2/18] 2024-01-30 (rolled)
+    [3/18] 2024-01-31 (rolled)
+    [4/18] 2025-02-23 (rolled)
+    [5/18] 2025-02-21 (rolled)
+    [6/18] 2025-02-24 (rolled)
+    [7/18] 2024-03-03 (gaussian)
+    [8/18] 2025-02-22 (rolled)
+    [9/18] 2024-03-03 (rolled)
+    [10/18] 2025-03-02 (rolled)
+    [11/18] 2025-02-27 (rolled)
+    [12/18] 2025-02-27 (gaussian)
+    [13/18] 2025-05-02 (rolled)
+    [14/18] 2025-05-03 (rolled)
+    [15/18] 2025-04-30 (rolled)
+    [16/18] 2025-12-17 (rolled)
+    [17/18] 2025-05-06 (rolled)
+    [18/18] 2025-05-08 (rolled)
+
+=== offset ===
+/opt/miniconda3/envs/rlmt-checks/lib/python3.10/site-packages/numpy/lib/_nanfunctions_impl.py:1620: RuntimeWarning: All-NaN slice encountered
+  return fnb._ureduce(a,
+database: /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/products/phot/cv_timeseries.sqlite
+  v1    g-i: n=14 mean  -129.2 +/-  30.7 s  neg 13  p_perm 0.0005 p_cluster 0.0039  chi2nu(pub) 0.28
+  v1    g-r: n=13 mean   -17.5 +/-  28.4 s  neg  7  p_perm 0.5449 p_cluster 0.4922  chi2nu(pub) 0.30
+  v1    r-i: n=15 mean   -37.9 +/-  26.3 s  neg 11  p_perm 0.1711 p_cluster 0.2812  chi2nu(pub) 0.24
+  magc  g-i: n=14 mean   -93.5 +/-  16.2 s  neg 14  p_perm 0.0001 p_cluster 0.0039  chi2nu(pub) 0.19
+  magc  g-r: n=12 mean   -15.3 +/-  17.9 s  neg  6  p_perm 0.4175 p_cluster 0.4297  chi2nu(pub) 0.12
+  magc  r-i: n=14 mean   -10.9 +/-  24.0 s  neg  9  p_perm 0.6614 p_cluster 0.7578  chi2nu(pub) 0.31
+  v2    g-i: n=14 mean   -93.0 +/-  19.9 s  neg 13  p_perm 0.0004 p_cluster 0.0039  chi2nu(pub) 0.26
+  v2    g-r: n=12 mean   -21.9 +/-  16.2 s  neg  7  p_perm 0.2026 p_cluster 0.1445  chi2nu(pub) 0.11
+  v2    r-i: n=14 mean    -8.9 +/-  25.6 s  neg  8  p_perm 0.7404 p_cluster 0.7656  chi2nu(pub) 0.42
+
+=== oc ===
+database: /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/products/phot/cv_timeseries.sqlite
+  v1/pub       pooled           n=36 chi2/dof=  28.0/33  Pdot=+1.14e-09  lim3(budget)=3.61e-09 lim3(scatter)=3.42e-09
+  v1/pub       band             n=35 chi2/dof=  20.5/30  Pdot=+1.41e-09  lim3(budget)=3.92e-09 lim3(scatter)=3.49e-09
+  v1/pub       band+era         n=35 chi2/dof=  19.6/29  Pdot=+3.73e-09  lim3(budget)=1.13e-08 lim3(scatter)=9.95e-09
+  v1/pub       night            n=16 chi2/dof=   9.0/13  Pdot=+1.41e-09  lim3(budget)=3.89e-09 lim3(scatter)=3.47e-09
+  v1/pub       night+era        n=16 chi2/dof=   8.1/12  Pdot=+3.68e-09  lim3(budget)=1.11e-08 lim3(scatter)=9.79e-09
+  v1/pub       pooled no2024    n=27 chi2/dof=  23.2/24  Pdot=+4.86e-09  lim3(budget)=1.62e-08 lim3(scatter)=1.60e-08
+  v1/pub       band no2024      n=27 chi2/dof=  17.1/22  Pdot=+6.51e-09  lim3(budget)=1.81e-08 lim3(scatter)=1.68e-08
+  v1/pub       night no2024     n=12 chi2/dof=   7.1/ 9  Pdot=+6.52e-09  lim3(budget)=1.78e-08 lim3(scatter)=1.65e-08
+  v1/scatter   pooled           n=36 chi2/dof=  32.1/33  Pdot=+6.53e-10  lim3(budget)=3.30e-09 lim3(scatter)=3.26e-09
+  v1/scatter   band             n=35 chi2/dof=  30.0/30  Pdot=+8.75e-10  lim3(budget)=3.25e-09 lim3(scatter)=3.25e-09
+  v1/scatter   band+era         n=35 chi2/dof=  29.0/29  Pdot=+2.67e-09  lim3(budget)=8.16e-09 lim3(scatter)=8.16e-09
+  v1/scatter   night            n=16 chi2/dof=   8.4/13  Pdot=+8.75e-10  lim3(budget)=3.21e-09 lim3(scatter)=2.75e-09
+  v1/scatter   night+era        n=16 chi2/dof=   7.4/12  Pdot=+2.47e-09  lim3(budget)=7.90e-09 lim3(scatter)=6.73e-09
+  v1/scatter   pooled no2024    n=27 chi2/dof=  24.0/24  Pdot=+4.85e-09  lim3(budget)=1.57e-08 lim3(scatter)=1.57e-08
+  v1/scatter   band no2024      n=27 chi2/dof=  22.0/22  Pdot=+6.22e-09  lim3(budget)=1.65e-08 lim3(scatter)=1.65e-08
+  v1/scatter   night no2024     n=12 chi2/dof=   5.2/ 9  Pdot=+6.22e-09  lim3(budget)=1.61e-08 lim3(scatter)=1.37e-08
+  v1corr/scatter pooled           n=36 chi2/dof=  32.2/33  Pdot=+7.26e-10  lim3(budget)=3.11e-09 lim3(scatter)=3.08e-09
+  v1corr/scatter band             n=35 chi2/dof=  30.0/30  Pdot=+8.76e-10  lim3(budget)=3.22e-09 lim3(scatter)=3.22e-09
+  v1corr/scatter band+era         n=35 chi2/dof=  29.0/29  Pdot=+2.54e-09  lim3(budget)=8.00e-09 lim3(scatter)=8.00e-09
+  v1corr/scatter night            n=16 chi2/dof=   8.8/13  Pdot=+8.76e-10  lim3(budget)=3.18e-09 lim3(scatter)=2.77e-09
+  v1corr/scatter night+era        n=16 chi2/dof=   7.9/12  Pdot=+2.41e-09  lim3(budget)=7.78e-09 lim3(scatter)=6.76e-09
+  v1corr/scatter pooled no2024    n=27 chi2/dof=  24.0/24  Pdot=+4.84e-09  lim3(budget)=1.52e-08 lim3(scatter)=1.52e-08
+  v1corr/scatter band no2024      n=27 chi2/dof=  22.0/22  Pdot=+5.97e-09  lim3(budget)=1.64e-08 lim3(scatter)=1.64e-08
+  v1corr/scatter night no2024     n=12 chi2/dof=   5.6/ 9  Pdot=+5.97e-09  lim3(budget)=1.60e-08 lim3(scatter)=1.39e-08
+  magc/scatter pooled           n=36 chi2/dof=  32.1/33  Pdot=+1.33e-09  lim3(budget)=2.96e-09 lim3(scatter)=2.94e-09
+  magc/scatter band             n=35 chi2/dof=  30.0/30  Pdot=+1.34e-09  lim3(budget)=2.80e-09 lim3(scatter)=2.80e-09
+  magc/scatter band+era         n=35 chi2/dof=  29.0/29  Pdot=+2.41e-09  lim3(budget)=6.43e-09 lim3(scatter)=6.43e-09
+  magc/scatter night            n=16 chi2/dof=   8.5/13  Pdot=+1.34e-09  lim3(budget)=2.78e-09 lim3(scatter)=2.50e-09
+  magc/scatter night+era        n=16 chi2/dof=   8.0/12  Pdot=+2.25e-09  lim3(budget)=6.24e-09 lim3(scatter)=5.50e-09
+  magc/scatter pooled no2024    n=27 chi2/dof=  24.0/24  Pdot=+1.41e-09  lim3(budget)=7.63e-09 lim3(scatter)=7.63e-09
+  magc/scatter band no2024      n=27 chi2/dof=  22.0/22  Pdot=+2.55e-09  lim3(budget)=8.38e-09 lim3(scatter)=8.38e-09
+  magc/scatter night no2024     n=12 chi2/dof=   7.2/ 9  Pdot=+2.55e-09  lim3(budget)=8.24e-09 lim3(scatter)=7.64e-09
+  v2/scatter   pooled           n=36 chi2/dof=  32.2/33  Pdot=+6.35e-10  lim3(budget)=2.45e-09 lim3(scatter)=2.43e-09
+  v2/scatter   band             n=35 chi2/dof=  30.0/30  Pdot=+9.22e-10  lim3(budget)=2.48e-09 lim3(scatter)=2.48e-09
+  v2/scatter   band+era         n=35 chi2/dof=  29.0/29  Pdot=+3.02e-09  lim3(budget)=7.09e-09 lim3(scatter)=7.09e-09
+  v2/scatter   night            n=16 chi2/dof=  12.9/13  Pdot=+9.22e-10  lim3(budget)=2.45e-09 lim3(scatter)=2.45e-09
+  v2/scatter   night+era        n=16 chi2/dof=  11.1/12  Pdot=+2.71e-09  lim3(budget)=7.00e-09 lim3(scatter)=6.84e-09
+  v2/scatter   pooled no2024    n=27 chi2/dof=  24.0/24  Pdot=+3.32e-09  lim3(budget)=1.07e-08 lim3(scatter)=1.07e-08
+  v2/scatter   band no2024      n=27 chi2/dof=  22.0/22  Pdot=+4.44e-09  lim3(budget)=1.05e-08 lim3(scatter)=1.05e-08
+  v2/scatter   night no2024     n=12 chi2/dof=  15.0/ 9  Pdot=+4.44e-09  lim3(budget)=1.04e-08 lim3(scatter)=1.21e-08
+
+=== longitude ===
+database: /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/products/phot/cv_timeseries.sqlite
+  spot longitude rms 73 s = 3.8 deg over 35 epochs
+
+=== superhump ===
+database: /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/products/phot/cv_timeseries.sqlite
+  5 of 18 run-filters carry a contour, 82-237 mmag; excluded at the 125 mmag published peak in 2
+
+=== yzrefold ===
+database: /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/products/phot/cv_timeseries.sqlite
+  30 scopes refolded; stored amplitudes reproduced to 0 mmag
+
+=== colour ===
+database: /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/products/phot/cv_timeseries.sqlite
+  era  7 g-i pair600      n= 214 nights=16 amp=0.970+/-0.051 red@0.08 blue@0.28
+  era  7 g-i interp       n= 137 nights=15 amp=0.986+/-0.077 red@0.08 blue@0.31
+  era  7 g-i interp_fwhm  n= 137 nights=15 amp=0.986+/-0.069 red@0.08 blue@0.31
+  era  7 g-r pair600      n= 212 nights=16 amp=0.742+/-0.066 red@0.12 blue@0.28
+  era  7 g-r interp       n= 121 nights=15 amp=0.767+/-0.098 red@0.06 blue@0.31
+  era  7 g-r interp_fwhm  n= 121 nights=15 amp=0.767+/-0.103 red@0.06 blue@0.31
+  era  7 r-i pair600      n= 252 nights=16 amp=0.438+/-0.073 red@0.09 blue@0.56
+  era  7 r-i pair120      n=  88 nights= 9 amp=0.398+/-0.077 red@0.09 blue@0.92
+  era  7 r-i interp       n= 165 nights=16 amp=0.397+/-0.068 red@0.99 blue@0.81
+  era  7 r-i interp_fwhm  n= 165 nights=16 amp=0.397+/-0.062 red@0.99 blue@0.81
+  era 76 g-i pair600      n= 433 nights= 9 amp=0.988+/-0.030 red@0.08 blue@0.28
+  era 76 g-i pair120      n= 366 nights= 8 amp=0.975+/-0.037 red@0.08 blue@0.28
+  era 76 g-i interp       n= 380 nights= 9 amp=1.009+/-0.036 red@0.08 blue@0.28
+  era 76 g-i interp_fwhm  n= 380 nights= 9 amp=1.009+/-0.037 red@0.08 blue@0.28
+  era 76 g-r pair600      n= 557 nights=12 amp=0.729+/-0.033 red@0.02 blue@0.23
+  era 76 g-r pair120      n= 354 nights= 8 amp=0.746+/-0.040 red@0.02 blue@0.28
+  era 76 g-r interp       n= 492 nights=12 amp=0.750+/-0.022 red@0.08 blue@0.28
+  era 76 g-r interp_fwhm  n= 492 nights=12 amp=0.750+/-0.022 red@0.08 blue@0.28
+  era 76 r-i pair600      n= 390 nights= 8 amp=0.277+/-0.029 red@0.89 blue@0.23
+  era 76 r-i pair120      n= 342 nights= 8 amp=0.292+/-0.031 red@0.97 blue@0.23
+  era 76 r-i interp       n= 363 nights= 8 amp=0.293+/-0.028 red@0.03 blue@0.28
+  era 76 r-i interp_fwhm  n= 363 nights= 8 amp=0.293+/-0.027 red@0.03 blue@0.28
+
+=== fitquality ===
+database: /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/products/phot/cv_timeseries.sqlite
+  v1: chi2nu median 38, max 1890, 55 of 63 above 10, dof 2-13
+
+=== counts ===
+database: /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/products/phot/cv_timeseries.sqlite
+  8716 staged, 7802 measured; 6676 tied points
+
+=== figures ===

@@ -1,5 +1,7 @@
 # ANALYSIS STRATEGY — Be-Star Grism Campaign (RLMT)
 
+> **Amended 2026-10-03.** The plan review of 2026-10-03 binds this strategy; its rulings are in **§10 (Committee amendments 2026-10-03)** at the end of this document and override anything above them that they contradict.
+
 **MACRO Consortium analysis-strategy panel — Chair's synthesis, rev. 2 (post-internal-referee)**
 Date: 2026-08-16 (rev. 2 same day, incorporating the internal referee round — see final section) · Chair: Committee Chair / Survey Scientist
 Input memos: (1) Precision Photometry & Detector Science, (2) Time-Series & Statistical Methods, (3) Be-Star & Slitless Spectroscopy, (4) Literature & Archival Scout. Internal referee report of 2026-08-16 adopted in full.
@@ -299,3 +301,100 @@ Referee report of 2026-08-16, adopted in full; every catalog claim in the report
 | m10 injection amplitude grid capped | Grid extends until the 90% completeness contour closes (Step 11). |
 | m11 stale effort estimate | Re-baselined: Step −1 ≈ 1 week, Steps 0–4 ≈ 5–6 weeks; calibration request adds era-B-camera-survival question; surrogate-dark validation paragraph committed (§9, Step 2). |
 | m12 T CrB operational text | Reduced to one sentence in the paper; operational recommendation moved to a separate observing-committee memo (§2, §9). |
+
+---
+
+## 10. Committee amendments 2026-10-03
+
+**Binding.** Plan review of 2026-10-03: the chair's synthesis
+`committee/reviews/2026-10-03/SYNTHESIS.md` and the seven seat memos beside it.
+**Where this section and anything above it disagree, this section wins**; the
+text above is kept as the record of what was planned on 2026-08-16. Finding ids
+are `<seat>.<id>` — DS data scientist, OA observational astronomer, PH physicist,
+DE detector engineer, TE telescope engineer, ED editor, RF referee; `U#` and `D#`
+are the synthesis's own rulings (§1) and test-resolved disagreements (§2).
+
+A task now closes in exactly one of three ways (SYNTHESIS §0): **done**
+(acceptance criterion met, evidence linked), **dropped** (ruled impossible or
+pointless on the data that exist) or **deferred** (needs frames that do not exist
+yet — the *2027 backlog*, outside this paper's critical path and its completion
+count). The plan ledger (`pipeline/macro_core/project_plan.py`) carries each
+ruling as data; this section is its citation.
+
+**Verdict:** execute with amendments (U9) — **BE-S-1a-bess first and alone.**
+
+**Venue:** decided by the novelty gate, BE-N1-gate: ApJ if ≥4 BeSS-verified active
+emitters, AJ/PASP for 2–3; **below two, the science paper stops** and the standards
+and precision material moves to the instrument section.
+
+**Scope as amended.**
+- **Step −1(a) runs before any pipeline effort**, and BE-N1-gate records the
+  decision. BE-figures and BE-draft do not start until it returns ≥2 verified
+  emitters.
+- **Step −1(b) is extended:** injection–recovery for every star, through
+  detrending, with the contour published *before* any periodogram is opened.
+- **The grism library G-1 … G-5 is inherited** (U2): fixed dispersion per (grism,
+  mechanical epoch), measured gain and saturation, pixel-based identity, the
+  sky-lozenge background, focus and CCD-TEMP regressors with a measured LSF. Step 4
+  must demonstrate a stable dispersion per (grism, epoch) before any EW.
+- **§3.4's era table is replaced:** the instrument has five mechanical states
+  (Andor; ASI pre-monsoon; ASI post-monsoon flipped; QHY night 1; QHY, with the
+  grisms re-seated at the swap), and its gains are measured, not read from headers.
+- **V/R is HELD pending D1** — neither dropped nor kept. At ≈0.47 Å/px it is in
+  scope; at ≈1.59 Å/px Step 5's own FWHM < 4 Å rule excludes it.
+- **Step 6** carries a telluric H₂O regressor (7200 Å band depth). **Step 8:**
+  season 1 has no standard, so season 1 is EW only. **Step 10:** a detection rule
+  exists only from the standards epoch (2025-12-05); earlier seasons are
+  descriptive, with no ΔEW claims.
+- **Step 11 short tier:** the three qualifying stars, with a global false-alarm
+  probability; **the λ Eri short search is dropped.**
+- **A disposition column** for the 308 indeterminate and 24 direct staged frames;
+  **QQ Gem is dispositioned.**
+- **Step 0's header re-scrape** takes GAIN, OFFSET, SET-TEMP, COOLPOWR, CCD-TEMP,
+  FOCPOS, FLIPSTAT, TELPIER, FWPOS and FWALLNAM (F-2).
+
+**Deferred to the 2027 backlog:** the dither test in lieu of grism flats, and the
+season-2 observing items (carried in the rev. 3 observatory request).
+
+**Figure cap:** six (was twelve).
+
+**Standing statistical rules (SYNTHESIS §5) — apply to everything this project
+produces.** (1) Every χ²ν is reported per band/era/mode with its dof; χ²ν < 0.5 is
+a defect equal to χ²ν > 2; no `max(χ²ν, 1)`. (2) Every null carries the effect size
+it would have recovered and a "predicted scale" beside it; "k of N significant" is
+banned. (3) Injection grids report the signed matched-cell bias, never a median of
+absolute values. (4) Saturation is judged at the target, per frame, in native
+pixels. (5) A ≤ 250-word abstract with number placeholders is approved by seat 6
+before figures are built. (6) EW is a ratio: wherever the continuum varies, carry a
+continuum light curve.
+
+**Shared foundation.** This project stands on the Wave-0 tasks of SYNTHESIS §3
+(F-1 … F-10, G-1 … G-5), held in the ledger as the *Shared foundation* group. Where
+a task below waits on one of them, the ledger states it as a dependency and reads
+its status from the database — no blocker here is prose about a table.
+
+### Task amendments
+
+Emitted from the plan ledger by `python pipeline/scripts/update_project_plan.py amendments BeStar_Grism` — do not edit by hand; change the ledger and re-emit. *Action* is the committee's verb; *Ruling* is the place in the synthesis and the finding ids behind it.
+
+| Task | Action | Ruling | What it now is | Accept / why |
+|---|---|---|---|---|
+| `BE-S-1a-bess` | CHANGE | §4 BE-S-1a-bess (U9, ED, RF) | BeSS emission-state check, all ten targets | per-target table with sources on disk; the verified-active count stated. |
+| `BE-N1-gate` | ADD | §4 BE-N1-gate (U9, ED) | The novelty gate: is there a science paper? | the decision and the count behind it are recorded, with the venue that follows. |
+| `BE-S-1b-lameri-injection` | CHANGE | §4 BE-S-1b (DS) | Injection–recovery for every star, through detrending | a contour per star is published BEFORE any periodogram is opened, with the signed matched-cell bias (standing rule 3). |
+| `BE-S-1c-hrg-bandpass` | CHANGE | §2 D1 (D1, OA.E1, PH) | Settle the hrg O₂ B-band coverage question | O₂-B identified on one Be-star hrg frame at the pixel offset G-1's solution predicts. |
+| `BE-S0-dispositions` | ADD | §4 BeStar_Grism Disposition (DS, ED) | Disposition the indeterminate and direct frames, and QQ Gem | no staged frame enters extraction without a disposition; QQ Gem's is recorded. |
+| `BE-S0-era-table` | ADD | §4 BeStar_Grism Era table (TE.F1, DE.F1) | The instrument table: five mechanical states, measured gains | one row per mechanical state with first and last night and a measured (or explicitly unmeasured) gain; no calibration crosses a boundary. |
+| `BE-S0-header-rescrape` | CHANGE | §3 F-2 (DE.F5, TE.F8) | Re-scrape the headers: temperature, focus, flip, wheel, gain | no nulls in the grism eras where the card exists in the header. |
+| `BE-S2-calibration` | CHANGE | §4 BeStar_Grism (U10, DE, RF) | Calibration set for the camera now mounted | flat pairs at ≥ 6 levels in the manifest; the era-B EW floor from surrogate darks is published, or era B is labelled lower-bound-only. |
+| `BE-S4-wavelength` | CHANGE | §4 BeStar_Grism Inherit (U2, PH.P7, RF) | Wavelength calibration per (grism, mechanical epoch) | standard-star EW scatter reported per mechanical epoch; dispersion stable to < 2% within one. |
+| `BE-S5-resolution` | CHANGE | §3 G-5 (TE.F4, PH.P8) | Measure the delivered resolution | FWHM of O₂-B per night published as an LSF table; off-nominal-focus nights flagged. |
+| `BE-VR-hold` | HOLD | §4 BeStar_Grism HOLD (D1, OA.E1, PH.P8) | V/R decomposition — held pending D1 | measured FWHM at Hα stated before any V/R value is plotted. |
+| `BE-S6-response-chain` | CHANGE | §4 BeStar_Grism BE-S6 (PH) | Response and telluric correction | EW of θ Vir shows no residual correlation with the per-frame 7200 Å band depth. |
+| `BE-S8-flux-tiers` | CHANGE | §4 BeStar_Grism BE-S8 (ED) | Continuum/flux calibration — season 1 is EW only | no flux, absolute or pseudo-r, is quoted for any season-1 epoch; wherever the continuum varies a continuum light curve is carried (standing rule 6). |
+| `BE-S9-era-crosscal` | CHANGE | §4 BeStar_Grism Era table (TE.F1, DS) | Cross-calibration across mechanical epochs | standards bridge each boundary, or the boundary is declared unbridged. |
+| `BE-S10-error-floors` | CHANGE | §4 BeStar_Grism BE-S10 (U9, DS, RF) | Error calibration — claims only from the standards epoch | every χ²ν reported per star and epoch with its dof (standing rule 1); no ΔEW claim before the standards epoch. |
+| `BE-S11-timeseries` | CHANGE | §4 BeStar_Grism BE-S11 (DS, ED, RF) | Slow- and short-tier searches | FAP is global (night-block bootstrap, max-statistic); every null carries the amplitude it would have recovered and a predicted scale (standing rule 2). |
+| `BE-figures` | CHANGE | §4 BeStar_Grism Figures (ED) | The six-figure set | six figures or fewer; the ≤ 250-word abstract is approved by seat 6 before they are built (standing rule 5). |
+| `BE-X1-dither-test` | DEFER | §4 BeStar_Grism Dither (U9, OA) | Dither test in lieu of grism flats | The same star at three detector positions through each grism — the only flat-field test a slitless grism admits. Needs new frames. |
+| `BE-X2-season2-observing` | DEFER | §4 BeStar_Grism DEFER (U10, OA) | Season-2 observing: restart, nightly standards | λ Eri, 69 Ori and 5 Cnc from the autumn, with a standard on every science night (HR 1544 in the autumn, η Hya from December). Carried in the rev. 3 observatory request; none of it is on this paper's critical path. |

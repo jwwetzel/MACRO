@@ -1,0 +1,106 @@
+{
+  "verdict": {
+    "aras_denser": true,
+    "months_aras_denser_vs_dispersed": [
+      "2025-02",
+      "2025-03",
+      "2025-04",
+      "2025-05",
+      "2025-06"
+    ],
+    "months_aras_denser_vs_labelled": [
+      "2025-02",
+      "2025-03",
+      "2025-04",
+      "2025-05",
+      "2025-06"
+    ],
+    "branches": [
+      {
+        "branch": "D1 -> 0.47 A/px (observational-astronomer.md E1)",
+        "rlmt_R": 1074.1407528641573,
+        "aras_frac_spectra_above": 0.42021276595744683,
+        "aras_dates_above": 59,
+        "aras_median_above": false,
+        "aras_better_resolved_series_comparable": true,
+        "rule_fires": true
+      },
+      {
+        "branch": "D1 -> 1.59 A/px (physicist.md P8, code value)",
+        "rlmt_R": 317.5133043057571,
+        "aras_frac_spectra_above": 1.0,
+        "aras_dates_above": 97,
+        "aras_median_above": true,
+        "aras_better_resolved_series_comparable": true,
+        "rule_fires": true
+      }
+    ],
+    "rule_fires_on_every_branch": true,
+    "rule_fires_on_any_branch": true,
+    "best_single_series_dates": 36,
+    "best_single_observer_dates": 49,
+    "rlmt_margin_over_best_single_series": 23,
+    "rlmt_margin_over_best_single_observer": 10
+  },
+  "facts": {
+    "window_lo": "2025-02-21",
+    "window_hi": "2025-06-24",
+    "window_days": 124,
+    "rlmt_header_off_frames": 21,
+    "rlmt_frames_labelled": 247,
+    "rlmt_frames_dispersed": 205,
+    "rlmt_dates_labelled": 60,
+    "rlmt_dates_dispersed": 59,
+    "rlmt_local_nights_labelled": 60,
+    "rlmt_both_grisms_dates": 40,
+    "aras_spectra_window_all": 218,
+    "aras_spectra_ha": 188,
+    "aras_dates_ha": 97,
+    "aras_observers_ha": 21,
+    "aras_R_median": 1000.0,
+    "aras_vs_rlmt_R": [
+      {
+        "branch": "D1 -> 0.47 A/px (observational-astronomer.md E1)",
+        "rlmt_R": 1074.1407528641573,
+        "aras_frac_spectra_above": 0.42021276595744683,
+        "aras_dates_above": 59,
+        "aras_median_above": false
+      },
+      {
+        "branch": "D1 -> 1.59 A/px (physicist.md P8, code value)",
+        "rlmt_R": 317.5133043057571,
+        "aras_frac_spectra_above": 1.0,
+        "aras_dates_above": 97,
+        "aras_median_above": true
+      }
+    ],
+    "aras_dates_highR": 51,
+    "overlap_same_date": 46,
+    "overlap_within_1d": 59,
+    "rlmt_dates_without_aras": 13,
+    "aras_dates_without_rlmt": 51,
+    "best_series": {
+      "observer": "JRF",
+      "site": "MTP-US",
+      "r_class": "low",
+      "n_spectra": 36,
+      "n_dates": 36,
+      "median_gap_d": 1.0,
+      "max_gap_d": 34.0,
+      "R_min": 410.0,
+      "R_median": 484.5,
+      "R_max": 801.0,
+      "lambda_min": 3680.0,
+      "lambda_max": 10016.0
+    },
+    "best_observer": {
+      "observer": "JRF",
+      "site": "MTP-US",
+      "n_classes": 2,
+      "n_spectra": 62,
+      "n_dates": 49,
+      "median_gap_d": 1.0,
+      "max_gap_d": 20.0
+    }
+  }
+}

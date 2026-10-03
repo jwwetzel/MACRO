@@ -1,0 +1,111 @@
+%% references.bib -- hand-maintained.  Unlike numbers.tex, captions.tex and
+%% tables.tex, this file is NOT generated: a citation is an editorial act,
+%% not a measurement, and nothing in the products database knows which paper
+%% a claim should point at.
+
+@ARTICLE{cropper1990,
+  author  = {{Cropper}, M.},
+  title   = "{The Polars}",
+  journal = {\ssr},
+  year    = 1990,
+  volume  = 54,
+  number  = {3-4},
+  pages   = {195--295},
+  doi     = {10.1007/BF00177799}
+}
+
+@ARTICLE{ferrario1993,
+  author  = {{Ferrario}, L. and {Bailey}, J. and {Wickramasinghe}, D.~T.},
+  title   = "{Cyclotron emission from accreting magnetic white dwarfs}",
+  journal = {\mnras},
+  year    = 1993,
+  volume  = 262,
+  pages   = {285--300},
+  doi     = {10.1093/mnras/262.2.285}
+}
+
+@ARTICLE{honeycutt1992,
+  author  = {{Honeycutt}, R.~K.},
+  title   = "{CCD ensemble photometry on an inhomogeneous set of exposures}",
+  journal = {\pasp},
+  year    = 1992,
+  volume  = 104,
+  pages   = {435--440},
+  doi     = {10.1086/133015}
+}
+
+@ARTICLE{stellingwerf1978,
+  author  = {{Stellingwerf}, R.~F.},
+  title   = "{Period determination using phase dispersion minimization}",
+  journal = {\apj},
+  year    = 1978,
+  volume  = 224,
+  pages   = {953--960},
+  doi     = {10.1086/156444}
+}
+
+@ARTICLE{vanderplas2018,
+  author  = {{VanderPlas}, J.~T.},
+  title   = "{Understanding the Lomb-Scargle Periodogram}",
+  journal = {\apjs},
+  year    = 2018,
+  volume  = 236,
+  number  = 1,
+  pages   = {16},
+  doi     = {10.3847/1538-4365/aab766}
+}
+
+@ARTICLE{astropy2022,
+  author  = {{Astropy Collaboration}},
+  title   = "{The Astropy Project: Sustaining and Growing a Community-oriented Open-source Project}",
+  journal = {\apj},
+  year    = 2022,
+  volume  = 935,
+  number  = 2,
+  pages   = {167},
+  doi     = {10.3847/1538-4357/ac7c74}
+}
+
+%% Entry type MISC, not SOFTWARE: aasjournalv7.bst defines no `software'
+%% type, so BibTeX warns and falls back.  MISC is the type this style does
+%% define for a citation of this shape.  (No at-sign in this comment: a
+%% BibTeX comment is only "text outside an entry", and an at-sign in it
+%% starts a new, malformed entry.)
+@MISC{photutils,
+  author    = {{Bradley}, Larry and others},
+  title     = {astropy/photutils},
+  publisher = {Zenodo},
+  year      = 2024,
+  doi       = {10.5281/zenodo.596036}
+}
+
+@ARTICLE{numpy2020,
+  author  = {{Harris}, C.~R. and others},
+  title   = "{Array programming with NumPy}",
+  journal = {Nature},
+  year    = 2020,
+  volume  = 585,
+  pages   = {357--362},
+  doi     = {10.1038/s41586-020-2649-2}
+}
+
+@ARTICLE{scipy2020,
+  author  = {{Virtanen}, P. and others},
+  title   = "{SciPy 1.0: fundamental algorithms for scientific computing in Python}",
+  journal = {Nature Methods},
+  year    = 2020,
+  volume  = 17,
+  pages   = {261--272},
+  doi     = {10.1038/s41592-019-0686-2}
+}
+
+@ARTICLE{matplotlib2007,
+  author  = {{Hunter}, J.~D.},
+  title   = "{Matplotlib: A 2D Graphics Environment}",
+  journal = {Computing in Science and Engineering},
+  year    = 2007,
+  volume  = 9,
+  number  = 3,
+  pages   = {90--95},
+  doi     = {10.1109/MCSE.2007.55}
+}

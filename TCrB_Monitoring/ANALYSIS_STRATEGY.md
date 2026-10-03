@@ -1,5 +1,7 @@
 # ANALYSIS STRATEGY — T CrB Pre-Eruption Monitoring (RLMT / MACRO)
 
+> **Amended 2026-10-03.** The plan review of 2026-10-03 binds this strategy; its rulings are in **§10 (Committee amendments 2026-10-03)** at the end of this document and override anything above them that they contradict.
+
 **Panel synthesis, Committee Chair. Date: 2026-08-16. Rev. 2 after the internal referee round (see final section).**
 Seats: Precision Photometry & Detector Science (M1), Time-Series & Statistical Methods (M2), CV/Recurrent-Nova Science (M3), Literature & Archival Scout (M4).
 All archive numbers below re-verified against `rlmt-catalog.sqlite` on 2026-08-16 (`rawimage` tree only), incorporating the referee's independent re-queries.
@@ -211,3 +213,124 @@ Winer Observatory is offline for monsoon season until **October 2026**; P0-1's "
 | Minor 9 — slitless velocity zero point degenerate with position | Per-frame zero-order-referenced zero-point uncertainty in km s⁻¹ beside every velocity, or differential-only reporting (A.3, Fig 9, §5). |
 | Minor 10 — coverage figure should disclose the calibrator gap | Fig 1 extended to three bands including θ CrB calibrator epochs. |
 | Minor 11 — target-status staleness; alerts faster than arXiv | Verify-at-submission flag on all status claims; weekly sweep widened to ATels + AAVSO alerts (§3, §6.10, §9). |
+
+---
+
+## 10. Committee amendments 2026-10-03
+
+**Binding.** Plan review of 2026-10-03: the chair's synthesis
+`committee/reviews/2026-10-03/SYNTHESIS.md` and the seven seat memos beside it.
+**Where this section and anything above it disagree, this section wins**; the
+text above is kept as the record of what was planned on 2026-08-16. Finding ids
+are `<seat>.<id>` — DS data scientist, OA observational astronomer, PH physicist,
+DE detector engineer, TE telescope engineer, ED editor, RF referee; `U#` and `D#`
+are the synthesis's own rulings (§1) and test-resolved disagreements (§2).
+
+A task now closes in exactly one of three ways (SYNTHESIS §0): **done**
+(acceptance criterion met, evidence linked), **dropped** (ruled impossible or
+pointless on the data that exist) or **deferred** (needs frames that do not exist
+yet — the *2027 backlog*, outside this paper's critical path and its completion
+count). The plan ledger (`pipeline/macro_core/project_plan.py`) carries each
+ruling as data; this section is its citation.
+
+**Verdict:** execute with amendments — the highest-priority paper in the
+portfolio, and the only one with a clock on it.
+
+**Venue:** ApJ only if the novelty table (TCRB-N1) shows a density or homogeneity
+advantage over ARAS; otherwise AJ or a PASP validation note. TCRB-N1 runs first.
+
+**Scope as amended.**
+- **The paper is an Hα equivalent-width series, Feb–Jun 2025, with ARAS
+  cross-validation.** Counts are reported by S2c verdict on unique frames, not by
+  filter name (DS; RF: 402 unique frames, not 471).
+- **Grism dispersion is hardware (U2).** One solution per (grism, mechanical epoch)
+  from hot stars; per frame only a zero point. The per-frame dispersions on disk
+  (−1.8 to +2.0 Å/px) are unphysical and are retired. This replaces §4 Phase A
+  step 3's "per-frame self-anchored" solution.
+- **D1 — hrg is ≈0.47 Å/px (OA) or ≈1.59 Å/px (code; PH and TE reasoned from it).**
+  Decided by test, not by vote (G-1: Hα plus ≥2 of telluric 6277/6867/7186/7594 and
+  Hβ on Vega and θ CrB; ≥3 lines, residual < 1 px). **Profile morphology and wing
+  velocities are HELD pending D1 — neither dropped nor kept.**
+- **D2 — Mode0 gain.** The grism variance and the saturation threshold are read from
+  the measured `detector_params` (F-4, G-2); the 16.3 kADU "rail" is a hot-pixel
+  signature and is replaced by a hot-pixel mask and the true clip.
+- **The identity gate is pixel-based (G-3).** The header is never the sole reason a
+  frame is rejected.
+- **§4 Phase A step 4 is dropped as written.** No absolute flux from a θ CrB
+  response. It is replaced by TCRB-A5b: F(Hα) = EW × continuum from contemporaneous
+  AAVSO or zero-order photometry, with EW and flux both shown against orbital phase
+  (the giant's ellipsoidal continuum, ±10%, modulates any raw EW).
+- **The EW-change detection rule is pre-registered before A5 runs** (TCRB-A5a), and
+  ARAS spectra degraded to the measured LSF must reproduce their native EW.
+- **Phase B anchors are B-only** (plus singletons): R and I are clipped at the
+  target. A scripted peak-at-target census of every imaging frame decides it. Chair's
+  ruling 2 ("anchors on B and I") is superseded; the nightly-mean precision promise
+  of Phase B step 6 is deleted.
+- **The five tasks blocked on "S2's tables were destroyed" are unblocked (U4).** The
+  tables exist. P0-bitdepth is closed from the archive.
+- **The mechanical epoch of every frame, the measured gain, and a temperature split
+  of the grism frames are Phase-0 gates** (TCRB-P0-mech-epoch, -gain-ptc,
+  -temp-split).
+- **An eruption contingency exists as artefacts**: the pyscope block committed with
+  a dry-run log (TCRB-P0-eruption-block) and an RNAAS/ATel skeleton (TCRB-N2).
+
+**Dropped:** A4 (θ CrB response → absolute flux); C3 (per-season period search).
+C1 shrinks to one sentence and one table.
+
+**Deferred to the 2027 backlog (U6):** C2 (weekly ≥2 h flickering runs — none is
+possible before mid-January 2027) and the October / January-2027 restart, which is
+a *second instrument* (QHY600) and may be spliced to 2025 only through same-night
+θ CrB + Vega on ≥3 nights. Flickering is paper 2.
+
+**Figure cap:** six (was ten), each mapped to a sentence of the abstract.
+
+**Standing statistical rules (SYNTHESIS §5) — apply to everything this project
+produces.** (1) Every χ²ν is reported per band/era/mode with its dof; χ²ν < 0.5 is
+a defect equal to χ²ν > 2; no `max(χ²ν, 1)`. (2) Every null carries the effect size
+it would have recovered and a "predicted scale" beside it; "k of N significant" is
+banned. (3) Injection grids report the signed matched-cell bias, never a median of
+absolute values. (4) Saturation is judged at the target, per frame, in native
+pixels. (5) A ≤ 250-word abstract with number placeholders is approved by seat 6
+before figures are built. (6) EW is a ratio: wherever the continuum varies, carry a
+continuum light curve.
+
+**Shared foundation.** This project stands on the Wave-0 tasks of SYNTHESIS §3
+(F-1 … F-10, G-1 … G-5), held in the ledger as the *Shared foundation* group. Where
+a task below waits on one of them, the ledger states it as a dependency and reads
+its status from the database — no blocker here is prose about a table.
+
+### Task amendments
+
+Emitted from the plan ledger by `python pipeline/scripts/update_project_plan.py amendments TCrB_Monitoring` — do not edit by hand; change the ledger and re-emit. *Action* is the committee's verb; *Ruling* is the place in the synthesis and the finding ids behind it.
+
+| Task | Action | Ruling | What it now is | Accept / why |
+|---|---|---|---|---|
+| `TCRB-N1-novelty-table` | ADD | §4 TCRB-N1-novelty-table (ED) | Is the RLMT Hα series new? Spectra per month vs ARAS and Asiago | table on disk with sources; if ARAS alone is denser and higher-resolution, the paper re-scopes to a validation/methods note and says so. |
+| `TCRB-P0-mech-epoch` | ADD | §4 TCRB-P0-mech-epoch (TE.F1) | Assign every staged frame a mechanical epoch | table emitted; the 2025 series confirmed single-epoch; no master, trace prior or zero-order prediction crosses a boundary. |
+| `TCRB-P0-gain-ptc` | ADD | §4 TCrB_Monitoring gain-ptc (D2, DE.F1) | Measured gain and read noise for the grism camera | K ± 3% and read noise in detector_params; the grism variance and saturation threshold read them from there. |
+| `TCRB-P0-temp-split` | ADD | §4 TCrB_Monitoring temp-split (DE.F5) | Split the grism frames by detector temperature | dark treatment stated per temperature group; flanking-band adequacy shown separately for the warm frames. |
+| `TCRB-P0-eruption-block` | ADD | §4 TCRB-P0-eruption-block (TE) | The eruption-response block, as an artefact | the schedule file is committed under ops/ with a dry-run log beside it. |
+| `TCRB-P0-bitdepth` | CLOSE | §4 TCrB_Monitoring P0-bitdepth (U4, DE.F6, OA.E3) | High Gain bit depth — closed from the archive | The High Gain clip, 12-bit-consistent and measured per EGAIN epoch from the archive itself (s2_ceiling_modes). The one-afternoon hardware test is retired with the camera, which left the beam in March 2024; it is re-opened only if the AC4040 turns out to be on site. |
+| `TCRB-P0-ladders` | UNBLOCK | §4 TCrB_Monitoring UNBLOCK ladders (U4, DE.F3, DE.F6) | One linearity cap per readout mode, from residual-vs-peak | residual-vs-peak slope < 1% up to the adopted cap in each mode, judged at the target in native pixels. |
+| `TCRB-P0-calib-acquisition` | CHANGE | §4 TCrB_Monitoring P0-calib-acquisition (TE, DE) | State the dark method; put the bench-dark question to the site | method paragraph and its adequacy figure exist; the bench-dark question is in the rev. 3 observatory request. |
+| `TCRB-P0-shutter-timing` | CHANGE | §4 TCrB_Monitoring shutter-timing (U4, DE) | Rolling-shutter skew and exposure accuracy at short exposures | skew and exposure-time error stated as bounds in seconds before the eruption plan relies on 0.1 s. |
+| `TCRB-A0-identity-gate` | CHANGE | §4 TCrB_Monitoring A0 (OA.E2, RF, DS) | Per-frame identity gate, from the pixels | zero rejections whose sole reason is a header; false-accept rate measured on non-T CrB grism frames; N reported by verdict, on unique frames. |
+| `TCRB-A0b-early-spectra` | ADD | §4 TCRB-A0b (DS, OA) | Extract or reject the slot '6' and 'W' spectra, 2023-05 → 2024-03 | EW ± error per frame, or a documented saturation/contamination failure. |
+| `TCRB-A2-extraction` | CHANGE | §3 G-2 (D2, DE.F1, OA.E7) | Trace and optimal extraction | predicted variance within 20% of the flanking-band variance; no negative continuum; boxcar-vs-optimal difference < 3%. |
+| `TCRB-A3-wavelength` | CHANGE | §4 TCrB_Monitoring A3 (U2, D1, OA.E1, PH.P7, TE.F3) | Fixed dispersion per (grism, mechanical epoch); per-frame zero point only | the Hα–O₂B pixel separation is constant to < 1–2% across every T CrB frame. |
+| `TCRB-A5a-detection-rule` | ADD | §4 TCrB_Monitoring A5 (DS) | Pre-register the EW-change detection rule | the rule is in the strategy, dated, before TCRB-A5-ew runs. |
+| `TCRB-A5-ew` | CHANGE | §4 TCrB_Monitoring A5 (PH, DS) | Hα equivalent width on Munari's convention | ARAS spectra degraded to the measured LSF reproduce their native EW within the stated tolerance; windows documented and tested against ±10 Å shifts. |
+| `TCRB-A5b-line-flux` | ADD | §4 TCRB-A5b (OA, PH) | Line flux as EW × continuum, against orbital phase | a continuum light curve accompanies the EW series (standing rule 6); photometric source named per epoch; both series shown vs orbital phase. |
+| `TCRB-A6-saturation-triage` | CHANGE | §4 TCrB_Monitoring A6 (D2, DE.F1, OA.E8) | Scripted saturation triage of every grism frame | n_sat_cols recomputed from detector_params; masked fraction reported; saturation judged at the target in native pixels. |
+| `TCRB-A7-error-floor` | CHANGE | §4 TCrB_Monitoring A7 (DS, TE.F4, RF) | Rebuild the empirical error floor | χ²ν of the θ CrB continuum-window series in [0.7, 1.4] with its dof; EW floor ≥ the measured extraction-method difference; off-nominal-focus nights flagged. |
+| `TCRB-A9-profiles` | HOLD | §2 D1 (D1, OA.E1, PH.P8, RF) | Profile morphology and wing velocities — held pending D1 | delivered FWHM in km/s stated before any velocity is plotted; nights at off-nominal focus excluded. |
+| `TCRB-B0-peak-census` | ADD | §4 TCrB_Monitoring Phase B (OA.E3) | Peak-at-target census of every imaging frame | every imaging frame carries a peak-at-target and a verdict; the anchor set is restated from it. |
+| `TCRB-B1-calibration` | UNBLOCK | §4 TCrB_Monitoring UNBLOCK B1 (U4, TE.F11) | Calibrate per readout mode with measured penalties | the cross-mode penalty is measured as ensemble residual vs detector position and carried in the systematic budget. |
+| `TCRB-B6-precision-budget` | CHANGE | §4 TCrB_Monitoring Phase B (OA) | State the precision achieved | precision quoted per mode from check stars; no nightly-mean promise anywhere in the paper. |
+| `TCRB-C1-flickering-limits` | CHANGE | §4 TCrB_Monitoring C1 (U6, DS, OA) | Archival flickering limits — a sentence and a table | each limit carries the injected amplitude it would have recovered and the predicted scale beside it (standing rule 2). |
+| `TCRB-N2-eruption-contingency` | ADD | §4 TCRB-N2-eruption-contingency (ED) | Eruption contingency skeleton | the skeleton compiles with script-emitted numbers. |
+| `TCRB-D4-figures` | CHANGE | §4 TCrB_Monitoring D4 (ED) | The six-figure set | six figures or fewer, each cited in support of an abstract sentence; the ≤ 250-word abstract is approved by seat 6 before they are built (standing rule 5). |
+| `TCRB-A4-response` | DROP | §4 TCrB_Monitoring DROP A4 (OA, PH) | Instrument response from θ CrB → absolute flux | Nothing: dropped. θ CrB is variable, Hα-contaminated, exposed 0.6–5 s against the target's 240 s, and its second-order blue light lands on the first-order red where T CrB has none. Line flux now comes from TCRB-A5b (EW × continuum). |
+| `TCRB-C3-period-search` | DROP | §4 TCrB_Monitoring DROP C3 (U6, DS, OA, ED) | Per-season period search, P ≤ span/3 | Nothing: dropped. B exists on three nights; the seasons are 23 d and 42 d clumps in which nothing physical is expected at 1.5–14 d and most night gaps are exactly one day. A periodogram would only advertise emptiness. |
+| `TCRB-P0-restart` | DEFER | §4 TCrB_Monitoring DEFER C2 (U6, U10, TE.F7, OA) | Restart T CrB observations — on a second instrument | The 2026–27 series on the QHY600: a new instrument that needs its own trace, wavelength and response solution, spliced to 2025 only through same-night θ CrB + Vega in hrg/lrg on ≥3 nights, with the splice offset reported with its error. October gives at most two weeks at airmass 1.7–2.9; the real restart is the morning apparition from mid-January 2027. |
+| `TCRB-C2-2026-runs` | DEFER | §4 TCrB_Monitoring DEFER C2 (U6, DS, OA, TE, ED, RF) | Weekly ≥2 hr B flickering runs | The first monitoring-grade flickering data RLMT would have: ≥6 weekly ≥2 h runs. No such run is possible before mid-January 2027, and six complete in mid-March at the earliest — so flickering is paper 2. |

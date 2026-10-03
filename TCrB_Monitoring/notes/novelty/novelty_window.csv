@@ -1,0 +1,16 @@
+series,n_spectra_or_frames,n_dates,median_gap_d,max_gap_d,date_fill_fraction,R_median,note
+"RLMT hrg, labelled",100,54,1,9,0.4355,nan,FILTER card only; identity ungated
+"RLMT hrg, S2c dispersed",91,51,1,9,0.4113,nan,pixel-verified spectrum; identity ungated
+"RLMT lrg, labelled",147,59,1,8,0.4758,nan,FILTER card only; identity ungated
+"RLMT lrg, S2c dispersed",114,48,1,10,0.3871,nan,pixel-verified spectrum; identity ungated
+"RLMT hrg+lrg, labelled",247,60,1,8,0.4839,nan,upper bound on epochs
+"RLMT hrg+lrg, S2c dispersed",205,59,1,8,0.4758,nan,upper bound until G-3 identity gate runs
+"ARAS, all H-alpha (loose)",188,97,1,4,0.7823,1000,21 observers pooled
+"ARAS, all H-alpha (strict)",141,90,1,4,0.7258,600,sensitivity: wide continuum windows required
+"ARAS, low-R only",117,83,1,5,0.6694,568,pooled
+"ARAS, mid-R only",6,6,4,51,0.04839,5128,pooled
+"ARAS, high-R only",65,51,2,8,0.4113,1.349e+04,pooled
+ARAS single series JRF/MTP-US (low-R),36,36,1,34,0.2903,484.5,"one observer, one site, one resolution class"
+ARAS single series JRF/MTP-US (high-R),26,26,2,23,0.2097,1.349e+04,"one observer, one site, one resolution class"
+ARAS single series EBE/SSO-FR (low-R),13,13,6.5,23,0.1048,559,"one observer, one site, one resolution class"
+ARAS single observer JRF/MTP-US (all setups),62,49,1,20,0.3952,527,"one observer, 2 resolution classes"

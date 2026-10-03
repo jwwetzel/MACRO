@@ -1,5 +1,7 @@
 # ANALYSIS STRATEGY — SN 2023ixf Early Light Curve (RLMT/MACRO)
 
+> **Amended 2026-10-03.** The plan review of 2026-10-03 binds this strategy; its rulings are in **§10 (Committee amendments 2026-10-03)** at the end of this document and override anything above them that they contradict.
+
 **Committee synthesis, 2026-08-16; revised same day after internal referee round.** Panel: Precision Photometry/Detector, Time-Series/Statistics, SN II Early-Time Physics, Literature/Archival Scout. Chaired by the Survey Scientist.
 All numbers below were re-verified against `"/Volumes/OWC StudioStack HDD/DATA/ASTRO/rlmt-catalog.sqlite"` (table `obs`) after the internal referee demonstrated that the first draft's inventory was ~3x inflated by duplicates *within* `rawimage/`. Where seats disagreed, the Chair's ruling is stated inline in **[RESOLUTION]** blocks. The referee round and its dispositions are tabulated at the end.
 
@@ -223,3 +225,98 @@ Target: `/Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/manuscripts/SN20
 | m7 — citations and parameter provenance | Teja+23 and Yamanaka+23 added to must-cite set; community record acknowledged in intro positioning; D = 6.85 Mpc (Riess+22) and E(B-V) split provenance moved into the text. |
 | m8 — README/strategy disagreement | Step 10 now requires the README (dates, totals) to be regenerated from the frozen manifest. |
 | Disposition — AJ/PASP more probable than admitted | Accepted and inverted: AJ/PASP is the stated base case; ApJ is the upside contingent on Gate 0 outcomes; venue decision moved up to week 3, immediately post-Gate 0. |
+
+---
+
+## 10. Committee amendments 2026-10-03
+
+**Binding.** Plan review of 2026-10-03: the chair's synthesis
+`committee/reviews/2026-10-03/SYNTHESIS.md` and the seven seat memos beside it.
+**Where this section and anything above it disagree, this section wins**; the
+text above is kept as the record of what was planned on 2026-08-16. Finding ids
+are `<seat>.<id>` — DS data scientist, OA observational astronomer, PH physicist,
+DE detector engineer, TE telescope engineer, ED editor, RF referee; `U#` and `D#`
+are the synthesis's own rulings (§1) and test-resolved disagreements (§2).
+
+A task now closes in exactly one of three ways (SYNTHESIS §0): **done**
+(acceptance criterion met, evidence linked), **dropped** (ruled impossible or
+pointless on the data that exist) or **deferred** (needs frames that do not exist
+yet — the *2027 backlog*, outside this paper's critical path and its completion
+count). The plan ledger (`pipeline/macro_core/project_plan.py`) carries each
+ruling as data; this section is its citation.
+
+**Verdict:** RE-SCOPE (U7).
+
+**Venue:** AJ/PASP — decided, by the rule this strategy pre-registered (§2): ApJ only
+if Gate 0 promoted the grism or recovered a narrowband bandpass. It did neither. The
+"ApJ upside decided at week 3" is closed. Whether this release becomes the
+validation section of an instrument paper is D4, which is James's decision; until
+then it proceeds as its own short release.
+
+**Scope as amended.**
+- **A +5.4 → +50 d validation and limits release.** "Early" leaves the title. The
+  first clean broadband night is +5.4 d; if that is at peak (PH: published optical
+  maximum is nearer +5–7 d than this document's "+8–9 d"), the paper contains no
+  rise and says so. The peak epoch is read from the literature.
+- **The grism series is NOT PROMOTED** (SN-G0c closed): zero extracted spectra, no
+  wavelength source, no contamination test. Its frames go in the release.
+- **Gate 0 is re-run on a fresh manifest before anything cites it**: the 438/439
+  arithmetic is fixed, the one unnamed exclusion rule is named, and all 632
+  broadband frames are S2c-measured.
+- **SN-S2-linearity is the key detector task of the portfolio**: add the
+  twilight-flat ramp, the 2023-06-07 Albireo set, a gain per EGAIN epoch, and
+  StackPro on its own curve.
+- **Step 4:** the χ²ν ≈ 1 claim is made on held-out check stars. **Step 5:** the
+  error model carries an explicit scintillation term. **Step 8:** nightly means and
+  a whole-night bootstrap; **the intra-night periodogram is dropped.**
+- **Step 6 is split.** *S6a, flash phase:* the (H − "[S II]") differential colour,
+  with filter widths (~65 Å) from the zero-point ratios, behind a
+  **predicted-excess gate**. *S6b, ejecta phase:* dropped unless a transmission
+  curve arrives by **2026-11-15**.
+- **A residuals-vs-published table precedes any variability limit.**
+- **A template table** lists camera, mechanical epoch, FWHM and focus offset per
+  template epoch.
+
+**Dropped:** Step 7 (model consistency fits) — no clean data before +5.4 d and no
+UV; one overlay on the published curves stands in for it.
+
+**Figure cap:** five (was twelve).
+
+**Standing statistical rules (SYNTHESIS §5) — apply to everything this project
+produces.** (1) Every χ²ν is reported per band/era/mode with its dof; χ²ν < 0.5 is
+a defect equal to χ²ν > 2; no `max(χ²ν, 1)`. (2) Every null carries the effect size
+it would have recovered and a "predicted scale" beside it; "k of N significant" is
+banned. (3) Injection grids report the signed matched-cell bias, never a median of
+absolute values. (4) Saturation is judged at the target, per frame, in native
+pixels. (5) A ≤ 250-word abstract with number placeholders is approved by seat 6
+before figures are built. (6) EW is a ratio: wherever the continuum varies, carry a
+continuum light curve.
+
+**Shared foundation.** This project stands on the Wave-0 tasks of SYNTHESIS §3
+(F-1 … F-10, G-1 … G-5), held in the ledger as the *Shared foundation* group. Where
+a task below waits on one of them, the ledger states it as a dependency and reads
+its status from the database — no blocker here is prose about a table.
+
+### Task amendments
+
+Emitted from the plan ledger by `python pipeline/scripts/update_project_plan.py amendments SN2023ixf_LightCurve` — do not edit by hand; change the ledger and re-emit. *Action* is the committee's verb; *Ruling* is the place in the synthesis and the finding ids behind it.
+
+| Task | Action | Ruling | What it now is | Accept / why |
+|---|---|---|---|---|
+| `SN-G0c-grism-triage` | CLOSE | §4 SN2023ixf_LightCurve SN-G0c (U7, DS, ED, RF, TE) | Grism triage — closed: NOT PROMOTED | The verdict on the filter-'6' frames: NOT PROMOTED. The timebox lapsed with zero extracted spectra, no wavelength source and no contamination test; the frames are published in the release as they are. |
+| `SN-venue-decision` | CLOSE | §4 SN2023ixf_LightCurve SN-venue-decision (U7, ED) | The venue decision — AJ/PASP | AJ/PASP, decided by the rule the strategy pre-registered: ApJ only if Gate 0 promoted the grism or recovered a narrowband bandpass, and it did neither. |
+| `SN-G0-rerun` | ADD | §4 SN2023ixf_LightCurve Re-run Gate (U7, DS.F9, ED, RF) | Re-run Gate 0 on the fresh manifest | clean + bounded = usable in every band; every exclusion rule has a name; SN-G0 reads FRESH. |
+| `SN-G0d-s2c-broadband` | ADD | §4 SN2023ixf_LightCurve S2c-measure (DS) | S2c-measure every broadband frame | zero unmeasured frames in the photometry set. |
+| `SN-S1-narrowband-curves` | CHANGE | §4 SN2023ixf_LightCurve S6b (U7, ED, RF) | Recover the narrowband transmission profiles | a transmission curve on file by 2026-11-15, or the dated drop is recorded. |
+| `SN-S2-linearity` | CHANGE | §4 SN2023ixf_LightCurve SN-S2-linearity (DE.F3, DE.F9) | Linearity audit | deviation vs peak ADU published to the clip, with the screening cap justified by a slope < 1% or moved; K per EGAIN epoch; StackPro-vs-High-Gain flux ratio vs peak. |
+| `SN-S4-ensemble-cal` | CHANGE | §4 SN2023ixf_LightCurve S4 (DS) | REFCAT2 ensemble calibration | χ²ν of the held-out check stars reported per band with its dof; < 0.5 is a defect equal to > 2 (standing rule 1). |
+| `SN-S5-template-table` | ADD | §4 SN2023ixf_LightCurve Template (TE.F8) | The template table | the table exists; narrowband templates are taken only from the in-focus H/O frames. |
+| `SN-S5-photometry` | CHANGE | §4 SN2023ixf_LightCurve S5 (OA) | Two-regime photometry | the scintillation term is matched by the check-star rms. |
+| `SN-S5b-peak-epoch` | ADD | §4 SN2023ixf_LightCurve Peak epoch (PH) | Read the peak epoch from the literature | peak epoch cited; no 'rise' language survives if the clean start is at peak. |
+| `SN-S6-0-excess-gate` | ADD | §4 SN2023ixf_LightCurve predicted-excess gate (PH) | The predicted-excess gate for the flash-phase Hα | if the predicted excess is < 3× the narrowband systematic at every epoch for every plausible width, S6a is demoted now, before the work. |
+| `SN-S6a-flash-colour` | ADD | §4 SN2023ixf_LightCurve S6a (PH) | Flash-phase Hα excess from the (H − '[S II]') colour | differential excess ± error at the three epochs, each beside its predicted scale (standing rule 2). |
+| `SN-S6-halpha-curve` | CHANGE | §4 SN2023ixf_LightCurve S6b (U7, PH, ED, RF) | Ejecta-phase Hα-band curve (S6b) | a curve forward-modelled through a MEASURED profile, or the dated drop recorded on 2026-11-15. |
+| `SN-S7b-residuals-table` | ADD | §4 SN2023ixf_LightCurve residuals-vs-published (RF) | Residuals against the published photometry | the table exists before any variability limit is quoted. |
+| `SN-S8-variability-limits` | CHANGE | §4 SN2023ixf_LightCurve S8 (DS) | Variability and bump limits | every limit carries the injected amplitude it would have recovered and a predicted scale (standing rule 2); no intra-night periodogram. |
+| `SN-figures` | CHANGE | §4 SN2023ixf_LightCurve Figures (ED) | The five-figure set | five figures or fewer; the ≤ 250-word abstract is approved by seat 6 before they are built (standing rule 5). |
+| `SN-S7-model-consistency` | DROP | §4 SN2023ixf_LightCurve DROP S7 (U7, ED, RF) | Model consistency fits | Nothing: dropped. There are no clean data before +5.4 d and no UV, so a consistency fit adds a referee target and no information. One overlay on the published curves stands in for it. |

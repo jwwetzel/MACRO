@@ -275,6 +275,16 @@ p{max-width:var(--measure)}
 .chip.blocked              {background:var(--bad-bg); color:var(--bad); border-color:var(--bad-line)}
 .chip.pending,.chip.v-wait {background:var(--idle-bg);color:var(--idle);border-color:var(--idle-line)}
 .chip.v-gone               {background:var(--gone-bg);color:var(--gone);border-color:var(--gone-line)}
+/* The two CLOSING statuses of the 2026-10-03 plan review (SYNTHESIS §0).
+   Deliberately muted: a task closed by ruling must not compete for the eye
+   with live work.  Neither has a .bar segment — they are outside the
+   completion count, so they are outside the bar. */
+.chip.dropped              {background:var(--idle-bg);color:var(--ink-mute);border-color:var(--idle-line);text-decoration:line-through}
+.chip.deferred             {background:var(--gone-bg);color:var(--gone);border-color:var(--gone-line)}
+/* A computed gate (dependency, stage verdict, database probe) and the
+   ruling behind a task, as secondary lines inside a plan-table cell. */
+.gate{display:block;color:var(--warn);font-size:12.5px}
+.ruling{display:block;color:var(--ink-mute);font-size:12.5px}
 
 /* Semantic inks for renderer verdicts.  Renderers ask for these classes
    instead of typing a hex value, which is how the old pale-on-dark greens

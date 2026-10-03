@@ -1,0 +1,10 @@
+{
+  "url": "https://aras-database.github.io/database/tcrb.html",
+  "pulled_utc": "2026-10-03T06:42:35+00:00",
+  "sha256_html": "8d8d603b5a1a49718bb8732227ef65c62decc043445deb40abace5048036aa24",
+  "bytes_html": 6069531,
+  "n_rows": 2214,
+  "declared_n": 2214,
+  "first_date": "2012-04-01",
+  "last_date": "2026-09-25"
+}

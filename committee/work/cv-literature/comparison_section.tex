@@ -1,0 +1,339 @@
+%% comparison_section.tex -- DRAFT "Comparison with previous work" subsection for
+%% manuscripts/CV_TimeSeries/main.tex (Discussion).  Committee package cv-literature,
+%% findings ED.E1 / RF.M8 / CV-R12, with PH.P2, P3, P5, P6 and RF minor 1 folded in.
+%%
+%% HOW TO USE.  \input this file inside Section "Discussion" of main.tex, after
+%% "What these data add", and \input{literature_macros} in the preamble beside
+%% \input{numbers}.  This package does not edit main.tex; the chair places it.
+%%
+%% WHERE THE NUMBERS COME FROM.  Three kinds appear and they are kept apart:
+%%   \Num...   our measurements, from numbers.tex (the products databases);
+%%   \Lit...   literature constants and arithmetic on them, from literature_macros.tex,
+%%             emitted by committee/work/cv-literature/literature_scales.py -- each
+%%             macro's trailing comment names the paper and the place it was read;
+%%   \PH{...}  a value of OURS that does not exist as a macro yet, or that the
+%%             revision packages (CV-R1...R6) are about to change.  Each placeholder
+%%             names the package that owns it.
+%% NO number in this file is typed by hand (calendar years excepted).
+%%
+%% Every \cite key below exists in references.bib and was verified against its
+%% registry of record (bib_verification.md).
+\providecommand{\PH}[1]{\textbf{[NUMBER: #1]}}
+
+\subsection{Comparison with previous work} \label{sec:comparison}
+
+\subsubsection{ST~LMi}
+
+\paragraph{The bright phase and the feature we time.}
+ST~LMi was identified as an AM~Her system by \citet{stockman1983} and
+modelled as a single accreting pole that the white dwarf's limb hides for
+most of the orbit \citep{schmidt1983, bailey1985, cropper1986}.  Our folded
+profile reproduces that literature closely.  \citet{cropper1986} found the
+star faint for \LitStLmiFaintFraction{} of the orbit, a rise to maximum
+more gradual than the fall, and a rapid decline to the faint level
+occupying polarimetric phases \LitStLmiFallPhases{};
+\citet{peacock1992} measured the same fall as taking
+\LitStLmiFallWidthPeacock{} of the period in $R_{\rm c}$; and
+\citet{robertson2008} again saw a gradual brightening and a quicker fade in
+the 2007 high state.  We measure the steepest faintward gradient at
+\NumStLmiFallRiseRatioRange{} times the steepest brightward one in every
+solved $g/r/i$ series of both eras (Section~\ref{sec:stlmi}), so the
+asymmetry is a persistent property of the system and not of one epoch.
+The published widths of the fall, \LitStLmiFallWidthRange{} of the orbit,
+are \LitStLmiFallRangeS{}~s: the feature we time is a ramp several hundred
+seconds long, sampled by exposures whose half-length reaches
+\NumPolarHalfExposureS{}~s, which is the physical reason an analytic
+single-cycle timing budget is optimistic (Section~\ref{sec:timing}).
+
+The identification of the feature matters for the constant offset of
+Section~\ref{sec:oc}.  The polarimetric ephemeris of \citet{cropper1986},
+${\rm HJD}\;\LitStLmiCropperEpoch + \LitStLmiCropperPeriodD\,E$, places
+phase zero at the linear-polarisation pulse, which that paper locates half
+way through the rapid decline --- that is, at the feature we time ---
+and \citet{bailey1985} tied their period to the end of the bright phase.
+The catalogue ephemeris we fold on is different in kind: its period and
+epoch were revised in VSX from AAVSO photometry \citep{watson2006}, carry
+no published uncertainty, and the fiducial the epoch marks is not
+documented.  Carrying the catalogue epoch back to Cropper's with his period
+puts catalogue phase zero at polarimetric phase
+$\LitStLmiVsxZeroOnCropper \pm \LitStLmiVsxZeroOnCropperErr$, and our timed
+edge, \NumStLmiOcOffsetCycles{} of a cycle later, at
+$\LitStLmiEdgeOnCropper \pm \LitStLmiVsxZeroOnCropperErr$ --- consistent
+with the pulse at phase zero and the end of the decline at
+\LitStLmiFallEndPhase{}, where the uncertainty is Cropper's period error
+accumulated over \LitStLmiCropperBaselineYr{}~yr and nothing of ours.  On
+the inferior-conjunction ephemeris used by \citet{kafka2007} and
+\citet{robertson2008} the same edge falls at phase
+$\LitStLmiEdgeOnConj \pm \LitStLmiVsxZeroOnConjErr$, against the sharp
+drop those authors report near \LitStLmiDropPhaseRob{}.  The
+\NumStLmiOcOffsetS{}~s offset of Section~\ref{sec:oc} is therefore what the
+literature leads one to expect if the catalogue epoch marks the
+bright-phase maximum and our edge the end of the bright phase; we state it
+as a consistency, not as an identification of the catalogue's fiducial,
+which only its compiler can supply.
+
+\paragraph{Colour through the orbit.}
+That the bright phase of ST~LMi is red is among the oldest facts about it:
+the orbital modulation is strongest at red wavelengths
+\citep{stockman1983, cropper1986}, larger in $R_{\rm c}$ and $I_{\rm c}$
+\citep{peacock1992} than in $V$ \citep{kafka2007}, and \citet{kafka2007}
+note explicitly that the star reddens at the phase of the bright hump
+because the cyclotron continuum then outshines every other component.  The
+cause is the field strength.  Infrared cyclotron humps give
+$B \simeq \LitStLmiBfieldFerrario$~MG at the accreting pole
+\citep{ferrario1993}, refined to
+$\LitStLmiBfield \pm \LitStLmiBfieldErr$~MG by phase-resolved modelling
+\citep{campbell2008c}; the fundamental then lies near
+\LitStLmiCycFundamentalUm~$\mu$m, harmonics \LitStLmiIrHarmonics{} fall in
+the near infrared where \citet{campbell2008c} resolve them, and our $i$,
+$r$ and $g$ bands sample harmonics near \LitStLmiHarmonicI{},
+\LitStLmiHarmonicR{} and \LitStLmiHarmonicG{}.  At such high harmonics the
+emission is optically thin and its intensity falls steeply with harmonic
+number \citep{chanmugam1981, wickramasinghe1985, wickramasinghe2000}, so
+the cyclotron component is far stronger in $i$ than in $g$ and the system
+reddens whenever the accretion region is in view.
+Figure~\ref{fig:colourphase} is the state-tagged, many-night version of
+that statement: $g-r$ swings redward by
+\PH{g-r bright-minus-faint amplitude, mag, per era; CV-R6}
+through the bright phase, with a turn-over phase that repeats between the
+two eras to
+\PH{two-era repeatability of the colour-extremum phase, cycles; CV-R6},
+and the swing survives tightening the pairing window from
+\NumColourPairWindowS{}~s to \PH{result with a <=120 s pairing window; CV-R6}.
+We are careful about what is new here.  Simultaneous multiband light curves
+of single nights exist --- \citet{bailey1985} in the optical and near
+infrared, \citet{peacock1992} with polarimetry on three occasions --- and
+the sign of the colour change has been known for four decades.  What this
+programme adds is the number of nights
+(\NumStLmiThreeFilterNights{} three-filter full-orbit nights), their
+spread over two seasons, and an accretion state for each night taken from
+an independent survey record.
+
+\paragraph{The period, and what the $\dot{P}$ bound constrains.}
+Three published periods precede ours: $\LitStLmiSfstPeriod$~d from
+polarisation peaks in 1982 \citep{stockman1983}, \LitStLmiBwsPeriodD~d
+tied to the end of the bright phase \citep{bailey1985}, and
+$\LitStLmiCropperPeriodD \pm \LitStLmiCropperPeriodErrD$~d from
+polarisation peaks spanning 1982--1985 \citep{cropper1986}, the value
+adopted by later studies \citep[e.g.][]{kafka2007, robertson2008}.  The
+catalogue period we fold on differs from Cropper's by
+\LitStLmiVsxMinusCropperSigma{} of his standard errors, and our own refit,
+$\NumStLmiFittedPeriodD \pm \NumStLmiFittedPeriodSigmaD$~d, by
+\LitStLmiRefitMinusCropperSigma$\sigma$ of the combined error.  This also
+settles a point our cycle count left open.  Section~\ref{sec:oc} argued
+uniqueness from an \emph{assumed} period error, the last digit of the
+catalogue string, because the catalogue publishes none.  The only published
+error is Cropper's, and under it the phase drift over the
+\NumStLmiCycles{} cycles to our last edge is \LitStLmiCropperDriftCycles{}
+cycles: the count is unique by a factor of \LitStLmiCropperDriftMargin{},
+not by the larger margin the assumed error gave.
+
+Every one of these periods was measured from the accretion region ---
+polarisation pulses, or the bright-phase edge --- so each is the period on
+which that region returns to the limb: the white dwarf's rotation, plus any
+drift of the region in magnetic longitude.  In a synchronised polar that
+equals the orbital period, but it is not a measurement of the orbit, and
+our bound should be read accordingly: $|\dot{P}| < \NumStLmiPdotLimit$ is a
+limit on the \emph{spin and spot-longitude} period of ST~LMi over
+\NumStLmiEpochSpanYears{}~yr.  Three physical scales say what such a limit
+can and cannot reach.  (i) Secular orbital evolution below the period gap
+proceeds on gigayear timescales \citep{knigge2011}, i.e.\
+$|\dot{P}| \sim \LitPdotSecularRange$, four to five orders of magnitude
+below the bound; nothing here tests it.  (ii) A white dwarf knocked out of
+synchronism relaxes far faster: V1500~Cyg, desynchronised by its 1975 nova
+\citep{stockman1988, schmidt1991}, showed
+$\dot{P}_{\rm spin} = \LitVfifteenPdot$ in 1987--1992 \citep{schmidt1995},
+with resynchronisation expected on a timescale of order a century or two
+\citep{schmidt1995, campbell1999} and its present state still debated
+\citep{harrison2016, harrison2018, pavlenko2018}; CD~Ind and V1432~Aql are
+the other well-studied cases \citep{myers2017, staubert2003}.  Our bound is
+\LitVfifteenOverBound{} times smaller than the V1500~Cyg rate, so ST~LMi is
+not relaxing in that way.  (iii) A synchronised white dwarf can still
+librate about its equilibrium orientation: in DP~Leo the accretion spot
+advanced in longitude by about \LitDpLeoRateDegYr$^{\circ}$~yr$^{-1}$ for
+two decades and then stopped, consistent with an oscillation of
+$\sim$\LitDpLeoAmpDeg$^{\circ}$ amplitude and $\sim$\LitDpLeoPeriodYr~yr
+period \citep{beuermann2014}.  A steady drift is absorbed by the fitted
+period and is invisible to a $\dot{P}$ test; only its curvature is not, and
+a libration of DP~Leo's size would appear at ST~LMi's period as
+$|\dot{P}| \lesssim \LitLibrationPdot$, a factor of
+\LitBoundOverLibration{} below our bound.  The bound therefore excludes
+scale (ii) and constrains neither (i) nor (iii).
+
+The statement these data do support is about longitude.  The
+\NumStLmiOcRmsS{}~s scatter of the published epochs is
+\LitStLmiRmsDeg$^{\circ}$ of white-dwarf rotation, and that is small
+against what the literature says the edge can do: the bright phase
+lengthened from \LitStLmiDurCropperEarly{} to \LitStLmiDurCropperLate{} of
+the orbit between 1982 and 1985 \citep{cropper1986}, and from
+\LitStLmiDurBaileyEarly{} to \LitStLmiDurBaileyLate{} within a single year
+\citep{bailey1985}, which moves one edge by about \LitStLmiSeasonShiftS{}~s
+(\LitStLmiSeasonShiftDeg$^{\circ}$) if the change is symmetric.
+\PH{One sentence, CV-R3/CV-R5: the rms of the night-level epochs in degrees (N = 17 nights, era-offset nuisance fitted), the edge-longitude difference between high- and low-state nights with its error, and whether either reaches the 9-degree scale; then the sensitivity of both to dropping the 2024 epochs.}
+
+\paragraph{Should the edge epoch depend on wavelength?}
+It should, and the literature gives the sign and the scale.
+\citet{bailey1985} found the bright phase to last \LitStLmiDurWhite{} of
+the orbit in white light but \LitStLmiDurJ{}, \LitStLmiDurH{} and
+\LitStLmiDurK{} in $J$, $H$ and $K$, in simultaneous data, and attributed
+the trend to emission from greater heights at longer wavelengths, where the
+cyclotron opacity is larger.  A longer bright phase ends later: half the
+white-to-$J$ difference is \LitStLmiChromWhiteJS{}~s, half the $J$-to-$K$
+difference \LitStLmiChromJKS{}~s.  The accretion region is also extended,
+by some $\pm$\LitStLmiExtentDeg$^{\circ}$ of magnetic longitude in Stokes
+imaging \citep{potter2000} and with resolved structure in other
+reconstructions \citep{cropper1994, stockman1996}, so bands that weight it
+differently need not share a half-light point.  A log-linear interpolation
+of Bailey et al.'s durations to our $g$ and $i$ bands gives of order
+\LitStLmiChromGIS{}~s, with the redder band's edge the later; we quote it
+as an order of magnitude only, because the infrared trend is an
+optical-depth effect and our bands are optically thin.  That is the
+predicted scale our band-pair test should be read against.
+\PH{CV-R1: the combined-era g-i edge offset in seconds, with its scatter-based error and sign.}
+\PH{CV-R2: the signed matched-cell injection bias for the same pair.}
+\PH{D3: one sentence stating which the injection test supports -- an offset of the sign and order the literature predicts, or an estimator bias of that size.}
+
+\paragraph{Accretion states.}
+ST~LMi's long-term behaviour is unusually well documented.  RoboScope
+photometry \citep{kafka2005} shows a five-year low state (1992--1997) near
+$V = \LitStLmiLowV$ followed by six years of high state; \citet{kafka2007}
+add an extreme low state near $V = \LitStLmiExtremeLowV$
+\citep[see also][]{howell2000}; the Catalina record shows three brightness
+levels \citep{mason2017}; and ZTF resolves short-lived states lasting
+$\LitStLmiStateDurationD$~d that recur every $\LitStLmiStateRecurrenceD$~d
+\citep{duffy2022}.  Our state classification (Section~\ref{sec:states}) is
+made against the same kind of survey record and should be read with those
+timescales in mind: a state lasting three to four weeks is resolved by a
+season and not by a night.
+\PH{cv-stats: how many of our full-orbit nights fall inside a survey-defined short-lived state.}
+What the earlier work could not do, for lack of an independent state record
+on the night, is ask whether the colour curve changes \emph{shape} between
+states; Figure~\ref{fig:stlmifold} is that comparison, subject to the limits
+of Section~\ref{sec:tie}.
+
+\subsubsection{YZ~Cnc}
+
+\paragraph{The outburst record and the superhump literature.}
+YZ~Cnc is one of the most active SU~UMa stars known.  \citet{patterson1979},
+who discovered its superhumps, found normal outbursts every
+$\LitYzTnPatterson$~d and supermaxima every $\LitYzSupercycleD$~d, about a
+magnitude brighter than normal maxima and several times longer
+\citep[see also][]{szkody1984, vanparadijs1994}; \emph{TESS} recorded
+normal outbursts every \LitYzTnTess{}~d \citep{sun2026}.  Catalogued
+extremes of \LitYzKatoMin{} and \LitYzKatoMax{}~mag give a superoutburst
+amplitude of \LitYzSuperAmp{}~mag \citep{kato2002}, against about
+\LitYzNormalAmp{}~mag for a well-observed normal outburst
+\citep{hakala2004, vanparadijs1994}.  Our brightest dense run reaches
+\NumOutburstPeakAmp{}~mag above quiescence, short of either, which is the
+quantitative content of the AAVSO-based classification of
+Section~\ref{sec:yzcnc}: the runs lie on the rise and decline of normal
+outbursts.  The superhump period itself is well established:
+\LitYzPshKato~d in the 2007 superoutburst \citep{kato2009}, which
+superseded the discovery value, with later superoutbursts in
+\citet{kato2014v, kato2014vi, kato2015}, and \LitYzPshTess~d from two
+superoutbursts observed continuously by \emph{TESS}
+\citep{dai2026, sun2026}: a fractional excess of \LitYzEpsPct{} per cent
+over the orbital period of \citet{vanparadijs1994}, in line with the
+excess--period relation of SU~UMa stars \citep{patterson2005} and the
+tidal--thermal instability picture behind it
+\citep{whitehurst1988, osaki1989, osaki1996, osaki2013}.
+
+\paragraph{What our search could and could not have seen.}
+Superhump amplitudes are largest near the start of the plateau and decay
+through it \citep{smak2010, kato2012}.  At low inclination the maximum full
+amplitude is about \LitShAmpMaxMag{}~mag \citep{smak2010, kato2012}, a
+semi-amplitude of \LitShSemiPeakMmag{}~mmag, and \emph{TESS} recorded about
+\LitYzShAmpTessMag{}~mag (\LitYzShSemiTessMmag{}~mmag) in YZ~Cnc's own
+early plateau \citep{dai2026}; the \NumSuperhumpFloorMmag{}~mmag we adopted
+as a floor lies well below both and can describe only a decayed,
+late-plateau signal.  A 90 per cent
+recovery contour is the \emph{smallest} amplitude a search recovers, so our
+blind contours of \NumBlindContourRangeMmag{}~mmag mean this: a freshly
+developed superhump of \LitShSemiPeakMmag--\LitYzShSemiTessMmag{}~mmag
+would have been recovered in
+\PH{CV-R4: the number of run--filters whose contour lies below 125 mmag}
+of the \NumBlindContourRunFilters{} run--filter combinations that carry a
+contour, and a late-stage superhump near \NumSuperhumpFloorMmag{}~mmag in
+none of them.  We therefore exclude large-amplitude superhumps on those
+runs and nothing smaller.  The exclusion is also what the literature
+predicts.  \citet{dai2026} find no persistent superhump-band signal in
+YZ~Cnc's quiescent and normal-outburst intervals; the exception known in
+this star is the survival of late superhumps into the normal outburst that
+follows a superoutburst \citep{kato2014v}, a behaviour \emph{TESS} has now
+shown in three systems \citep{sun2026}.
+\PH{From the AAVSO record already held: the interval between the preceding superoutburst and each outburst dense run, and whether any run is the first normal outburst after a superoutburst.}
+
+\paragraph{The orbital hump.}
+\citet{vanparadijs1994} reported orbital modulation in YZ~Cnc: a hump of
+\LitYzHumpFullVpMag{}~mag full amplitude in quiescence, with maximum near
+spectroscopic phase \LitYzHumpMaxPhase{} as expected of a bright spot,
+falling to about \LitYzDeclineFullVpMag{}~mag and moving to phase
+\LitYzDeclineMaxPhase{} late in the decline from outburst; they folded on
+${\rm HJD}\;\LitYzVpEpoch + \LitYzVpPeriodParen\,E$.  Against that
+\LitYzHumpSemiVpMmag{}~mmag semi-amplitude our fitted
+\NumHumpAmpRangeMmag{}~mmag is smaller by a factor of several and does not
+clear the red-noise contour of \NumHumpSelfContourMmag{}~mmag; the Fourier
+analysis of the \emph{TESS} superoutburst sectors likewise shows no
+orbital signal \citep{sun2026}.  On the
+\PH{CV-R4: the number of scopes whose red-noise contour lies below 250 mmag}
+of \NumHumpScopesTested{} scopes whose contour lies below
+\LitYzHumpSemiVpMmag{}~mmag, a hump as large as that of 1988--89 would have
+been recovered and was not, so the quiescent hump of this star is not a
+permanent feature.  Two details of our own analysis change in the light of
+that paper.  First, a spectroscopic epoch \emph{does} exist, but its period
+error accumulates to \LitYzVpEpochDriftCycles{} cycles by 2024, so absolute
+orbital phase remains unavailable and only our within-run phase statements
+stand.  Second, the period we folded on is the \LitYzShPeriod~d of
+\citet{shafter1988}, which is what the catalogues carry
+\citep{downes2001, watson2006}; under its published error the phase drift
+between consecutive nights is \LitYzDayDriftSh{} cycles, not the smaller
+figure the catalogue string implies, and the more precise
+\LitYzVpPeriodD~d differs from it by \LitYzDaySlip{} cycles per day.  Both
+are far below the \NumHumpPhaseNightShift{}-cycle shift we measure between
+the two May nights, so the incoherence between nights is not an artefact of
+the ephemeris.
+\PH{CV-R4: the between-night phase shift re-derived on the 0.086924 d period.}
+
+\paragraph{Flickering.}
+YZ~Cnc's flickering is among the strongest known in cataclysmic variables,
+\LitYzFlickerPp{}~mag peak to peak \citep{moffett1974}, and
+\citet{vanparadijs1994} attribute the difficulty of earlier hump searches
+to it.  Our structure functions \citep[in the sense of][]{simonetti1985}
+give \NumFlickerAmpRangeMmag{}~mmag over \NumFlickerTauRangeS{}~s above a
+measured floor; \citet{bruch2021} provides the comparative framework
+against which such amplitudes can be placed.  It is the reason the relevant
+detection threshold for any periodic signal in this star is the red-noise
+contour and not the field-star one.
+
+%% --------------------------------------------------------------------------
+%% Table: the ephemerides this paper folds on, what each epoch marks, and where
+%% each comes from.  Periods are the catalogue values of numbers.tex; epochs
+%% and provenance are literature constants (literature_macros.tex).
+%% --------------------------------------------------------------------------
+\begin{deluxetable*}{llllll}
+\tablecaption{Adopted ephemerides: provenance and fiducials.  The catalogue
+values are those of the AAVSO International Variable Star Index
+\citep[VSX;][]{watson2006} as retrieved for this work; the last column
+gives the most precise published ephemeris for comparison.
+\label{tab:ephem}}
+\tablehead{\colhead{Target} & \colhead{$P$ (d)} & \colhead{$T_0$ (HJD)} &
+\colhead{$T_0$ marks} & \colhead{Origin of the catalogue values} &
+\colhead{Published ephemeris}}
+\startdata
+ST~LMi & \NumStLmiPeriodD & \LitStLmiVsxEpoch & not documented &
+  VSX, from AAVSO photometry; no error given &
+  \citet{cropper1986}: linear-polarisation pulse \\
+VV~Pup & \NumVvPupPeriodD & \LitVvPupEpoch & maximum light &
+  \citet{walker1965}, as in the General Catalogue \citep{samus2017} &
+  \citet{walker1965}; see \citet{howell2006} \\
+EU~UMa & \NumEuUmaPeriodD & \LitEuUmaVsxEpoch & minimum light &
+  ZTF periodic-variable catalogue \citep{chen2020} &
+  \citet{mittaz1992}; \citet{howell1995} \\
+AN~UMa & \NumAnUmaPeriodD & \LitAnUmaVsxEpoch & minimum light &
+  period: VSX, origin not documented; epoch: VSX, from AAVSO photometry &
+  \citet{bonnetbidaud1996}; \citet{ok2025}: \LitAnUmaOkPeriodD~d \\
+YZ~Cnc & \NumYzCncPeriodD & \nodata & \nodata &
+  \citet{shafter1988} via \citet{downes2001} &
+  \citet{vanparadijs1994}: \LitYzVpPeriodParen~d \\
+\enddata
+\end{deluxetable*}

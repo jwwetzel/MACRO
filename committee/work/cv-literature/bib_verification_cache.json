@@ -1,0 +1,1412 @@
+{
+ "ads:https://ui.adsabs.harvard.edu/abs/1996A&A...306..199B": {
+  "bibcode": "1996A&A...306..199B",
+  "bytes": 353050,
+  "registry": "ADS scan"
+ },
+ "ads:https://ui.adsabs.harvard.edu/abs/1999A&A...343..132C": {
+  "bibcode": "1999A&A...343..132C",
+  "bytes": 69145,
+  "registry": "ADS scan"
+ },
+ "ads:https://ui.adsabs.harvard.edu/abs/2006SASS...25...47W": {
+  "bibcode": "2006SASS...25...47W",
+  "bytes": 987587,
+  "registry": "ADS scan"
+ },
+ "arxiv:1011.1090": {
+  "container": "arXiv",
+  "first_family": "smak",
+  "pages": [],
+  "registry": "arXiv",
+  "title": "Superhumps and their Amplitudes",
+  "volume": "",
+  "years": [
+   2010
+  ]
+ },
+ "arxiv:2603.03539": {
+  "container": "arXiv",
+  "first_family": "dag",
+  "pages": [],
+  "registry": "arXiv",
+  "title": "A Catalogue of Orbital Periods of Cataclysmic Variables and Candidates from TESS Observations",
+  "volume": "",
+  "years": [
+   2026
+  ]
+ },
+ "arxiv:2607.08727": {
+  "container": "arXiv",
+  "first_family": "kepler",
+  "pages": [],
+  "registry": "arXiv",
+  "title": "Cataclysmic Variables Photometric Periods from TESS",
+  "volume": "",
+  "years": [
+   2026
+  ]
+ },
+ "arxiv:2609.06566": {
+  "container": "arXiv",
+  "first_family": "dai",
+  "pages": [],
+  "registry": "arXiv",
+  "title": "Stage-dependent superhump waveform evolution and non-stationary positive-superhump timing in the near-period-gap dwarf nova YZ Cancri",
+  "volume": "",
+  "years": [
+   2026
+  ]
+ },
+ "arxiv:2609.12461": {
+  "container": "arXiv",
+  "first_family": "sun",
+  "pages": [],
+  "registry": "arXiv",
+  "title": "Superoutbursts and Superhumps of Cataclysmic Variables observed with TESS",
+  "volume": "",
+  "years": [
+   2026
+  ]
+ },
+ "arxiv:astro-ph/9903224": {
+  "container": "arXiv",
+  "first_family": "verbunt",
+  "pages": [],
+  "registry": "arXiv",
+  "title": "X-ray observations through the outburst cycle of the dwarf nova YZ Cnc",
+  "volume": "",
+  "years": [
+   1999
+  ]
+ },
+ "doi:10.1002/asna.2113180209": {
+  "container": "Astronomische Nachrichten",
+  "first_family": "schwope",
+  "pages": [
+   "111"
+  ],
+  "registry": "Crossref",
+  "title": "Cyclotron spectroscopy of VV Puppis",
+  "volume": "318",
+  "years": [
+   1997,
+   2006
+  ]
+ },
+ "doi:10.1007/BF00177799": {
+  "container": "Space Science Reviews",
+  "first_family": "cropper",
+  "pages": [],
+  "registry": "Crossref",
+  "title": "The polars",
+  "volume": "54",
+  "years": [
+   1990
+  ]
+ },
+ "doi:10.1007/BF00648343": {
+  "container": "Astrophysics and Space Science",
+  "first_family": "lomb",
+  "pages": [
+   "447"
+  ],
+  "registry": "Crossref",
+  "title": "Least-squares frequency analysis of unequally spaced data",
+  "volume": "39",
+  "years": [
+   1976
+  ]
+ },
+ "doi:10.1007/s11214-015-0152-0": {
+  "container": "Space Science Reviews",
+  "first_family": "ferrario",
+  "pages": [
+   "111"
+  ],
+  "registry": "Crossref",
+  "title": "Magnetic White Dwarfs",
+  "volume": "191",
+  "years": [
+   2015
+  ]
+ },
+ "doi:10.1016/j.ascom.2020.100384": {
+  "container": "Astronomy and Computing",
+  "first_family": "beroiz",
+  "pages": [
+   "100384",
+   "100384"
+  ],
+  "registry": "Crossref",
+  "title": "Astroalign: A Python module for astronomical image registration",
+  "volume": "32",
+  "years": [
+   2020
+  ]
+ },
+ "doi:10.1017/CBO9780511586491": {
+  "container": "",
+  "first_family": "warner",
+  "pages": [],
+  "registry": "Crossref",
+  "title": "Cataclysmic Variable Stars",
+  "volume": "",
+  "years": [
+   1995,
+   2009
+  ]
+ },
+ "doi:10.1038/281047a0": {
+  "container": "Nature",
+  "first_family": "visvanathan",
+  "pages": [
+   "47"
+  ],
+  "registry": "Crossref",
+  "title": "Absorption spectrum of the accretion column in VV puppis",
+  "volume": "281",
+  "years": [
+   1979
+  ]
+ },
+ "doi:10.1038/s41586-020-2649-2": {
+  "container": "Nature",
+  "first_family": "harris",
+  "pages": [
+   "357"
+  ],
+  "registry": "Crossref",
+  "title": "Array programming with NumPy",
+  "volume": "585",
+  "years": [
+   2020
+  ]
+ },
+ "doi:10.1038/s41592-019-0686-2": {
+  "container": "Nature Methods",
+  "first_family": "virtanen",
+  "pages": [
+   "261"
+  ],
+  "registry": "Crossref",
+  "title": "SciPy 1.0: fundamental algorithms for scientific computing in Python",
+  "volume": "17",
+  "years": [
+   2020
+  ]
+ },
+ "doi:10.1046/j.1365-8711.2000.03280.x": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "potter",
+  "pages": [
+   "672"
+  ],
+  "registry": "Crossref",
+  "title": "Stokes imaging of the AM Her system ST LMi",
+  "volume": "314",
+  "years": [
+   2000
+  ]
+ },
+ "doi:10.1046/j.1365-8711.2002.05015.x": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "kato",
+  "pages": [
+   "53"
+  ],
+  "registry": "Crossref",
+  "title": "V344 Lyr: an unusual large-amplitude SU UMa-type dwarf nova with a short supercycle",
+  "volume": "330",
+  "years": [
+   2002
+  ]
+ },
+ "doi:10.1051/0004-6361/201322068": {
+  "container": "Astronomy &amp; Astrophysics",
+  "first_family": "robitaille",
+  "pages": [
+   "a33"
+  ],
+  "registry": "Crossref",
+  "title": "Astropy: A community Python package for astronomy",
+  "volume": "558",
+  "years": [
+   2013
+  ]
+ },
+ "doi:10.1051/0004-6361/201323192": {
+  "container": "Astronomy &amp; Astrophysics",
+  "first_family": "beuermann",
+  "pages": [
+   "a63"
+  ],
+  "registry": "Crossref",
+  "title": "Evidence for an oscillation of the magnetic axis of the white dwarf in the polar DP Leonis",
+  "volume": "562",
+  "years": [
+   2014
+  ]
+ },
+ "doi:10.1051/0004-6361/201629272": {
+  "container": "Astronomy &amp; Astrophysics",
+  "first_family": "prusti",
+  "pages": [
+   "a1"
+  ],
+  "registry": "Crossref",
+  "title": "The <i>Gaia</i> mission",
+  "volume": "595",
+  "years": [
+   2016
+  ]
+ },
+ "doi:10.1051/0004-6361/202243709": {
+  "container": "Astronomy &amp; Astrophysics",
+  "first_family": "montegriffo",
+  "pages": [
+   "a33"
+  ],
+  "registry": "Crossref",
+  "title": "<i>Gaia</i> Data Release 3 The Galaxy in your preferred colours: Synthetic photometry from <i>Gaia</i> low-resolution spectra",
+  "volume": "674",
+  "years": [
+   2023
+  ]
+ },
+ "doi:10.1051/0004-6361/202243940": {
+  "container": "Astronomy &amp; Astrophysics",
+  "first_family": "vallenari",
+  "pages": [
+   "a1"
+  ],
+  "registry": "Crossref",
+  "title": "<i>Gaia</i> Data Release 3 Summary of the content and survey properties",
+  "volume": "674",
+  "years": [
+   2023
+  ]
+ },
+ "doi:10.1051/0004-6361/202451945": {
+  "container": "Astronomy &amp; Astrophysics",
+  "first_family": "van roestel",
+  "pages": [
+   "a242"
+  ],
+  "registry": "Crossref",
+  "title": "Cyclotron emitting magnetic white dwarfs in post common-envelope binaries discovered with the Zwicky Transient Facility",
+  "volume": "696",
+  "years": [
+   2025
+  ]
+ },
+ "doi:10.1051/0004-6361:20030330": {
+  "container": "Astronomy &amp; Astrophysics",
+  "first_family": "ritter",
+  "pages": [
+   "301"
+  ],
+  "registry": "Crossref",
+  "title": "Catalogue of cataclysmic binaries, low\u2013mass X-ray binaries and related objects (Seventh edition)",
+  "volume": "404",
+  "years": [
+   2003
+  ]
+ },
+ "doi:10.1051/0004-6361:20030851": {
+  "container": "Astronomy &amp; Astrophysics",
+  "first_family": "staubert",
+  "pages": [
+   "987"
+  ],
+  "registry": "Crossref",
+  "title": "The near-synchronous polar V1432 Aql (RX J1940.1\u20131025): Accretion geometry and synchronization time scale",
+  "volume": "407",
+  "years": [
+   2003
+  ]
+ },
+ "doi:10.1051/0004-6361:20035843": {
+  "container": "Astronomy &amp; Astrophysics",
+  "first_family": "hakala",
+  "pages": [
+   "273"
+  ],
+  "registry": "Crossref",
+  "title": "<i>XMM-Newton</i> observations of the dwarf nova YZ Cnc in quiescence",
+  "volume": "420",
+  "years": [
+   2004
+  ]
+ },
+ "doi:10.1051/0004-6361:20078804": {
+  "container": "Astronomy &amp; Astrophysics",
+  "first_family": "mason",
+  "pages": [
+   "279"
+  ],
+  "registry": "Crossref",
+  "title": "VV Puppis in a low state: secondary-star irradiation or stellar activity?",
+  "volume": "490",
+  "years": [
+   2008
+  ]
+ },
+ "doi:10.1051/aas:1996164": {
+  "container": "Astronomy and Astrophysics Supplement Series",
+  "first_family": "bertin",
+  "pages": [
+   "393"
+  ],
+  "registry": "Crossref",
+  "title": "SExtractor: Software for source extraction",
+  "volume": "117",
+  "years": [
+   1996
+  ]
+ },
+ "doi:10.1086/112483": {
+  "container": "The Astronomical Journal",
+  "first_family": "patterson",
+  "pages": [
+   "804"
+  ],
+  "registry": "Crossref",
+  "title": "Eruptions and superhumps in dwarf novae",
+  "volume": "84",
+  "years": [
+   1979
+  ]
+ },
+ "doi:10.1086/114626": {
+  "container": "The Astronomical Journal",
+  "first_family": "shafter",
+  "pages": [
+   "178"
+  ],
+  "registry": "Crossref",
+  "title": "A time-resolved spectroscopic study of the SU Ursae Majoris dwarf nova YZ CANCRI",
+  "volume": "95",
+  "years": [
+   1988
+  ]
+ },
+ "doi:10.1086/131464": {
+  "container": "Publications of the Astronomical Society of the Pacific",
+  "first_family": "szkody",
+  "pages": [
+   "988"
+  ],
+  "registry": "Crossref",
+  "title": "Analysis of the AAVSO light curves of 21 dwarf novae",
+  "volume": "96",
+  "years": [
+   1984
+  ]
+ },
+ "doi:10.1086/133015": {
+  "container": "Publications of the Astronomical Society of the Pacific",
+  "first_family": "honeycutt",
+  "pages": [
+   "435"
+  ],
+  "registry": "Crossref",
+  "title": "CCD ensemble photometry on an inhomogeneous set of exposures",
+  "volume": "104",
+  "years": [
+   1992
+  ]
+ },
+ "doi:10.1086/133689": {
+  "container": "Publications of the Astronomical Society of the Pacific",
+  "first_family": "osaki",
+  "pages": [
+   "39"
+  ],
+  "registry": "Crossref",
+  "title": "Dwarf-Nova Outbursts",
+  "volume": "108",
+  "years": [
+   1996
+  ]
+ },
+ "doi:10.1086/153231": {
+  "container": "The Astrophysical Journal",
+  "first_family": "moffett",
+  "pages": [
+   "141"
+  ],
+  "registry": "Crossref",
+  "title": "Rapid light variations of YZ CNC : an unusual SS CYG star.",
+  "volume": "194",
+  "years": [
+   1974
+  ]
+ },
+ "doi:10.1086/156444": {
+  "container": "The Astrophysical Journal",
+  "first_family": "stellingwerf",
+  "pages": [
+   "953"
+  ],
+  "registry": "Crossref",
+  "title": "Period determination using phase dispersion minimization",
+  "volume": "224",
+  "years": [
+   1978
+  ]
+ },
+ "doi:10.1086/158736": {
+  "container": "The Astrophysical Journal",
+  "first_family": "chanmugam",
+  "pages": [
+   "569"
+  ],
+  "registry": "Crossref",
+  "title": "Polarized radiation from hot plasmas and applications to AM Herculis binaries",
+  "volume": "244",
+  "years": [
+   1981
+  ]
+ },
+ "doi:10.1086/159727": {
+  "container": "The Astrophysical Journal",
+  "first_family": "liebert",
+  "pages": [
+   "232"
+  ],
+  "registry": "Crossref",
+  "title": "The 1979 minimum state of an Ursae Majoris",
+  "volume": "254",
+  "years": [
+   1982
+  ]
+ },
+ "doi:10.1086/160554": {
+  "container": "The Astrophysical Journal",
+  "first_family": "scargle",
+  "pages": [
+   "835"
+  ],
+  "registry": "Crossref",
+  "title": "Studies in astronomical time series analysis. II - Statistical aspects of spectral analysis of unevenly spaced data",
+  "volume": "263",
+  "years": [
+   1982
+  ]
+ },
+ "doi:10.1086/161239": {
+  "container": "The Astrophysical Journal",
+  "first_family": "stockman",
+  "pages": [
+   "725"
+  ],
+  "registry": "Crossref",
+  "title": "Identification of CW 1103+254 as a new magnetic variable",
+  "volume": "271",
+  "years": [
+   1983
+  ]
+ },
+ "doi:10.1086/161240": {
+  "container": "The Astrophysical Journal",
+  "first_family": "schmidt",
+  "pages": [
+   "735"
+  ],
+  "registry": "Crossref",
+  "title": "Magnetism in the AM Herculis variable CW 1103+254",
+  "volume": "271",
+  "years": [
+   1983
+  ]
+ },
+ "doi:10.1086/163418": {
+  "container": "The Astrophysical Journal",
+  "first_family": "simonetti",
+  "pages": [
+   "46"
+  ],
+  "registry": "Crossref",
+  "title": "Flicker of extragalactic radio sources at two frequencies",
+  "volume": "296",
+  "years": [
+   1985
+  ]
+ },
+ "doi:10.1086/166652": {
+  "container": "The Astrophysical Journal",
+  "first_family": "stockman",
+  "pages": [
+   "282"
+  ],
+  "registry": "Crossref",
+  "title": "V1500 Cygni - Discovery of a magnetic nova",
+  "volume": "332",
+  "years": [
+   1988
+  ]
+ },
+ "doi:10.1086/169939": {
+  "container": "The Astrophysical Journal",
+  "first_family": "schmidt",
+  "pages": [
+   "749"
+  ],
+  "registry": "Crossref",
+  "title": "Synchronization of the magnetic Nova V1500 Cygni",
+  "volume": "371",
+  "years": [
+   1991
+  ]
+ },
+ "doi:10.1086/175236": {
+  "container": "The Astrophysical Journal",
+  "first_family": "howell",
+  "pages": [
+   "991"
+  ],
+  "registry": "Crossref",
+  "title": "Asymmetric mass accretion in the magnetic cataclysmic variable RE 1149 + 28",
+  "volume": "439",
+  "years": [
+   1995
+  ]
+ },
+ "doi:10.1086/175365": {
+  "container": "The Astrophysical Journal",
+  "first_family": "schmidt",
+  "pages": [
+   "414"
+  ],
+  "registry": "Crossref",
+  "title": "Detection of the hot white dwarf in the magnetic nova V1500 Cygni with the Hubble Space Telescope",
+  "volume": "441",
+  "years": [
+   1995
+  ]
+ },
+ "doi:10.1086/177744": {
+  "container": "The Astrophysical Journal",
+  "first_family": "stockman",
+  "pages": [
+   "883"
+  ],
+  "registry": "Crossref",
+  "title": "Hubble Space Telescope Time-resolved Ultraviolet Spectroscopy of ST Leonis Minoris and UZ Fornacis: Resolving the Accretion Stream",
+  "volume": "468",
+  "years": [
+   1996
+  ]
+ },
+ "doi:10.1086/182390": {
+  "container": "The Astrophysical Journal",
+  "first_family": "tapia",
+  "pages": [
+   "l125"
+  ],
+  "registry": "Crossref",
+  "title": "Discovery of a magnetic compact star in the AM Herculis/3U 1809+50 system",
+  "volume": "212",
+  "years": [
+   1977
+  ]
+ },
+ "doi:10.1086/182506": {
+  "container": "The Astrophysical Journal",
+  "first_family": "krzeminski",
+  "pages": [
+   "l45"
+  ],
+  "registry": "Crossref",
+  "title": "Extremely high circular polarization of an Ursae Majoris",
+  "volume": "216",
+  "years": [
+   1977
+  ]
+ },
+ "doi:10.1086/308382": {
+  "container": "The Astrophysical Journal",
+  "first_family": "howell",
+  "pages": [
+   "904"
+  ],
+  "registry": "Crossref",
+  "title": "Infrared Spectroscopy of the Secondary Star in ST Leonis Minoris: Implications for Evolution and High\u2010/Low\u2010State Behavior in Cataclysmic Variables",
+  "volume": "530",
+  "years": [
+   2000
+  ]
+ },
+ "doi:10.1086/316593": {
+  "container": "Publications of the Astronomical Society of the Pacific",
+  "first_family": "wickramasinghe",
+  "pages": [
+   "873"
+  ],
+  "registry": "Crossref",
+  "title": "Magnetism in Isolated and Binary White Dwarfs",
+  "volume": "112",
+  "years": [
+   2000
+  ]
+ },
+ "doi:10.1086/320802": {
+  "container": "Publications of the Astronomical Society of the Pacific",
+  "first_family": "downes",
+  "pages": [
+   "764"
+  ],
+  "registry": "Crossref",
+  "title": "A Catalog and Atlas of Cataclysmic Variables: The Living Edition",
+  "volume": "113",
+  "years": [
+   2001
+  ]
+ },
+ "doi:10.1086/431793": {
+  "container": "The Astronomical Journal",
+  "first_family": "kafka",
+  "pages": [
+   "742"
+  ],
+  "registry": "Crossref",
+  "title": "High/Low States in Magnetic Cataclysmic Variables",
+  "volume": "130",
+  "years": [
+   2005
+  ]
+ },
+ "doi:10.1086/447771": {
+  "container": "Publications of the Astronomical Society of the Pacific",
+  "first_family": "patterson",
+  "pages": [
+   "1204"
+  ],
+  "registry": "Crossref",
+  "title": "Superhumps in Cataclysmic Binaries. XXV. <b> <i>q</i> </b> <sub> <b>crit</b> </sub> , \\documentclass{aastex} \\usepackage{amsbsy} \\usepackage{amsfonts} \\usepackage{amssymb} \\usepackage{bm} \\usepackage{mathrsfs} \\usepackage{pifont} \\usepackage{stmaryrd} \\usepackage{textcomp} \\usepackage{portland,xspace} \\usepackage{amsmath,amsxtra} \\usepackage[OT2,OT1]{fontenc} \\newcommand\\cyr{ \\renewcommand\\rmdefault{wncyr} \\renewcommand\\sfdefault{wncyss} \\renewcommand\\encodingdefault{OT2} \\normalfont \\selectfont} \\DeclareTextFontCommand{\\textcyr}{\\cyr} \\pagestyle{empty} \\DeclareMathSizes{10}{9}{7}{6} \\begin{document} \\landscape $\\mathstrut{{\\mbox{\\boldmath $\\varepsilon$}}} $ \\end{document} ( <b> <i>q</i> </b> ), and Mass\u2010Radius",
+  "volume": "117",
+  "years": [
+   2005
+  ]
+ },
+ "doi:10.1086/500540": {
+  "container": "The Astronomical Journal",
+  "first_family": "howell",
+  "pages": [
+   "2216"
+  ],
+  "registry": "Crossref",
+  "title": "Low-State Phase-Resolved Infrared Spectroscopy of VV Puppis",
+  "volume": "131",
+  "years": [
+   2006
+  ]
+ },
+ "doi:10.1086/511785": {
+  "container": "The Astronomical Journal",
+  "first_family": "kafka",
+  "pages": [
+   "1645"
+  ],
+  "registry": "Crossref",
+  "title": "A Photometric and Spectroscopic Study of the Cataclysmic Variable ST LMi during 2005-2006",
+  "volume": "133",
+  "years": [
+   2007
+  ]
+ },
+ "doi:10.1086/533488": {
+  "container": "The Astrophysical Journal",
+  "first_family": "campbell",
+  "pages": [
+   "1304"
+  ],
+  "registry": "Crossref",
+  "title": "Cyclotron Modeling Phase\u2010Resolved Infrared Spectroscopy of Polars. II. EQ Ceti, AN Ursa Majoris, and VV Puppis",
+  "volume": "678",
+  "years": [
+   2008
+  ]
+ },
+ "doi:10.1086/589179": {
+  "container": "The Astrophysical Journal",
+  "first_family": "campbell",
+  "pages": [
+   "409"
+  ],
+  "registry": "Crossref",
+  "title": "Cyclotron Modeling Phase\u2010Resolved Infrared Spectroscopy of Polars. III. AM Herculis and ST Leo Minoris",
+  "volume": "683",
+  "years": [
+   2008
+  ]
+ },
+ "doi:10.1086/655938": {
+  "container": "Publications of the Astronomical Society of the Pacific",
+  "first_family": "eastman",
+  "pages": [
+   "935"
+  ],
+  "registry": "Crossref",
+  "title": "Achieving Better Than 1 Minute Accuracy in the Heliocentric and Barycentric Julian Dates",
+  "volume": "122",
+  "years": [
+   2010
+  ]
+ },
+ "doi:10.1088/0004-6256/136/5/1857": {
+  "container": "The Astronomical Journal",
+  "first_family": "robertson",
+  "pages": [
+   "1857"
+  ],
+  "registry": "Crossref",
+  "title": "ORBIT-RESOLVED PHOTOMETRY AND ECHELLE SPECTROSCOPY OF THE CATACLYSMIC VARIABLE ST LMi DURING A 2007 HIGH STATE",
+  "volume": "136",
+  "years": [
+   2008
+  ]
+ },
+ "doi:10.1088/0004-637X/788/1/48": {
+  "container": "The Astrophysical Journal",
+  "first_family": "shappee",
+  "pages": [
+   "48"
+  ],
+  "registry": "Crossref",
+  "title": "THE MAN BEHIND THE CURTAIN: X-RAYS DRIVE THE UV THROUGH NIR VARIABILITY IN THE 2013 ACTIVE GALACTIC NUCLEUS OUTBURST IN NGC 2617",
+  "volume": "788",
+  "years": [
+   2014
+  ]
+ },
+ "doi:10.1088/0067-0049/194/2/28": {
+  "container": "The Astrophysical Journal Supplement Series",
+  "first_family": "knigge",
+  "pages": [
+   "28"
+  ],
+  "registry": "Crossref",
+  "title": "THE EVOLUTION OF CATACLYSMIC VARIABLES AS REVEALED BY THEIR DONOR STARS",
+  "volume": "194",
+  "years": [
+   2011
+  ]
+ },
+ "doi:10.1088/1009-9271/5/6/006": {
+  "container": "Chinese Journal of Astronomy and Astrophysics",
+  "first_family": "zhao",
+  "pages": [
+   "601"
+  ],
+  "registry": "Crossref",
+  "title": "A Spectroscopic Study of the SU UMa-type Dwarf Nova YZ Cnc during its 2002 Superoutburst",
+  "volume": "5",
+  "years": [
+   2005
+  ]
+ },
+ "doi:10.1088/1538-3873/aa54a8": {
+  "container": "Publications of the Astronomical Society of the Pacific",
+  "first_family": "myers",
+  "pages": [
+   "044204"
+  ],
+  "registry": "Crossref",
+  "title": "Resynchronization of the Asynchronous Polar CD Ind",
+  "volume": "129",
+  "years": [
+   2017
+  ]
+ },
+ "doi:10.1088/1538-3873/aa80d9": {
+  "container": "Publications of the Astronomical Society of the Pacific",
+  "first_family": "kochanek",
+  "pages": [
+   "104502"
+  ],
+  "registry": "Crossref",
+  "title": "The All-Sky Automated Survey for Supernovae (ASAS-SN) Light Curve Server v1.0",
+  "volume": "129",
+  "years": [
+   2017
+  ]
+ },
+ "doi:10.1088/1538-3873/aae8ac": {
+  "container": "Publications of the Astronomical Society of the Pacific",
+  "first_family": "masci",
+  "pages": [
+   "018003"
+  ],
+  "registry": "Crossref",
+  "title": "The Zwicky Transient Facility: Data Processing, Products, and Archive",
+  "volume": "131",
+  "years": [
+   2018,
+   2019
+  ]
+ },
+ "doi:10.1088/1538-3873/aaecbe": {
+  "container": "Publications of the Astronomical Society of the Pacific",
+  "first_family": "bellm",
+  "pages": [
+   "018002"
+  ],
+  "registry": "Crossref",
+  "title": "The Zwicky Transient Facility: System Overview, Performance, and First Results",
+  "volume": "131",
+  "years": [
+   2018,
+   2019
+  ]
+ },
+ "doi:10.1093/mnras/214.4.605": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "wickramasinghe",
+  "pages": [
+   "605"
+  ],
+  "registry": "Crossref",
+  "title": "The polarization properties of magnetic accretion columns \u2013 III. A grid of uniform temperature and shock front models",
+  "volume": "214",
+  "years": [
+   1985
+  ]
+ },
+ "doi:10.1093/mnras/215.2.179": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "bailey",
+  "pages": [
+   "179"
+  ],
+  "registry": "Crossref",
+  "title": "An optical and near-infrared study of the AM Herculis-type binary CW 1103+254",
+  "volume": "215",
+  "years": [
+   1985
+  ]
+ },
+ "doi:10.1093/mnras/222.4.853": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "cropper",
+  "pages": [
+   "853"
+  ],
+  "registry": "Crossref",
+  "title": "Polarimetry of ST LMi (CW1103 + 254)",
+  "volume": "222",
+  "years": [
+   1986
+  ]
+ },
+ "doi:10.1093/mnras/232.1.35": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "whitehurst",
+  "pages": [
+   "35"
+  ],
+  "registry": "Crossref",
+  "title": "Numerical simulations of accretion discs \u2013 I. Superhumps: a tidal phenomenon of accretion discs",
+  "volume": "232",
+  "years": [
+   1988
+  ]
+ },
+ "doi:10.1093/mnras/258.2.277": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "mittaz",
+  "pages": [
+   "277"
+  ],
+  "registry": "Crossref",
+  "title": "Discovery of a new pole-occulting AM Her star using the ROSAT Wide-Field Camera",
+  "volume": "258",
+  "years": [
+   1992
+  ]
+ },
+ "doi:10.1093/mnras/259.3.583": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "peacock",
+  "pages": [
+   "583"
+  ],
+  "registry": "Crossref",
+  "title": "Polarimetry of ST LMi: discovery of a second accreting pole",
+  "volume": "259",
+  "years": [
+   1992
+  ]
+ },
+ "doi:10.1093/mnras/262.2.285": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "ferrario",
+  "pages": [
+   "285"
+  ],
+  "registry": "Crossref",
+  "title": "Detection of cyclotron emission features in the infrared spectrum of ST LMi",
+  "volume": "262",
+  "years": [
+   1993
+  ]
+ },
+ "doi:10.1093/mnras/267.3.465": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "van paradijs",
+  "pages": [
+   "465"
+  ],
+  "registry": "Crossref",
+  "title": "A 60-night campaign on dwarf novae - I. Photometric variability of SU UMa and YZ Cnc",
+  "volume": "267",
+  "years": [
+   1994
+  ]
+ },
+ "doi:10.1093/mnras/267.3.481": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "cropper",
+  "pages": [
+   "481"
+  ],
+  "registry": "Crossref",
+  "title": "Mapping the accretion region in AM Her Systems: ST LMi",
+  "volume": "267",
+  "years": [
+   1994
+  ]
+ },
+ "doi:10.1093/mnras/282.2.362": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "shahbaz",
+  "pages": [
+   "362"
+  ],
+  "registry": "Crossref",
+  "title": "The system parameters of the polars MR Ser and ST LMi",
+  "volume": "282",
+  "years": [
+   1996
+  ]
+ },
+ "doi:10.1093/mnras/stab516": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "bruch",
+  "pages": [
+   "953"
+  ],
+  "registry": "Crossref",
+  "title": "A comparative study of the strength of flickering in cataclysmic variables",
+  "volume": "503",
+  "years": [
+   2021
+  ]
+ },
+ "doi:10.1093/mnras/stac2482": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "duffy",
+  "pages": [
+   "3144"
+  ],
+  "registry": "Crossref",
+  "title": "Short-duration accretion states of Polars as seen in <i>TESS</i> and ZTF data",
+  "volume": "516",
+  "years": [
+   2022
+  ]
+ },
+ "doi:10.1093/mnras/staf1024": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "ok",
+  "pages": [
+   "1913"
+  ],
+  "registry": "Crossref",
+  "title": "X-ray and optical analysis of the prototype polar AN UMa",
+  "volume": "541",
+  "years": [
+   2025
+  ]
+ },
+ "doi:10.1093/mnras/stag358": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "yates",
+  "pages": [
+   "stag358"
+  ],
+  "registry": "Crossref",
+  "title": "Long-term eclipse time variations in white dwarf binaries",
+  "volume": "547",
+  "years": [
+   2026
+  ]
+ },
+ "doi:10.1093/mnras/stw1120": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "otulakowska hypka",
+  "pages": [
+   "2526"
+  ],
+  "registry": "Crossref",
+  "title": "Statistical analysis of properties of dwarf novae outbursts",
+  "volume": "460",
+  "years": [
+   2016
+  ]
+ },
+ "doi:10.1093/mnras/stw961": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "harrison",
+  "pages": [
+   "4161"
+  ],
+  "registry": "Crossref",
+  "title": "The apparent synchronization of V1500 Cygni",
+  "volume": "459",
+  "years": [
+   2016
+  ]
+ },
+ "doi:10.1093/mnras/stx2881": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "harrison",
+  "pages": [
+   "1572"
+  ],
+  "registry": "Crossref",
+  "title": "The detection of discrete cyclotron emission features in phase-resolved optical spectroscopy of V1500 Cygni",
+  "volume": "474",
+  "years": [
+   2017,
+   2018
+  ]
+ },
+ "doi:10.1093/mnras/sty1494": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "pavlenko",
+  "pages": [],
+  "registry": "Crossref",
+  "title": "Asynchronous polar V1500 Cyg: orbital, spin and beat periods",
+  "volume": "",
+  "years": [
+   2018
+  ]
+ },
+ "doi:10.1093/pasj/41.5.1005": {
+  "container": "Publications of the Astronomical Society of Japan",
+  "first_family": "osaki",
+  "pages": [
+   "1005"
+  ],
+  "registry": "Crossref",
+  "title": "A Model for the Superoutburst Phenomenon of SU Ursae Majoris Stars",
+  "volume": "41",
+  "years": [
+   1989
+  ]
+ },
+ "doi:10.1093/pasj/61.sp2.S395": {
+  "container": "Publications of the Astronomical Society of Japan",
+  "first_family": "kato",
+  "pages": [
+   "s395"
+  ],
+  "registry": "Crossref",
+  "title": "Survey of Period Variations of Superhumps in SU UMa-Type Dwarf Novae",
+  "volume": "61",
+  "years": [
+   2009
+  ]
+ },
+ "doi:10.1093/pasj/64.1.21": {
+  "container": "Publications of the Astronomical Society of Japan",
+  "first_family": "kato",
+  "pages": [
+   "21"
+  ],
+  "registry": "Crossref",
+  "title": "Survey of Period Variations of Superhumps in SU UMa-Type Dwarf Novae. III. The Third Year (2010\u20132011)",
+  "volume": "64",
+  "years": [
+   2012
+  ]
+ },
+ "doi:10.1093/pasj/65.5.95": {
+  "container": "Publications of the Astronomical Society of Japan",
+  "first_family": "osaki",
+  "pages": [
+   "95"
+  ],
+  "registry": "Crossref",
+  "title": "Study of Superoutbursts and Superhumps in SU UMa Stars by the Kepler Light Curves of V344Lyrae and V1504 Cygni",
+  "volume": "65",
+  "years": [
+   2013
+  ]
+ },
+ "doi:10.1093/pasj/psu014": {
+  "container": "Publications of the Astronomical Society of Japan",
+  "first_family": "kato",
+  "pages": [
+   "30"
+  ],
+  "registry": "Crossref",
+  "title": "Survey of period variations of superhumps in SU UMa-type dwarf novae. V. The fifth year (2012\u20132013)",
+  "volume": "66",
+  "years": [
+   2014
+  ]
+ },
+ "doi:10.1093/pasj/psu072": {
+  "container": "Publications of the Astronomical Society of Japan",
+  "first_family": "kato",
+  "pages": [
+   "90"
+  ],
+  "registry": "Crossref",
+  "title": "Survey of period variations of superhumps in SU UMa-type dwarf novae. VI. The sixth year (2013\u20132014)",
+  "volume": "66",
+  "years": [
+   2014
+  ]
+ },
+ "doi:10.1093/pasj/psv072": {
+  "container": "Publications of the Astronomical Society of Japan",
+  "first_family": "kato",
+  "pages": [
+   "105"
+  ],
+  "registry": "Crossref",
+  "title": "Survey of period variations of superhumps in SU UMa-type dwarf novae. VII. The seventh year (2014\u20132015)",
+  "volume": "67",
+  "years": [
+   2015
+  ]
+ },
+ "doi:10.1109/MCSE.2007.55": {
+  "container": "Computing in Science &amp; Engineering",
+  "first_family": "hunter",
+  "pages": [
+   "90"
+  ],
+  "registry": "Crossref",
+  "title": "Matplotlib: A 2D Graphics Environment",
+  "volume": "9",
+  "years": [
+   2007
+  ]
+ },
+ "doi:10.1111/j.1365-2966.2004.07242.x": {
+  "container": "Monthly Notices of the Royal Astronomical Society",
+  "first_family": "ramsay",
+  "pages": [
+   "95"
+  ],
+  "registry": "Crossref",
+  "title": "<i>XMM-Newton</i>observations of three short-period polars: V347 Pav, GG Leo and EU UMa",
+  "volume": "347",
+  "years": [
+   2004
+  ]
+ },
+ "doi:10.1117/1.JATIS.1.1.014003": {
+  "container": "Journal of Astronomical Telescopes, Instruments, and Systems",
+  "first_family": "ricker",
+  "pages": [
+   "1"
+  ],
+  "registry": "Crossref",
+  "title": "Transiting Exoplanet Survey Satellite",
+  "volume": "1",
+  "years": [
+   2014
+  ]
+ },
+ "doi:10.1134/S1063772917010085": {
+  "container": "Astronomy Reports",
+  "first_family": "samus",
+  "pages": [
+   "80"
+  ],
+  "registry": "Crossref",
+  "title": "General catalogue of variable stars: Version GCVS 5.1",
+  "volume": "61",
+  "years": [
+   2017
+  ]
+ },
+ "doi:10.21105/joss.00058": {
+  "container": "The Journal of Open Source Software",
+  "first_family": "barbary",
+  "pages": [
+   "58"
+  ],
+  "registry": "Crossref",
+  "title": "SEP: Source Extractor as a library",
+  "volume": "1",
+  "years": [
+   2016
+  ]
+ },
+ "doi:10.22323/1.255.0016": {
+  "container": "Proceedings of The Golden Age of Cataclysmic Variables and Related Objects - III \u2014 PoS(Golden2015)",
+  "first_family": "mason",
+  "pages": [
+   "016"
+  ],
+  "registry": "Crossref",
+  "title": "Low States of Polars: Catalina (CRTS) Light Curves",
+  "volume": "",
+  "years": [
+   2017
+  ]
+ },
+ "doi:10.25080/Majora-92bf1922-00a": {
+  "container": "Proceedings of the Python in Science Conference",
+  "first_family": "mckinney",
+  "pages": [
+   "56"
+  ],
+  "registry": "Crossref",
+  "title": "Data Structures for Statistical Computing in Python",
+  "volume": "",
+  "years": [
+   2010
+  ]
+ },
+ "doi:10.3847/1538-3881/aabc4f": {
+  "container": "The Astronomical Journal",
+  "first_family": "price whelan",
+  "pages": [
+   "123"
+  ],
+  "registry": "Crossref",
+  "title": "The Astropy Project: Building an Open-science Project and Status of the v2.0 Core Package <sup>*</sup>",
+  "volume": "156",
+  "years": [
+   2018
+  ]
+ },
+ "doi:10.3847/1538-3881/aafc33": {
+  "container": "The Astronomical Journal",
+  "first_family": "ginsburg",
+  "pages": [
+   "98"
+  ],
+  "registry": "Crossref",
+  "title": "<tt>astroquery</tt> : An Astronomical Web-querying Package in Python",
+  "volume": "157",
+  "years": [
+   2019
+  ]
+ },
+ "doi:10.3847/1538-3881/ab7cce": {
+  "container": "The Astronomical Journal",
+  "first_family": "szkody",
+  "pages": [
+   "198"
+  ],
+  "registry": "Crossref",
+  "title": "Cataclysmic Variables in the First Year of the Zwicky Transient Facility",
+  "volume": "159",
+  "years": [
+   2020
+  ]
+ },
+ "doi:10.3847/1538-3881/ac0efb": {
+  "container": "The Astronomical Journal",
+  "first_family": "szkody",
+  "pages": [
+   "94"
+  ],
+  "registry": "Crossref",
+  "title": "Cataclysmic Variables in the Second Year of the Zwicky Transient Facility",
+  "volume": "162",
+  "years": [
+   2021
+  ]
+ },
+ "doi:10.3847/1538-4357/aae386": {
+  "container": "The Astrophysical Journal",
+  "first_family": "tonry",
+  "pages": [
+   "105"
+  ],
+  "registry": "Crossref",
+  "title": "The ATLAS All-Sky Stellar Reference Catalog",
+  "volume": "867",
+  "years": [
+   2018
+  ]
+ },
+ "doi:10.3847/1538-4357/ac7c74": {
+  "container": "The Astrophysical Journal",
+  "first_family": "the astropy collaboration",
+  "pages": [
+   "167"
+  ],
+  "registry": "Crossref",
+  "title": "The Astropy Project: Sustaining and Growing a Community-oriented Open-source Project and the Latest Major Release (v5.0) of the Core Package*",
+  "volume": "935",
+  "years": [
+   2022
+  ]
+ },
+ "doi:10.3847/1538-4357/acbb6f": {
+  "container": "The Astrophysical Journal",
+  "first_family": "rodriguez",
+  "pages": [
+   "141"
+  ],
+  "registry": "Crossref",
+  "title": "Discovery of Two Polars from a Crossmatch of ZTF and the SRG/eFEDS X-Ray Catalog",
+  "volume": "945",
+  "years": [
+   2023
+  ]
+ },
+ "doi:10.3847/1538-4365/aab766": {
+  "container": "The Astrophysical Journal Supplement Series",
+  "first_family": "vanderplas",
+  "pages": [
+   "16"
+  ],
+  "registry": "Crossref",
+  "title": "Understanding the Lomb\u2013Scargle Periodogram",
+  "volume": "236",
+  "years": [
+   2018
+  ]
+ },
+ "doi:10.3847/1538-4365/ab9cae": {
+  "container": "The Astrophysical Journal Supplement Series",
+  "first_family": "chen",
+  "pages": [
+   "18"
+  ],
+  "registry": "Crossref",
+  "title": "The Zwicky Transient Facility Catalog of Periodic Variable Stars",
+  "volume": "249",
+  "years": [
+   2020
+  ]
+ },
+ "doi:10.5281/zenodo.596036": {
+  "container": "Zenodo",
+  "first_family": "bradley",
+  "pages": [],
+  "registry": "DataCite",
+  "title": "Photutils",
+  "volume": "",
+  "years": [
+   2026
+  ]
+ },
+ "url:https://webarch.konkoly.hu/mitteilungen/57.html": {
+  "found": "Photoelectric Observations of VV Puppis",
+  "registry": "publisher page",
+  "url": "https://webarch.konkoly.hu/mitteilungen/57.html"
+ }
+}

@@ -125,6 +125,10 @@ class Context:
         self.freshness, self.fingerprints = pp.stage_freshness(con, repo_root)
         self.recorded = pp.read_statuses(con)
         self.recorded_evidence = pp.read_evidence(con)
+        # The computed gates: stage verdicts for `needs_fresh`, and every
+        # probe's number, read once for all seven pages.
+        self.stage_states = {k: f.state for k, f in self.freshness.items()}
+        self.probes = pp.run_probes(con, pp.ledger_tasks())
         # Frame-level lookups, as SETS rather than SQL joins: the manifest
         # has no index on stage_*.obs_rowid, and the join form of these two
         # questions takes minutes on the archive drive while the set form
@@ -314,9 +318,16 @@ def section_progress(project: pp.Project, ctx: Context) -> str:
         for s in order if counts[s])
     legend = " &middot; ".join(
         f"<b>{counts[s]}</b> {pp.STATUS_LABEL[s]}" for s in order if counts[s])
+    # The fraction is done / IN-SCOPE.  The two counts it leaves out are
+    # printed with it, always: a reader shown "3/41" on a 45-task plan is
+    # owed the other four in the same breath (SYNTHESIS §0).
+    scope = pp.scope_summary(counts)
+    legend += (f" &middot; outside the count: <b>{scope['dropped']}</b> "
+               f"dropped by ruling, <b>{scope['deferred']}</b> in the "
+               f"{esc(pp.BACKLOG_NAME)}")
 
     stage_table = _stage_table_of(project.key, ctx)
-    stats = [_stat(f"{done}/{total}", "plan tasks complete")]
+    stats = [_stat(f"{done}/{total}", "in-scope plan tasks complete")]
     body = ""
     if stage_table:
         rows = _target_rows(ctx, stage_table)
@@ -664,6 +675,19 @@ def section_plan(project: pp.Project, ctx: Context, page: Path) -> str:
                 names = ", ".join(f"<code>{esc(d)}</code>" for d in unmet)
                 gate = (f'<br><span class="src"><b>Gated:</b> waiting on '
                         f'{names}</span>')
+            # Gates read from the DAG and from the manifest — never typed.
+            if status in pp.OPEN_STATUSES or status == pp.BLOCKED:
+                for line in pp.computed_blockers(
+                        t, statuses, ctx.stage_states, ctx.probes):
+                    if not line.startswith("waiting on"):
+                        gate += f'<span class="gate">{esc(line)}</span>'
+            for gap in pp.acceptance_gaps(t, ctx.probes):
+                word = ("CONTRADICTED — recorded done, but"
+                        if status == pp.DONE else "to go:")
+                gate += f'<span class="gate">{word} {esc(str(gap))}</span>'
+            if t.ruling is not None:
+                gate += (f'<span class="ruling"><b>Ruling:</b> '
+                         f'{esc(str(t.ruling))}</span>')
             rows.append([
                 _status_chip(status),
                 # The id is shown because it is the handle: it is what a
@@ -718,10 +742,15 @@ def section_blocking(project: pp.Project, ctx: Context) -> str:
         body = ('<p class="sub">Nothing in this plan is blocked. Every '
                 'remaining task is startable.</p>')
     else:
+        def _computed(t: pp.Task) -> str:
+            lines = pp.computed_blockers(t, statuses, ctx.stage_states,
+                                         ctx.probes)
+            return "".join(f'<br><b>Computed:</b> {esc(l)}' for l in lines)
+
         body = "".join(
             f'<div class="blockcard"><b>{esc(t.title)}</b> '
             f'<span class="src">({esc(t.id)}, stage <code>{esc(t.stage)}'
-            f'</code>)</span><br>{esc(t.blocker)}</div>'
+            f'</code>)</span><br>{esc(t.blocker)}{_computed(t)}</div>'
             for t in blocked)
     return f"""
 <section id="blocking">
@@ -936,6 +965,10 @@ def _masthead_extra(counts: Mapping[str, int]) -> str:
         bits.append(f"{counts[pp.REDO_NEEDED]} need redoing")
     if counts.get(pp.BLOCKED):
         bits.append(f"{counts[pp.BLOCKED]} blocked")
+    if counts.get(pp.DROPPED):
+        bits.append(f"{counts[pp.DROPPED]} dropped by ruling")
+    if counts.get(pp.DEFERRED):
+        bits.append(f"{counts[pp.DEFERRED]} in the {pp.BACKLOG_NAME}")
     return (" (" + ", ".join(bits) + ")") if bits else ""
 
 
@@ -965,7 +998,7 @@ def render_project(project: pp.Project, ctx: Context) -> Path:
 
 <header>
   <h1>{esc(project.title)} — Plan &amp; Progress</h1>
-  <p>{done} of {total} plan tasks complete{_masthead_extra(counts)}
+  <p>{done} of {total} in-scope plan tasks complete{_masthead_extra(counts)}
   &middot; {esc(project.venue)}<br>
   {strategy_link}<a href="../index.html">&larr; the front page</a></p>
 </header>
@@ -1093,6 +1126,28 @@ def render_hub(ctx: Context) -> Path:
             esc(nxt[0].title) if nxt else "&mdash;",
         ])
 
+    # The shared foundation: fifteen tasks no paper owns and every paper
+    # waits on.  They have no project page, so they are listed here, with
+    # the acceptance criterion that closes each.
+    f_tasks = pp.FOUNDATION.tasks
+    f_status = ctx.statuses(f_tasks)
+    f_done, f_total = pp.progress_fraction(
+        pp.status_counts(f_tasks, f_status))
+    foundation_rows = []
+    for t in f_tasks:
+        gates = pp.computed_blockers(t, f_status, ctx.stage_states,
+                                     ctx.probes)
+        gaps = pp.acceptance_gaps(t, ctx.probes)
+        foundation_rows.append([
+            _status_chip(f_status[t.id]),
+            f"<b>{esc(t.title)}</b><br><code>{esc(t.id)}</code>",
+            esc(t.accept),
+            "<br>".join([esc(g) for g in gates]
+                        + [f"to go: {esc(str(g))}" for g in gaps])
+            or "&mdash;",
+            esc(", ".join(t.ruling.findings)) if t.ruling else "&mdash;",
+        ])
+
     n_fresh = sum(1 for k, _ in HUB_STAGES if ctx.verdict(k)[0] == pv.FRESH)
     all_tasks = pp.all_tasks()
     all_status = ctx.statuses(all_tasks)
@@ -1119,6 +1174,7 @@ def render_hub(ctx: Context) -> Path:
 
 <nav>
   <a href="#projects">Projects</a> &middot;
+  <a href="#foundation">Shared foundation</a> &middot;
   <a href="#pipeline">Pipeline</a>
 </nav>
 
@@ -1132,6 +1188,19 @@ def render_hub(ctx: Context) -> Path:
     render. The progress column is a count of plan tasks, not an opinion.</p>
 {table(["Project", "Venue posture", "Plan progress", "Blocked", "Next up"],
        proj_rows)}
+  </div>
+</section>
+
+<section id="foundation">
+  <div class="bhead"><h2>Shared foundation (Wave 0)</h2>
+    <span class="tag">{f_done} of {f_total} foundation tasks complete</span></div>
+  <div class="stage">
+    <p class="sub">{esc(pp.FOUNDATION.claim)} Set by the plan review of
+    2026-10-03 (<code>{esc(pp.SYNTHESIS_2026_10_03)}</code> §3). The
+    "waiting" column is computed: dependencies from the status table,
+    "to go" numbers from the manifest at render time.</p>
+{table(["Status", "Task", "Accept", "Waiting on / to go", "Findings"],
+       foundation_rows)}
   </div>
 </section>
 

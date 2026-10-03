@@ -1,0 +1,325 @@
+target,programme,role,ra_icrs_deg,dec_icrs_deg,position_source,night_local,hours_sun_lt_m12,hours_sun_lt_m15,hours_sun_lt_m18,window_ut_start,window_ut_end,window_h,half,airmass_min,airmass_max
+T CrB,T CrB,science,239.87838,25.92011,manifest median of 843 frames,2026-10-05,1.97,1.73,1.50,01:56,03:52,1.97,evening,1.449,2.990
+T CrB,T CrB,science,239.87838,25.92011,manifest median of 843 frames,2026-10-15,1.50,1.27,1.03,01:44,03:12,1.50,evening,1.630,2.970
+T CrB,T CrB,science,239.87838,25.92011,manifest median of 843 frames,2026-10-25,1.00,0.77,0.53,01:34,02:32,1.00,evening,1.902,2.950
+T CrB,T CrB,science,239.87838,25.92011,manifest median of 843 frames,2026-11-01,0.67,0.43,0.20,01:28,02:06,0.67,evening,2.183,2.995
+T CrB,T CrB,science,239.87838,25.92011,manifest median of 843 frames,2026-11-15,0.00,0.00,0.00,,,0.00,,nan,nan
+T CrB,T CrB,science,239.87838,25.92011,manifest median of 843 frames,2026-12-01,0.00,0.00,0.00,,,0.00,,nan,nan
+T CrB,T CrB,science,239.87838,25.92011,manifest median of 843 frames,2026-12-15,1.10,0.83,0.60,12:14,13:18,1.10,morning,1.853,2.993
+T CrB,T CrB,science,239.87838,25.92011,manifest median of 843 frames,2027-01-01,2.30,2.07,1.80,11:08,13:24,2.30,morning,1.345,2.969
+T CrB,T CrB,science,239.87838,25.92011,manifest median of 843 frames,2027-01-15,3.27,3.00,2.77,10:12,13:26,3.27,morning,1.153,2.997
+T CrB,T CrB,science,239.87838,25.92011,manifest median of 843 frames,2027-02-01,4.27,4.00,3.77,09:06,13:20,4.27,morning,1.046,2.973
+T CrB,T CrB,science,239.87838,25.92011,manifest median of 843 frames,2027-03-01,5.67,5.43,5.20,07:16,12:54,5.67,morning,1.005,2.970
+T CrB,T CrB,science,239.87838,25.92011,manifest median of 843 frames,2027-04-01,7.07,6.80,6.57,05:14,12:16,7.07,spans midnight,1.005,2.974
+θ CrB,T CrB,standard,233.20022,31.37431,manifest median of 792 frames,2026-10-05,1.70,1.47,1.23,01:56,03:36,1.70,evening,1.563,2.948
+θ CrB,T CrB,standard,233.20022,31.37431,manifest median of 792 frames,2026-10-15,1.27,1.03,0.80,01:44,02:58,1.27,evening,1.778,2.985
+θ CrB,T CrB,standard,233.20022,31.37431,manifest median of 792 frames,2026-10-25,0.77,0.53,0.30,01:34,02:18,0.77,evening,2.107,2.966
+θ CrB,T CrB,standard,233.20022,31.37431,manifest median of 792 frames,2026-11-01,0.40,0.17,0.00,01:28,01:50,0.40,evening,2.451,2.953
+θ CrB,T CrB,standard,233.20022,31.37431,manifest median of 792 frames,2026-11-15,0.00,0.00,0.00,,,0.00,,nan,nan
+θ CrB,T CrB,standard,233.20022,31.37431,manifest median of 792 frames,2026-12-01,0.67,0.40,0.17,12:30,13:08,0.67,morning,2.210,2.999
+θ CrB,T CrB,standard,233.20022,31.37431,manifest median of 792 frames,2026-12-15,1.73,1.47,1.23,11:36,13:18,1.73,morning,1.555,2.970
+θ CrB,T CrB,standard,233.20022,31.37431,manifest median of 792 frames,2027-01-01,2.93,2.70,2.43,10:30,13:24,2.93,morning,1.219,2.947
+θ CrB,T CrB,standard,233.20022,31.37431,manifest median of 792 frames,2027-01-15,3.90,3.63,3.40,09:34,13:26,3.90,morning,1.085,2.973
+θ CrB,T CrB,standard,233.20022,31.37431,manifest median of 792 frames,2027-02-01,4.90,4.63,4.40,08:28,13:20,4.90,morning,1.015,2.950
+θ CrB,T CrB,standard,233.20022,31.37431,manifest median of 792 frames,2027-03-01,6.30,6.07,5.83,06:38,12:54,6.30,spans midnight,1.000,2.948
+θ CrB,T CrB,standard,233.20022,31.37431,manifest median of 792 frames,2027-04-01,7.70,7.43,7.20,04:36,12:16,7.70,spans midnight,1.000,2.952
+Vega,T CrB / Be,standard,279.22500,38.80833,manifest median of 982 frames,2026-10-05,5.07,4.83,4.60,01:56,06:58,5.07,evening,1.027,2.976
+Vega,T CrB / Be,standard,279.22500,38.80833,manifest median of 982 frames,2026-10-15,4.60,4.37,4.13,01:44,06:18,4.60,evening,1.053,2.958
+Vega,T CrB / Be,standard,279.22500,38.80833,manifest median of 982 frames,2026-10-25,4.13,3.90,3.67,01:34,05:40,4.13,evening,1.093,2.992
+Vega,T CrB / Be,standard,279.22500,38.80833,manifest median of 982 frames,2026-11-01,3.77,3.53,3.30,01:28,05:12,3.77,evening,1.132,2.980
+Vega,T CrB / Be,standard,279.22500,38.80833,manifest median of 982 frames,2026-11-15,2.97,2.73,2.50,01:20,04:16,2.97,evening,1.254,2.956
+Vega,T CrB / Be,standard,279.22500,38.80833,manifest median of 982 frames,2026-12-01,2.00,1.77,1.50,01:16,03:14,2.00,evening,1.510,2.979
+Vega,T CrB / Be,standard,279.22500,38.80833,manifest median of 982 frames,2026-12-15,1.03,0.77,0.53,01:18,02:18,1.03,evening,1.960,2.955
+Vega,T CrB / Be,standard,279.22500,38.80833,manifest median of 982 frames,2027-01-01,0.20,0.00,0.00,13:14,13:24,0.20,morning,2.756,2.995
+Vega,T CrB / Be,standard,279.22500,38.80833,manifest median of 982 frames,2027-01-15,1.13,0.87,0.63,12:20,13:26,1.13,morning,1.903,2.968
+Vega,T CrB / Be,standard,279.22500,38.80833,manifest median of 982 frames,2027-02-01,2.17,1.90,1.67,11:12,13:20,2.17,morning,1.460,2.999
+Vega,T CrB / Be,standard,279.22500,38.80833,manifest median of 982 frames,2027-03-01,3.57,3.33,3.10,09:22,12:54,3.57,morning,1.160,2.997
+Vega,T CrB / Be,standard,279.22500,38.80833,manifest median of 982 frames,2027-04-01,4.93,4.67,4.43,07:22,12:16,4.93,morning,1.033,2.949
+ST LMi,CV,science,166.41588,25.10824,manifest median of 6423 frames,2026-10-05,0.40,0.17,0.00,12:04,12:26,0.40,morning,2.426,2.945
+ST LMi,CV,science,166.41588,25.10824,manifest median of 6423 frames,2026-10-15,1.17,0.93,0.70,11:24,12:32,1.17,morning,1.799,2.965
+ST LMi,CV,science,166.41588,25.10824,manifest median of 6423 frames,2026-10-25,1.97,1.73,1.50,10:44,12:40,1.97,morning,1.446,2.986
+ST LMi,CV,science,166.41588,25.10824,manifest median of 6423 frames,2026-11-01,2.47,2.23,2.00,10:18,12:44,2.47,morning,1.297,2.941
+ST LMi,CV,science,166.41588,25.10824,manifest median of 6423 frames,2026-11-15,3.60,3.33,3.10,09:22,12:56,3.60,morning,1.106,2.969
+ST LMi,CV,science,166.41588,25.10824,manifest median of 6423 frames,2026-12-01,4.83,4.57,4.33,08:20,13:08,4.83,morning,1.017,2.943
+ST LMi,CV,science,166.41588,25.10824,manifest median of 6423 frames,2026-12-15,5.93,5.67,5.43,07:24,13:18,5.93,morning,1.007,2.971
+ST LMi,CV,science,166.41588,25.10824,manifest median of 6423 frames,2027-01-01,7.13,6.90,6.63,06:18,13:24,7.13,spans midnight,1.007,2.947
+ST LMi,CV,science,166.41588,25.10824,manifest median of 6423 frames,2027-01-15,8.10,7.83,7.60,05:22,13:26,8.10,spans midnight,1.007,2.975
+ST LMi,CV,science,166.41588,25.10824,manifest median of 6423 frames,2027-02-01,9.10,8.83,8.60,04:16,13:20,9.10,spans midnight,1.007,2.951
+ST LMi,CV,science,166.41588,25.10824,manifest median of 6423 frames,2027-03-01,10.50,10.23,9.77,02:26,12:54,10.50,spans midnight,1.007,2.948
+ST LMi,CV,science,166.41588,25.10824,manifest median of 6423 frames,2027-04-01,8.63,8.40,8.13,02:36,11:12,8.63,spans midnight,1.007,2.943
+VV Pup,CV,science,123.76419,-19.04166,manifest median of 2632 frames,2026-10-05,1.23,1.00,0.77,11:14,12:26,1.23,morning,1.990,2.996
+VV Pup,CV,science,123.76419,-19.04166,manifest median of 2632 frames,2026-10-15,1.97,1.73,1.50,10:36,12:32,1.97,morning,1.737,2.964
+VV Pup,CV,science,123.76419,-19.04166,manifest median of 2632 frames,2026-10-25,2.77,2.53,2.30,09:56,12:40,2.77,morning,1.611,2.981
+VV Pup,CV,science,123.76419,-19.04166,manifest median of 2632 frames,2026-11-01,3.30,3.07,2.83,09:28,12:44,3.30,morning,1.583,2.992
+VV Pup,CV,science,123.76419,-19.04166,manifest median of 2632 frames,2026-11-15,4.40,4.13,3.90,08:34,12:56,4.40,morning,1.582,2.967
+VV Pup,CV,science,123.76419,-19.04166,manifest median of 2632 frames,2026-12-01,5.67,5.40,5.17,07:30,13:08,5.67,morning,1.582,2.994
+VV Pup,CV,science,123.76419,-19.04166,manifest median of 2632 frames,2026-12-15,6.73,6.47,6.23,06:36,13:18,6.73,spans midnight,1.582,2.969
+VV Pup,CV,science,123.76419,-19.04166,manifest median of 2632 frames,2027-01-01,6.80,6.80,6.80,05:28,12:14,6.80,spans midnight,1.582,2.997
+VV Pup,CV,science,123.76419,-19.04166,manifest median of 2632 frames,2027-01-15,6.80,6.80,6.80,04:34,11:20,6.80,spans midnight,1.582,2.993
+VV Pup,CV,science,123.76419,-19.04166,manifest median of 2632 frames,2027-02-01,6.77,6.77,6.77,03:28,10:12,6.77,spans midnight,1.582,2.965
+VV Pup,CV,science,123.76419,-19.04166,manifest median of 2632 frames,2027-03-01,6.17,5.93,5.70,02:14,08:22,6.17,spans midnight,1.582,2.968
+VV Pup,CV,science,123.76419,-19.04166,manifest median of 2632 frames,2027-04-01,3.77,3.53,3.27,02:36,06:20,3.77,evening,1.582,2.965
+EU UMa,CV,science,177.49583,28.74417,manifest median of 1961 frames,2026-10-05,0.00,0.00,0.00,,,0.00,,nan,nan
+EU UMa,CV,science,177.49583,28.74417,manifest median of 1961 frames,2026-10-15,0.57,0.33,0.10,12:00,12:32,0.57,morning,2.274,2.968
+EU UMa,CV,science,177.49583,28.74417,manifest median of 1961 frames,2026-10-25,1.37,1.13,0.90,11:20,12:40,1.37,morning,1.712,2.988
+EU UMa,CV,science,177.49583,28.74417,manifest median of 1961 frames,2026-11-01,1.87,1.63,1.40,10:54,12:44,1.87,morning,1.486,2.945
+EU UMa,CV,science,177.49583,28.74417,manifest median of 1961 frames,2026-11-15,3.00,2.73,2.50,09:58,12:56,3.00,morning,1.200,2.972
+EU UMa,CV,science,177.49583,28.74417,manifest median of 1961 frames,2026-12-01,4.23,3.97,3.73,08:56,13:08,4.23,morning,1.049,2.946
+EU UMa,CV,science,177.49583,28.74417,manifest median of 1961 frames,2026-12-15,5.33,5.07,4.83,08:00,13:18,5.33,morning,1.003,2.974
+EU UMa,CV,science,177.49583,28.74417,manifest median of 1961 frames,2027-01-01,6.53,6.30,6.03,06:54,13:24,6.53,spans midnight,1.001,2.950
+EU UMa,CV,science,177.49583,28.74417,manifest median of 1961 frames,2027-01-15,7.50,7.23,7.00,05:58,13:26,7.50,spans midnight,1.001,2.978
+EU UMa,CV,science,177.49583,28.74417,manifest median of 1961 frames,2027-02-01,8.50,8.23,8.00,04:52,13:20,8.50,spans midnight,1.001,2.954
+EU UMa,CV,science,177.49583,28.74417,manifest median of 1961 frames,2027-03-01,9.90,9.67,9.43,03:02,12:54,9.90,spans midnight,1.001,2.952
+EU UMa,CV,science,177.49583,28.74417,manifest median of 1961 frames,2027-04-01,9.53,9.20,8.70,02:36,12:06,9.53,spans midnight,1.001,2.996
+AN UMa,CV,science,166.38325,45.09829,manifest median of 2558 frames,2026-10-05,1.20,0.97,0.73,11:16,12:26,1.20,morning,1.923,2.967
+AN UMa,CV,science,166.38325,45.09829,manifest median of 2558 frames,2026-10-15,1.97,1.73,1.50,10:36,12:32,1.97,morning,1.582,2.983
+AN UMa,CV,science,166.38325,45.09829,manifest median of 2558 frames,2026-10-25,2.77,2.53,2.30,09:56,12:40,2.77,morning,1.355,2.999
+AN UMa,CV,science,166.38325,45.09829,manifest median of 2558 frames,2026-11-01,3.27,3.03,2.80,09:30,12:44,3.27,morning,1.250,2.964
+AN UMa,CV,science,166.38325,45.09829,manifest median of 2558 frames,2026-11-15,4.40,4.13,3.90,08:34,12:56,4.40,morning,1.106,2.986
+AN UMa,CV,science,166.38325,45.09829,manifest median of 2558 frames,2026-12-01,5.63,5.37,5.13,07:32,13:08,5.63,morning,1.035,2.966
+AN UMa,CV,science,166.38325,45.09829,manifest median of 2558 frames,2026-12-15,6.73,6.47,6.23,06:36,13:18,6.73,spans midnight,1.027,2.988
+AN UMa,CV,science,166.38325,45.09829,manifest median of 2558 frames,2027-01-01,7.93,7.70,7.43,05:30,13:24,7.93,spans midnight,1.027,2.969
+AN UMa,CV,science,166.38325,45.09829,manifest median of 2558 frames,2027-01-15,8.90,8.63,8.40,04:34,13:26,8.90,spans midnight,1.027,2.991
+AN UMa,CV,science,166.38325,45.09829,manifest median of 2558 frames,2027-02-01,9.90,9.63,9.40,03:28,13:20,9.90,spans midnight,1.027,2.972
+AN UMa,CV,science,166.38325,45.09829,manifest median of 2558 frames,2027-03-01,10.70,10.23,9.77,02:14,12:54,10.70,spans midnight,1.027,2.318
+AN UMa,CV,science,166.38325,45.09829,manifest median of 2558 frames,2027-04-01,9.43,9.20,8.70,02:36,12:00,9.43,spans midnight,1.027,2.968
+YZ Cnc,CV,science,122.73626,28.14275,manifest median of 3863 frames,2026-10-05,3.43,3.20,2.97,09:02,12:26,3.43,morning,1.132,2.978
+YZ Cnc,CV,science,122.73626,28.14275,manifest median of 3863 frames,2026-10-15,4.20,3.97,3.73,08:22,12:32,4.20,morning,1.053,2.998
+YZ Cnc,CV,science,122.73626,28.14275,manifest median of 3863 frames,2026-10-25,4.97,4.73,4.50,07:44,12:40,4.97,morning,1.011,2.960
+YZ Cnc,CV,science,122.73626,28.14275,manifest median of 3863 frames,2026-11-01,5.50,5.27,5.03,07:16,12:44,5.50,morning,1.002,2.974
+YZ Cnc,CV,science,122.73626,28.14275,manifest median of 3863 frames,2026-11-15,6.60,6.33,6.10,06:22,12:56,6.60,spans midnight,1.002,2.944
+YZ Cnc,CV,science,122.73626,28.14275,manifest median of 3863 frames,2026-12-01,7.87,7.60,7.37,05:18,13:08,7.87,spans midnight,1.002,2.975
+YZ Cnc,CV,science,122.73626,28.14275,manifest median of 3863 frames,2026-12-15,8.93,8.67,8.43,04:24,13:18,8.93,spans midnight,1.002,2.946
+YZ Cnc,CV,science,122.73626,28.14275,manifest median of 3863 frames,2027-01-01,10.17,9.93,9.67,03:16,13:24,10.17,spans midnight,1.002,2.979
+YZ Cnc,CV,science,122.73626,28.14275,manifest median of 3863 frames,2027-01-15,11.07,10.83,10.60,02:22,13:24,11.07,spans midnight,1.002,2.954
+YZ Cnc,CV,science,122.73626,28.14275,manifest median of 3863 frames,2027-02-01,10.47,10.23,9.97,01:52,12:18,10.47,spans midnight,1.002,2.978
+YZ Cnc,CV,science,122.73626,28.14275,manifest median of 3863 frames,2027-03-01,8.27,8.03,7.80,02:14,10:28,8.27,spans midnight,1.002,2.981
+YZ Cnc,CV,science,122.73626,28.14275,manifest median of 3863 frames,2027-04-01,5.87,5.63,5.37,02:36,08:26,5.87,spans midnight,1.002,2.978
+λ Eri,Be,science,77.27500,-8.73583,manifest median of 482 frames,2026-10-05,4.93,4.70,4.47,07:32,12:26,4.93,morning,1.312,2.954
+λ Eri,Be,science,77.27500,-8.73583,manifest median of 482 frames,2026-10-15,5.70,5.47,5.23,06:52,12:32,5.70,spans midnight,1.312,2.974
+λ Eri,Be,science,77.27500,-8.73583,manifest median of 482 frames,2026-10-25,6.50,6.27,6.03,06:12,12:40,6.50,spans midnight,1.312,2.993
+λ Eri,Be,science,77.27500,-8.73583,manifest median of 482 frames,2026-11-01,7.00,6.77,6.53,05:46,12:44,7.00,spans midnight,1.312,2.950
+λ Eri,Be,science,77.27500,-8.73583,manifest median of 482 frames,2026-11-15,8.07,7.87,7.63,04:50,12:52,8.07,spans midnight,1.312,2.977
+λ Eri,Be,science,77.27500,-8.73583,manifest median of 482 frames,2026-12-01,8.03,8.03,8.03,03:48,11:48,8.03,spans midnight,1.312,2.952
+λ Eri,Be,science,77.27500,-8.73583,manifest median of 482 frames,2026-12-15,8.07,8.07,8.07,02:52,10:54,8.07,spans midnight,1.312,2.979
+λ Eri,Be,science,77.27500,-8.73583,manifest median of 482 frames,2027-01-01,8.07,8.07,7.87,01:46,09:48,8.07,spans midnight,1.312,2.998
+λ Eri,Be,science,77.27500,-8.73583,manifest median of 482 frames,2027-01-15,7.27,7.00,6.77,01:38,08:52,7.27,spans midnight,1.313,2.971
+λ Eri,Be,science,77.27500,-8.73583,manifest median of 482 frames,2027-02-01,5.93,5.70,5.43,01:52,07:46,5.93,spans midnight,1.313,2.995
+λ Eri,Be,science,77.27500,-8.73583,manifest median of 482 frames,2027-03-01,3.73,3.50,3.27,02:14,05:56,3.73,evening,1.318,2.998
+λ Eri,Be,science,77.27500,-8.73583,manifest median of 482 frames,2027-04-01,1.33,1.10,0.83,02:36,03:54,1.33,evening,1.801,2.995
+69 Ori,Be,science,93.00834,16.14944,manifest median of 561 frames,2026-10-05,4.97,4.73,4.50,07:30,12:26,4.97,morning,1.039,2.971
+69 Ori,Be,science,93.00834,16.14944,manifest median of 561 frames,2026-10-15,5.73,5.50,5.27,06:50,12:32,5.73,spans midnight,1.038,2.992
+69 Ori,Be,science,93.00834,16.14944,manifest median of 561 frames,2026-10-25,6.50,6.27,6.03,06:12,12:40,6.50,spans midnight,1.038,2.952
+69 Ori,Be,science,93.00834,16.14944,manifest median of 561 frames,2026-11-01,7.03,6.80,6.57,05:44,12:44,7.03,spans midnight,1.038,2.967
+69 Ori,Be,science,93.00834,16.14944,manifest median of 561 frames,2026-11-15,8.17,7.90,7.67,04:48,12:56,8.17,spans midnight,1.038,2.996
+69 Ori,Be,science,93.00834,16.14944,manifest median of 561 frames,2026-12-01,9.40,9.13,8.90,03:46,13:08,9.40,spans midnight,1.038,2.969
+69 Ori,Be,science,93.00834,16.14944,manifest median of 561 frames,2026-12-15,10.23,10.23,10.00,02:50,13:02,10.23,spans midnight,1.038,2.998
+69 Ori,Be,science,93.00834,16.14944,manifest median of 561 frames,2027-01-01,10.20,10.20,9.97,01:44,11:54,10.20,spans midnight,1.038,2.972
+69 Ori,Be,science,93.00834,16.14944,manifest median of 561 frames,2027-01-15,9.40,9.13,8.90,01:38,11:00,9.40,spans midnight,1.038,2.988
+69 Ori,Be,science,93.00834,16.14944,manifest median of 561 frames,2027-02-01,8.03,7.80,7.53,01:52,09:52,8.03,spans midnight,1.038,2.952
+69 Ori,Be,science,93.00834,16.14944,manifest median of 561 frames,2027-03-01,5.83,5.60,5.37,02:14,08:02,5.83,spans midnight,1.038,2.955
+69 Ori,Be,science,93.00834,16.14944,manifest median of 561 frames,2027-04-01,3.43,3.20,2.93,02:36,06:00,3.43,evening,1.129,2.952
+5 Cnc,Be,science,120.37500,16.46375,manifest median of 432 frames,2026-10-05,3.17,2.93,2.70,09:18,12:26,3.17,morning,1.166,2.989
+5 Cnc,Be,science,120.37500,16.46375,manifest median of 432 frames,2026-10-15,3.90,3.67,3.43,08:40,12:32,3.90,morning,1.083,2.949
+5 Cnc,Be,science,120.37500,16.46375,manifest median of 432 frames,2026-10-25,4.70,4.47,4.23,08:00,12:40,4.70,morning,1.042,2.970
+5 Cnc,Be,science,120.37500,16.46375,manifest median of 432 frames,2026-11-01,5.23,5.00,4.77,07:32,12:44,5.23,morning,1.037,2.985
+5 Cnc,Be,science,120.37500,16.46375,manifest median of 432 frames,2026-11-15,6.33,6.07,5.83,06:38,12:56,6.33,spans midnight,1.037,2.953
+5 Cnc,Be,science,120.37500,16.46375,manifest median of 432 frames,2026-12-01,7.60,7.33,7.10,05:34,13:08,7.60,spans midnight,1.037,2.987
+5 Cnc,Be,science,120.37500,16.46375,manifest median of 432 frames,2026-12-15,8.67,8.40,8.17,04:40,13:18,8.67,spans midnight,1.037,2.955
+5 Cnc,Be,science,120.37500,16.46375,manifest median of 432 frames,2027-01-01,9.90,9.67,9.40,03:32,13:24,9.90,spans midnight,1.037,2.991
+5 Cnc,Be,science,120.37500,16.46375,manifest median of 432 frames,2027-01-15,10.23,10.23,10.23,02:38,12:50,10.23,spans midnight,1.037,2.997
+5 Cnc,Be,science,120.37500,16.46375,manifest median of 432 frames,2027-02-01,9.87,9.63,9.37,01:52,11:42,9.87,spans midnight,1.037,2.961
+5 Cnc,Be,science,120.37500,16.46375,manifest median of 432 frames,2027-03-01,7.67,7.43,7.20,02:14,09:52,7.67,spans midnight,1.037,2.964
+5 Cnc,Be,science,120.37500,16.46375,manifest median of 432 frames,2027-04-01,5.27,5.03,4.77,02:36,07:50,5.27,spans midnight,1.037,2.961
+HD 70340,Be,science,125.33333,-1.60889,manifest median of 437 frames,2026-10-05,2.10,1.87,1.63,10:22,12:26,2.10,morning,1.460,2.986
+HD 70340,Be,science,125.33333,-1.60889,manifest median of 437 frames,2026-10-15,2.83,2.60,2.37,09:44,12:32,2.83,morning,1.305,2.947
+HD 70340,Be,science,125.33333,-1.60889,manifest median of 437 frames,2026-10-25,3.63,3.40,3.17,09:04,12:40,3.63,morning,1.222,2.967
+HD 70340,Be,science,125.33333,-1.60889,manifest median of 437 frames,2026-11-01,4.17,3.93,3.70,08:36,12:44,4.17,morning,1.199,2.981
+HD 70340,Be,science,125.33333,-1.60889,manifest median of 437 frames,2026-11-15,5.27,5.00,4.77,07:42,12:56,5.27,morning,1.197,2.950
+HD 70340,Be,science,125.33333,-1.60889,manifest median of 437 frames,2026-12-01,6.53,6.27,6.03,06:38,13:08,6.53,spans midnight,1.197,2.983
+HD 70340,Be,science,125.33333,-1.60889,manifest median of 437 frames,2026-12-15,7.60,7.33,7.10,05:44,13:18,7.60,spans midnight,1.197,2.952
+HD 70340,Be,science,125.33333,-1.60889,manifest median of 437 frames,2027-01-01,8.77,8.60,8.33,04:36,13:20,8.77,spans midnight,1.197,2.987
+HD 70340,Be,science,125.33333,-1.60889,manifest median of 437 frames,2027-01-15,8.73,8.73,8.73,03:42,12:24,8.73,spans midnight,1.197,2.957
+HD 70340,Be,science,125.33333,-1.60889,manifest median of 437 frames,2027-02-01,8.77,8.77,8.77,02:34,11:18,8.77,spans midnight,1.197,2.991
+HD 70340,Be,science,125.33333,-1.60889,manifest median of 437 frames,2027-03-01,7.27,7.03,6.80,02:14,09:28,7.27,spans midnight,1.197,2.985
+HD 70340,Be,science,125.33333,-1.60889,manifest median of 437 frames,2027-04-01,4.87,4.63,4.37,02:36,07:26,4.87,spans midnight,1.197,2.982
+53 Boo,Be,science,232.84313,40.91139,manifest median of 680 frames,2026-10-05,2.07,1.83,1.60,01:56,03:58,2.07,evening,1.505,2.978
+53 Boo,Be,science,232.84313,40.91139,manifest median of 680 frames,2026-10-15,1.60,1.37,1.13,01:44,03:18,1.60,evening,1.679,2.961
+53 Boo,Be,science,232.84313,40.91139,manifest median of 680 frames,2026-10-25,1.13,0.90,0.67,01:34,02:40,1.13,evening,1.931,2.994
+53 Boo,Be,science,232.84313,40.91139,manifest median of 680 frames,2026-11-01,0.77,0.53,0.30,01:28,02:12,0.77,evening,2.180,2.982
+53 Boo,Be,science,232.84313,40.91139,manifest median of 680 frames,2026-11-15,0.00,0.00,0.00,,,0.00,,nan,nan
+53 Boo,Be,science,232.84313,40.91139,manifest median of 680 frames,2026-12-01,1.07,0.80,0.57,12:06,13:08,1.07,morning,1.973,2.996
+53 Boo,Be,science,232.84313,40.91139,manifest median of 680 frames,2026-12-15,2.13,1.87,1.63,11:12,13:18,2.13,morning,1.481,2.970
+53 Boo,Be,science,232.84313,40.91139,manifest median of 680 frames,2027-01-01,3.37,3.13,2.87,10:04,13:24,3.37,morning,1.203,2.999
+53 Boo,Be,science,232.84313,40.91139,manifest median of 680 frames,2027-01-15,4.30,4.03,3.80,09:10,13:26,4.30,morning,1.087,2.973
+53 Boo,Be,science,232.84313,40.91139,manifest median of 680 frames,2027-02-01,5.30,5.03,4.80,08:04,13:20,5.30,morning,1.026,2.952
+53 Boo,Be,science,232.84313,40.91139,manifest median of 680 frames,2027-03-01,6.70,6.47,6.23,06:14,12:54,6.70,spans midnight,1.013,2.951
+53 Boo,Be,science,232.84313,40.91139,manifest median of 680 frames,2027-04-01,8.10,7.83,7.60,04:12,12:16,8.10,spans midnight,1.013,2.954
+Phecda,Be,science,178.48333,53.69250,manifest median of 605 frames,2026-10-05,0.83,0.60,0.37,11:38,12:26,0.83,morning,2.262,2.973
+Phecda,Be,science,178.48333,53.69250,manifest median of 605 frames,2026-10-15,1.60,1.37,1.13,10:58,12:32,1.60,morning,1.848,2.987
+Phecda,Be,science,178.48333,53.69250,manifest median of 605 frames,2026-10-25,2.37,2.13,1.90,10:20,12:40,2.37,morning,1.563,2.961
+Phecda,Be,science,178.48333,53.69250,manifest median of 605 frames,2026-11-01,2.90,2.67,2.43,09:52,12:44,2.90,morning,1.428,2.971
+Phecda,Be,science,178.48333,53.69250,manifest median of 605 frames,2026-11-15,4.03,3.77,3.53,08:56,12:56,4.03,morning,1.233,2.989
+Phecda,Be,science,178.48333,53.69250,manifest median of 605 frames,2026-12-01,5.27,5.00,4.77,07:54,13:08,5.27,morning,1.118,2.972
+Phecda,Be,science,178.48333,53.69250,manifest median of 605 frames,2026-12-15,6.37,6.10,5.87,06:58,13:18,6.37,spans midnight,1.080,2.991
+Phecda,Be,science,178.48333,53.69250,manifest median of 605 frames,2027-01-01,7.57,7.33,7.07,05:52,13:24,7.57,spans midnight,1.078,2.975
+Phecda,Be,science,178.48333,53.69250,manifest median of 605 frames,2027-01-15,8.53,8.27,8.03,04:56,13:26,8.53,spans midnight,1.078,2.993
+Phecda,Be,science,178.48333,53.69250,manifest median of 605 frames,2027-02-01,9.53,9.27,9.03,03:50,13:20,9.53,spans midnight,1.078,2.977
+Phecda,Be,science,178.48333,53.69250,manifest median of 605 frames,2027-03-01,10.70,10.23,9.77,02:14,12:54,10.70,spans midnight,1.078,2.727
+Phecda,Be,science,178.48333,53.69250,manifest median of 605 frames,2027-04-01,9.70,9.20,8.70,02:36,12:16,9.70,spans midnight,1.078,2.151
+φ Leo,Be,science,169.15833,-3.65611,manifest median of 505 frames,2026-10-05,0.00,0.00,0.00,,,0.00,,nan,nan
+φ Leo,Be,science,169.15833,-3.65611,manifest median of 505 frames,2026-10-15,0.00,0.00,0.00,,,0.00,,nan,nan
+φ Leo,Be,science,169.15833,-3.65611,manifest median of 505 frames,2026-10-25,0.63,0.40,0.17,12:04,12:40,0.63,morning,2.222,2.989
+φ Leo,Be,science,169.15833,-3.65611,manifest median of 505 frames,2026-11-01,1.13,0.90,0.67,11:38,12:44,1.13,morning,1.848,2.944
+φ Leo,Be,science,169.15833,-3.65611,manifest median of 505 frames,2026-11-15,2.27,2.00,1.77,10:42,12:56,2.27,morning,1.435,2.972
+φ Leo,Be,science,169.15833,-3.65611,manifest median of 505 frames,2026-12-01,3.50,3.23,3.00,09:40,13:08,3.50,morning,1.255,2.946
+φ Leo,Be,science,169.15833,-3.65611,manifest median of 505 frames,2026-12-15,4.60,4.33,4.10,08:44,13:18,4.60,morning,1.228,2.974
+φ Leo,Be,science,169.15833,-3.65611,manifest median of 505 frames,2027-01-01,5.80,5.57,5.30,07:38,13:24,5.80,morning,1.228,2.950
+φ Leo,Be,science,169.15833,-3.65611,manifest median of 505 frames,2027-01-15,6.77,6.50,6.27,06:42,13:26,6.77,spans midnight,1.228,2.978
+φ Leo,Be,science,169.15833,-3.65611,manifest median of 505 frames,2027-02-01,7.77,7.50,7.27,05:36,13:20,7.77,spans midnight,1.228,2.954
+φ Leo,Be,science,169.15833,-3.65611,manifest median of 505 frames,2027-03-01,8.53,8.53,8.53,03:46,12:16,8.53,spans midnight,1.228,2.958
+φ Leo,Be,science,169.15833,-3.65611,manifest median of 505 frames,2027-04-01,7.67,7.43,7.17,02:36,10:14,7.67,spans midnight,1.228,2.955
+Spica,Be,standard,201.29825,-11.15444,manifest median of 1456 frames,2026-10-05,0.00,0.00,0.00,,,0.00,,nan,nan
+Spica,Be,standard,201.29825,-11.15444,manifest median of 1456 frames,2026-10-15,0.00,0.00,0.00,,,0.00,,nan,nan
+Spica,Be,standard,201.29825,-11.15444,manifest median of 1456 frames,2026-10-25,0.00,0.00,0.00,,,0.00,,nan,nan
+Spica,Be,standard,201.29825,-11.15444,manifest median of 1456 frames,2026-11-01,0.00,0.00,0.00,,,0.00,,nan,nan
+Spica,Be,standard,201.29825,-11.15444,manifest median of 1456 frames,2026-11-15,0.00,0.00,0.00,,,0.00,,nan,nan
+Spica,Be,standard,201.29825,-11.15444,manifest median of 1456 frames,2026-12-01,1.00,0.73,0.50,12:10,13:08,1.00,morning,2.004,2.989
+Spica,Be,standard,201.29825,-11.15444,manifest median of 1456 frames,2026-12-15,2.07,1.80,1.57,11:16,13:18,2.07,morning,1.569,2.961
+Spica,Be,standard,201.29825,-11.15444,manifest median of 1456 frames,2027-01-01,3.30,3.07,2.80,10:08,13:24,3.30,morning,1.387,2.993
+Spica,Be,standard,201.29825,-11.15444,manifest median of 1456 frames,2027-01-15,4.23,3.97,3.73,09:14,13:26,4.23,morning,1.366,2.964
+Spica,Be,standard,201.29825,-11.15444,manifest median of 1456 frames,2027-02-01,5.27,5.00,4.77,08:06,13:20,5.27,morning,1.367,2.997
+Spica,Be,standard,201.29825,-11.15444,manifest median of 1456 frames,2027-03-01,6.67,6.43,6.20,06:16,12:54,6.67,spans midnight,1.367,2.995
+Spica,Be,standard,201.29825,-11.15444,manifest median of 1456 frames,2027-04-01,7.80,7.80,7.57,04:14,12:00,7.80,spans midnight,1.367,2.998
+η Hya (HR 3454),Be,standard,130.79583,3.42889,manifest median of 1034 frames,2026-10-05,1.93,1.70,1.47,10:32,12:26,1.93,morning,1.469,2.941
+η Hya (HR 3454),Be,standard,130.79583,3.42889,manifest median of 1034 frames,2026-10-15,2.70,2.47,2.23,09:52,12:32,2.70,morning,1.289,2.962
+η Hya (HR 3454),Be,standard,130.79583,3.42889,manifest median of 1034 frames,2026-10-25,3.50,3.27,3.03,09:12,12:40,3.50,morning,1.185,2.983
+η Hya (HR 3454),Be,standard,130.79583,3.42889,manifest median of 1034 frames,2026-11-01,4.03,3.80,3.57,08:44,12:44,4.03,morning,1.150,2.998
+η Hya (HR 3454),Be,standard,130.79583,3.42889,manifest median of 1034 frames,2026-11-15,5.13,4.87,4.63,07:50,12:56,5.13,morning,1.136,2.966
+η Hya (HR 3454),Be,standard,130.79583,3.42889,manifest median of 1034 frames,2026-12-01,6.37,6.10,5.87,06:48,13:08,6.37,spans midnight,1.136,2.939
+η Hya (HR 3454),Be,standard,130.79583,3.42889,manifest median of 1034 frames,2026-12-15,7.47,7.20,6.97,05:52,13:18,7.47,spans midnight,1.136,2.968
+η Hya (HR 3454),Be,standard,130.79583,3.42889,manifest median of 1034 frames,2027-01-01,8.67,8.43,8.17,04:46,13:24,8.67,spans midnight,1.136,2.943
+η Hya (HR 3454),Be,standard,130.79583,3.42889,manifest median of 1034 frames,2027-01-15,9.20,9.20,9.13,03:50,13:00,9.20,spans midnight,1.136,2.983
+η Hya (HR 3454),Be,standard,130.79583,3.42889,manifest median of 1034 frames,2027-02-01,9.17,9.17,9.17,02:44,11:52,9.17,spans midnight,1.136,2.948
+η Hya (HR 3454),Be,standard,130.79583,3.42889,manifest median of 1034 frames,2027-03-01,7.83,7.60,7.37,02:14,10:02,7.83,spans midnight,1.136,2.951
+η Hya (HR 3454),Be,standard,130.79583,3.42889,manifest median of 1034 frames,2027-04-01,5.43,5.20,4.93,02:36,08:00,5.43,spans midnight,1.136,2.947
+θ Vir (HR 4963),Be,standard,197.47917,-5.51583,manifest median of 726 frames,2026-10-05,0.00,0.00,0.00,,,0.00,,nan,nan
+θ Vir (HR 4963),Be,standard,197.47917,-5.51583,manifest median of 726 frames,2026-10-15,0.00,0.00,0.00,,,0.00,,nan,nan
+θ Vir (HR 4963),Be,standard,197.47917,-5.51583,manifest median of 726 frames,2026-10-25,0.00,0.00,0.00,,,0.00,,nan,nan
+θ Vir (HR 4963),Be,standard,197.47917,-5.51583,manifest median of 726 frames,2026-11-01,0.00,0.00,0.00,,,0.00,,nan,nan
+θ Vir (HR 4963),Be,standard,197.47917,-5.51583,manifest median of 726 frames,2026-11-15,0.30,0.03,0.00,12:40,12:56,0.30,morning,2.585,2.984
+θ Vir (HR 4963),Be,standard,197.47917,-5.51583,manifest median of 726 frames,2026-12-01,1.53,1.27,1.03,11:38,13:08,1.53,morning,1.676,2.958
+θ Vir (HR 4963),Be,standard,197.47917,-5.51583,manifest median of 726 frames,2026-12-15,2.63,2.37,2.13,10:42,13:18,2.63,morning,1.382,2.986
+θ Vir (HR 4963),Be,standard,197.47917,-5.51583,manifest median of 726 frames,2027-01-01,3.83,3.60,3.33,09:36,13:24,3.83,morning,1.264,2.962
+θ Vir (HR 4963),Be,standard,197.47917,-5.51583,manifest median of 726 frames,2027-01-15,4.80,4.53,4.30,08:40,13:26,4.80,morning,1.258,2.990
+θ Vir (HR 4963),Be,standard,197.47917,-5.51583,manifest median of 726 frames,2027-02-01,5.80,5.53,5.30,07:34,13:20,5.80,morning,1.258,2.966
+θ Vir (HR 4963),Be,standard,197.47917,-5.51583,manifest median of 726 frames,2027-03-01,7.20,6.97,6.73,05:44,12:54,7.20,spans midnight,1.258,2.964
+θ Vir (HR 4963),Be,standard,197.47917,-5.51583,manifest median of 726 frames,2027-04-01,8.37,8.33,8.10,03:42,12:02,8.37,spans midnight,1.258,2.967
+θ Crt (HR 4468),Be,standard,174.15000,-9.78222,manifest median of 306 frames,2026-10-05,0.00,0.00,0.00,,,0.00,,nan,nan
+θ Crt (HR 4468),Be,standard,174.15000,-9.78222,manifest median of 306 frames,2026-10-15,0.00,0.00,0.00,,,0.00,,nan,nan
+θ Crt (HR 4468),Be,standard,174.15000,-9.78222,manifest median of 306 frames,2026-10-25,0.00,0.00,0.00,,,0.00,,nan,nan
+θ Crt (HR 4468),Be,standard,174.15000,-9.78222,manifest median of 306 frames,2026-11-01,0.50,0.27,0.03,12:16,12:44,0.50,morning,2.368,2.963
+θ Crt (HR 4468),Be,standard,174.15000,-9.78222,manifest median of 306 frames,2026-11-15,1.63,1.37,1.13,11:20,12:56,1.63,morning,1.689,2.990
+θ Crt (HR 4468),Be,standard,174.15000,-9.78222,manifest median of 306 frames,2026-12-01,2.87,2.60,2.37,10:18,13:08,2.87,morning,1.404,2.965
+θ Crt (HR 4468),Be,standard,174.15000,-9.78222,manifest median of 306 frames,2026-12-15,3.97,3.70,3.47,09:22,13:18,3.97,morning,1.337,2.992
+θ Crt (HR 4468),Be,standard,174.15000,-9.78222,manifest median of 306 frames,2027-01-01,5.17,4.93,4.67,08:16,13:24,5.17,morning,1.337,2.969
+θ Crt (HR 4468),Be,standard,174.15000,-9.78222,manifest median of 306 frames,2027-01-15,6.13,5.87,5.63,07:20,13:26,6.13,morning,1.337,2.996
+θ Crt (HR 4468),Be,standard,174.15000,-9.78222,manifest median of 306 frames,2027-02-01,7.13,6.87,6.63,06:14,13:20,7.13,spans midnight,1.337,2.972
+θ Crt (HR 4468),Be,standard,174.15000,-9.78222,manifest median of 306 frames,2027-03-01,7.93,7.93,7.93,04:24,12:18,7.93,spans midnight,1.337,2.982
+θ Crt (HR 4468),Be,standard,174.15000,-9.78222,manifest median of 306 frames,2027-04-01,7.70,7.47,7.20,02:36,10:16,7.70,spans midnight,1.337,2.979
+M101,SN 2023ixf,science,210.77853,54.33257,manifest median of 633 frames,2026-10-05,1.27,1.03,0.80,01:56,03:10,1.27,evening,2.025,2.999
+M101,SN 2023ixf,science,210.77853,54.33257,manifest median of 633 frames,2026-10-15,0.80,0.57,0.33,01:44,02:30,0.80,evening,2.301,2.986
+M101,SN 2023ixf,science,210.77853,54.33257,manifest median of 633 frames,2026-10-25,0.57,0.10,0.00,01:34,01:50,0.30,evening,2.697,2.973
+M101,SN 2023ixf,science,210.77853,54.33257,manifest median of 633 frames,2026-11-01,0.80,0.57,0.33,11:58,12:44,0.80,morning,2.293,2.972
+M101,SN 2023ixf,science,210.77853,54.33257,manifest median of 633 frames,2026-11-15,1.93,1.67,1.43,11:02,12:56,1.93,morning,1.725,2.990
+M101,SN 2023ixf,science,210.77853,54.33257,manifest median of 633 frames,2026-12-01,3.17,2.90,2.67,10:00,13:08,3.17,morning,1.381,2.973
+M101,SN 2023ixf,science,210.77853,54.33257,manifest median of 633 frames,2026-12-15,4.27,4.00,3.77,09:04,13:18,4.27,morning,1.214,2.992
+M101,SN 2023ixf,science,210.77853,54.33257,manifest median of 633 frames,2027-01-01,5.47,5.23,4.97,07:58,13:24,5.47,morning,1.114,2.976
+M101,SN 2023ixf,science,210.77853,54.33257,manifest median of 633 frames,2027-01-15,6.43,6.17,5.93,07:02,13:26,6.43,morning,1.084,2.994
+M101,SN 2023ixf,science,210.77853,54.33257,manifest median of 633 frames,2027-02-01,7.43,7.17,6.93,05:56,13:20,7.43,spans midnight,1.083,2.979
+M101,SN 2023ixf,science,210.77853,54.33257,manifest median of 633 frames,2027-03-01,8.83,8.60,8.37,04:06,12:54,8.83,spans midnight,1.083,2.977
+M101,SN 2023ixf,science,210.77853,54.33257,manifest median of 633 frames,2027-04-01,9.70,9.20,8.70,02:36,12:16,9.70,spans midnight,1.083,2.470
+NGC 5548,Dwarf / AGN,science,214.49817,25.13681,manifest median of 279 frames,2026-10-05,0.23,0.00,0.00,01:56,02:08,0.23,evening,2.648,2.960
+NGC 5548,Dwarf / AGN,science,214.49817,25.13681,manifest median of 279 frames,2026-10-15,0.00,0.00,0.00,,,0.00,,nan,nan
+NGC 5548,Dwarf / AGN,science,214.49817,25.13681,manifest median of 279 frames,2026-10-25,0.00,0.00,0.00,,,0.00,,nan,nan
+NGC 5548,Dwarf / AGN,science,214.49817,25.13681,manifest median of 279 frames,2026-11-01,0.00,0.00,0.00,,,0.00,,nan,nan
+NGC 5548,Dwarf / AGN,science,214.49817,25.13681,manifest median of 279 frames,2026-11-15,0.40,0.13,0.00,12:34,12:56,0.40,morning,2.431,2.953
+NGC 5548,Dwarf / AGN,science,214.49817,25.13681,manifest median of 279 frames,2026-12-01,1.67,1.40,1.17,11:30,13:08,1.67,morning,1.558,2.985
+NGC 5548,Dwarf / AGN,science,214.49817,25.13681,manifest median of 279 frames,2026-12-15,2.73,2.47,2.23,10:36,13:18,2.73,morning,1.240,2.955
+NGC 5548,Dwarf / AGN,science,214.49817,25.13681,manifest median of 279 frames,2027-01-01,3.97,3.73,3.47,09:28,13:24,3.97,morning,1.070,2.989
+NGC 5548,Dwarf / AGN,science,214.49817,25.13681,manifest median of 279 frames,2027-01-15,4.90,4.63,4.40,08:34,13:26,4.90,morning,1.015,2.959
+NGC 5548,Dwarf / AGN,science,214.49817,25.13681,manifest median of 279 frames,2027-02-01,5.93,5.67,5.43,07:26,13:20,5.93,morning,1.007,2.993
+NGC 5548,Dwarf / AGN,science,214.49817,25.13681,manifest median of 279 frames,2027-03-01,7.33,7.10,6.87,05:36,12:54,7.33,spans midnight,1.007,2.991
+NGC 5548,Dwarf / AGN,science,214.49817,25.13681,manifest median of 279 frames,2027-04-01,8.73,8.47,8.23,03:34,12:16,8.73,spans midnight,1.007,2.995
+NGC 7027,grism calibration,calibration,316.75478,42.23516,manifest median of 58 frames,2026-10-05,7.70,7.47,7.23,01:56,09:36,7.70,spans midnight,1.018,2.962
+NGC 7027,grism calibration,calibration,316.75478,42.23516,manifest median of 58 frames,2026-10-15,7.27,7.03,6.80,01:44,08:58,7.27,spans midnight,1.018,2.994
+NGC 7027,grism calibration,calibration,316.75478,42.23516,manifest median of 58 frames,2026-10-25,6.77,6.53,6.30,01:34,08:18,6.77,spans midnight,1.018,2.977
+NGC 7027,grism calibration,calibration,316.75478,42.23516,manifest median of 58 frames,2026-11-01,6.40,6.17,5.93,01:28,07:50,6.40,spans midnight,1.018,2.966
+NGC 7027,grism calibration,calibration,316.75478,42.23516,manifest median of 58 frames,2026-11-15,5.63,5.40,5.17,01:20,06:56,5.63,evening,1.023,2.991
+NGC 7027,grism calibration,calibration,316.75478,42.23516,manifest median of 58 frames,2026-12-01,4.63,4.40,4.13,01:16,05:52,4.63,evening,1.069,2.965
+NGC 7027,grism calibration,calibration,316.75478,42.23516,manifest median of 58 frames,2026-12-15,3.70,3.43,3.20,01:18,04:58,3.70,evening,1.165,2.991
+NGC 7027,grism calibration,calibration,316.75478,42.23516,manifest median of 58 frames,2027-01-01,2.40,2.17,1.90,01:28,03:50,2.40,evening,1.415,2.963
+NGC 7027,grism calibration,calibration,316.75478,42.23516,manifest median of 58 frames,2027-01-15,1.33,1.07,0.83,01:38,02:56,1.33,evening,1.831,2.988
+NGC 7027,grism calibration,calibration,316.75478,42.23516,manifest median of 58 frames,2027-02-01,0.00,0.00,0.00,,,0.00,,nan,nan
+NGC 7027,grism calibration,calibration,316.75478,42.23516,manifest median of 58 frames,2027-03-01,1.20,0.97,0.73,11:44,12:54,1.20,morning,1.898,2.972
+NGC 7027,grism calibration,calibration,316.75478,42.23516,manifest median of 58 frames,2027-04-01,2.60,2.33,2.10,09:42,12:16,2.60,morning,1.366,2.975
+BD+33°2642,T CrB,standard,237.99954,32.94842,SIMBAD ICRS (new target),2026-10-05,2.10,1.87,1.63,01:56,04:00,2.10,evening,1.437,2.984
+BD+33°2642,T CrB,standard,237.99954,32.94842,SIMBAD ICRS (new target),2026-10-15,1.63,1.40,1.17,01:44,03:20,1.63,evening,1.604,2.966
+BD+33°2642,T CrB,standard,237.99954,32.94842,SIMBAD ICRS (new target),2026-10-25,1.13,0.90,0.67,01:34,02:40,1.13,evening,1.852,2.947
+BD+33°2642,T CrB,standard,237.99954,32.94842,SIMBAD ICRS (new target),2026-11-01,0.80,0.57,0.33,01:28,02:14,0.80,evening,2.100,2.989
+BD+33°2642,T CrB,standard,237.99954,32.94842,SIMBAD ICRS (new target),2026-11-15,0.00,0.00,0.00,,,0.00,,nan,nan
+BD+33°2642,T CrB,standard,237.99954,32.94842,SIMBAD ICRS (new target),2026-12-01,0.40,0.13,0.00,12:46,13:08,0.40,morning,2.479,2.985
+BD+33°2642,T CrB,standard,237.99954,32.94842,SIMBAD ICRS (new target),2026-12-15,1.47,1.20,0.97,11:52,13:18,1.47,morning,1.677,2.956
+BD+33°2642,T CrB,standard,237.99954,32.94842,SIMBAD ICRS (new target),2027-01-01,2.70,2.47,2.20,10:44,13:24,2.70,morning,1.278,2.989
+BD+33°2642,T CrB,standard,237.99954,32.94842,SIMBAD ICRS (new target),2027-01-15,3.63,3.37,3.13,09:50,13:26,3.63,morning,1.119,2.960
+BD+33°2642,T CrB,standard,237.99954,32.94842,SIMBAD ICRS (new target),2027-02-01,4.67,4.40,4.17,08:42,13:20,4.67,morning,1.030,2.992
+BD+33°2642,T CrB,standard,237.99954,32.94842,SIMBAD ICRS (new target),2027-03-01,6.07,5.83,5.60,06:52,12:54,6.07,spans midnight,1.000,2.990
+BD+33°2642,T CrB,standard,237.99954,32.94842,SIMBAD ICRS (new target),2027-04-01,7.47,7.20,6.97,04:50,12:16,7.47,spans midnight,1.000,2.994
+π² Ori (HR 1544),Be,standard,72.65301,8.90018,SIMBAD ICRS (new target),2026-10-05,6.03,5.80,5.57,06:26,12:26,6.03,spans midnight,1.084,2.951
+π² Ori (HR 1544),Be,standard,72.65301,8.90018,SIMBAD ICRS (new target),2026-10-15,6.80,6.57,6.33,05:46,12:32,6.80,spans midnight,1.084,2.972
+π² Ori (HR 1544),Be,standard,72.65301,8.90018,SIMBAD ICRS (new target),2026-10-25,7.60,7.37,7.13,05:06,12:40,7.60,spans midnight,1.084,2.994
+π² Ori (HR 1544),Be,standard,72.65301,8.90018,SIMBAD ICRS (new target),2026-11-01,8.10,7.87,7.63,04:40,12:44,8.10,spans midnight,1.084,2.947
+π² Ori (HR 1544),Be,standard,72.65301,8.90018,SIMBAD ICRS (new target),2026-11-15,9.23,8.97,8.73,03:44,12:56,9.23,spans midnight,1.084,2.976
+π² Ori (HR 1544),Be,standard,72.65301,8.90018,SIMBAD ICRS (new target),2026-12-01,9.63,9.63,9.63,02:42,12:18,9.63,spans midnight,1.084,2.956
+π² Ori (HR 1544),Be,standard,72.65301,8.90018,SIMBAD ICRS (new target),2026-12-15,9.67,9.67,9.63,01:46,11:24,9.67,spans midnight,1.084,2.989
+π² Ori (HR 1544),Be,standard,72.65301,8.90018,SIMBAD ICRS (new target),2027-01-01,8.83,8.60,8.33,01:28,10:16,8.83,spans midnight,1.084,2.953
+π² Ori (HR 1544),Be,standard,72.65301,8.90018,SIMBAD ICRS (new target),2027-01-15,7.77,7.50,7.27,01:38,09:22,7.77,spans midnight,1.084,2.985
+π² Ori (HR 1544),Be,standard,72.65301,8.90018,SIMBAD ICRS (new target),2027-02-01,6.40,6.17,5.90,01:52,08:14,6.40,spans midnight,1.084,2.950
+π² Ori (HR 1544),Be,standard,72.65301,8.90018,SIMBAD ICRS (new target),2027-03-01,4.20,3.97,3.73,02:14,06:24,4.20,evening,1.098,2.953
+π² Ori (HR 1544),Be,standard,72.65301,8.90018,SIMBAD ICRS (new target),2027-04-01,1.80,1.57,1.30,02:36,04:22,1.80,evening,1.493,2.949
+IC 418,grism calibration,calibration,81.86750,-12.69731,SIMBAD ICRS (new target),2026-10-05,4.43,4.20,3.97,08:02,12:26,4.43,morning,1.398,2.997
+IC 418,grism calibration,calibration,81.86750,-12.69731,SIMBAD ICRS (new target),2026-10-15,5.17,4.93,4.70,07:24,12:32,5.17,morning,1.398,2.961
+IC 418,grism calibration,calibration,81.86750,-12.69731,SIMBAD ICRS (new target),2026-10-25,5.97,5.73,5.50,06:44,12:40,5.97,spans midnight,1.398,2.980
+IC 418,grism calibration,calibration,81.86750,-12.69731,SIMBAD ICRS (new target),2026-11-01,6.50,6.27,6.03,06:16,12:44,6.50,spans midnight,1.398,2.993
+IC 418,grism calibration,calibration,81.86750,-12.69731,SIMBAD ICRS (new target),2026-11-15,7.60,7.33,7.10,05:22,12:56,7.60,spans midnight,1.398,2.965
+IC 418,grism calibration,calibration,81.86750,-12.69731,SIMBAD ICRS (new target),2026-12-01,7.63,7.63,7.63,04:18,11:54,7.63,spans midnight,1.398,2.994
+IC 418,grism calibration,calibration,81.86750,-12.69731,SIMBAD ICRS (new target),2026-12-15,7.60,7.60,7.60,03:24,10:58,7.60,spans midnight,1.398,2.966
+IC 418,grism calibration,calibration,81.86750,-12.69731,SIMBAD ICRS (new target),2027-01-01,7.63,7.63,7.63,02:16,09:52,7.63,spans midnight,1.398,2.998
+IC 418,grism calibration,calibration,81.86750,-12.69731,SIMBAD ICRS (new target),2027-01-15,7.37,7.10,6.87,01:38,08:58,7.37,spans midnight,1.398,2.998
+IC 418,grism calibration,calibration,81.86750,-12.69731,SIMBAD ICRS (new target),2027-02-01,6.00,5.77,5.50,01:52,07:50,6.00,spans midnight,1.398,2.967
+IC 418,grism calibration,calibration,81.86750,-12.69731,SIMBAD ICRS (new target),2027-03-01,3.80,3.57,3.33,02:14,06:00,3.80,evening,1.398,2.969
+IC 418,grism calibration,calibration,81.86750,-12.69731,SIMBAD ICRS (new target),2027-04-01,1.40,1.17,0.90,02:36,03:58,1.40,evening,1.809,2.967
+SA 95 (SDSS field),photometric calibration,calibration,58.50000,0.00000,SIMBAD ICRS (new target),2026-10-05,6.60,6.37,6.13,05:52,12:26,6.60,spans midnight,1.174,2.944
+SA 95 (SDSS field),photometric calibration,calibration,58.50000,0.00000,SIMBAD ICRS (new target),2026-10-15,7.37,7.13,6.90,05:12,12:32,7.37,spans midnight,1.174,2.965
+SA 95 (SDSS field),photometric calibration,calibration,58.50000,0.00000,SIMBAD ICRS (new target),2026-10-25,8.17,7.93,7.70,04:32,12:40,8.17,spans midnight,1.174,2.986
+SA 95 (SDSS field),photometric calibration,calibration,58.50000,0.00000,SIMBAD ICRS (new target),2026-11-01,8.67,8.43,8.20,04:06,12:44,8.67,spans midnight,1.174,2.940
+SA 95 (SDSS field),photometric calibration,calibration,58.50000,0.00000,SIMBAD ICRS (new target),2026-11-15,8.90,8.90,8.90,03:10,12:02,8.90,spans midnight,1.174,2.968
+SA 95 (SDSS field),photometric calibration,calibration,58.50000,0.00000,SIMBAD ICRS (new target),2026-12-01,8.90,8.90,8.90,02:08,11:00,8.90,spans midnight,1.174,2.982
+SA 95 (SDSS field),photometric calibration,calibration,58.50000,0.00000,SIMBAD ICRS (new target),2026-12-15,8.80,8.53,8.30,01:18,10:04,8.80,spans midnight,1.174,2.954
+SA 95 (SDSS field),photometric calibration,calibration,58.50000,0.00000,SIMBAD ICRS (new target),2027-01-01,7.53,7.30,7.03,01:28,08:58,7.53,spans midnight,1.174,2.979
+SA 95 (SDSS field),photometric calibration,calibration,58.50000,0.00000,SIMBAD ICRS (new target),2027-01-15,6.43,6.17,5.93,01:38,08:02,6.43,spans midnight,1.174,2.950
+SA 95 (SDSS field),photometric calibration,calibration,58.50000,0.00000,SIMBAD ICRS (new target),2027-02-01,5.10,4.87,4.60,01:52,06:56,5.10,evening,1.174,2.976
+SA 95 (SDSS field),photometric calibration,calibration,58.50000,0.00000,SIMBAD ICRS (new target),2027-03-01,2.90,2.67,2.43,02:14,05:06,2.90,evening,1.282,2.979
+SA 95 (SDSS field),photometric calibration,calibration,58.50000,0.00000,SIMBAD ICRS (new target),2027-04-01,0.50,0.27,0.00,02:36,03:04,0.50,evening,2.330,2.975
+SA 98 (SDSS field),photometric calibration,calibration,103.02083,-0.32917,SIMBAD ICRS (new target),2026-10-05,3.63,3.40,3.17,08:50,12:26,3.63,morning,1.207,2.967
+SA 98 (SDSS field),photometric calibration,calibration,103.02083,-0.32917,SIMBAD ICRS (new target),2026-10-15,4.40,4.17,3.93,08:10,12:32,4.40,morning,1.180,2.988
+SA 98 (SDSS field),photometric calibration,calibration,103.02083,-0.32917,SIMBAD ICRS (new target),2026-10-25,5.17,4.93,4.70,07:32,12:40,5.17,morning,1.180,2.948
+SA 98 (SDSS field),photometric calibration,calibration,103.02083,-0.32917,SIMBAD ICRS (new target),2026-11-01,5.70,5.47,5.23,07:04,12:44,5.70,morning,1.180,2.963
+SA 98 (SDSS field),photometric calibration,calibration,103.02083,-0.32917,SIMBAD ICRS (new target),2026-11-15,6.83,6.57,6.33,06:08,12:56,6.83,spans midnight,1.180,2.992
+SA 98 (SDSS field),photometric calibration,calibration,103.02083,-0.32917,SIMBAD ICRS (new target),2026-12-01,8.07,7.80,7.57,05:06,13:08,8.07,spans midnight,1.180,2.965
+SA 98 (SDSS field),photometric calibration,calibration,103.02083,-0.32917,SIMBAD ICRS (new target),2026-12-15,8.87,8.87,8.67,04:10,13:00,8.87,spans midnight,1.180,2.994
+SA 98 (SDSS field),photometric calibration,calibration,103.02083,-0.32917,SIMBAD ICRS (new target),2027-01-01,8.87,8.87,8.87,03:04,11:54,8.87,spans midnight,1.180,2.968
+SA 98 (SDSS field),photometric calibration,calibration,103.02083,-0.32917,SIMBAD ICRS (new target),2027-01-15,8.90,8.90,8.90,02:08,11:00,8.90,spans midnight,1.180,2.998
+SA 98 (SDSS field),photometric calibration,calibration,103.02083,-0.32917,SIMBAD ICRS (new target),2027-02-01,8.03,7.80,7.53,01:52,09:52,8.03,spans midnight,1.180,2.963
+SA 98 (SDSS field),photometric calibration,calibration,103.02083,-0.32917,SIMBAD ICRS (new target),2027-03-01,5.83,5.60,5.37,02:14,08:02,5.83,spans midnight,1.180,2.966
+SA 98 (SDSS field),photometric calibration,calibration,103.02083,-0.32917,SIMBAD ICRS (new target),2027-04-01,3.43,3.20,2.93,02:36,06:00,3.43,evening,1.223,2.963

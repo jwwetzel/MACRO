@@ -1,0 +1,8 @@
+# Package `ops` — observatory request rev. 3 and the things James must send
+Owns: `ops/` (new files only; leave rev. 2 in place and mark it superseded), `AUTHORSHIP.md` (draft), `committee/work/ops/`. Findings: U10 (OA §2 visibility + cross-cutting 1; DE cross-cutting 4; TE.F7 and cross-cutting 2–3), ED.E4, TE TCRB-P0-eruption-block, ED TCRB-N2.
+Deliver:
+1. `ops/2026-10_observatory_request_rev3.md` — written for the camera actually mounted (QHY600, pyscope), with a script-generated visibility table (`pipeline/scripts/ops_visibility.py`, astropy, Winer site, airmass < 2, Sun < −12°/−18°) for T CrB, ST LMi, VV Pup, EU UMa, AN UMa, YZ Cnc, λ Eri and the other Be targets, M101, NGC 5548, the standards; the re-opening protocol in TE's order; the calibration set in DE's terms; header fixes for pyscope; standards (BD+33°2642, HR 1544, Vega, a compact PN); T CrB exposure re-derived for a 16-bit camera; honest dates (T CrB morning apparition from mid-January 2027; ST LMi from ~Nov 1); questions for the site (do the ASI and AC4040 cameras still exist; server calibration trees; hardware change log).
+2. `ops/eruption_block/` — a pyscope-style schedule block for a T CrB eruption trigger and a README, clearly marked as a draft for the site to load.
+3. `AUTHORSHIP.md` — a one-page draft consortium authorship/credit policy for James to take to the consortium (clearly a draft).
+4. `committee/work/ops/emails/` — drafts (not sent) for: Winer staff (rev. 3 cover note), J. Cannon (filter transmission curves, candidate dossier, authorship), and an outside polar expert reader request with a blank for the name.
+You send nothing to anyone.

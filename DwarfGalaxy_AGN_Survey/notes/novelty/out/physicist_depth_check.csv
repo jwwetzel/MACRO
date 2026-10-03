@@ -1,0 +1,12 @@
+quantity,memo,here,note
+ZMAG(H) survey median [mag for 1 ADU/s],18.3,18.26,46 H frames with ZMAG
+"F_1 = flux for 1 ADU/s at ZP 18.3, W 65 A [erg/s/cm2]",8e-15,7.86e-15,AB f_lambda at 6563 A x 65 A
+"3-sigma limit, 7 x 512 s, r = 10 arcsec [erg/s/cm2]",~1e-14,7.18e-15,median measured noise incl. correlation factor 1.56; statistical only
+"same, as L(Ha) at 10 Mpc [erg/s]",~1e38,8.59e+37,
+"same, as SFR at 10 Mpc, Kennicutt & Evans 2012 [Msun/yr]",~6e-4,4.6e-04,the memo's calibration
+"same, as SFR at 10 Mpc, LVGDB relation [Msun/yr]",,6.9e-04,relation used in the table
+our limit / BTA limit (log F < -15.25),10-100x shallower,13x,"BTA: 2x600 s on 6 m, faintest upper limit in KK2013 table"
+"per-field measured limits, min-median-max [erg/s/cm2]",,5.4e-15 - 7.3e-15 - 4.2e-14,"fields have 2-11 H frames, not 7"
+"block-sum noise / white-noise expectation (33x33 px), median over pairs",,1.56,"34 frame pairs; 1.00 = independent pixels, flat background"
+"raw H sky: variance/mean [ADU], median over pairs",,0.42,"median sky 131 ADU incl. any pedestal; header EGAIN 1.054 e/ADU would give >= 0.95 for pure sky Poisson noise. For the detector package (D2), not resolved here"
+ZP(R) - ZP(H) [mag],,3.58,"=> W_H = W_R x 0.0370 for equal peak throughput: 37 A if W_R = 1000 A, 52 A if 1400 A"

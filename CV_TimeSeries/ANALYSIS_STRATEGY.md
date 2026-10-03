@@ -1,7 +1,9 @@
 # ANALYSIS STRATEGY — Cataclysmic-Variable Time Series (RLMT Archive)
 
+> **Amended 2026-10-03.** The plan review of 2026-10-03 binds this strategy; its rulings are in **§10 (Committee amendments 2026-10-03)** at the end of this document and override anything above them that they contradict.
+
 **MACRO Consortium analysis-strategy committee — Chair's synthesis**
-**Date:** 2026-08-16 | **Target journal:** ApJ (AASTeX 7 skeleton: `manuscripts/CV_TimeSeries/main.tex`)
+**Date:** 2026-08-16 | **Target journal:** AJ — ruled 2026-10-03 (§10); was ApJ (AASTeX 7 skeleton: `manuscripts/CV_TimeSeries/main.tex`)
 **Panel:** Precision Photometry / Detector Science; Time-Series & Statistical Methods; CV Specialist; Literature & Archival Scout.
 
 ---
@@ -236,3 +238,102 @@ All referee numbers independently re-verified against the catalog by the panel b
 | **m8** AN UMa criterion filter-blind | Q5 criterion redefined per-filter now (≥8 full-orbit three-filter nights; currently ~7 — likely timing/states only). |
 | **m9** §3.3 global stats mixed trees | Retired; §3.3 restated per-target under the canonical rule; paper quotes only replayable numbers. |
 | **m10** Scope creep risk | Q4 held to one figure; YZ Cnc fallback held to one subsection; AN UMa capped at "apply pipeline, show fold, stop" (Q5). |
+
+---
+
+## 10. Committee amendments 2026-10-03
+
+**Binding.** Plan review of 2026-10-03: the chair's synthesis
+`committee/reviews/2026-10-03/SYNTHESIS.md` and the seven seat memos beside it.
+**Where this section and anything above it disagree, this section wins**; the
+text above is kept as the record of what was planned on 2026-08-16. Finding ids
+are `<seat>.<id>` — DS data scientist, OA observational astronomer, PH physicist,
+DE detector engineer, TE telescope engineer, ED editor, RF referee; `U#` and `D#`
+are the synthesis's own rulings (§1) and test-resolved disagreements (§2).
+
+A task now closes in exactly one of three ways (SYNTHESIS §0): **done**
+(acceptance criterion met, evidence linked), **dropped** (ruled impossible or
+pointless on the data that exist) or **deferred** (needs frames that do not exist
+yet — the *2027 backlog*, outside this paper's critical path and its completion
+count). The plan ledger (`pipeline/macro_core/project_plan.py`) carries each
+ruling as data; this section is its citation.
+
+**Verdict:** MAJOR REVISION (U3). The plan read 34 of 34; the paper is not
+finished. CV_TimeSeries is **reopened**, with fifteen tasks (CV-R1 … CV-R15), all of
+which block release. Every number the referee recomputed reproduces; four of the
+inferences drawn from them do not survive.
+
+**Venue:** AJ. The header's "Target journal: ApJ" is superseded.
+
+**Scope as amended.**
+- **The band-offset "null" is contradicted by the paper's own edges** (g−i ≈
+  −110 ± 28 s; 9/9 nights or 11/12 cycles negative). The published ±51 s exists only
+  because of `max(χ²ν, 1)` on a transported budget. Re-tested with paired,
+  scatter-based statistics (CV-R1).
+- **D3 — astrophysical or estimator bias? Not decided by the committee.** Decided by
+  per-band injection with per-band ramp widths and the signed matched-cell bias
+  carried (CV-R2). The paper reports whichever the test supports; the sentence "no
+  offset" goes either way.
+- **The O−C is refitted** with per-band constants, night-level epochs (N = 17) and
+  an era-offset nuisance term; Ṗ is quoted each way and with 2024 dropped (CV-R3).
+- **The superhump "measurement of absence" is logically inverted** and is restated
+  as an excluded-amplitude range (CV-R4).
+- **The Ṗ bound is a spin/spot-longitude bound**, not an orbital one, and is given
+  three physical scales and a longitude stability in degrees by accretion state
+  (CV-R5).
+- **The colour–phase result leads.** It is quantified (amplitude, phase, two-era
+  repeatability) and must survive a ≤ 120 s pairing window (CV-R6).
+- **The edge fit is disclosed** (CV-R7); **the counts mean what they say** (CV-R8);
+  **the reduction is described and tested** (CV-R9); **the instrument section uses
+  measured gains** (CV-R10); **the clock residual is printed and the clock tested on
+  transits** (CV-R11); **the paper meets the literature** (CV-R12).
+- **Restructure:** abstract ≤ 250 words leading with the colour result; ≤ 18 pages;
+  process prose to an appendix; internal language removed (CV-R13).
+- **Nothing is citable until the chain is rebuilt FRESH at a clean commit** and a
+  macro-by-macro diff of `numbers.tex` is filed (CV-R14, U5).
+- **§9's "request one more g/r/i ST LMi season" is not a reason to wait.** Submit
+  what exists (ED).
+
+**Needs James (CV-R15):** authorship policy with the consortium, real ORCIDs, a
+Zenodo DOI, availability statements, and an outside reader who works on polars.
+
+**Not changed:** nulls reported as nulls, the tie treatment, the saturation vetoes,
+the refusal to publish per-cycle error bars, the AN UMa grading and the 307/307
+macro traceability were each recorded as *satisfied* by the seats that checked them.
+
+**Standing statistical rules (SYNTHESIS §5) — apply to everything this project
+produces.** (1) Every χ²ν is reported per band/era/mode with its dof; χ²ν < 0.5 is
+a defect equal to χ²ν > 2; no `max(χ²ν, 1)`. (2) Every null carries the effect size
+it would have recovered and a "predicted scale" beside it; "k of N significant" is
+banned. (3) Injection grids report the signed matched-cell bias, never a median of
+absolute values. (4) Saturation is judged at the target, per frame, in native
+pixels. (5) A ≤ 250-word abstract with number placeholders is approved by seat 6
+before figures are built. (6) EW is a ratio: wherever the continuum varies, carry a
+continuum light curve.
+
+**Shared foundation.** This project stands on the Wave-0 tasks of SYNTHESIS §3
+(F-1 … F-10, G-1 … G-5), held in the ledger as the *Shared foundation* group. Where
+a task below waits on one of them, the ledger states it as a dependency and reads
+its status from the database — no blocker here is prose about a table.
+
+### Task amendments
+
+Emitted from the plan ledger by `python pipeline/scripts/update_project_plan.py amendments CV_TimeSeries` — do not edit by hand; change the ledger and re-emit. *Action* is the committee's verb; *Ruling* is the place in the synthesis and the finding ids behind it.
+
+| Task | Action | Ruling | What it now is | Accept / why |
+|---|---|---|---|---|
+| `CV-R1-band-offset` | ADD | §4 CV-R1-band-offset (U3, DS.F1, RF.B1) | Re-test the band offset with paired statistics | the abstract's band-offset sentence matches a test with a stated p-value and trials factor; 'k of N significant' appears nowhere (standing rule 2). |
+| `CV-R2-bias-injection` | ADD | §4 CV-R2-bias-injection (D3, RF.B2, RF.B3, DS.F3) | Per-band, per-era injection with the signed bias carried | differential g−i estimator bias ± error tabulated; no epoch carries a transported budget; the paper states whichever reading of D3 the test supports and no more. |
+| `CV-R3-oc-refit` | ADD | §4 CV-R3-oc-refit (DS.F2, RF.M3) | Refit the O−C: per-band constants, night-level epochs | the bound is quoted for every variant; χ²ν reported per band with its dof (standing rule 1); if the bound moves by more than 20% the abstract quotes the range. |
+| `CV-R4-superhump-wording` | ADD | §4 CV-R4-superhump-wording (PH.P1, RF.B4, RF.M7) | State the superhump result as what was excluded | no sentence claims superhumps were excluded below the recovery contour. |
+| `CV-R5-pdot-physics` | ADD | §4 CV-R5-pdot-physics (PH.P2, RF.M3) | Say what the period-change bound constrains | the bound is labelled spin/spot with its three scales beside it; longitude stability is in degrees, per state. |
+| `CV-R6-colour-result` | ADD | §4 CV-R6-colour-result (ED.E2, RF.M1, PH.P6) | Quantify the colour–phase result | amplitude and phase quoted with errors for both eras, unchanged within errors at a ≤ 120 s pairing window. |
+| `CV-R7-edge-fit-disclosure` | ADD | §4 CV-R7-edge-fit-disclosure (RF.M2) | Disclose the edge fit | model equation, grid and χ²ν distribution are in the paper, per band and era with dof. |
+| `CV-R8-counts` | ADD | §4 CV-R8-counts (RF.M5, RF.M6, OA) | Make the counts mean what they say | every counted series has a quoted precision; staged and measured counts are separate macros. |
+| `CV-R9-reduction` | ADD | §4 CV-R9-reduction (OA.E5, TE.F5) | Describe and test the reduction | raw and reduced differential light curves agree within the check-star scatter; tie residuals are flat in x to < 0.5%, or the ramp is quantified in the photometry section; no fold combines mechanical states without an offset. |
+| `CV-R10-instrument-section` | ADD | §4 CV-R10-instrument-section (DE.F2, DE.F3, DE.F7) | Rewrite the instrument section on measured numbers | the gain paragraph cites detector_params; error-inflation factors are re-quoted per mode with the measured gains; linearity slope < 1% to the adopted cap is shown. |
+| `CV-R11-clock` | ADD | §4 CV-R11-clock (RF.M4, OA.E6) | Print the clock residual; test the clock on transits | \|O−C\| < 120 s per era, or the offset is measured and carried into every absolute epoch. |
+| `CV-R12-literature` | ADD | §4 CV-R12-literature (ED.E1, RF.M8) | Meet the literature | about forty verified references or more; no external resource used without a citation; the build log still clean. |
+| `CV-R13-restructure` | ADD | §4 CV-R13-restructure (ED.E2, ED.E3, RF) | Restructure: the colour result leads | the abstract is approved by seat 6 (standing rule 5); ≤ 18 pages; every main-text figure supports a sentence of the abstract. |
+| `CV-R14-rebuild` | ADD | §4 CV-R14-rebuild (U5, ED.E5, RF.M9) | Rebuild the chain FRESH and file the macro diff | zero STALE CV stages at a non-dirty commit; every moved macro explained. |
+| `CV-R15-release-readiness` | ADD | §4 CV-R15-release-readiness (ED.E4) | Release readiness: authors, ORCIDs, DOI, outside reader | AUTHORSHIP.md agreed; no placeholder ORCID; DOI reserved; the outside reader's one-sentence summary of the result matches ours. |

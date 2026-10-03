@@ -1,0 +1,12 @@
+key,value
+fields,19
+classified (published velocity),17
+unclassified,Dw1441+5136; Dw1617+4609
+within Local Volume (D < 12 Mpc),Dw1533+67; Dw1558+67; Dw1559+46; Dw1645+46; Dw1735+57
+fields with H frames,13
+published H-alpha flux for any candidate,0
+ha_verdict = informative,1: Dw1558+67
+ha_verdict = marginal,3: Dw1459+44; Dw1533+67; Dw1559+46
+ha_verdict = no_ha_data,6: Dw1633+6906; Dw1643+0749; Dw1645+46; Dw1709+74; Dw1721+7140; Dw1735+57
+ha_verdict = no_prediction,2: Dw1441+5136; Dw1617+4609
+ha_verdict = out_of_band,7: Dw1403+4924; Dw1409+5113; Dw1418+4607; dw1446+58; Dw1539+4515; Dw1608+4058; Dw1615+5422

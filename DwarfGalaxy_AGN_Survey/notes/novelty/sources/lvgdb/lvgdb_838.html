@@ -1,0 +1,394 @@
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<HTML>
+<HEAD>
+		<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=koi8-r">
+		<TITLE>	Catalog of the LV Galaxies</TITLE>
+<!--  <link rel="stylesheet" type="text/css" href="default.css">-->
+<style>
+.descl {
+    float: left; /* бШПЮБМХБЮМХЕ ОН ОПЮБНЛС ЙПЮЧ */
+    border: 0px solid #333; /* оЮПЮЛЕРПШ ПЮЛЙХ */
+    padding: 7px; /* оНКЪ БМСРПХ АКНЙЮ */
+    margin: 10px 0 5px 5px; /* нРЯРСОШ БНЙПСЦ */
+    color: #000080;
+   }
+.descr {
+    float: right; /* бШПЮБМХБЮМХЕ ОН ОПЮБНЛС ЙПЮЧ */
+    border: 0px solid #333; /* оЮПЮЛЕРПШ ПЮЛЙХ */
+    padding: 7px; /* оНКЪ БМСРПХ АКНЙЮ */
+    margin: 10px 0 5px 5px; /* нРЯРСОШ БНЙПСЦ */
+    color: #000080;
+   }
+
+</style>
+
+<script language="JavaScript">
+<!--
+
+function FP_swapImg() {//v1.0
+ var doc=document,args=arguments,elm,n; doc.$imgSwaps=new Array(); for(n=2; n<args.length;
+ n+=2) { elm=FP_getObjectByID(args[n]); if(elm) { doc.$imgSwaps[doc.$imgSwaps.length]=elm;
+ elm.$src=elm.src; elm.src=args[n+1]; } }
+}
+
+function FP_preloadImgs() {//v1.0
+ var d=document,a=arguments; if(!d.FP_imgs) d.FP_imgs=new Array();
+ for(var i=0; i<a.length; i++) { d.FP_imgs[i]=new Image; d.FP_imgs[i].src=a[i]; }
+}
+
+function FP_getObjectByID(id,o) {//v1.0
+ var c,el,els,f,m,n; if(!o)o=document; if(o.getElementById) el=o.getElementById(id);
+ else if(o.layers) c=o.layers; else if(o.all) el=o.all[id]; if(el) return el;
+ if(o.id==id || o.name==id) return o; if(o.childNodes) c=o.childNodes; if(c)
+ for(n=0; n<c.length; n++) { el=FP_getObjectByID(id,c[n]); if(el) return el; }
+ f=o.forms; if(f) for(n=0; n<f.length; n++) { els=f[n].elements;
+ for(m=0; m<els.length; m++){ el=FP_getObjectByID(id,els[n]); if(el) return el; } }
+ return null;
+}
+
+//тСМЙЖХЪ НРЙПШРХЪ МНБНЦН НЙМЮ, ЯНДЕПФЮЫЕЦН НОХЯЮМХЕ ПЕГСКЭРХПСЧЫЕИ РЮАКХЖШ ОНХЯЙЮ НАЗЕЙРНБ ОН ХЛЕМХ. (search_name.php)
+function openWindow1() {
+	win1= window.open("./description/atable_search.php", "displayWindow1", "width=900,height=400,status=no,scrollbars=1,toolbar=no,menubar=no");
+	win1.focus();
+}
+
+function openWindow() {
+	win11= window.open("./tmp/table1.txt", "displayWindow11", "width=900,height=400,status=no,scrollbars=1,toolbar=no,menubar=no");
+	win11.focus();
+}
+
+
+//тСМЙЖХЪ НРЙПШРХЪ МНБНЦН НЙМЮ, ЯНДЕПФЮЫЕЦН НОХЯЮМХЕ РЮАКХЖШ - ЮМЮКНЦЮ РЮАКХЖШ 3 ОН ЙЮРЮКНЦС. (object.php)
+function openWindow2() {
+	win2= window.open("./description/atable1.php", "displayWindow2", "width=900,height=500,status=no,scrollbars=1,toolbar=no,menubar=no");
+	win2.focus();
+}
+
+//тСМЙЖХЪ НРЙПШРХЪ МНБНЦН НЙМЮ, ЯНДЕПФЮЫЕЦН НОХЯЮМХЕ РЮАКХЖШ - ЮМЮКНЦЮ РЮАКХЖШ 4 ОН ЙЮРЮКНЦС. (object.php)
+function openWindow3() {
+	win3= window.open("./description/atable4.php", "displayWindow3", "width=900,height=400,status=no,scrollbars=1,toolbar=no,menubar=no");
+	win3.focus();
+}
+
+//тСМЙЖХЪ НРЙПШРХЪ МНБНЦН НЙМЮ, ЯНДЕПФЮЫЕЦН НОХЯЮМХЕ ОНДЯВЕРЮ SFR ОН Ha. (object.php)
+function openWindow4() {
+	win4= window.open("./description/asfrha.php", "displayWindow4", "width=900,height=200,status=no,scrollbars=1,toolbar=no,menubar=no");
+	win4.focus();
+}
+//тСМЙЖХЪ НРЙПШРХЪ МНБНЦН НЙМЮ, ЯНДЕПФЮЫЕЦН НОХЯЮМХЕ ОНДЯВЕРЮ SFR ОН UV. (object.php)
+function openWindow5() {
+	win5= window.open("./description/asfrfuv.php", "displayWindow5", "width=900,height=200,status=no,scrollbars=1,toolbar=no,menubar=no");
+	win5.focus();
+}
+
+//тСМЙЖХЪ НРЙПШРХЪ МНБНЦН НЙМЮ, ЯНДЕПФЮЫЕЦН РЮАКХЖС ДЮММШУ Magnitude. (object.php)
+function openMagnitude() {
+	win6= window.open("magnitude.php", "displayWindow6", "width=900,height=400,status=no,scrollbars=1,toolbar=yes,menubar=yes");
+	win6.focus();
+}
+
+//тСМЙЖХЪ НРЙПШРХЪ МНБНЦН НЙМЮ, ЯНДЕПФЮЫЕЦН РЮАКХЖС ДЮММШУ Morphology. (object.php)
+function openMorphology() {
+	win7= window.open("morphology-1.php", "displayWindow7", "width=1000,height=500,resizable=1,status=no,scrollbars=1,toolbar=yes,menubar=yes");
+	win7.focus();
+}
+
+//тСМЙЖХЪ НРЙПШРХЪ МНБНЦН НЙМЮ, ЯНДЕПФЮЫЕЦН РЮАКХЖС ДЮММШУ Distance. (object.php)
+function openDistance() {
+	win11= window.open("distance.php", "displayWindow11", "width=1000,height=500,resizable=1,status=no,scrollbars=1,toolbar=yes,menubar=yes");
+	win11.focus();
+}
+//тСМЙЖХЪ НРЙПШРХЪ МНБНЦН НЙМЮ, ЯНДЕПФЮЫЕЦН РЮАКХЖС ДЮММШУ ОНРНЙН Ha. (object.php)
+function openHaflux() {
+	win8= window.open("haflux.php", "displayWindow8", "width=1000,height=500,resizable=1,status=no,scrollbars=1,toolbar=yes,menubar=yes");
+	win8.focus();
+}
+
+//тСМЙЖХЪ НРЙПШРХЪ МНБНЦН НЙМЮ, ЯНДЕПФЮЫЕЦН РЮАКХЖС ДЮММШУ Hiwidth. (object.php)
+function openHiwidth() {
+	win9= window.open("hiwidth.php", "displayWindow9", "width=1000,height=500,resizable=1,status=no,scrollbars=1,toolbar=yes,menubar=yes");
+	win9.focus();
+}
+
+//тСМЙЖХЪ НРЙПШРХЪ МНБНЦН НЙМЮ, ЯНДЕПФЮЫЕЦН РЮАКХЖС ДЮММШУ Hiwidth. (object.php)
+function openCZ() {
+	win10= window.open("cz.php", "displayWindow10", "width=1000,height=500,resizable=1,status=no,scrollbars=1,toolbar=yes,menubar=yes");
+	win10.focus();
+}
+
+//тСМЙЖХЪ НРЙПШРХЪ МНБНЦН НЙМЮ, ЯНДЕПФЮЫЕЦН РЮАКХЖС ДЮММШУ Hiwidth. (object.php)
+function openHiflux() {
+	win12= window.open("hiflux.php", "displayWindow11", "width=1000,height=500,resizable=1,status=no,scrollbars=1,toolbar=yes,menubar=yes");
+	win11.focus();
+}
+
+//тСМЙЖХХ ОПНБЕПЙХ ЙНППЕЙРМНЯРХ ББНДЮ ДЮММШУ ДКЪ ДНАЮБКЕМХЪ МНБНЦН НАЗЕЙРЮ.(add_object.php)
+
+function checkFormBase(form){
+	var return_value = true;
+	//var reg_nname = /^([a-zA-Z0-9 `-]*)$/; //MНФЕР ЯНДЕПФЮРЭ АСЙБШ ЛЮК ХКХ АНКЭЬХЕ, ЖХТПШ, РНВЙС, ОПНАЕК Х ДЕТХЯ
+	//var reg_ra = /-?[0-9]{6}(\.[0-9]{1})$/; //лНФЕР ЯНДЕПФЮРЭ "-", ЬЕЯРХГМЮВМНЕ ВХЯКН Х НДХМ ДЕЯЪРХВМШИ ГМЮЙ Б ЙНМЖЕ.лНФЕР ЯНДЕПФЮРЭ "-", ЬЕЯРХГМЮВМНЕ ВХЯКН 
+	//var reg_decl = /-|\+[0-9]{6}/; //дНКФМН ЯНДЕПФЮРЭ ГМЮЙ "-" ХКХ "+", ЬЕЯРХГМЮВМНЕ ВХЯКН 
+	//var nname = form.nname.value;
+	//var ra = form.ra.value;
+	//var decl = form.decl.value;
+	var error_msg = "оПНБЕПЭРЕ ГЮОНКМЕМХЕ ЯКЕДСЧЫХУ ОНКЕИ:\n";
+	if (!/^([a-zA-Z0-9`. `-]*)$/.test(form.nname.value) || form.nname.value == ""){
+		error_msg += "Object Name" + "\n";
+		return_value = false;
+	}
+	if (!/[0-9]{2}$/.test(form.ra_h.value) || form.ra_h.value == ""){
+		error_msg += "R.A. hh"+ "\n";
+		return_value = false;
+	}
+	if (!/[0-9]{2}$/.test(form.ra_m.value) || form.ra_m.value == ""){
+		error_msg += "R.A. mm"+ "\n";
+		return_value = false;
+	}
+	if (!/[0-9]{2}(\.[0-9]{1})$/.test(form.ra_s.value) || form.ra_s.value == ""){
+		error_msg += "R.A. ss.s"+ "\n";
+		return_value = false;
+	}
+	if (!/-|\+[0-9]{2}/.test(form.decl_d.value) || form.decl_d.value == ""){
+		error_msg += "Decl."+ "\n";
+		return_value = false;
+	}
+	if (!/[0-9]{2}/.test(form.decl_m.value) || form.decl_m.value == ""){
+		error_msg += "Decl. mm"+ "\n";
+		return_value = false;
+	}
+	if (!/[0-9]{2}/.test(form.decl_s.value) || form.decl_s.value == ""){
+		error_msg += "Decl.ss"+ "\n";
+		return_value = false;
+	}
+	 if (!return_value)
+		alert(error_msg);
+	
+	return return_value;
+}
+
+
+//дБЕ ТСМЙЖХХ ДКЪ НРЙПШРХЪ НЙМЮ ДКЪ ПЕДЮЙРХПНБЮМХЪ ХЛЕМХ НАЗЕЙРЮ Я ОЕПЕДЮВЕИ ОЕПЕЛЕММШУ. мХЦДЕ МЕ ХЯОНКЭГСЧРЯЪ.
+var q=0;
+var m=0;
+function editName(q) {
+	var url = "./edit_name.php?n="+eval(q)+"&cname=$cname";
+	win10= window.open(url, "displayWindow10", "width=900,height=400,status=no,scrollbars=1,toolbar=yes,menubar=yes");
+	
+}
+function editName2() {
+	var url = "./edit_name.php?n=&cname=";
+	
+	win10= window.open(url, "displayWindow10", "width=900,height=400,status=no,scrollbars=1,toolbar=yes,menubar=yes");
+}
+//-->
+</script></HEAD>
+
+<body background="images/fiber.gif" onload="FP_preloadImgs(/*url*/'images/button3F.jpg', /*url*/'images/button40.jpg', /*url*/'images/button42.jpg', /*url*/'images/button43.jpg', /*url*/'images/button4B.jpg', /*url*/'images/button4C.jpg', /*url*/'images/button5E.jpg', /*url*/'images/button5F.jpg')">
+<br>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+	<td valign="top" align="left"><p>
+	<a href="http://www.sao.ru/lv/lvgdb"><img border="0" src="./images/lvglogo-13.gif" alt="LVG Home" width="120"></a></td></p>
+	<td valign="top"><p align="center"><img border="0" src="./images/title.jpg" width="795" height="60"></p></td>
+	<td valign="top" align="right"><p>
+	<a href="http://www.sao.ru/Doc-en/index.html"><img border="0" src="./images/saologo.gif" alt="SAO Home" width="80"></a></td></p>
+	<!-- <p align="center"><font size="7" face="Times New Roman" color="#000099">Catalog &amp; Atlas of the LV galaxies</font></p>-->
+</tr>
+<tr align="center">
+	<td valign="top" colspan="3" height="50"><font size="1"><hr width="60%">
+<!-- Introduction -->
+<a href="./introduction.php"> 
+<img border="0" id="img1" src="./images/descr.jpg" height="20" width="100" alt="Description" onmouseover="FP_swapImg(1,0,/*id*/'img1',/*url*/'images/descr_o.jpg')" onmouseout="FP_swapImg(0,0,/*id*/'img1',/*url*/'images/descr.jpg')" onmousedown="FP_swapImg(1,0,/*id*/'img1',/*url*/'images/descr_d.jpg')" onmouseup="FP_swapImg(0,0,/*id*/'img1',/*url*/'images/descr_o.jpg')" fp-style="fp-btn: Glass Rectangle 5; fp-font: Times New Roman; fp-font-style: Bold; fp-font-size: 12; fp-font-color-hover: #000080; fp-font-color-press: #808080" fp-title="Description"></a></font>
+<!-- Page view -->
+<a href="./pview.php">
+<img border="0" id="img2" src="./images/view.jpg" height="20" width="100" alt="View" onmouseover="FP_swapImg(1,0,/*id*/'img2',/*url*/'images/view_o.jpg')" onmouseout="FP_swapImg(0,0,/*id*/'img2',/*url*/'images/view.jpg')" onmousedown="FP_swapImg(1,0,/*id*/'img2',/*url*/'images/view_d.jpg')" onmouseup="FP_swapImg(0,0,/*id*/'img2',/*url*/'images/view_o.jpg')" fp-style="fp-btn: Glass Rectangle 5; fp-font: Times New Roman; fp-font-style: Bold; fp-font-size: 12; fp-font-color-hover: #000080; fp-font-color-press: #808080" fp-title="View"></a></font>
+<!-- Search -->
+<a href="./search.php"> 
+<img border="0" id="img3" src="./images/search.jpg" height="20" width="100" alt="Search"
+onmouseover="FP_swapImg(1,0,/*id*/'img3',/*url*/'images/search_o.jpg')" onmouseout="FP_swapImg(0,0,/*id*/'img3',/*url*/'images/search.jpg')" onmousedown="FP_swapImg(1,0,/*id*/'img3',/*url*/'images/search_d.jpg')" onmouseup="FP_swapImg(0,0,/*id*/'img3',/*url*/'images/search_o.jpg')"
+ fp-style="fp-btn: Glass Rectangle 5; fp-font: Times New Roman; fp-font-style: Bold; fp-font-size: 12; fp-font-color-hover: #000080; fp-font-color-press: #808080" fp-title="Search"></a></font>
+
+<!-- Tables -->
+<a href="./tables.php"> 
+<img border="0" id="img4" src="./images/tables.jpg" height="20" width="100" alt="Tables"
+onmouseover="FP_swapImg(1,0,/*id*/'img4',/*url*/'images/tables_o.jpg')" onmouseout="FP_swapImg(0,0,/*id*/'img4',/*url*/'images/tables.jpg')" onmousedown="FP_swapImg(1,0,/*id*/'img4',/*url*/'images/tables_d.jpg')" onmouseup="FP_swapImg(0,0,/*id*/'img4',/*url*/'images/tables_o.jpg')"
+ fp-style="fp-btn: Glass Rectangle 5; fp-font: Times New Roman; fp-font-style: Bold; fp-font-size: 12; fp-font-color-hover: #000080; fp-font-color-press: #808080" fp-title="Tables"></a></font>
+
+ <!-- Publication -->
+<a href="./publication.php"> 
+<img border="0" id="img5" src="./images/public.jpg" height="20" width="100" alt="Publication"
+onmouseover="FP_swapImg(1,0,/*id*/'img5',/*url*/'images/public_o.jpg')" onmouseout="FP_swapImg(0,0,/*id*/'img5',/*url*/'images/public.jpg')" onmousedown="FP_swapImg(1,0,/*id*/'img5',/*url*/'images/public_d.jpg')" onmouseup="FP_swapImg(0,0,/*id*/'img5',/*url*/'images/public_o.jpg')"
+ fp-style="fp-btn: Glass Rectangle 5; fp-font: Times New Roman; fp-font-style: Bold; fp-font-size: 12; fp-font-color-hover: #000080; fp-font-color-press: #808080" fp-title="Publication"></a></font>
+ <!-- Authorization -->
+<a href="login.php"> 
+<img border="0" id="img6" src="./images/auth.jpg" height="20" width="100" alt="Authorization" onmouseover="FP_swapImg(1,0,/*id*/'img6',/*url*/'images/auth_o.jpg')" onmouseout="FP_swapImg(0,0,/*id*/'img6',/*url*/'images/auth.jpg')" onmousedown="FP_swapImg(1,0,/*id*/'img6',/*url*/'images/auth_d.jpg')" onmouseup="FP_swapImg(0,0,/*id*/'img6',/*url*/'images/auth_o.jpg')" fp-style="fp-btn: Glass Rectangle 5; fp-font: Times New Roman; fp-font-style: Bold; fp-font-size: 12; fp-font-color-hover: #000080; fp-font-color-press: #800080" fp-title="Authorization"></a></font>
+		<hr width="60%"></td>
+</tr>
+</table>
+<!--  --><p><b><i><center><font size="6" color="#663300"> Data on the Objects "x"</font></center></i></b></p>		
+	<!-- бcОНЛНЦЮРЕКЭМЮЪ РЮАКХЖЮ ДКЪ БШБНДЮ БЯЕУ ДЮММШУ. -->
+	<table border="0" cols=2 id="table">
+	<tr>
+	<td width="600" align="left">
+	<!-- бШБНД РЮАКХЖШ ЙННПДХМЮР -->
+		<table width="500" border="0" cols="5" name="table1" id='table1'>
+		<tr>
+			<!-- <td align=center colspan=2><font face="Courier New">EquJ2000.0</font></td> -->
+		</tr>
+		<tr width="500" valign="bottom">
+			<td width="100" align="center"><b><i>Name</i></b></td>
+			<td width="100" align="center"><b><i>R.A.</td>
+			<td width="100" align="center"><b><i>Decl.</td>
+			<td width="100" align="center"><b><i>V<SUB>h</SUB></i></b></td>
+			<td width="100" align="center"><b><i>B<SUB>t</SUB></i></b></td>
+		</tr>
+		<tr height="20" valign="top">
+			<td width="100" align="center"></td>
+			<td width="100" align="center" colspan="2"></i></b><font face="Courier New">EquJ2000.0</font></td>
+			<td width="100" align="center"></td>
+			<td width="100" align="center"></td>
+		</tr>
+		<tr width="500" height="30">
+			<td width="100" align="center" background="images/fiber-100.jpg"><nobr>x</nobr></td>
+			<td width="100" align="center" background="images/fiber-100.jpg"><nobr>15 41 47.8</nobr></td>
+			<td width="100" align="center" background="images/fiber-100.jpg"><nobr>+67 15 15</nobr></td>
+			<td width="100" align="center" background="images/fiber-100.jpg"><nobr>423</nobr></td>		
+			<td width="100" align="center" background="images/fiber-100.jpg"><nobr>15.40</b></nobr></td>
+		</tr>
+		</table>
+		<BR>
+	</td>
+	<td align="center" rowspan="2">	<font size="2"><a href="./image/DSS/DSS2_B/UGC09992.png" target="_blank"><img src="./image/DSS/DSS2_B/UGC09992.png" border=2 width="350" alt="x"></a><br>DSS-2 B</font>
+		
+	</td>
+	</tr>
+	<tr>
+	<td>
+		<!-- бШБНД РЮАКХЖШ ХЛЕМ НАЗЕЙРЮ. -->		
+		<table border="1" cellspacing="0" cellpadding="3" cols="1" background="images/fiber-100.jpg" id="table2"> 
+			<!--<caption><b> &nbsp </b></caption>-->
+			<tr>
+				<th>Object Names</th>
+			</tr>
+							<tr>						<td>PGC055809</td>		
+				</tr>				<tr>						<td><b>UGC09992</b></td></td>		
+				</tr>		</table>
+		<BR>
+		<BR>
+	</td>
+	</tr>
+	</table> <!--йНМЕЖ БЯОНЛНЦЮРЕКЭМНИ РЮАКХЖЮ-->
+	<BR>
+    <!-- рЮАКХЖЮ 1 RCNG -->
+	<table border="1" width="850" cellspacing="0" cellpadding="3" cols="14" background="images/fiber-100.jpg" id="table3"> 
+		<tr onMouseOver="this.style.color='#0000FF'" onMouseOut="this.style.color='#000000'" onClick="javascript:openWindow2()">
+			<th width="50"><i>a<SUB>Holm</SUB></i></th>
+			<th width="50"><i>b/a</th></i>
+			<th width="50"><i>A<SUB>B</SUB><SUP>G</SUP></th></i>
+			<th width="65"><i>m<SUB>FUV</SUB></th></i>
+			<th width="65"><i>B<SUB>T</SUB></th></i>
+			<th width="65"><i>m<SUB>H&alpha;</SUB></th></i>			
+			<th width="65"><i>K<SUB>s</SUB></th></i>
+			<th width="65"><i>m<SUB>21</SUB></th></i>
+			<th width="65"><i>W<SUB>50</SUB></th></i>
+			<th width="50"><i>T</th></i>
+			<th width="70"><i>T<SUB>dw</SUB></th></i> 
+			<th width="60"><i>V<SUB>h</SUB></th></i>		
+			<th width="50"><i>D</th></i>
+			<th width="80"><i>Method</th></i>			
+		</tr>
+		<tr align="center">
+			<td width="50"> 1.66</td>
+			<td width="50"> 0.61</td>
+            <td width="50"> 0.16</td>
+			<td width="65"> 16.60</td><td width="65" onMouseOver="this.style.color='#0000FF'" onMouseOut="this.style.color='#000000'" onClick="javascript:openMagnitude()"><b>15.40</b></td>			<td width="65"> 19.00</td>
+            <td width="65">12.90<sup>B</sup></td>
+			<td width="65"> 15.10</td><td width="65" onMouseOver="this.style.color='#0000FF'" onMouseOut="this.style.color='#000000'" onClick="javascript:openHiwidth()"><b>49</b></td>	
+			<td width="50" onMouseOver="this.style.color='#0000FF'" onMouseOut="this.style.color='#000000'" onClick="javascript:openMorphology()"><b>10</b></td>			<td width="70"> Ir-N</td>			
+			<td width="60" onMouseOver="this.style.color='#0000FF'" onMouseOut="this.style.color='#000000'" onClick="javascript:openCZ()"><b> 423</b></td>					<td width="50" onMouseOver="this.style.color='#0000FF'" onMouseOut="this.style.color='#000000'" onClick="javascript:openDistance()"><b> 11.27</b></td>
+			<!-- <td width="50"> 11.27</td>-->
+			<td width="80"> TRGB</td>	
+		</tr>
+	</table><br>
+	
+	<!-- рЮАКХЖЮ 2 RCNG -->
+	<table border="1" width="850" cellspacing="0" cellpadding="3" cols="14" background="images/fiber-100.jpg" id="table4"> 
+		<tr onMouseOver="this.style.color='#0000FF'" onMouseOut="this.style.color='#000000'" onClick="javascript:openWindow3()">
+			<th width="50"><i>A<SUB>26</SUB></i></th>
+			<th width="50"><i>i</th></i>
+			<th width="50"><i>V<SUB>m</SUB></th></i>
+			<th width="60"><i>A<SUB>B</SUB><SUP>i</SUP></th></i>					
+			<th width="60"><i>M<SUB>B</SUB></th></i>
+			<th width="50"><i>SB<SUB>B</SUB></th></i> 
+			<th width="50"><i>log L<SUB>K</SUB></th></i>
+			<th width="55"><i>log M<SUB>26</SUB></th></i>
+			<th width="55"><i>log M<SUB>HI</SUB></th></i>
+			<th width="50"><i>V<SUB>LG</SUB></th></i>
+			<th width="50"><i>&Theta;<SUB>1</SUB></th></i>			
+			<th width="50"><i>&Theta;<SUB>5</SUB></th></i>
+			<th width="50"><i>&Theta;<SUB>j</SUB></th></i>
+			<th width="170"><i>MD</th></i>
+		</tr>
+		<tr align="center">
+			<td width="50"> 5.52</td>
+			<td width="50"> 61</td>
+			<td width="50"> 23</td>
+			<td width="60"> 0.00</td>
+			<td width="60"> -15.02</td>
+			<td width="50"> 25.00</td>
+			<td width="50"> 8.26</td>
+			<td width="55"> 8.54</td>
+			<td width="55">  8.40</td>
+			<td width="50"> 638</td>
+			<td width="50"> -1.30</td>			
+			<td width="50"> -0.98</td>
+			<td width="50"> -1.94</td>
+			<td width="170"> NGC5907</td>
+		</tr>
+	</table><br>
+
+	<!-- рЮАКХЖЮ ДКЪ БШБНДЮ Ha Х UV ДЮММШУ, ЕЯКХ ЕЯРЭ ДЮММШЕ ОН ОНРНЙС ХКХ ХГНАПЮФЕМХЪ -->
+	<!-- бШАНПЙЮ ОПНБНДХРЯЪ Б ТЮИКЕ table1.php-->	
+	<table border="0" id="SFR">		
+		<tr>		
+			<td width="400" align="left" valign="top">					
+				<table border="1" width="350" cellspacing="0" cellpadding="3" cols="3" background="images/fiber-100.jpg" id="Haflux"> 
+					<tr><td width="100" >&nbsp;</td>
+						<td width="150" align="center"><b><i>Flux</i></b></nobr></td>
+						<td width="100" align="center"><b><i>lg[SFR],</i></b><br><nobr>[M<sub>sun</sub> yr<sup>-1</sup>]</nobr></td>
+					<tr><td width="100" align="center"><b><i>UV</td></i></b>
+						<td width="150" align="center">&nbsp;</td>
+						<!-- я БНГЛНФМНЯРЭЧ Б ЪВЕИЙЕ - нРЙПШБЮЕРЯЪ НЙМН Я НОХЯЮМХЕЛ ЮКЦНПХРЛЮ ПЮЯВЕРЮ РЕЛОЮ ГБЕГДННАПЮГНБЮМХЪ ОН UV. тЮИК ./description/asfrfuv.php -->
+						<td width="100" align="center" onMouseOver="this.style.color='#0000FF'" onMouseOut="this.style.color='#000000'" onClick="javascript:openWindow5()"><b><nobr> -1.64</nobr></td>
+					</tr>
+					<tr><td width="100" align="center"><b><i>H&alpha;</i></b></td>
+					<!-- я БНГЛНФМНЯРЭЧ Б ЪВЕИЙЕ - нРЙПШБЮЕРЯЪ НЙМН Я ОЕПЕВМЕЛ БЯЕУ ЯСЫЕЯРБСЧЫХУ ГМЮВЕМХИ ОНРНЙНБ-->						<td width="150" align="center" onMouseOver="this.style.color='#0000FF'" onMouseOut="this.style.color='#000000'" onClick="javascript:openHaflux()"><b><nobr>
+						 (9.04&plusmn;0.22)x10<sup>-14</sup></nobr>
+								</b><br> [erg cm<sup>-2</sup> s<sup>-1</sup>]
+						</td>						<!-- я БНГЛНФМНЯРЭЧ Б ЪВЕИЙЕ - нРЙПШБЮЕРЯЪ НЙМН Я НОХЯЮМХЕЛ ЮКЦНПХРЛЮ ПЮЯВЕРЮ РЕЛОЮ ГБЕГДННАПЮГНБЮМХЪ ОН Ha. тЮИК ./description/asfrha.php -->
+						<td width="100" align="center" onMouseOver="this.style.color='#0000FF'" onMouseOut="this.style.color='#000000'" onClick="javascript:openWindow4()"><b><nobr> -1.93</nobr></b></td>				
+					</tr>
+					<tr>
+						<td width="100" align="center"><b><i>HI</i></b></td>						<td width="150" align="center" onMouseOver="this.style.color='#0000FF'" onMouseOut="this.style.color='#000000'" onClick="javascript:openHiflux()"><b><nobr>
+						 (8.32)x10<sup>0</sup></nobr>
+								</b><br> [Jy km s<sup>-1</sup>]
+						</td>						<td>&nbsp;</td>
+					</tr>
+				</table>				
+			</td>
+			<td width="275" align="right"><a href="./image/Ha/UGC9992_671hc.JPEG" target="_blank"><img src="./image/Ha/UGC9992_671hc.JPEG" border=2 width="250" alt="x.Ha 6563"></a></td>
+			<td width="275" align="right"><a href="./image/Ha/UGC9992_shc.JPEG" target="_blank"><img src="./image/Ha/UGC9992_shc.JPEG" border=2 width="250" alt="x.continuum R"></a></td>
+		</tr>		<tr><td></td><td align="center" colspan="2"><font size="2">BTA 6-m</font></td></tr>
+		<tr>
+			<td></td>
+			<td align="center"><font size="2"><b>H&alpha;-continuum</b><br>Ha 6563</font></td>
+			<td align="center"><font size="2"><b>H&alpha;+continuum</b><br>continuum R</font></td>			
+		</tr>
+			
+	</table><br>Links to External Services:<br><a 
+href="http://ned.ipac.caltech.edu/cgi-bin/nph-objsearch?objname=x&extend=no&hconst=73&omegam=0.27&omegav=0.73&corr_z=1&out_csys=Equatorial&out_equinox=J2000.0&obj_sort=RA+or+Longitude&of=pre_text&zv_breaker=30000.0&list_limit=5&img_stamp=YES" target="_blank"><img src="./images/NEDLogo_Black_Small.png" border="0" width="100" alt="NED"></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="http://leda.univ-lyon1.fr/ledacat.cgi?o=x" target="_blank"><img src="./images/HL.gif" border="0" width="50" alt="HyperLeda"></a><br>

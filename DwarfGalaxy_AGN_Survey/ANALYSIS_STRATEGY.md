@@ -1,5 +1,7 @@
 # ANALYSIS STRATEGY — Dwarf-Galaxy Survey + NGC 5548 Monitoring (RLMT)
 
+> **Amended 2026-10-03.** The plan review of 2026-10-03 binds this strategy; its rulings are in **§10 (Committee amendments 2026-10-03)** at the end of this document and override anything above them that they contradict.
+
 **Committee synthesis** · MACRO Consortium analysis-strategy panel · 2026-08-16 (rev. after internal referee round — see final section)
 **Seats:** Precision Photometry & Detector Science · Time-Series/Statistics · LSB/AGN Science · Literature & Archival Scout
 **Chair's note:** the numbers below are catalog-verified snapshots as of 2026-08-16, *after* deduplication and after a pointing re-audit that caught one mispointed NGC 5548 night the first pass missed (§3). They are planning inputs, not manuscript numbers: **every count, depth, and night list that appears in the paper is emitted by the pipeline** (Phase 0 disposition table and QC thresholds), never transcribed from this memo. Where seat memos disagreed, the resolution and reason are stated inline in ⚖ boxes.
@@ -209,3 +211,102 @@ Winer is offline for monsoon season until **October 2026**; the consolidated obs
 | m10 stale README | Sync task added to §9 housekeeping (116/13 and "confirmation" both superseded). |
 | m11 MD5 cost | Screening = JD collision + size; MD5 on a sample validates the dedup claim (0.1). |
 | m12 SIP order across 37′ | Residual-curvature-vs-field-radius check added before committing to SIP-2 and the <0.2″ rms claim (0.3, §5.6). |
+
+---
+
+## 10. Committee amendments 2026-10-03
+
+**Binding.** Plan review of 2026-10-03: the chair's synthesis
+`committee/reviews/2026-10-03/SYNTHESIS.md` and the seven seat memos beside it.
+**Where this section and anything above it disagree, this section wins**; the
+text above is kept as the record of what was planned on 2026-08-16. Finding ids
+are `<seat>.<id>` — DS data scientist, OA observational astronomer, PH physicist,
+DE detector engineer, TE telescope engineer, ED editor, RF referee; `U#` and `D#`
+are the synthesis's own rulings (§1) and test-resolved disagreements (§2).
+
+A task now closes in exactly one of three ways (SYNTHESIS §0): **done**
+(acceptance criterion met, evidence linked), **dropped** (ruled impossible or
+pointless on the data that exist) or **deferred** (needs frames that do not exist
+yet — the *2027 backlog*, outside this paper's critical path and its completion
+count). The plan ledger (`pipeline/macro_core/project_plan.py`) carries each
+ruling as data; this section is its citation.
+
+**Verdict:** RE-SCOPE (U1).
+
+**Venue:** AJ at best — detection/non-detection with broadband depth. Calibrated Hα
+fluxes only if Cannon's filter curve arrives. The "ApJ (NGC 5548 section
+conditional)" posture is superseded.
+
+**Scope as amended.**
+- **NGC 5548 broadband photometry is dead (U1, unanimous).** Filter slot '6' is a
+  grism on every night. NGC 5548 leaves the title. Phase 4.1, 4.2–4.3, 4.4 and 4.5
+  are dropped; Phase 0.3's plate-solve no longer includes those frames (spectra do
+  not plate-solve — that blocker could never clear). DW-P02-slot6 closes with a
+  per-night verdict table from F-6's background-morphology test.
+- **Two triage tasks stand in for Phase 4**, each of which earns a paragraph or is
+  dropped: DW-P4x, a one-night broad-Hα extraction (two days; EW and nightly
+  scatter; **no lags**), and DW-P4y, zero-order differential photometry feasibility.
+- **Novelty before stacking:** DW-N1-novelty (the Phase 3.1 literature cross-match,
+  as a gate) and DW-P36-0 (a depth-versus-expected-L(Hα) table) come before any
+  coadd.
+- **Phase 0.4 is unblocked** with the measured StackPro read noise (≈16.5 e⁻ per
+  pixel per frame); the sum-versus-average contradiction about StackPro is
+  resolved; depth promises are re-stated at the read-noise floor.
+- **Phase 1.1:** no AC4040 flat will ever exist — the camera left in March 2024. The
+  flat is a night-sky superflat from the June 2023 L frames.
+- **Hα products:** a detection through a ~65 Å filter is a velocity statement;
+  a non-detection carries the out-of-band caveat and is not an SFR limit.
+- **W leaves NGC 5238's surface photometry.** The completeness map (Phase 5.4) is
+  kept for NGC 5238 only.
+
+**Dropped:** Phase 4.1, 4.2–4.3, 4.4, 4.5 (NGC 5548); Phase 5.3 (period search) and
+5.6 (eclipse timing); Phase 5.2 (transient search) unless its threshold and trials
+are pre-declared with injection.
+
+**Needs James:** contact John Cannon — filter transmission curves, the candidate
+dossier, and authorship. Four tasks and the lead result wait on a conversation that
+no observatory closure ever blocked.
+
+**Figure cap:** six (was fourteen).
+
+**Standing statistical rules (SYNTHESIS §5) — apply to everything this project
+produces.** (1) Every χ²ν is reported per band/era/mode with its dof; χ²ν < 0.5 is
+a defect equal to χ²ν > 2; no `max(χ²ν, 1)`. (2) Every null carries the effect size
+it would have recovered and a "predicted scale" beside it; "k of N significant" is
+banned. (3) Injection grids report the signed matched-cell bias, never a median of
+absolute values. (4) Saturation is judged at the target, per frame, in native
+pixels. (5) A ≤ 250-word abstract with number placeholders is approved by seat 6
+before figures are built. (6) EW is a ratio: wherever the continuum varies, carry a
+continuum light curve.
+
+**Shared foundation.** This project stands on the Wave-0 tasks of SYNTHESIS §3
+(F-1 … F-10, G-1 … G-5), held in the ledger as the *Shared foundation* group. Where
+a task below waits on one of them, the ledger states it as a dependency and reads
+its status from the database — no blocker here is prose about a table.
+
+### Task amendments
+
+Emitted from the plan ledger by `python pipeline/scripts/update_project_plan.py amendments DwarfGalaxy_AGN_Survey` — do not edit by hand; change the ledger and re-emit. *Action* is the committee's verb; *Ruling* is the place in the synthesis and the finding ids behind it.
+
+| Task | Action | Ruling | What it now is | Accept / why |
+|---|---|---|---|---|
+| `DW-P02-slot6-dispersion` | CHANGE | §4 DwarfGalaxy_AGN_Survey DW-P02-slot6 (U1, OA.E4, TE.F9) | Close slot '6' with a per-night verdict table | one verdict per night, from pixels, with Wilson intervals from the labelled truth set; no frame left 'indeterminate'. |
+| `DW-P02-filter-dossier` | CHANGE | §6 Cannon (ED, RF) | The filter-slot dossier, science and calibration | a dated reply from Cannon is on file. |
+| `DW-P03-plate-solve` | CHANGE | §4 DwarfGalaxy_AGN_Survey P03 (U1, U4, DS, RF) | Plate-solve the Dw fields and NGC 5238 | every staged direct-imaging frame carries a solve verdict; no spectrum is in the queue. |
+| `DW-P04-noise-model` | CHANGE | §4 DwarfGalaxy_AGN_Survey DW-P04 (U4, DE.F6, DE.F9) | StackPro/High Gain noise model | depth and χ² numbers use the measured StackPro read noise per pixel per frame; the strategy's 'average' is corrected or confirmed against pixels. |
+| `DW-P11-flats` | CHANGE | §4 DwarfGalaxy_AGN_Survey DW-P11 (OA, TE, DE) | Night-sky superflat from the June 2023 L frames | residual large-scale structure < 0.3% of sky. |
+| `DW-N1-novelty` | ADD | §4 DW-N1-novelty (ED) | The novelty gate: are the candidates already classified? | per-candidate table with sources; the go/stop decision recorded before any stack exists. |
+| `DW-P36-0-depth-table` | ADD | §4 DW-P36-0 (PH) | Hα depth against expected L(Hα), before stacking | predicted limit vs expected L(Hα) tabulated per candidate; uninformative fields labelled. |
+| `DW-P36-halpha-limits` | CHANGE | §4 DwarfGalaxy_AGN_Survey Hα products (PH, ED, RF) | Hα detections and non-detections | every non-detection carries the out-of-band caveat and the predicted scale beside it (standing rule 2); no flux is quoted without the filter curve. |
+| `DW-P4x-broad-halpha-triage` | ADD | §4 DW-P4x (U1, PH, OA) | One-night broad-Hα extraction triage | EW and its nightly scatter for one night; it earns a paragraph or the task is dropped. |
+| `DW-P4y-zero-order-photometry` | ADD | §4 DW-P4y (U1, PH) | Zero-order differential photometry feasibility | comparison-star zero-order rms < 2%, or the idea is dropped. |
+| `DW-P51-ngc5238` | CHANGE | §4 DwarfGalaxy_AGN_Survey W dropped (RF) | NGC 5238 stacks and Hα map | no W-band surface-brightness number is quoted. |
+| `DW-P54-completeness` | CHANGE | §4 DwarfGalaxy_AGN_Survey P54 (DS) | Injection–recovery completeness map | 90% contour published with the signed matched-cell bias (standing rule 3). |
+| `DW-figures` | CHANGE | §4 DwarfGalaxy_AGN_Survey Figures (ED) | The six-figure set | six figures or fewer; the ≤ 250-word abstract is approved by seat 6 before they are built (standing rule 5). |
+| `DW-P41-aperture` | DROP | §4 DwarfGalaxy_AGN_Survey DROP P41 (U1, OA.E4, TE.F9, ED.E7) | Host-aware aperture and sky | Nothing: dropped. An aperture on NGC 5548 presumes direct images, and slot '6' is a grism on every night. |
+| `DW-P42-ensemble` | DROP | §4 DwarfGalaxy_AGN_Survey DROP P41 (U1, OA.E4, TE.F9) | Differential ensemble light curve | Nothing: dropped. There is no broadband series to form an ensemble on; the other filters total four frames on one night. |
+| `DW-P44-statistics` | DROP | §4 DwarfGalaxy_AGN_Survey DROP P41 (U1, PH, DS) | Variability statistics | Nothing: dropped. F_var and a structure function from two or three imaging epochs are not statistics. |
+| `DW-P45-gate` | DROP | §4 DwarfGalaxy_AGN_Survey DROP P41 (U1, DS, RF) | The Phase 4.5 value gate | Nothing: dropped. The gate asked whether an RLMT light curve adds to ZTF/ASAS-SN/ATLAS; there is no RLMT light curve to compare. |
+| `DW-P52-subtraction` | DROP | §4 DwarfGalaxy_AGN_Survey DROP P53 (DS, ED) | Image-subtraction transient search | Nothing: dropped — unless the detection threshold and the trials count (fields × epochs × pixels) are pre-declared and injected point sources are recovered. A variable-star census in dwarf fields is a different paper for a different reader. |
+| `DW-P53-period-search` | DROP | §4 DwarfGalaxy_AGN_Survey DROP P53 (DS, OA, ED) | Field-star period search | Nothing: dropped. Five to sixteen nightly epochs over ≤ 32 d cannot support a period search. |
+| `DW-P56-eclipse-timing` | DROP | §4 DwarfGalaxy_AGN_Survey DROP P53 (DS, OA, ED) | Eclipse timing, only if eclipsing binaries emerge | Nothing: dropped, with the period search that would have had to find the binaries first. |

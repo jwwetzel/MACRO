@@ -1,6 +1,6 @@
 """Unit tests for macro_core.project_plan and the project-page renderer.
 
-Three groups, in order of how much they would cost to get wrong:
+The first three groups, in order of how much they would cost to get wrong:
 
 1. **Ledger integrity.**  The ledger is the published plan.  A duplicate id
    silently overwrites another task's status history; a stage key that is
@@ -12,6 +12,12 @@ Three groups, in order of how much they would cost to get wrong:
 3. **A rendering smoke test.**  An in-memory manifest with the same table
    shapes the real one has, rendered end to end, asserting the page contains
    the plan and NOT the superseded facts the audit retired.
+
+Sections 13–19 were added by the plan review of 2026-10-03
+(``committee/reviews/2026-10-03/SYNTHESIS.md``): the two closing statuses
+and the rulings they require, the third sync rule, computed blockers, what
+the committee ruled as the ledger now states it, manuscript titles as
+ledger data, and the command itself.
 """
 
 from __future__ import annotations
@@ -39,32 +45,32 @@ def test_ledger_validates():
 
 
 def test_task_ids_are_unique():
-    ids = [t.id for t in pp.all_tasks()]
+    ids = [t.id for t in pp.ledger_tasks()]
     assert len(ids) == len(set(ids)), \
         "a duplicate id would make two tasks share one status history"
 
 
 def test_every_task_has_a_ledger_status():
-    for t in pp.all_tasks():
+    for t in pp.ledger_tasks():
         assert t.status in pp.LEDGER_STATUSES, (t.id, t.status)
 
 
 def test_redo_needed_is_never_declared_in_code():
     """`redo_needed` is derived, never authored: it is a statement about the
     database, and a hand-typed one could not name its reason."""
-    for t in pp.all_tasks():
+    for t in pp.ledger_tasks():
         assert t.status != pp.REDO_NEEDED, t.id
 
 
 def test_every_task_names_a_real_stage_in_the_dag():
-    for t in pp.all_tasks():
+    for t in pp.ledger_tasks():
         assert t.stage in pv.STAGE_BY_KEY, (
             f"{t.id} depends on stage {t.stage!r}, which is not in "
             f"provenance.STAGES — staleness could never propagate to it")
 
 
 def test_every_task_cites_a_document_that_exists():
-    for t in pp.all_tasks():
+    for t in pp.ledger_tasks():
         doc = REPO_ROOT / t.source.document
         assert doc.exists(), f"{t.id} cites missing document {t.source.document}"
         assert t.source.section.strip(), f"{t.id} cites no section"
@@ -82,26 +88,26 @@ def test_committee_projects_cite_their_own_strategy():
 
 
 def test_blocked_tasks_state_a_blocker():
-    for t in pp.all_tasks():
+    for t in pp.ledger_tasks():
         if t.status == pp.BLOCKED:
             assert t.blocker.strip(), f"{t.id}: blocked with no reason"
 
 
 def test_done_tasks_carry_evidence():
-    for t in pp.all_tasks():
+    for t in pp.ledger_tasks():
         if t.status == pp.DONE:
             assert t.evidence.strip(), f"{t.id}: done with nothing behind it"
 
 
 def test_evidence_paths_under_docs_exist():
     """A `done` task whose evidence link 404s is worse than no link."""
-    for t in pp.all_tasks():
+    for t in pp.ledger_tasks():
         if t.evidence.startswith("docs/"):
             assert (REPO_ROOT / t.evidence).exists(), (t.id, t.evidence)
 
 
 def test_project_and_phase_are_stamped_on_every_task():
-    for project in pp.PROJECTS:
+    for project in pp.groups():
         for phase in project.phases:
             for t in phase.tasks:
                 assert t.project == project.key
@@ -1491,3 +1497,1077 @@ def test_the_published_pages_match_what_web_recorded():
     assert not drifted, (
         f"{len(drifted)} page(s) changed since WEB was recorded — re-run "
         f"`update_project_plan.py render`: {drifted}")
+
+
+# ===========================================================================
+# 13.  CLOSING BY RULING  (the 2026-10-03 plan review, SYNTHESIS §0)
+# ===========================================================================
+# Before the review a task could leave the plan only by being done, so work
+# the data could never support sat `pending` or `blocked` for ever.  Two
+# closing statuses now exist, and both are RULINGS: the tests below hold
+# that they cannot be typed without one, cannot inflate a completion
+# fraction, and cannot hide among live work.
+
+def _ruled_task(tid, status, phase="Phase 1", ruling=True, accept="a test",
+                **kw):
+    return pp.Task(id=tid, title=tid, produces="a thing", stage="S0",
+                   source=pp.Source("d.md", "§D"), status=status,
+                   evidence="x", blocker="b",
+                   ruling=pp.Ruling("§4 X", ("U1",)) if ruling else None,
+                   accept=accept, project="P", phase=phase, **kw)
+
+
+def _fixture_project(*phases):
+    return pp._build(pp.Project(
+        key="X", title="X", claim="c", venue="v", strategy="",
+        decisions=(_FIXTURE_DECISION,), phases=tuple(phases)))
+
+
+def test_the_two_closing_statuses_exist_and_are_not_open():
+    for status in (pp.DROPPED, pp.DEFERRED):
+        assert status in pp.LEDGER_STATUSES
+        assert status in pp.ALL_STATUSES
+        assert status in pp.CLOSED_BY_RULING
+        assert status not in pp.OPEN_STATUSES, \
+            "a closed task must never be offered as open work"
+        assert pp.STATUS_LABEL[status]
+
+
+def test_completion_is_counted_over_in_scope_tasks_only():
+    """done / in-scope: dropped and deferred are in neither term."""
+    tasks = [_task("a", pp.DONE), _task("b", pp.PENDING),
+             _task("c", pp.DROPPED), _task("d", pp.DEFERRED),
+             _task("e", pp.REDO_NEEDED)]
+    st = {t.id: t.status for t in tasks}
+    counts = pp.status_counts(tasks, st)
+    assert pp.progress_fraction(counts) == (1, 3)
+    assert pp.scope_summary(counts) == {
+        "done": 1, "in_scope": 3, "dropped": 1, "deferred": 1, "total": 5}
+
+
+def test_dropping_work_cannot_make_a_project_look_finished():
+    """The failure the denominator rule exists to prevent, both ways.
+
+    Counted as done, a dropped task would let a project finish by deleting
+    its plan.  Left in the denominator, every ruling that removes impossible
+    work would read as the project falling behind.
+    """
+    before = [_task("a", pp.DONE), _task("b", pp.PENDING),
+              _task("c", pp.PENDING)]
+    after = [_task("a", pp.DONE), _task("b", pp.PENDING),
+             _task("c", pp.DROPPED)]
+    frac = lambda ts: pp.progress_fraction(          # noqa: E731
+        pp.status_counts(ts, {t.id: t.status for t in ts}))
+    assert frac(before) == (1, 3)
+    done, in_scope = frac(after)
+    assert done == 1, "dropping a task must not add to 'done'"
+    assert in_scope == 2, "…and must leave the denominator"
+    assert done < in_scope, "one open task remains, so it is not complete"
+
+
+def test_the_scope_summary_always_adds_up():
+    for group in pp.groups():
+        st = pp.overlay_statuses(group.tasks, {})
+        scope = pp.scope_summary(pp.status_counts(group.tasks, st))
+        assert scope["in_scope"] + scope["dropped"] + scope["deferred"] \
+            == scope["total"] == len(group.tasks), group.key
+
+
+def test_validate_rejects_a_drop_with_no_ruling(monkeypatch):
+    bad = _fixture_project(pp._dropped_phase(
+        _ruled_task("a", pp.DROPPED, ruling=False)))
+    monkeypatch.setattr(pp, "PROJECTS", (bad,))
+    with pytest.raises(pp.PlanError, match="no ruling"):
+        pp.validate()
+
+
+def test_validate_rejects_a_deferral_with_no_ruling(monkeypatch):
+    bad = _fixture_project(pp._backlog_phase(
+        _ruled_task("a", pp.DEFERRED, ruling=False)))
+    monkeypatch.setattr(pp, "PROJECTS", (bad,))
+    with pytest.raises(pp.PlanError, match="no ruling"):
+        pp.validate()
+
+
+def test_validate_rejects_a_dropped_task_left_among_live_work(monkeypatch):
+    """A dropped task in a live phase reads as live work on the page."""
+    bad = _fixture_project(pp.Phase("Phase 1", "i", (
+        _ruled_task("a", pp.DROPPED),)))
+    monkeypatch.setattr(pp, "PROJECTS", (bad,))
+    with pytest.raises(pp.PlanError, match="filed under"):
+        pp.validate()
+
+
+def test_validate_rejects_live_work_filed_as_dropped(monkeypatch):
+    bad = _fixture_project(pp._dropped_phase(_ruled_task("a", pp.PENDING)))
+    monkeypatch.setattr(pp, "PROJECTS", (bad,))
+    with pytest.raises(pp.PlanError, match="filed under"):
+        pp.validate()
+
+
+def test_validate_rejects_a_ruled_open_task_with_no_acceptance(monkeypatch):
+    """The review found tasks marked done against a description rather than
+    a criterion; a task it adds or changes states the test that closes it."""
+    bad = _fixture_project(pp.Phase("Phase 1", "i", (
+        _ruled_task("a", pp.PENDING, accept=""),)))
+    monkeypatch.setattr(pp, "PROJECTS", (bad,))
+    with pytest.raises(pp.PlanError, match="acceptance criterion"):
+        pp.validate()
+
+
+def test_every_closed_task_in_the_ledger_names_its_ruling():
+    closed = [t for t in pp.ledger_tasks()
+              if t.status in pp.CLOSED_BY_RULING]
+    assert closed, "the review dropped and deferred tasks; none are recorded"
+    for t in closed:
+        assert t.ruling is not None, t.id
+        assert t.ruling.findings, f"{t.id}: a ruling with no finding behind it"
+        assert t.ruling.date == "2026-10-03"
+
+
+def test_closed_tasks_are_filed_apart_from_live_work():
+    for t in pp.ledger_tasks():
+        if t.status == pp.DROPPED:
+            assert t.phase == pp.DROPPED_PHASE, t.id
+        if t.status == pp.DEFERRED:
+            assert t.phase == pp.BACKLOG_PHASE, t.id
+
+
+def test_the_backlog_is_named_for_2027():
+    assert pp.BACKLOG_NAME == "2027 backlog"
+    assert pp.BACKLOG_PHASE.startswith(pp.BACKLOG_NAME)
+    assert pp.STATUS_LABEL[pp.DEFERRED] == pp.BACKLOG_NAME
+
+
+def test_backlog_and_dropped_are_listed_in_plan_order():
+    tasks = [_task("a", pp.DEFERRED), _task("b", pp.DROPPED),
+             _task("c", pp.DEFERRED), _task("d", pp.PENDING)]
+    st = {t.id: t.status for t in tasks}
+    assert [t.id for t in pp.backlog(tasks, st)] == ["a", "c"]
+    assert [t.id for t in pp.dropped_tasks(tasks, st)] == ["b"]
+
+
+def test_closed_tasks_are_never_offered_as_next_blocked_or_gated():
+    tasks = [_t("gate", pp.PENDING),
+             _t("x", pp.DROPPED, ["gate"]), _t("y", pp.DEFERRED, ["gate"])]
+    st = {t.id: t.status for t in tasks}
+    assert [t.id for t in pp.next_up(tasks, st)] == ["gate"]
+    assert pp.open_blockers(tasks, st) == ()
+    assert pp.gated_tasks(tasks, st) == ()
+
+
+def test_every_ruled_open_task_states_its_acceptance_criterion():
+    for t in pp.ledger_tasks():
+        if t.ruling and t.status in (pp.PENDING, pp.IN_PROGRESS, pp.BLOCKED):
+            assert t.accept.strip(), t.id
+            # ...and it is shown wherever the task's product is shown.
+            assert t.accept in t.produces, t.id
+
+
+# ===========================================================================
+# 14.  RULINGS RESOLVE  (the invented-finding class)
+# ===========================================================================
+# `citation_problems` stops a task citing a strategy section that does not
+# say what it is cited for.  A `dropped` status is only as good as the
+# ruling behind it, so the same check is made one level up: the section of
+# the synthesis must exist and say it, and every finding id must be one a
+# seat actually filed.
+
+_SYN = """## 1. Rulings
+| U1 | NGC 5548 is dead |
+## 2. Disagreements
+**D1 — hrg dispersion**
+## 4. Per-project amendments
+### X — re-scope
+DROP P41."""
+
+_DOCS = {pp.SYNTHESIS_2026_10_03: _SYN,
+         "data-scientist.md": "**F1 — BLOCKER** text\n**F10 — MAJOR** text"}
+
+
+def test_every_ruling_in_the_ledger_resolves():
+    """The REAL ledger against the REAL synthesis and memos."""
+    assert pp.verify_rulings(REPO_ROOT) == ()
+
+
+def test_a_ruling_citing_a_real_finding_passes():
+    ruling = pp.Ruling("§4 X", ("U1", "D1", "DS.F1", "DS"))
+    assert pp.ruling_problems([("t", ruling)], _DOCS) == ()
+
+
+def test_a_ruling_citing_a_finding_nobody_filed_is_rejected():
+    """F2 is not in the memo — and F1 must not match on the strength of
+    F10, nor F10 on F1."""
+    problems = pp.ruling_problems(
+        [("t", pp.Ruling("§4 X", ("DS.F2",)))], _DOCS)
+    assert len(problems) == 1 and "F2" in problems[0]
+    only_f10 = {**_DOCS, "data-scientist.md": "**F10 — MAJOR** text"}
+    assert pp.ruling_problems(
+        [("t", pp.Ruling("§4 X", ("DS.F1",)))], only_f10)
+
+
+def test_a_ruling_citing_an_unknown_seat_is_rejected():
+    problems = pp.ruling_problems(
+        [("t", pp.Ruling("§4 X", ("ZZ.F1",)))], _DOCS)
+    assert problems and "no committee seat" in problems[0]
+
+
+def test_a_ruling_citing_a_synthesis_ruling_that_does_not_exist_is_rejected():
+    problems = pp.ruling_problems([("t", pp.Ruling("§4 X", ("U9",)))], _DOCS)
+    assert problems and "U9" in problems[0]
+
+
+def test_a_malformed_finding_id_is_rejected():
+    problems = pp.ruling_problems(
+        [("t", pp.Ruling("§4 X", ("because I said so",)))], _DOCS)
+    assert problems and "not a finding id" in problems[0]
+
+
+def test_a_ruling_citing_a_missing_document_is_rejected():
+    problems = pp.ruling_problems(
+        [("t", pp.Ruling("§4 X", ("U1",), document="nope.md"))], _DOCS)
+    assert problems and "does not exist" in problems[0]
+
+
+def test_a_rulings_section_is_checked_like_any_citation():
+    """A ruling pointing at a section of the synthesis that does not say
+    what it is cited for is an invented source, same as a task's."""
+    good = pp.Ruling("§4 DROP P41", ("U1",))
+    bad = pp.Ruling("§4 DROP P99", ("U1",))
+    docs = {pp.SYNTHESIS_2026_10_03: _SYN}
+    assert pp.citation_problems([("t", good.source)], docs) == ()
+    assert pp.citation_problems([("t", bad.source)], docs)
+    assert pp.citation_problems(
+        [("t", pp.Ruling("§7 X").source)], docs), "§7 does not exist"
+
+
+# ===========================================================================
+# 15.  A RULING SUPERSEDES WHAT WAS RECORDED BEFORE IT  (sync rule 3)
+# ===========================================================================
+
+def _closed_by_ruling(status=pp.DONE):
+    return pp.Task(id="a", title="a", produces="p", stage="S3",
+                   source=pp.Source("d.md", "§D"), status=status,
+                   evidence="x", ruling=pp.Ruling("§4 X", ("U7",)))
+
+
+def test_a_status_recorded_before_a_ruling_gives_way_to_it():
+    """SN-G0c was recorded `in_progress` six weeks before the committee
+    closed it as NOT PROMOTED.  The recorded row must not win."""
+    changes = pp.derive_sync(
+        [_closed_by_ruling()], {"a": pp.IN_PROGRESS}, {"S3": pv.FRESH},
+        recorded_at={"a": "2026-08-21T04:01:18Z"})
+    assert [(c.old, c.new) for c in changes] == [(pp.IN_PROGRESS, pp.DONE)]
+    assert "ruling" in changes[0].reason and "U7" in changes[0].reason
+
+
+def test_a_status_recorded_after_a_ruling_is_a_later_judgement():
+    """Left alone: a person who reopens a task after the ruling knew of it."""
+    for stamp in ("2026-10-03T09:00:00Z", "2026-11-01T00:00:00Z"):
+        assert pp.derive_sync(
+            [_closed_by_ruling()], {"a": pp.IN_PROGRESS}, {"S3": pv.FRESH},
+            recorded_at={"a": stamp}) == ()
+
+
+def test_rule_three_is_off_without_the_stamps():
+    assert pp.derive_sync(
+        [_closed_by_ruling()], {"a": pp.IN_PROGRESS}, {"S3": pv.FRESH}) == ()
+
+
+def test_a_task_with_no_ruling_is_never_moved_by_rule_three():
+    task = pp.Task(id="a", title="a", produces="p", stage="S3",
+                   source=pp.Source("d.md", "§D"), status=pp.DONE,
+                   evidence="x")
+    assert pp.derive_sync([task], {"a": pp.PENDING}, {"S3": pv.FRESH},
+                          recorded_at={"a": "2026-08-01T00:00:00Z"}) == ()
+
+
+def test_a_ruling_and_a_stale_stage_resolve_in_one_step():
+    """Closed `done` by ruling on a stage that is stale: one change, to
+    `redo_needed`, carrying both reasons — not `done` now and
+    `redo_needed` on the next sync."""
+    changes = pp.derive_sync(
+        [_closed_by_ruling()], {"a": pp.IN_PROGRESS}, {"S3": pv.STALE},
+        recorded_at={"a": "2026-08-21T04:01:18Z"})
+    assert [(c.old, c.new) for c in changes] == [
+        (pp.IN_PROGRESS, pp.REDO_NEEDED)]
+    assert "ruling" in changes[0].reason and "S3" in changes[0].reason
+
+
+def test_a_ruling_can_drop_a_task_that_was_recorded_open():
+    task = _closed_by_ruling(pp.DROPPED)
+    changes = pp.derive_sync([task], {"a": pp.PENDING}, {"S3": pv.STALE},
+                             recorded_at={"a": "2026-08-20T00:00:00Z"})
+    assert [(c.old, c.new) for c in changes] == [(pp.PENDING, pp.DROPPED)]
+
+
+@pytest.mark.parametrize("status", [pp.DROPPED, pp.DEFERRED])
+@pytest.mark.parametrize("state", [pv.STALE, pv.FRESH, pv.NEVER_RUN])
+def test_no_fingerprint_can_reverse_a_ruling(status, state):
+    """Rules 1 and 2 move tasks between done and redo_needed only."""
+    task = _closed_by_ruling(status)
+    assert pp.derive_sync([task], {"a": status}, {"S3": state},
+                          recorded_at={"a": "2026-10-04T00:00:00Z"}) == ()
+
+
+def test_rule_three_is_idempotent_once_recorded():
+    """After sync writes the ruled status, its own stamp post-dates the
+    ruling, so the rule does not fire again."""
+    task = _closed_by_ruling()
+    first = pp.derive_sync([task], {"a": pp.IN_PROGRESS}, {"S3": pv.FRESH},
+                           recorded_at={"a": "2026-08-21T00:00:00Z"})
+    assert pp.derive_sync([task], {"a": first[0].new}, {"S3": pv.FRESH},
+                          recorded_at={"a": "2026-10-03T12:00:00Z"}) == ()
+
+
+def test_status_stamps_and_sync_age_are_read_back(con):
+    tid = pp.all_tasks()[0].id
+    assert pp.last_sync_utc(con) is None
+    pp.record_status(con, tid, pp.IN_PROGRESS, note="started",
+                     when="2026-08-01T00:00:00Z")
+    assert pp.last_sync_utc(con) is None, "a hand `set` is not a sync"
+    pp.record_status(con, tid, pp.REDO_NEEDED, note="sync: stage S0 is STALE",
+                     when="2026-08-20T03:13:38Z")
+    assert pp.read_status_stamps(con) == {tid: "2026-08-20T03:13:38Z"}
+    assert pp.last_sync_utc(con) == "2026-08-20T03:13:38Z"
+
+
+def test_stamp_readers_are_safe_without_the_table():
+    empty = sqlite3.connect(":memory:")
+    assert pp.read_status_stamps(empty) == {}
+    assert pp.last_sync_utc(empty) is None
+    empty.close()
+
+
+# ===========================================================================
+# 16.  BLOCKERS ARE COMPUTED WHERE THEY CAN BE  (ruling U4)
+# ===========================================================================
+# Five tasks sat blocked on "S2's tables were destroyed" for six weeks after
+# S2 was rebuilt, because the blocker was a sentence and a sentence does not
+# re-read the database.
+
+def test_no_blocker_claims_the_s2_tables_were_destroyed():
+    for t in pp.ledger_tasks():
+        text = f"{t.blocker} {t.produces}".lower()
+        assert "destroyed" not in text, (
+            f"{t.id}: still says a table was destroyed — the tables exist "
+            f"(ruling U4); state the true blocker")
+        assert "s2 wipe" not in text and "tables are gone" not in text, t.id
+
+
+#: The tasks the stale blocker held.  The committee unblocked every one.
+_FORMERLY_S2_BLOCKED = (
+    "TCRB-P0-bitdepth", "TCRB-P0-ladders", "TCRB-P0-shutter-timing",
+    "TCRB-B1-calibration", "DW-P04-noise-model",
+    "CV-P15-linearity-ladders", "CV-P15-noise-model", "CV-P2-vetoes")
+
+
+@pytest.mark.parametrize("task_id", _FORMERLY_S2_BLOCKED)
+def test_the_s2_gated_tasks_are_unblocked(task_id):
+    assert pp.task_by_id(task_id).status != pp.BLOCKED
+
+
+def test_a_blocker_that_names_a_task_declares_it_as_a_dependency():
+    """Prose that says "clears when DW-P02-filter-dossier does" is a
+    dependency, and a dependency nothing reads is how the page came to
+    recommend work its own blocker text forbade."""
+    ids = {t.id for t in pp.ledger_tasks()}
+    for t in pp.ledger_tasks():
+        if t.status != pp.BLOCKED:
+            continue
+        for other in ids - {t.id}:
+            if re.search(rf"(?<![\w-]){re.escape(other)}(?![\w-])",
+                         t.blocker):
+                assert other in t.depends_on, (
+                    f"{t.id}: its blocker names {other}, which is not in "
+                    f"depends_on")
+
+
+def test_a_dependency_may_cross_groups_and_is_read_from_the_status_table():
+    """T CrB's wavelength solution waits on the shared foundation's G-1.
+    Overlaying ONLY the project's tasks must still see G-1's status —
+    otherwise the gate could never open."""
+    project = pp.PROJECT_BY_KEY["TCrB_Monitoring"]
+    a3 = pp.task_by_id("TCRB-A3-wavelength")
+    assert "G-1" in a3.depends_on
+    assert "G-1" not in {t.id for t in project.tasks}
+
+    before = pp.overlay_statuses(project.tasks, {})
+    assert before["G-1"] == pp.PENDING
+    assert pp.unmet_dependencies(a3, before) == ("G-1",)
+
+    after = pp.overlay_statuses(project.tasks, {"G-1": pp.DONE})
+    assert pp.unmet_dependencies(a3, after) == ()
+
+
+def test_the_overlay_adds_dependencies_without_disturbing_the_counts():
+    project = pp.PROJECT_BY_KEY["TCrB_Monitoring"]
+    st = pp.overlay_statuses(project.tasks, {})
+    assert sum(pp.status_counts(project.tasks, st).values()) \
+        == len(project.tasks)
+
+
+def test_stage_gates_report_every_stage_that_is_not_fresh():
+    task = _task("a")
+    task = replace(task, needs_fresh=("S0", "S0c", "S3"))
+    gates = pp.stage_gates(task, {"S0": pv.STALE, "S0c": pv.FRESH})
+    assert gates == (("S0", pv.STALE), ("S3", "UNKNOWN")), \
+        "a gate nobody evaluated is not a gate that opened"
+    assert pp.stage_gates(task, None) == (), "not asked, not reported"
+
+
+@pytest.mark.parametrize("met_when,value,expected", [
+    ("zero", 0, True), ("zero", 3, False), ("zero", None, False),
+    ("positive", 1, True), ("positive", 0, False), ("positive", None, False),
+])
+def test_probe_is_met(met_when, value, expected):
+    assert pp.probe_is_met(pp.Probe("p", "SELECT 1", met_when), value) \
+        is expected
+
+
+def test_computed_blockers_reads_all_three_kinds_of_gate():
+    task = replace(_t("work", pp.PENDING, ["gate"]),
+                   needs_fresh=("S0",))
+    results = {"work": (pp.ProbeResult("rows", 0, False),)}
+    lines = pp.computed_blockers(task, {"gate": pp.BLOCKED, "work":
+                                        pp.PENDING},
+                                 {"S0": pv.STALE}, results)
+    assert len(lines) == 3
+    assert "waiting on gate (blocked)" in lines[0]
+    assert "S0" in lines[1] and pv.STALE in lines[1]
+    assert "rows: 0" in lines[2]
+
+
+def test_computed_blockers_is_empty_when_every_gate_is_open():
+    task = replace(_t("work", pp.PENDING, ["gate"]), needs_fresh=("S0",))
+    results = {"work": (pp.ProbeResult("rows", 66, True),)}
+    assert pp.computed_blockers(task, {"gate": pp.DONE}, {"S0": pv.FRESH},
+                                results) == ()
+
+
+def test_an_acceptance_probe_never_blocks_its_own_task():
+    """"27,261 twins are still canonical" is how far F-1 has to go, not a
+    reason F-1 may not start."""
+    task = _t("work", pp.PENDING)
+    results = {"work": (pp.ProbeResult("twins", 27261, False,
+                                       kind="accept"),)}
+    assert pp.computed_blockers(task, {"work": pp.PENDING}, None,
+                                results) == ()
+    gaps = pp.acceptance_gaps(task, results)
+    assert [g.value for g in gaps] == [27261]
+    assert [t.id for t in pp.next_up([task], {"work": pp.PENDING},
+                                     probe_results=results)] == ["work"]
+
+
+def test_next_up_honours_a_stage_gate_and_a_database_gate():
+    gated = replace(_t("a", pp.PENDING), needs_fresh=("S0",))
+    probed = _t("b", pp.PENDING)
+    free = _t("c", pp.PENDING)
+    st = {t.id: pp.PENDING for t in (gated, probed, free)}
+    results = {"b": (pp.ProbeResult("rows", 0, False),)}
+    assert [t.id for t in pp.next_up([gated, probed, free], st)] \
+        == ["a", "b", "c"], "gates nobody evaluated do not hide a task"
+    assert [t.id for t in pp.next_up(
+        [gated, probed, free], st, stage_states={"S0": pv.STALE},
+        probe_results=results)] == ["c"]
+
+
+def test_run_probes_reads_the_database_and_survives_a_missing_table():
+    c = sqlite3.connect(":memory:")
+    c.execute("CREATE TABLE s2_linearity_ladders (x INT)")
+    c.executemany("INSERT INTO s2_linearity_ladders VALUES (?)",
+                  [(i,) for i in range(66)])
+    task = replace(_task("a"), probes=(
+        pp.Probe("ladders", "SELECT count(*) FROM s2_linearity_ladders",
+                 "positive"),
+        pp.Probe("epochs", "SELECT count(*) FROM mech_epoch", "positive",
+                 kind="accept")))
+    results = pp.run_probes(c, [task, _task("b")])
+    c.close()
+    assert set(results) == {"a"}
+    ladders, epochs = results["a"]
+    assert (ladders.value, ladders.met, ladders.kind) == (66, True, "gate")
+    assert epochs.value is None and not epochs.met
+    assert "not answerable yet" in epochs.error
+    assert epochs.kind == "accept"
+
+
+def test_probes_in_the_ledger_only_read():
+    for t in pp.ledger_tasks():
+        for probe in t.probes:
+            assert probe.sql.lstrip().upper().startswith("SELECT"), t.id
+            assert ";" not in probe.sql, f"{t.id}: one statement per probe"
+
+
+@pytest.mark.parametrize("probe,match", [
+    (pp.Probe("p", "DELETE FROM frames"), "not a SELECT"),
+    (pp.Probe("p", "SELECT 1", "sometimes"), "met_when"),
+    (pp.Probe("p", "SELECT 1", "zero", kind="wish"), "kind"),
+])
+def test_validate_rejects_a_malformed_probe(monkeypatch, probe, match):
+    bad = _fixture_project(pp.Phase("P", "i", (
+        replace(_t("a", pp.PENDING), probes=(probe,)),)))
+    monkeypatch.setattr(pp, "PROJECTS", (bad,))
+    with pytest.raises(pp.PlanError, match=match):
+        pp.validate()
+
+
+def test_validate_rejects_a_stage_gate_on_a_stage_that_does_not_exist(
+        monkeypatch):
+    bad = _fixture_project(pp.Phase("P", "i", (
+        replace(_t("a", pp.PENDING), needs_fresh=("S-NOPE",)),)))
+    monkeypatch.setattr(pp, "PROJECTS", (bad,))
+    with pytest.raises(pp.PlanError, match="needs_fresh"):
+        pp.validate()
+
+
+def test_the_u4_probes_ask_for_the_tables_the_stale_blocker_named():
+    """The replacement for the sentence is the query: each formerly
+    blocked detector task that carries a probe asks for an S2 table."""
+    probed = [t for t in pp.ledger_tasks()
+              if any("U4" in p.label for p in t.probes)]
+    assert len(probed) >= 4
+    for t in probed:
+        for p in t.probes:
+            assert p.met_when == "positive" and p.kind == "gate"
+            assert re.search(r"FROM s2_\w+", p.sql), (t.id, p.sql)
+
+
+# ===========================================================================
+# 17.  WHAT THE COMMITTEE RULED, AS THE LEDGER NOW STATES IT
+# ===========================================================================
+
+def test_the_shared_foundation_is_a_group_of_its_own():
+    ids = [t.id for t in pp.FOUNDATION.tasks]
+    assert ids == [f"F-{n}" for n in range(1, 11)] \
+        + [f"G-{n}" for n in range(1, 6)]
+    assert pp.FOUNDATION.title.startswith("Shared foundation")
+    assert pp.FOUNDATION not in pp.PROJECTS
+    assert pp.groups()[0] is pp.FOUNDATION
+    for t in pp.FOUNDATION.tasks:
+        assert t.project == "Shared_Foundation"
+        assert t.source.document == pp.SYNTHESIS_2026_10_03
+        assert t.source.section == f"§3 {t.id}"
+        assert t.ruling and t.accept, t.id
+
+
+def test_the_foundation_is_addressable_but_outside_the_project_totals():
+    """`set F-4 done` must work; the "N of M across six projects" counts
+    must not move for work none of the six owns."""
+    assert pp.task_by_id("F-4").title
+    assert pp.project_of("G-1") is pp.FOUNDATION
+    assert pp.group_of("Shared_Foundation") is pp.FOUNDATION
+    assert "F-4" not in {t.id for t in pp.all_tasks()}
+    assert len(pp.ledger_tasks()) == len(pp.all_tasks()) + 15
+    with pytest.raises(pp.PlanError):
+        pp.group_of("No_Such_Group")
+
+
+def test_a_status_can_be_recorded_against_a_foundation_task(con):
+    pp.record_status(con, "F-4", pp.IN_PROGRESS, note="flat pairs found")
+    assert pp.read_statuses(con) == {"F-4": pp.IN_PROGRESS}
+
+
+def test_the_two_test_resolved_disagreements_are_owned_by_foundation_tasks():
+    assert "D1" in pp.task_by_id("G-1").ruling.findings
+    assert "D2" in pp.task_by_id("F-4").ruling.findings
+
+
+def test_cv_timeseries_is_reopened():
+    """U3: it read 34/34 and it is not finished."""
+    project = pp.PROJECT_BY_KEY["CV_TimeSeries"]
+    revision = [t for t in project.tasks if t.id.startswith("CV-R")]
+    assert [int(t.id.split("-")[1][1:]) for t in revision] \
+        == list(range(1, 16))
+    for t in revision:
+        assert t.status in (pp.PENDING, pp.BLOCKED), t.id
+        assert t.ruling and t.accept, t.id
+    assert "REOPENED" in project.claim
+    assert project.venue.startswith("AJ"), "the venue ruling is AJ, not ApJ"
+    assert "reopened" in project.title.lower()
+
+    # Even with every pre-review task recorded done — which is what the
+    # status table holds — the headline cannot read complete.
+    recorded = {t.id: pp.DONE for t in project.tasks
+                if not t.id.startswith("CV-R")}
+    st = pp.overlay_statuses(project.tasks, recorded)
+    done, in_scope = pp.progress_fraction(
+        pp.status_counts(project.tasks, st))
+    assert (done, in_scope) == (34, 49)
+
+    from macro_core import site
+    assert site.project_condition(project, st).tone != "done"
+
+
+def test_the_cv_band_offset_is_decided_by_test_not_by_the_ledger():
+    """D3 is open: the ledger may not say which way it goes."""
+    assert "D3" in pp.task_by_id("CV-R2-bias-injection").ruling.findings
+    claim = pp.PROJECT_BY_KEY["CV_TimeSeries"].claim
+    assert "NOT decided" in claim
+
+
+@pytest.mark.parametrize("task_id,status", [
+    # U1 — NGC 5548 broadband photometry is dead.
+    ("DW-P41-aperture", pp.DROPPED), ("DW-P42-ensemble", pp.DROPPED),
+    ("DW-P44-statistics", pp.DROPPED), ("DW-P45-gate", pp.DROPPED),
+    ("DW-P53-period-search", pp.DROPPED),
+    ("DW-P56-eclipse-timing", pp.DROPPED),
+    ("DW-P52-subtraction", pp.DROPPED),
+    # U6 — flickering and the period search leave T CrB paper 1.
+    ("TCRB-C3-period-search", pp.DROPPED),
+    ("TCRB-A4-response", pp.DROPPED),
+    ("TCRB-C2-2026-runs", pp.DEFERRED), ("TCRB-P0-restart", pp.DEFERRED),
+    # U7 — the SN model fit is dropped; venue and grism triage are closed.
+    ("SN-S7-model-consistency", pp.DROPPED),
+    ("SN-venue-decision", pp.DONE), ("SN-G0c-grism-triage", pp.DONE),
+    # CLOSE from the archive.
+    ("TCRB-P0-bitdepth", pp.DONE),
+    # Be-star backlog.
+    ("BE-X1-dither-test", pp.DEFERRED),
+    ("BE-X2-season2-observing", pp.DEFERRED),
+])
+def test_the_rulings_are_applied(task_id, status):
+    task = pp.task_by_id(task_id)
+    assert task.status == status
+    assert task.ruling is not None, f"{task_id}: closed with no ruling"
+
+
+@pytest.mark.parametrize("task_id", [
+    "TCRB-N1-novelty-table", "TCRB-N2-eruption-contingency",
+    "TCRB-P0-eruption-block", "TCRB-P0-mech-epoch", "TCRB-P0-gain-ptc",
+    "TCRB-P0-temp-split", "TCRB-A0b-early-spectra", "TCRB-A5b-line-flux",
+    "TCRB-A5a-detection-rule", "TCRB-B0-peak-census",
+    "SN-G0-rerun", "SN-G0d-s2c-broadband", "SN-S6a-flash-colour",
+    "SN-S6-0-excess-gate", "SN-S7b-residuals-table", "SN-S5-template-table",
+    "SN-S5b-peak-epoch",
+    "BE-N1-gate", "BE-S0-era-table", "BE-S0-dispositions",
+    "DW-P4x-broad-halpha-triage", "DW-P4y-zero-order-photometry",
+    "DW-N1-novelty", "DW-P36-0-depth-table",
+    "RIG-L0-dedup-reconcile", "RIG-L0-mech-epoch", "RIG-L1-clock-audit",
+    "RIG-L2-prereg",
+])
+def test_every_task_the_committee_added_exists_with_a_criterion(task_id):
+    task = pp.task_by_id(task_id)
+    assert task.ruling is not None and task.accept.strip()
+    assert task.status in (pp.PENDING, pp.BLOCKED)
+
+
+@pytest.mark.parametrize("task_id", ["TCRB-A9-profiles", "BE-VR-hold"])
+def test_profile_and_vr_work_is_held_pending_d1(task_id):
+    """HOLD is neither dropped nor kept: blocked, on G-1, by ruling D1."""
+    task = pp.task_by_id(task_id)
+    assert task.status == pp.BLOCKED
+    assert task.depends_on == ("G-1",)
+    assert "D1" in task.ruling.findings
+    assert "neither dropped nor kept" in task.blocker
+
+
+def test_the_novelty_gates_come_before_the_pipeline_work():
+    """ED cross-cutting 3: a novelty gate per project, executed first."""
+    assert pp.PROJECT_BY_KEY["TCrB_Monitoring"].tasks[0].id \
+        == "TCRB-N1-novelty-table"
+    assert "TCRB-N1-novelty-table" in \
+        pp.task_by_id("TCRB-A5-ew").depends_on
+    assert pp.task_by_id("BE-N1-gate").depends_on == ("BE-S-1a-bess",)
+    for tid in ("BE-S3-extraction", "BE-S7-ew", "BE-figures"):
+        assert "BE-N1-gate" in pp.task_by_id(tid).depends_on, tid
+    assert "DW-N1-novelty" in pp.task_by_id("DW-P33-stacks").depends_on
+
+
+def test_the_sn_closures_rest_on_the_stage_that_holds_their_verdict():
+    """Both verdicts are rows of sn_g0_verdict.  Bound to S4 or G, their
+    `done` could never go stale when Gate 0 did."""
+    for tid in ("SN-venue-decision", "SN-G0c-grism-triage"):
+        task = pp.task_by_id(tid)
+        assert task.stage == "SN-G0"
+        assert task.evidence == "docs/SN2023ixf_LightCurve/sn_gate0.html"
+    rerun = pp.task_by_id("SN-G0-rerun")
+    assert rerun.needs_fresh == ("S0", "S0c")
+    assert "F-1" in rerun.depends_on
+
+
+def test_the_figure_caps_are_in_the_plan():
+    caps = {"TCRB-D4-figures": "six", "SN-figures": "five",
+            "BE-figures": "six", "DW-figures": "six"}
+    for tid, word in caps.items():
+        task = pp.task_by_id(tid)
+        assert word in task.title.lower(), tid
+        assert task.ruling and "ED" in task.ruling.findings, tid
+
+
+def test_no_title_advertises_a_paper_the_committee_killed():
+    """ED.E6: three skeleton titles and the ledger's own display titles."""
+    titles = {p.key: f"{p.title} {p.paper_title}" for p in pp.PROJECTS}
+    assert "NGC 5548" not in titles["DwarfGalaxy_AGN_Survey"]
+    assert "Early" not in titles["SN2023ixf_LightCurve"]
+    assert "Quiescent Baseline" not in titles["TCrB_Monitoring"]
+    assert "Three-Year" not in titles["TCrB_Monitoring"]
+
+
+def test_the_legacy_archive_is_renamed_but_its_key_is_not():
+    """TE.F10: the premise was wrong; the directory id must survive."""
+    project = pp.PROJECT_BY_KEY["Legacy_Rigel"]
+    assert "Rigel" not in project.title
+    assert "census only" in project.title.lower()
+    assert "different telescope (Rigel System" not in project.claim
+    assert "AC4040" in project.claim, \
+        "the corrected premise: the last legacy camera is the RLMT's own"
+    assert project.ruling and "TE.F10" in project.ruling.findings
+    assert (REPO_ROOT / "docs" / "Legacy_Rigel").exists()
+    assert all(t.id.startswith("RIG-") for t in project.tasks)
+    # Census only: nothing beyond the pre-registered decision is planned.
+    assert [ph.name.split(" — ")[0] for ph in project.phases] \
+        == ["Phase L0", "Phase L1", "Phase L2"]
+    assert "RIG-L2-prereg" in pp.task_by_id("RIG-L2-gonogo").depends_on
+
+
+@pytest.mark.parametrize("project", [p for p in pp.PROJECTS if p.strategy],
+                         ids=lambda p: p.key)
+def test_every_strategy_records_the_amendments_that_bind_it(project):
+    text = (REPO_ROOT / project.strategy).read_text(encoding="utf-8")
+    assert "## 10. Committee amendments 2026-10-03" in text
+    section = pp.split_numbered_sections(text)["10"]
+    assert pp.SYNTHESIS_2026_10_03 in section
+    assert "**Verdict:**" in section and "**Venue:**" in section
+    # Every ruled task of this project is in the section, by id.
+    for t in project.tasks:
+        if t.ruling:
+            assert f"`{t.id}`" in section, (
+                f"{t.id} carries a ruling that §10 of {project.strategy} "
+                f"does not record — re-emit the table with "
+                f"`update_project_plan.py amendments {project.key}`")
+
+
+def test_the_roadmap_records_the_amendments():
+    text = (REPO_ROOT / "ROADMAP.md").read_text(encoding="utf-8")
+    section = pp.split_numbered_sections(text)["0"]
+    assert "### 0.1 Committee amendments 2026-10-03" in section
+    for ruling in [f"U{n}" for n in range(1, 11)] + ["D1", "D2", "D3", "D4"]:
+        assert re.search(rf"\b{ruling}\b", section), ruling
+    # The portfolio table states the venue the ledger holds, verbatim.
+    for project in pp.PROJECTS:
+        assert project.venue in section, project.key
+    # ...and no longer sells the papers the committee ruled out.
+    assert "3 polars + YZ Cnc superhumps" not in section
+    assert "NGC 5548 band-integrated LC" not in section
+
+
+def test_the_project_title_and_venue_changes_cite_a_ruling():
+    for key in ("TCrB_Monitoring", "CV_TimeSeries", "SN2023ixf_LightCurve",
+                "BeStar_Grism", "DwarfGalaxy_AGN_Survey", "Legacy_Rigel"):
+        project = pp.PROJECT_BY_KEY[key]
+        assert project.ruling is not None, key
+        assert project.ruling.findings, key
+
+
+# ===========================================================================
+# 18.  MANUSCRIPT TITLES ARE LEDGER DATA  (ED.E6)
+# ===========================================================================
+
+_TEX = ("\\documentclass{aastex701}\n\\begin{document}\n\n"
+        "\\title{Early Photometry of a Thing}\n\n"
+        "\\author{A. Person}\n% \\title{a commented decoy}\n")
+
+
+def test_manuscript_title_reads_the_title_line():
+    assert pp.manuscript_title(_TEX) == "Early Photometry of a Thing"
+    assert pp.manuscript_title("\\begin{document}") is None
+
+
+def test_with_title_changes_the_title_line_and_nothing_else():
+    new = pp.with_title(_TEX, r"H$\alpha$ of SN~2023ixf, $+5.4$ Days")
+    assert pp.manuscript_title(new) == r"H$\alpha$ of SN~2023ixf, $+5.4$ Days"
+    assert new.replace(r"\title{H$\alpha$ of SN~2023ixf, $+5.4$ Days}",
+                       r"\title{Early Photometry of a Thing}") == _TEX
+    assert "\\\\alpha" not in new, \
+        "a doubled backslash is a LaTeX line break followed by 'alpha'"
+
+
+def test_with_title_refuses_a_manuscript_with_no_title_line():
+    with pytest.raises(pp.PlanError, match="no one-line"):
+        pp.with_title("\\begin{document}\n", "T")
+
+
+def test_the_cv_manuscript_title_is_not_ledger_owned():
+    """The CV draft is hand-edited; `titles --write` must never touch it."""
+    assert pp.PROJECT_BY_KEY["CV_TimeSeries"].paper_title == ""
+    assert pp.PROJECT_BY_KEY["Legacy_Rigel"].paper_title == ""
+
+
+@pytest.mark.parametrize("project",
+                         [p for p in pp.PROJECTS if p.paper_title],
+                         ids=lambda p: p.key)
+def test_the_skeleton_titles_match_the_ledger(project):
+    path = REPO_ROOT / pp.manuscript_path(project)
+    if not path.exists():
+        pytest.skip("manuscripts/ is not tracked; no skeleton on this tree")
+    assert pp.manuscript_title(path.read_text(encoding="utf-8")) \
+        == project.paper_title, (
+        f"re-emit with `update_project_plan.py titles --write`")
+
+
+def test_paper_titles_are_valid_one_line_latex():
+    for project in pp.PROJECTS:
+        title = project.paper_title
+        if not title:
+            continue
+        assert "\n" not in title and "\\\\" not in title, project.key
+        assert title.count("{") == title.count("}"), project.key
+        assert title.count("$") % 2 == 0, project.key
+
+
+# ===========================================================================
+# 19.  THE COMMAND  (show, set, blockers, amendments, titles)
+# ===========================================================================
+
+@pytest.fixture()
+def upp():
+    """The CLI script, loaded as a module (it is a script, not a package)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "_upp_cli",
+        REPO_ROOT / "pipeline" / "scripts" / "update_project_plan.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _args(**kw):
+    return type("A", (), kw)()
+
+
+def _history(manifest):
+    c = sqlite3.connect(manifest)
+    try:
+        return pp.read_history(c)
+    finally:
+        c.close()
+
+
+def test_set_refuses_to_drop_a_task_with_no_ruling(upp, fake_manifest,
+                                                   capsys):
+    """`dropped` is a ruling, not an opinion somebody may type."""
+    task = next(t for t in pp.all_tasks() if t.ruling is None)
+    code = upp.cmd_set(_args(manifest=fake_manifest, task_id=task.id,
+                             status=pp.DROPPED, evidence="", note="",
+                             ruling=""))
+    assert code == 2
+    assert "no ruling" in capsys.readouterr().err
+    assert _history(fake_manifest) == []
+
+
+def test_set_records_a_drop_with_the_ruling_in_the_note(upp, fake_manifest):
+    task = next(t for t in pp.all_tasks() if t.ruling is None)
+    code = upp.cmd_set(_args(
+        manifest=fake_manifest, task_id=task.id, status=pp.DEFERRED,
+        evidence="", note="needs 2027 frames",
+        ruling="SYNTHESIS §4 X (U6)"))
+    assert code == 0
+    (row,) = _history(fake_manifest)
+    assert row[1] == pp.DEFERRED
+    assert row[3] == "ruling: SYNTHESIS §4 X (U6) — needs 2027 frames"
+
+
+def test_set_accepts_the_ledgers_own_ruling(upp, fake_manifest):
+    code = upp.cmd_set(_args(
+        manifest=fake_manifest, task_id="TCRB-C3-period-search",
+        status=pp.DROPPED, evidence="", note="", ruling=""))
+    assert code == 0
+    (row,) = _history(fake_manifest)
+    assert row[3].startswith("ruling: ") and "U6" in row[3]
+
+
+def test_show_prints_done_over_in_scope_with_the_rest_beside_it(
+        upp, fake_manifest, capsys):
+    code = upp.cmd_show(_args(manifest=fake_manifest, project=None,
+                              history=False, live=False))
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "never been synced" in out, \
+        "a listing owes its reader the age of the statuses it prints"
+    assert "Shared foundation (Wave 0)   0/15 in-scope tasks complete" in out
+    dwarf = out.split("Dwarf-Galaxy Candidates")[1].split("=" * 78)[0]
+    assert "in-scope tasks complete" in dwarf
+    assert "outside the count: 7 dropped by ruling, 0 in the 2027 backlog" \
+        in dwarf
+    assert pp.DROPPED_PHASE in out and pp.BACKLOG_PHASE in out
+    # A closed task shows its ruling; a gated one shows a computed reason.
+    assert "ruling: committee/reviews/2026-10-03/SYNTHESIS.md" in out
+    assert "> waiting on G-1 (pending)" in out
+
+
+def test_show_states_the_sync_age_once_a_sync_has_run(upp, fake_manifest,
+                                                      capsys):
+    c = sqlite3.connect(fake_manifest)
+    with c:
+        pp.record_status(c, "TCRB-P0-staging", pp.REDO_NEEDED,
+                         note="sync: stage S0c is STALE",
+                         when="2026-08-20T03:13:38Z")
+    c.close()
+    upp.cmd_show(_args(manifest=fake_manifest, project="TCrB_Monitoring",
+                       history=False, live=False))
+    assert "statuses last synced 2026-08-20T03:13:38Z" \
+        in capsys.readouterr().out
+
+
+def test_show_live_prints_what_a_sync_would_leave(upp, fake_manifest,
+                                                  capsys, monkeypatch):
+    """Never an unsynced count: with --live the statuses printed are the
+    ones `sync` would record, and the listing says how many differ."""
+    monkeypatch.setattr(pp, "stage_freshness", _fake_freshness)
+    code = upp.cmd_show(_args(manifest=fake_manifest,
+                              project="TCrB_Monitoring", history=False,
+                              live=True))
+    out = capsys.readouterr().out
+    assert code == 0 and "LIVE view" in out
+    # TCRB-P0-staging is `done` in the ledger on S0c, which the fake DAG
+    # reports STALE_UPSTREAM; the live view must not print it as done.
+    line = next(l for l in out.splitlines() if "TCRB-P0-staging" in l)
+    assert pp.REDO_NEEDED in line
+    assert "run `sync` to record them" in out
+
+
+def test_show_rejects_an_unknown_group(upp, fake_manifest, capsys):
+    assert upp.cmd_show(_args(manifest=fake_manifest, project="Nope",
+                              history=False, live=False)) == 2
+    assert "Shared_Foundation" in capsys.readouterr().err
+
+
+def test_blockers_reports_computed_gates(upp, fake_manifest, capsys):
+    code = upp.cmd_blockers(_args(manifest=fake_manifest,
+                                  project="TCrB_Monitoring", live=False))
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "TCRB-A3-wavelength" in out and "> waiting on G-1" in out
+    assert "TCRB-A9-profiles" in out and "HELD by ruling D1" in out
+    assert "TCRB-C3-period-search" not in out, "a dropped task has no blocker"
+
+
+def test_blockers_flags_a_blocker_the_database_contradicts(
+        upp, tmp_path, monkeypatch, capsys):
+    """The U4 failure, as a check: a task recorded blocked whose only gate
+    is a table that is sitting in the database with rows in it."""
+    manifest = tmp_path / "m.sqlite"
+    c = sqlite3.connect(manifest)
+    c.execute("CREATE TABLE s2_ptc_fits (x INT)")
+    c.execute("INSERT INTO s2_ptc_fits VALUES (1)")
+    c.commit()
+    c.close()
+    stale = replace(
+        _t("a", pp.BLOCKED), blocker="S2's tables are missing.",
+        probes=(pp.Probe("s2_ptc_fits rows",
+                         "SELECT count(*) FROM s2_ptc_fits", "positive"),))
+    honest = replace(
+        _t("b", pp.BLOCKED), blocker="No table yet.",
+        probes=(pp.Probe("mech_epoch rows",
+                         "SELECT count(*) FROM mech_epoch", "positive"),))
+    monkeypatch.setattr(pp, "PROJECTS", (_fixture_project(
+        pp.Phase("P", "i", (stale, honest))),))
+    code = upp.cmd_blockers(_args(manifest=manifest, project="X",
+                                  live=False))
+    captured = capsys.readouterr()
+    assert code == 1
+    assert captured.out.count("CONTRADICTED") == 1
+    assert "1 blocker(s) contradicted" in captured.err
+
+
+def test_blockers_flags_a_done_task_whose_acceptance_probe_is_unmet(
+        upp, tmp_path, monkeypatch, capsys):
+    """The mirror image: recorded done, and the manifest disagrees."""
+    manifest = tmp_path / "m.sqlite"
+    c = sqlite3.connect(manifest)
+    c.execute("CREATE TABLE frames (is_twin INT)")
+    c.executemany("INSERT INTO frames VALUES (?)", [(1,), (1,), (0,)])
+    c.commit()
+    c.close()
+    task = replace(
+        _t("a", pp.DONE), evidence="x",
+        probes=(pp.Probe("twins still canonical",
+                         "SELECT count(*) FROM frames WHERE is_twin = 1",
+                         "zero", kind="accept"),))
+    monkeypatch.setattr(pp, "PROJECTS", (_fixture_project(
+        pp.Phase("P", "i", (task,))),))
+    code = upp.cmd_blockers(_args(manifest=manifest, project="X",
+                                  live=False))
+    out = capsys.readouterr().out
+    assert code == 1
+    assert "recorded done, but its acceptance probe is not met" in out
+    assert "twins still canonical: 2" in out
+
+
+def test_amendments_emits_one_row_per_ruled_task(upp, capsys):
+    code = upp.cmd_amendments(_args(project="DwarfGalaxy_AGN_Survey"))
+    out = capsys.readouterr().out
+    assert code == 0
+    rows = [l for l in out.splitlines() if l.startswith("| `")]
+    project = pp.PROJECT_BY_KEY["DwarfGalaxy_AGN_Survey"]
+    assert len(rows) == sum(1 for t in project.tasks if t.ruling)
+    by_id = {r.split("`")[1]: r.split(" | ")[1] for r in rows}
+    assert by_id["DW-P41-aperture"] == "DROP"
+    assert by_id["DW-N1-novelty"] == "ADD"
+    assert by_id["DW-P04-noise-model"] == "CHANGE"
+    assert upp.cmd_amendments(_args(project="Nope")) == 2
+
+
+def test_the_ledger_uses_every_one_of_the_committees_verbs():
+    verbs = {pp.ruling_action(t) for t in pp.ledger_tasks() if t.ruling}
+    assert verbs == set(pp.RULING_ACTIONS)
+
+
+@pytest.mark.parametrize("task_id,verb", [
+    ("CV-R1-band-offset", "ADD"),
+    ("CV-R15-release-readiness", "ADD"),     # blocked on James — not a HOLD
+    ("TCRB-A3-wavelength", "CHANGE"),
+    ("TCRB-A4-response", "DROP"),
+    ("TCRB-C2-2026-runs", "DEFER"),
+    ("TCRB-A9-profiles", "HOLD"),
+    ("BE-VR-hold", "HOLD"),
+    ("TCRB-P0-bitdepth", "CLOSE"),
+    ("SN-venue-decision", "CLOSE"),
+    ("TCRB-P0-ladders", "UNBLOCK"),
+    ("F-4", "ADD"),
+    ("RIG-L2-prereg", "ADD"),
+    ("RIG-L2-gonogo", "CHANGE"),
+])
+def test_ruling_action_is_the_committees_verb(task_id, verb):
+    assert pp.ruling_action(pp.task_by_id(task_id)) == verb
+
+
+def test_a_task_with_no_ruling_has_no_verb():
+    assert pp.ruling_action(_task("a")) == ""
+
+
+@pytest.mark.parametrize("status,action,match", [
+    (pp.PENDING, "POSTPONE", "not one of"),
+    (pp.DROPPED, "DEFER", "contradicts"),
+    (pp.PENDING, "DROP", "on a task whose status"),
+])
+def test_validate_rejects_a_verb_that_contradicts_the_task(
+        monkeypatch, status, action, match):
+    phase = {pp.DROPPED: pp._dropped_phase}.get(
+        status, lambda *ts: pp.Phase("P", "i", ts))
+    task = replace(_ruled_task("a", status),
+                   ruling=pp.Ruling("§4 X", ("U1",), action=action))
+    monkeypatch.setattr(pp, "PROJECTS", (_fixture_project(phase(task)),))
+    with pytest.raises(pp.PlanError, match=match):
+        pp.validate()
+
+
+def test_titles_reports_a_mismatch_and_writes_only_the_title_line(
+        upp, tmp_path, monkeypatch, capsys):
+    project = pp.PROJECT_BY_KEY["SN2023ixf_LightCurve"]
+    path = tmp_path / pp.manuscript_path(project)
+    path.parent.mkdir(parents=True)
+    path.write_text(_TEX, encoding="utf-8")
+    monkeypatch.setattr(upp, "REPO_ROOT", tmp_path)
+
+    assert upp.cmd_titles(_args(write=False)) == 1
+    assert path.read_text(encoding="utf-8") == _TEX, "a check must not write"
+    assert "title differs from the ledger" in capsys.readouterr().out
+
+    assert upp.cmd_titles(_args(write=True)) == 0
+    tex = path.read_text(encoding="utf-8")
+    assert pp.manuscript_title(tex) == project.paper_title
+    assert tex.count("\n") == _TEX.count("\n")
+    assert "\\author{A. Person}" in tex
+    assert upp.cmd_titles(_args(write=False)) == 0
