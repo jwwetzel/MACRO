@@ -232,7 +232,8 @@ RELEASE_DB_FILE = {"cv": "cv_timeseries.sqlite",
 #: the build fails: the alternative is a macro whose provenance is a typo,
 #: silently reclassified as "not a measurement".
 EXTERNAL_SOURCE_RE = re.compile(
-    r"^(ANALYSIS_STRATEGY §\d+|VSX catalogue|literature:|CV-S\d+ constant)")
+    r"^(ANALYSIS_STRATEGY §\d+|VSX catalogue|literature:|CV-S\d+ constant"
+    r"|CV-R constant)")
 
 
 def _table_names(con: sqlite3.Connection) -> set:
@@ -334,6 +335,96 @@ def render_tex(numbers: Sequence[Number], stamp: str = "") -> str:
 # ===========================================================================
 # Small query helpers
 # ===========================================================================
+def fmt_pvalue(value: Any) -> Optional[str]:
+    """A p-value: three decimals down to 0.001, scientific below it.
+
+    ``0.0039`` prints as ``0.004`` and ``0.00012`` as ``1.2 \\times
+    10^{-4}``.  Never ``0.000``: a p-value that rounds to zero in print has
+    been turned into a claim of certainty by a format string.
+    """
+    if value is None:
+        return None
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(v):
+        return None
+    if v >= 0.0995:
+        return f"{v:.2f}"
+    if v >= 0.001:
+        return f"{v:.3f}"
+    return fmt_sci(v, 1)
+
+
+#: ``rv_result.fmt`` -> the formatter that typesets it.  The revision stage
+#: stores a format NAME beside every scalar so that how a number is printed
+#: is decided once, where the number is made, and this module only obeys.
+_RV_FORMATTERS = {
+    "int": fmt_int,
+    "f0": lambda v: fmt_float(v, 0), "f1": lambda v: fmt_float(v, 1),
+    "f2": lambda v: fmt_float(v, 2), "f3": lambda v: fmt_float(v, 3),
+    "f4": lambda v: fmt_float(v, 4), "f6": lambda v: fmt_float(v, 6),
+    "f8": lambda v: fmt_float(v, 8),
+    "sci1": lambda v: fmt_sci(v, 1), "sci2": lambda v: fmt_sci(v, 2),
+    "p": fmt_pvalue, "pct": lambda v: fmt_percent(v, 1),
+}
+
+
+def revision_numbers(cv: sqlite3.Connection) -> list[Number]:
+    """Every scalar of the committee revision (CV-R1...R8), as macros.
+
+    ``pipeline/scripts/run_cv_revision.py`` writes one row of ``rv_result``
+    per value the revised manuscript may quote: the key, the value, its
+    unit, a format name, the stage that produced it, its origin and the
+    clause a referee needs.  This function turns each row into a
+    :class:`Number` and adds nothing of its own, so the revision's numbers
+    obey the same law as the first draft's: emitted from a database by a
+    script, never typed.
+
+    ``origin`` decides the provenance a macro carries.  ``measured`` rows
+    name ``rv_result`` as their source table (and resolve to the photometry
+    database like any other measurement); ``constant`` rows are choices the
+    revision stage made in code and carry ``CV-R constant``; ``literature``
+    rows are external physical scales and carry ``literature:``.  Both of
+    the latter are ``kind='external'`` in ``p5_number``, so the one query
+    that separates this paper's measurements from everything else still
+    separates them.
+
+    Returns an empty list when the revision stage has not run, so the first
+    draft's macro file can still be built from a database that predates it.
+    """
+    have = {r[0] for r in cv.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'")}
+    if "rv_result" not in have:
+        return []
+    out = []
+    for r in rows(cv, "SELECT key, value, text, unit, fmt, stage, origin, "
+                      "note FROM rv_result ORDER BY stage, key"):
+        if r["fmt"] == "text":
+            body = r["text"]
+        else:
+            fn = _RV_FORMATTERS.get(r["fmt"])
+            if fn is None:
+                raise ValueError(f"rv_result {r['key']!r} has unknown "
+                                 f"format {r['fmt']!r}")
+            body = fn(r["value"])
+        origin = (r["origin"] or "measured")
+        if origin == "measured":
+            source = "rv_result"
+        elif origin == "constant":
+            source = (f"CV-R constant (run_cv_revision.py, stage "
+                      f"{r['stage']})")
+        elif origin == "literature":
+            source = "literature: external physical scale, see note"
+        else:
+            raise ValueError(f"rv_result {r['key']!r} has unknown origin "
+                             f"{origin!r}")
+        out.append(Number(r["key"], body, r["unit"] or "", source,
+                          f"[{r['stage']}] {r['note']}"))
+    return out
+
+
 def one(con: sqlite3.Connection, sql: str, args: Sequence = ()) -> Any:
     """First column of the first row, or None."""
     r = con.execute(sql, tuple(args)).fetchone()
@@ -780,10 +871,22 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         # never determines.  Its source is the catalogue, not the table the
         # ephemeris stage parked it in -- a reader separating our
         # measurements from everything else must not find it among ours.
+        # WHAT "VSX" MEANS FOR ST LMi (cv-literature L1).  Its VSX period
+        # and epoch were set on 2025-11-12 by the VSX moderator "from AAVSO
+        # data": there is no paper behind them, no published error and no
+        # documented fiducial.  The note says so, because a reader who
+        # takes "catalogue ephemeris" to mean a published one will look for
+        # an uncertainty that does not exist.
+        vsx_caveat = (
+            "; for ST LMi this VSX value was set from AAVSO data by the "
+            "catalogue's moderator (2025-11-12) and carries no published "
+            "error -- the only published period error is Cropper's (1986)"
+            if tgt == "stlmi" else "")
         add(f"{tag} period d", fmt_float(p, 8), unit="d",
             source="VSX catalogue",
             note="published VSX orbital period, not measured here; the "
-                 "ephemeris stage stores it in p3_ephemeris.period_d")
+                 "ephemeris stage stores it in p3_ephemeris.period_d"
+                 + vsx_caveat)
         add(f"{tag} period min", fmt_float(None if p is None
                                            else float(p) * 1440.0, 1),
             unit="min", source="VSX catalogue",
@@ -1656,7 +1759,11 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     add("st lmi drift cycles", fmt_float(st_cc.get("drift_cycles"), 4),
         unit="cycles", source="p3_cycle_count",
         note="accumulated phase drift at the catalogue period's quoted "
-             "precision; the integer cycle count survives it")
+             "precision, i.e. under an ASSUMED error of half the last "
+             "printed digit; the integer cycle count survives it.  "
+             "SUPERSEDED: under the only published period error (Cropper "
+             "1986) the drift is the rv cycle drift cropper macro, sixteen "
+             "times larger and still well below half a cycle")
     add("st lmi fitted period d",
         fmt_float(st_cc.get("fitted_period_night_d"), 8), unit="d",
         source="p3_cycle_count",
@@ -1878,7 +1985,19 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         note="P / |dP/dt| at the 3-sigma bound: the shortest period-change "
              "timescale these epochs are consistent with")
     # =====================================================================
-    # THE INTER-BAND OFFSET: A NON-DETECTION, PUBLISHED AS ONE
+    # THE INTER-BAND OFFSET, AS THE FIRST DRAFT STATED IT -- SUPERSEDED
+    # ---------------------------------------------------------------------
+    # COMMITTEE REVIEW 2026-10-03 (DS.F1, RF.B1): the macros in this block
+    # quote ``p3_band_pair``'s budget-propagated intervals and a 3-sigma
+    # flag.  Those intervals are about twice the scatter the pairs
+    # themselves show (chi2nu 0.2-0.3 on 11 degrees of freedom), and read
+    # as a null they contradict the paper's own edges.  The block is KEPT so
+    # the first draft still compiles and so the macro-by-macro diff of the
+    # rebuild has a baseline; every note below now says what its number is
+    # and is not.  The revised paper quotes the ``\NumRvOff...`` macros
+    # emitted from ``rv_band_offset`` by :func:`revision_numbers`.
+    #
+    # What follows is the first draft's own rationale, left as written.
     # ---------------------------------------------------------------------
     # An earlier revision put "the epoch of a bright-phase edge is band
     # dependent" in the abstract and the conclusions.  Every row of
@@ -1901,8 +2020,11 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     add("band pairs significant",
         fmt_int(sum(1 for r in bp if r["significant"])),
         source="p3_band_pair",
-        note="ZERO. No band pair, pooled or per night, reaches the "
-             "3-sigma bar, and no pooled pair reaches even 2 sigma")
+        note="rows of p3_band_pair carrying the stage's own significance "
+             "flag. SUPERSEDED as an inference by the 2026-10-03 review: "
+             "most rows are single nights with one to three paired cycles "
+             "that could reach no bar, so a count over rows is not a test; "
+             "the paired tests are in rv_band_offset")
     add("band pair sigma bar", fmt_int(3), source="ANALYSIS_STRATEGY §4",
         note="set in advance by ANALYSIS_STRATEGY §4: the significance a "
              "band-to-band offset must reach to be "
@@ -1915,16 +2037,21 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
                  f"{top['n_cycles']} paired cycles")
         add("band offset top s", fmt_float(top["delta_s"], 0), unit="s",
             source="p3_band_pair",
-            note="that pair's pooled edge-time difference; a value, not a "
-                 "detection -- its own error bar is larger than it is")
+            note="that pair's pooled edge-time difference, weighted by "
+                 "the budget errors; the scatter-based estimate and its "
+                 "tests are in rv_band_offset")
         add("band offset top err s", fmt_float(top["sigma_s"], 0), unit="s",
             source="p3_band_pair",
-            note="the error bar on that difference, pooled over the same "
-                 "cycles")
+            note="the BUDGET-PROPAGATED error on that difference, pooled "
+                 "over the same cycles; the pairs' own chi2nu shows it is "
+                 "over-stated about twofold, so it is not the error the "
+                 "revised paper quotes")
         add("band offset top sigma",
             fmt_float(abs(top["delta_s"]) / top["sigma_s"], 1),
             source="p3_band_pair",
-            note="its significance: the largest any band pair here reaches")
+            note="that difference divided by its budget-propagated error; "
+                 "NOT the significance of the offset, which the paired "
+                 "tests in rv_band_offset give")
         add("band offset top cycles", fmt_int(top["n_cycles"]),
             source="p3_band_pair",
             note="paired cycles behind that pooled difference: cycles timed "
@@ -1983,7 +2110,9 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
             fmt_range(min(r["delta_s"] for r in pooled),
                       max(r["delta_s"] for r in pooled), 0, dash=" to "),
             unit="s", source="p3_band_pair",
-            note="every pooled offset; all are consistent with zero")
+            note="every pooled offset, budget-weighted; whether any "
+                 "differs from zero is decided by rv_band_offset, not by "
+                 "this range")
     add("st lmi phase spread", fmt_float(st_cc.get("phase_spread"), 3),
         unit="cycles", source="p3_cycle_count",
         note="circular scatter of the accepted edges; below the bar that "
@@ -2403,11 +2532,33 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
          if r["amp_above_quiescence"] is not None), default=None), 2),
         unit="mag", source="p4_outburst",
         note="brightest dense run above quiescence")
-    add("superoutburst amp", fmt_float(3.0, 1), unit="mag",
-        source="ANALYSIS_STRATEGY §4",
-        note="the amplitude a superoutburst reaches, set in advance by "
-             "ANALYSIS_STRATEGY §4: the peak above is "
-             "1.14 mag short of it")
+    # THE SUPEROUTBURST AMPLITUDE IS A LITERATURE VALUE, AND IT IS 4.0 MAG.
+    # Until the 2026-10-03 review this macro printed 3.0 and sourced it to
+    # the analysis strategy.  3.0 mag is the THRESHOLD CV-S7's episode
+    # classifier applies (external.SUPEROUTBURST_AMP_MIN), and it is about
+    # the amplitude of a NORMAL outburst of YZ Cnc (hakala2004: 15.2 to
+    # 12.2); the star's superoutbursts reach 4.0 mag (kato2002, Table 3:
+    # 15.0 to 11.0).  Printing the threshold as "the amplitude a
+    # superoutburst reaches" understated it by a magnitude (PH.P5;
+    # cv-literature L9).  The two numbers are now two macros.
+    _super_amp = 4.0
+    _peak_amp = max((r["amp_above_quiescence"] for r in ob
+                     if r["amp_above_quiescence"] is not None),
+                    default=None)
+    add("superoutburst amp", fmt_float(_super_amp, 1), unit="mag",
+        source="literature: kato2002, Table 3 (15.0 - 11.0 mag)",
+        note="amplitude of a YZ Cnc superoutburst from the literature "
+             "(Kato et al. 2002: minimum 15.0, supermaximum 11.0); the "
+             "brightest dense run above is "
+             + (f"{_super_amp - _peak_amp:.2f}" if _peak_amp is not None
+                else "an unmeasured number of")
+             + " mag short of it")
+    add("superoutburst amp threshold", fmt_float(3.0, 1), unit="mag",
+        source="CV-S7 constant",
+        note="smallest peak amplitude the episode classifier accepts as a "
+             "superoutburst, set by CV-S7 (external.SUPEROUTBURST_AMP_MIN); "
+             "a classification threshold applied together with a plateau "
+             "of 8 d, not the amplitude a superoutburst reaches")
     blo, bhi = _minmax([r["amp90_blind"] for r in ob], 1000.0)
     add("blind contour range mmag", fmt_range(blo, bhi, 0), unit="mmag",
         source="p4_outburst",
@@ -2425,11 +2576,16 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     # and §5.4 introduces it as exactly that.
     add("superhump floor mmag", fmt_float(_median(
         [r["superhump_floor"] for r in ob], 1000.0), 0), unit="mmag",
-        source="literature: SU UMa superhump semi-amplitudes",
-        note="lower edge of published superhump semi-amplitudes for SU UMa "
-             "stars, set by CV-S10 (SUPERHUMP_SEMI_AMP_FLOOR = 0.050 mag) "
-             "and stamped onto every p4_outburst row; never a measurement "
-             "of YZ Cnc")
+        source="literature: SU UMa superhump semi-amplitudes (NO NAMED "
+               "SOURCE)",
+        note="the 'floor' of superhump semi-amplitudes the first draft "
+             "compared its contours with, set by CV-S10 "
+             "(SUPERHUMP_SEMI_AMP_FLOOR = 0.050 mag) and stamped onto every "
+             "p4_outburst row.  The literature search of 2026-10-03 found "
+             "NO published source for it; SUPERSEDED by the published peak "
+             "semi-amplitudes of 125 mmag (smak2010, kato2012) and 150 mmag "
+             "(dai2026), emitted as the rv sh peak / tess macros.  Never a "
+             "measurement of YZ Cnc")
     # Dense RUNS are nights, not run-filters: three filters through one
     # night are one run seen three ways.
     add("yz cnc dense runs", fmt_int(one(
@@ -2647,6 +2803,14 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
         fmt_int(sum(1 for d in _fig_dbs if len(d) > 1)) if _fig_dbs else None,
         source="p5_figure",
         note="figures drawn from more than one released database at once")
+
+    # -- The committee revision (CV-R1...R8) ----------------------------
+    # Every scalar the revision stage produced, appended BEFORE the census
+    # below so the release's description of itself counts them.  They are
+    # additive: no first-draft macro above is redefined or removed, so
+    # ``main.tex`` compiles unchanged until the manuscript package starts
+    # using them.
+    N.extend(revision_numbers(cv))
 
     # -- §7 The release describing itself -------------------------------
     # §7 used to say the release was "a single SQLite database", and 31 of

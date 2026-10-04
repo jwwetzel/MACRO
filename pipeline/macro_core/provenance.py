@@ -40,6 +40,28 @@ and says which consumer reads them.  A resource with no spec raises
 :class:`ProvenanceError` rather than guessing — a wrong answer must never
 be cheaper to produce than an honest failure.
 
+DATA DIGESTS AND PAGE DIGESTS ARE DIFFERENT QUESTIONS  (F-7, 2026-10-03)
+----------------------------------------------------------------------
+A stage can write two kinds of thing: DATA (tables, a catalog, a
+hand-authored document that quotes numbers) and rendered PAGES
+(``docs/**.html``).  Until 2026-10-03 a moved page digest was treated like
+a moved data digest, and that single rule took the whole status board
+down: the site rebuild of 2026-08-21 restyled ``s0e_geometry_fix.html``,
+S0e — the root of the DAG — read STALE because its page had been "written
+out of band", and all forty stages downstream inherited the verdict.  A
+board on which everything is stale carries no information, and the real
+staleness (S2c had run seven minutes before S0 rebuilt ``frames``) was
+sitting underneath it, unreadable.
+
+The rule now: **a verdict is about data.**  A changed PAGE digest is
+recorded in ``Freshness.page_reasons`` and printed, but it does not change
+``Freshness.state``, does not propagate to any consumer, and does not
+affect an exit code.  This is safe for a structural reason the tests pin
+down (``test_no_stage_reads_a_page``): no stage in the DAG takes a rendered
+page as an INPUT.  A page is a leaf.  Whatever numbers it shows, it shows
+because of the data its stage read — and those inputs are fingerprinted as
+data, so a page that is out of date with its tables still reads STALE.
+
 WHAT IS PURE HERE
 -----------------
 Everything that decides anything: :func:`digest_rows`, :func:`digest_bytes`,
@@ -78,6 +100,7 @@ __all__ = [
     "fingerprint_resource",
     "fingerprint_all",
     "read_version_constant",
+    "is_page_resource",
     "FRESH",
     "STALE",
     "STALE_UPSTREAM",
@@ -96,13 +119,26 @@ __all__ = [
     "read_records",
     "recorded_run_times",
     "PROVENANCE_TABLE",
+    "SNAPSHOT_SCHEMA",
+    "snapshot_database",
+    "snapshot_file",
+    "compare_snapshots",
+    "REQUIRE_PRODUCTS_ENV",
+    "is_absent_product_skip",
 ]
 
 # Version stamp written into every stage_provenance row.  Bump it whenever
 # a change here would alter a stored digest (a changed column list, a
 # changed canonicalization rule) — otherwise a later reader would compare
 # a v1 digest against a v2 digest and read a rule change as a data change.
-PROVENANCE_CODE_VERSION = "P v1.0 (2026-08-18)"
+#
+# v1.1 (2026-10-03): page digests no longer decide a verdict (F-7); table
+# specs may name OPTIONAL columns, hashed when the table has them; the
+# mechanical-epoch and hardware-column resources are declared.  A record
+# written under v1.0 remains comparable: no existing column list changed,
+# and an optional column only enters a digest once its stage has been
+# re-run to produce it — at which point the digest SHOULD move.
+PROVENANCE_CODE_VERSION = "P v1.1 (2026-10-03)"
 
 #: Name of the table this module owns inside the manifest database.
 PROVENANCE_TABLE = "stage_provenance"
@@ -140,6 +176,20 @@ class ResourceSpec:
     ``columns``   the exact columns hashed.  SQL expressions are allowed so
                   a volatile representation can be normalized (rounding a
                   REAL, collapsing an error string to a boolean).
+    ``optional``  columns hashed ONLY when the table has them.  A column a
+                  later code version adds (``mech_epoch`` on the stage
+                  tables) must not make ``status`` crash on a manifest
+                  built before it existed; hashing it when present means
+                  the digest moves exactly when the stage is re-run to
+                  produce it, which is a true change.  Plain column NAMES
+                  only — no expressions — because presence is tested by
+                  name.
+    ``requires``  plain column names that MUST exist; when any is missing
+                  the resource is reported absent (``present=False``).
+                  For a resource that IS a set of columns (the hardware
+                  columns of ``frames``): before the stage that adds them
+                  has run, the honest fingerprint is "not there", not a
+                  hash of something else.
     ``where``     OPTIONAL row-scope predicate.  See ROW SCOPE below.
     ``scope_of``  when this spec is a SLICE of another resource, the key of
                   the whole-table resource it slices.  Reporting only; it
@@ -177,14 +227,39 @@ class ResourceSpec:
     database: Optional[str] = None
     where: str = ""
     scope_of: str = ""
+    optional: tuple[str, ...] = ()
+    requires: tuple[str, ...] = ()
+
+    @property
+    def is_page(self) -> bool:
+        """True for a rendered HTML page — a PRESENTATION artifact.
+
+        The one property the page/data split turns on (see the module
+        docstring).  Deliberately narrow: only ``.html`` files.  A
+        hand-authored Markdown document (the observatory request, a
+        strategy) is DATA here — nothing re-renders it cosmetically, so a
+        changed byte in it is a changed claim.
+        """
+        return self.kind == "file" and self.name.lower().endswith(".html")
+
+
+def is_page_resource(key: str) -> bool:
+    """Is the resource registered under ``key`` a rendered page?  An
+    undeclared key is not a page (and :func:`fingerprint_all` will already
+    have refused it)."""
+    spec = RESOURCES.get(key)
+    return bool(spec and spec.is_page)
 
 
 def _t(key: str, name: str, order_by: str, columns: Sequence[str],
-       why: str, where: str = "", scope_of: str = "") -> ResourceSpec:
+       why: str, where: str = "", scope_of: str = "",
+       optional: Sequence[str] = (), requires: Sequence[str] = ()
+       ) -> ResourceSpec:
     """Shorthand constructor for a manifest-table resource."""
     return ResourceSpec(key=key, kind="table", name=name, order_by=order_by,
                         columns=tuple(columns), why=why, where=where,
-                        scope_of=scope_of)
+                        scope_of=scope_of, optional=tuple(optional),
+                        requires=tuple(requires))
 
 
 # --- the resource registry -------------------------------------------------
@@ -299,13 +374,42 @@ _reg(_t(
     scope_of="table:frames"))
 
 _reg(_t(
+    "table:frames:hardware", "frames", "obs_rowid",
+    ["obs_rowid", "coalesce(camera,'')", "coalesce(hdr_gain,'')",
+     "round(coalesce(hdr_offset,-999),3)", "round(coalesce(set_temp,-999),2)",
+     "coalesce(flipstat,char(0))", "coalesce(fwallnam,char(0))",
+     "coalesce(fwpos,-1)", "coalesce(telpier,char(0))", "hdr_scanned"],
+    "The hardware-state columns the 2026-10-03 header re-scrape added to "
+    "frames (F-2): which camera, at which gain/offset setting and set-point, "
+    "in which flip state, behind which wheel map.  A SEPARATE resource from "
+    "table:frames so that the frame-level fingerprint every older record "
+    "holds stays comparable; consumers that branch on hardware (S0b's "
+    "mechanical epochs, the detector campaign's set-point split) read this "
+    "one.  flipstat/fwallnam/telpier coalesce to NUL, not '', because a "
+    "blank card and an absent card are different facts here.  LEFT OUT: "
+    "coolpowr and focpos (per-exposure telemetry — they move on every frame "
+    "without changing which calibration applies), camname/fwname/xpixsz "
+    "(already folded into camera).",
+    # NOT declared with scope_of: a scoped spec is by definition the same
+    # columns over fewer rows (a test enforces it), and this is different
+    # columns.  The ':' in the key, against the '@' of the row slices,
+    # marks the difference.
+    where="is_canonical = 1",
+    requires=("camera", "hdr_gain", "hdr_offset", "set_temp", "flipstat",
+              "fwallnam", "fwpos", "telpier", "hdr_scanned")))
+
+_reg(_t(
     "table:eras", "eras", "era_id",
     ["era_id", "coalesce(readoutm,'')", "naxis1", "naxis2", "xbinning",
      "coalesce(egain,-1)", "n_frames", "coalesce(first_night,'')",
      "coalesce(last_night,'')"],
     "The era registry is small and every column is consumed: S0b keys the "
     "calibration spec on (era, readoutm, geometry), S2 groups readout modes, "
-    "the ops shopping list quotes era spans verbatim.  Nothing is left out."))
+    "the ops shopping list quotes era spans verbatim.  Nothing is left out.  "
+    "alias_of_era (2026-10-03, F-1) is hashed when present: whether an era "
+    "holds exposures of its own or is the reduced copy of another is a fact "
+    "a consumer counting eras must see.",
+    optional=("alias_of_era", "n_canonical")))
 
 _reg(_t(
     "table:aliases", "aliases", "raw_name",
@@ -334,8 +438,11 @@ _reg(_t(
     ["obs_rowid", "coalesce(era_id,-1)", "kind", "round(coalesce(exptime_bin,-1),4)",
      "lower(coalesce(filter,''))", "is_master"],
     "What calibration exists, in which era, of which kind — the input to "
-    "coverage, to S0c's era_exact calibration staging, and to G's master-dark "
-    "path.  LEFT OUT: path/night/camtemp (not read by any consumer's rule)."))
+    "coverage, to S0c's calibration staging, and to G's master-dark "
+    "path.  LEFT OUT: path/night/camtemp (not read by any consumer's rule).  "
+    "mech_epoch/detector_epoch/epoch_certain (2026-10-03, F-3) are hashed "
+    "when present: they decide which science frame a calibration may serve.",
+    optional=("mech_epoch", "detector_epoch", "epoch_certain")))
 
 _reg(_t(
     "table:calib_coverage", "calib_coverage", "era_id, req_kind, coalesce(req_key,'')",
@@ -353,6 +460,50 @@ _reg(_t(
     "these rows by number.  Every column in it is quoted, so every column is "
     "hashed."))
 
+# ---- S0b outputs: the mechanical-epoch layer (F-3, 2026-10-03) -------------
+_reg(_t(
+    "table:mech_epoch", "mech_epoch", "seq",
+    ["mech_epoch", "camera", "first_night", "last_night", "boundary_cause",
+     "detector_epoch", "coalesce(flipstat,char(0))",
+     "coalesce(wheel_map,char(0))", "n_gap_nights"],
+    "The hardware history beneath the eras: one row per mechanical state of "
+    "the telescope (camera, flip state, wheel map, measured sky rotation), "
+    "with the night it began and why.  Hashed on the columns that DEFINE an "
+    "epoch.  LEFT OUT: rotation_deg/step_deg and their errors (floats "
+    "recomputed from the solves on every build; a moved boundary changes "
+    "first_night, which is hashed), and the per-epoch frame and transition "
+    "counts (they grow with every ingest without moving a boundary)."))
+
+_reg(_t(
+    "table:night_mech_epoch", "night_mech_epoch", "camera, night",
+    ["camera", "night", "mech_epoch", "detector_epoch", "certain"],
+    "Which mechanical epoch each (camera, night) belongs to, and whether "
+    "that placement is certain.  This is the table calibration matching "
+    "actually joins: a flat serves a science frame only inside one "
+    "mech_epoch, a dark or bias only inside one detector_epoch.  LEFT OUT: "
+    "the night's own rotation statistics (evidence, not a decision)."))
+
+_reg(_t(
+    "table:calib_coverage_mech", "calib_coverage_mech",
+    "era_id, coalesce(mech_epoch,''), req_kind, coalesce(req_key,'')",
+    ["era_id", "coalesce(mech_epoch,'')", "req_kind", "coalesce(req_key,'')",
+     "n_science", "n_calib_raw", "n_calib_master", "n_unverified",
+     "spec_n", "status"],
+    "Calibration coverage re-counted per (era, mechanical epoch) under the "
+    "boundary rule and the DE.F5 settings key — the hardware-true version of "
+    "table:calib_coverage, which counts per header era only and is kept for "
+    "the published S0b page."))
+
+_reg(_t(
+    "table:calib_gaps_mech", "calib_gaps_mech",
+    "era_id, coalesce(mech_epoch,''), need_kind, spec",
+    ["era_id", "coalesce(mech_epoch,'')", "need_kind", "spec", "have_raw",
+     "have_master", "status", "n_science_frames_blocked",
+     "coalesce(projects_affected,'')"],
+    "The acquisition list implied by table:calib_coverage_mech.  Every "
+    "column is quotable in an observatory request, so every column is "
+    "hashed."))
+
 # ---- S0c outputs ----------------------------------------------------------
 for _proj, _tbl in (("bestar", "stage_bestar_grism"),
                     ("cv", "stage_cv_timeseries"),
@@ -363,7 +514,10 @@ for _proj, _tbl in (("bestar", "stage_bestar_grism"),
         f"table:{_tbl}", _tbl, "path, role",
         ["path", "role", "coalesce(era_id,-1)",
          "lower(coalesce(filter,''))", "coalesce(match_basis,'')"],
-        "Which file is staged in which role for this project.  LEFT OUT: "
+        optional=("mech_epoch", "detector_epoch", "epoch_certain"),
+        why="Which file is staged in which role for this project, and (once "
+        "S0c v1.1 has run) in which mechanical epoch — the column a stage "
+        "must match calibration to science on.  LEFT OUT: "
         "stage_build_id — it embeds the build TIMESTAMP, so hashing it would "
         "mark this table changed on every rebuild even when the selection is "
         "byte-identical.  That column is the canonical example of the "
@@ -1444,10 +1598,13 @@ STAGES: tuple[Stage, ...] = (
         reads=(),
         writes=("stat:rlmt-catalog",
                 "file:docs/pipeline/s0e_geometry_fix.html"),
-        build_cmd="python pipeline/scripts/rescan_geometry.py run",
+        build_cmd=("python pipeline/scripts/rescan_geometry.py run\n"
+                   "python pipeline/scripts/rescan_geometry.py hdr-run"),
         note="Rewrites NAXIS1/2 in the external header-scan catalog for "
              "frames whose rescued values were the tile-compressed "
-             "BINTABLE's row length and row count.  Declared as a STAGE, "
+             "BINTABLE's row length and row count, and (2026-10-03, F-2) "
+             "re-scrapes the hardware-state header cards of every file "
+             "into the catalog's hdr_rescrape table.  Declared as a STAGE, "
              "not as an unexplained external mtime change: the catalog "
              "rewrite is the event that invalidated S0, and a graph that "
              "cannot name its cause sends the reader back to memory."),
@@ -1456,8 +1613,8 @@ STAGES: tuple[Stage, ...] = (
         code_version="S0_CODE_VERSION",
         reads=("stat:rlmt-catalog",),
         writes=("table:frames", "table:frames@grism", "table:frames@s4proto",
-                "table:frames@cv", "table:eras", "table:aliases",
-                "table:project_counts"),
+                "table:frames@cv", "table:frames:hardware", "table:eras",
+                "table:aliases", "table:project_counts"),
         build_cmd="python pipeline/scripts/build_s0_manifest.py",
         meta_table="build_meta",
         note="Reads the external rlmt-catalog.sqlite; every geometry value "
@@ -1467,15 +1624,23 @@ STAGES: tuple[Stage, ...] = (
     Stage(
         key="S0b", title="Calibration inventory (links, coverage, gaps)",
         code_version="S0B_CODE_VERSION",
-        reads=("table:frames", "table:eras"),
+        # table:s1_batch is an input since S0b v1.2: the mechanical-epoch
+        # segmentation reads the position angle S1b measured on every
+        # plate-solved frame.  The edge is real — more solves can move a
+        # boundary — and it is acyclic: S1b reads frames and eras only.
+        reads=("table:frames", "table:frames:hardware", "table:eras",
+               "table:s1_batch"),
         writes=("table:raw_reduced_links", "table:calib_frames",
-                "table:calib_coverage", "table:calib_gaps"),
+                "table:calib_coverage", "table:calib_gaps",
+                "table:mech_epoch", "table:night_mech_epoch",
+                "table:calib_coverage_mech", "table:calib_gaps_mech"),
         build_cmd="python pipeline/scripts/build_s0b_inventory.py",
         meta_table="s0b_build_meta"),
     Stage(
         key="S0c", title="Per-project staging manifests",
         code_version="S0C_CODE_VERSION",
-        reads=("table:frames", "table:eras", "table:calib_frames"),
+        reads=("table:frames", "table:eras", "table:calib_frames",
+               "table:night_mech_epoch"),
         writes=("table:stage_bestar_grism", "table:stage_cv_timeseries",
                 "table:stage_dwarfgalaxy_agn_survey",
                 "table:stage_sn2023ixf_lightcurve",
@@ -1997,7 +2162,9 @@ STAGES: tuple[Stage, ...] = (
         # Recording the stage after the bare command would stamp a run that
         # never happened — precisely the laundering this module exists to
         # prevent — so the declared command is --all.
-        build_cmd="python pipeline/scripts/run_g_tcrb_validation.py --all",
+        # No G report page exists (macro_grism.report_g was never committed),
+        # so the stage is the three producing steps of --all, not --all.
+        build_cmd="python pipeline/scripts/run_g_tcrb_validation.py --calibrate --run --parquet",
         meta_table="g_build_meta"),
     # ---- reports: stages too.  A published page is an OUTPUT with inputs. --
     #
@@ -2314,6 +2481,11 @@ def _table_exists(con: sqlite3.Connection, name: str) -> bool:
     return row is not None
 
 
+def _table_columns(con: sqlite3.Connection, name: str) -> set[str]:
+    """Column names of a table (empty set when it does not exist)."""
+    return {row[1] for row in con.execute(f'PRAGMA table_info("{name}")')}
+
+
 #: The comment markers :mod:`macro_core.site` fences a page's own markup
 #: with.  Declared here as literals rather than imported, because ``site``
 #: imports this module and the cycle would be worse than the duplication;
@@ -2381,7 +2553,14 @@ def fingerprint_resource(spec: ResourceSpec, con: sqlite3.Connection,
     if spec.kind == "table":
         if not _table_exists(con, spec.name):
             return Fingerprint(present=False)
-        sql = (f"SELECT {', '.join(spec.columns)} FROM {spec.name}"
+        have = _table_columns(con, spec.name)
+        if any(c not in have for c in spec.requires):
+            # The resource IS these columns; a table that predates them
+            # does not contain the resource.
+            return Fingerprint(present=False)
+        columns = list(spec.columns) + [
+            f"coalesce({c}, char(0))" for c in spec.optional if c in have]
+        sql = (f"SELECT {', '.join(columns)} FROM {spec.name}"
                f"{_where_clause(spec)} ORDER BY {spec.order_by}")
         n, d = digest_rows(con.execute(sql))
         return Fingerprint(present=True, n_rows=n, digest=d)
@@ -2509,10 +2688,20 @@ class Freshness:
     state: str
     reasons: tuple[str, ...] = ()
     changed_inputs: tuple[str, ...] = ()
+    #: Findings about rendered PAGES only (F-7).  They never change
+    #: ``state``: a stage whose tables are consistent and whose page was
+    #: restyled is FRESH, with the restyle listed here.
+    page_reasons: tuple[str, ...] = ()
 
     @property
     def ok(self) -> bool:
+        """Is the stage's DATA trustworthy?  Page findings do not count."""
         return self.state == FRESH
+
+    @property
+    def page_ok(self) -> bool:
+        """Are the stage's rendered pages the ones it recorded?"""
+        return not self.page_reasons
 
 
 def compare_fingerprints(recorded: Mapping[str, str],
@@ -2573,6 +2762,11 @@ def is_stale(stage: Stage, record: Optional[Record],
     3. code version moved -> STALE (same bytes, different rules);
     4. any input changed  -> STALE, listing which and how;
     5. otherwise          -> FRESH.
+
+    Every finding about a rendered PAGE (see :attr:`ResourceSpec.is_page`)
+    goes to ``page_reasons`` instead and leaves the state alone — the F-7
+    rule.  The one exception is noted at test 2: a pure report stage whose
+    page is missing has lost its only product.
     """
     absent_out = sorted(k for k, v in current_outputs.items()
                         if v == "MISSING")
@@ -2586,6 +2780,11 @@ def is_stale(stage: Stage, record: Optional[Record],
                          tuple(absent_out))
 
     reasons: list[str] = []
+    page_reasons: list[str] = []
+
+    def _bucket(resource: str) -> list[str]:
+        """Page findings and data findings are kept apart (F-7)."""
+        return page_reasons if is_page_resource(resource) else reasons
 
     # An input that no longer EXISTS is its own category of wrong: the
     # evidence this stage was built from is gone, so the stage cannot even
@@ -2593,14 +2792,25 @@ def is_stale(stage: Stage, record: Optional[Record],
     # because "MISSING == MISSING" would otherwise read as agreement.
     for key in sorted(current_inputs):
         if current_inputs[key] == "MISSING":
-            reasons.append(f"input {key} is ABSENT — the evidence this "
-                           f"stage was built from no longer exists")
+            _bucket(key).append(
+                f"input {key} is ABSENT — the evidence this "
+                f"stage was built from no longer exists")
 
-    gone = [k for k, v in current_outputs.items() if v == "MISSING"]
-    if gone:
-        reasons.append("output(s) absent: " + ", ".join(sorted(gone)))
+    # A missing output is the strongest verdict — but only when it is the
+    # stage's PRODUCT that is gone.  For a stage that writes data and also
+    # renders a page (S0e), a deleted page is a publishing fault, not lost
+    # data, and must not take forty downstream stages with it.  For a pure
+    # report stage the page IS the product, so its absence is still
+    # OUTPUT_MISSING.
+    gone = sorted(k for k, v in current_outputs.items() if v == "MISSING")
+    gone_data = [k for k in gone if not is_page_resource(k)]
+    only_pages = all(is_page_resource(k) for k in current_outputs)
+    if gone_data or (gone and only_pages):
+        reasons.append("output(s) absent: " + ", ".join(gone))
         return Freshness(stage.key, OUTPUT_MISSING, tuple(reasons),
-                         tuple(sorted(gone)))
+                         tuple(gone), tuple(page_reasons))
+    for key in gone:
+        page_reasons.append(f"page {key} is absent — re-render it")
 
     if record.code_version and current_code_version and \
             record.code_version != current_code_version:
@@ -2609,20 +2819,30 @@ def is_stale(stage: Stage, record: Optional[Record],
 
     changes = compare_fingerprints(record.inputs, current_inputs)
     for key, why in changes:
-        reasons.append(f"input {key}: {why}")
+        _bucket(key).append(f"input {key}: {why}")
 
     # An output that changed since the record without the stage being re-run
-    # means somebody wrote to it out of band.  Worth saying out loud.
+    # means somebody wrote to it out of band.  Worth saying out loud — and,
+    # for a PAGE, worth nothing more than saying: the site assembler
+    # restyles pages on every build, and that is not a data event.
     for key, token in current_outputs.items():
         was = record.outputs.get(key)
-        if was is not None and was != token:
-            reasons.append(f"output {key} changed since it was recorded "
-                           f"({was} -> {token}) — written out of band")
+        if was is not None and was != token and token != "MISSING":
+            if is_page_resource(key):
+                page_reasons.append(
+                    f"page {key} changed since it was recorded "
+                    f"({was} -> {token}) — re-rendered or restyled; "
+                    f"not a data change")
+            else:
+                reasons.append(f"output {key} changed since it was recorded "
+                               f"({was} -> {token}) — written out of band")
 
     if reasons:
         return Freshness(stage.key, STALE, tuple(reasons),
-                         tuple(k for k, _ in changes))
-    return Freshness(stage.key, FRESH)
+                         tuple(k for k, _ in changes
+                               if not is_page_resource(k)),
+                         tuple(page_reasons))
+    return Freshness(stage.key, FRESH, page_reasons=tuple(page_reasons))
 
 
 def topological_order(stages: Sequence[Stage]) -> list[str]:
@@ -2699,7 +2919,8 @@ def propagate_staleness(freshness: Mapping[str, Freshness],
                 (f"upstream not fresh: {', '.join(sorted(set(bad_parents)))}"
                  f" — this stage's own declared inputs still match what it "
                  f"recorded, so re-run it only after those ancestors, and "
-                 f"only if its own fingerprints move",))
+                 f"only if its own fingerprints move",),
+                page_reasons=out[key].page_reasons)
     return out
 
 
@@ -2792,3 +3013,168 @@ def read_records(con: sqlite3.Connection) -> dict[str, Record]:
                             inputs=json.loads(ij), outputs=json.loads(oj),
                             note=note)
     return out
+
+
+# ===========================================================================
+# 6.  RELEASE SNAPSHOTS — what, exactly, backed the numbers  (F-9, DS.F4)
+# ===========================================================================
+# THE GAP.  ``products/`` and ``manuscripts/`` are gitignored: the repo
+# carries code and never pixels, which is right, but it meant that NOTHING
+# that backs a published number was pinned to anything.  ``numbers.tex``
+# records a commit hash, and that commit contains none of its inputs.  A
+# product database can be rebuilt, half-rebuilt or replaced, and no file
+# under version control would differ.
+#
+# THE FIX is small: a tracked JSON file recording, for every product
+# database, each table's row count and a content hash; and for every other
+# product file, its size and hash.  It does not store the data — it makes
+# the data's IDENTITY reviewable in a diff, so "which evidence base did
+# this release rest on" has an answer that survives a rebuild.
+#
+# WHY PER-TABLE CONTENT HASHES and not a hash of the .sqlite file: the file
+# bytes of a live WAL-mode database change with every checkpoint, VACUUM
+# and page reuse while the rows do not; a file hash would move on every
+# build and say nothing.  The table hash is over the ROWS, every column,
+# sorted on every column, so it depends on content alone — not on insertion
+# order, page layout or which process last touched the file.
+
+#: Version of the snapshot file's layout.
+SNAPSHOT_SCHEMA = 1
+
+
+def _snapshot_table(con: sqlite3.Connection, name: str) -> dict:
+    """``{"rows": n, "sha256": hex}`` for one table, content-addressed.
+
+    Rows are streamed in ``ORDER BY 1, 2, …, n`` — every column, so the
+    order is total and two tables holding the same rows hash identically
+    however they were inserted.  Cells go through the same canonical
+    encoding as the staleness fingerprints (:func:`_canon`); the digest
+    here is the FULL sha256, because this one is a release record, not a
+    terminal-friendly comparison token.
+    """
+    ncol = len(list(con.execute(f'PRAGMA table_info("{name}")')))
+    order = ", ".join(str(i) for i in range(1, ncol + 1))
+    h = hashlib.sha256()
+    n = 0
+    for row in con.execute(f'SELECT * FROM "{name}" ORDER BY {order}'):
+        h.update("\x1f".join(_canon(v) for v in row).encode("utf-8"))
+        h.update(b"\x1e")
+        n += 1
+    return {"rows": n, "sha256": h.hexdigest()}
+
+
+def snapshot_database(path: str, skip_prefixes: Sequence[str] = ("sqlite_",),
+                      skip_suffixes: Sequence[str] = ("_tmp",)) -> dict:
+    """Snapshot every table of one sqlite database → ``{"tables": {...}}``.
+
+    Opened READ-ONLY.  Tables whose name marks them as a build's scratch
+    space (``*_tmp``) are skipped: they are not products, and one caught
+    mid-build would make the snapshot describe a moment nobody chose.
+    """
+    con = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=300)
+    try:
+        con.execute("PRAGMA busy_timeout = 300000")
+        names = [r[0] for r in con.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "ORDER BY name")]
+        tables = {}
+        for name in names:
+            if name.startswith(tuple(skip_prefixes)) or \
+                    name.endswith(tuple(skip_suffixes)):
+                continue
+            tables[name] = _snapshot_table(con, name)
+        return {"tables": tables}
+    finally:
+        con.close()
+
+
+def snapshot_file(path: str) -> dict:
+    """``{"bytes": n, "sha256": hex}`` for a plain product file, streamed
+    in 1 MiB blocks so a large file is never held in memory."""
+    h = hashlib.sha256()
+    n = 0
+    with open(path, "rb") as fh:
+        for block in iter(lambda: fh.read(1 << 20), b""):
+            h.update(block)
+            n += len(block)
+    return {"bytes": n, "sha256": h.hexdigest()}
+
+
+def compare_snapshots(recorded: Mapping, current: Mapping) -> list[str]:
+    """Differences between two snapshots, as human sentences.  PURE.
+
+    Both arguments have the shape ``{"databases": {path: {"tables": {name:
+    {"rows", "sha256"}}}}, "files": {path: {"bytes", "sha256"}}}``.  An
+    empty list means the products on disk ARE the recorded release.  Every
+    kind of difference is reported separately — a product that vanished, a
+    table that vanished, a table whose row count moved, a table whose rows
+    changed at the same count — because each calls for a different action.
+    """
+    out: list[str] = []
+    rec_db = recorded.get("databases", {})
+    cur_db = current.get("databases", {})
+    for path in sorted(set(rec_db) | set(cur_db)):
+        if path not in cur_db:
+            out.append(f"{path}: product database ABSENT")
+            continue
+        if path not in rec_db:
+            out.append(f"{path}: product database not in the recorded "
+                       f"snapshot")
+            continue
+        rt, ct = rec_db[path]["tables"], cur_db[path]["tables"]
+        for name in sorted(set(rt) | set(ct)):
+            if name not in ct:
+                out.append(f"{path}:{name}: table ABSENT")
+            elif name not in rt:
+                out.append(f"{path}:{name}: table not in the recorded "
+                           f"snapshot")
+            elif rt[name]["rows"] != ct[name]["rows"]:
+                out.append(f"{path}:{name}: rows {rt[name]['rows']} -> "
+                           f"{ct[name]['rows']}")
+            elif rt[name]["sha256"] != ct[name]["sha256"]:
+                out.append(f"{path}:{name}: content changed "
+                           f"({rt[name]['rows']} rows)")
+    rec_f, cur_f = recorded.get("files", {}), current.get("files", {})
+    for path in sorted(set(rec_f) | set(cur_f)):
+        if path not in cur_f:
+            out.append(f"{path}: product file ABSENT")
+        elif path not in rec_f:
+            out.append(f"{path}: product file not in the recorded snapshot")
+        elif rec_f[path]["sha256"] != cur_f[path]["sha256"]:
+            out.append(f"{path}: content changed ({rec_f[path]['bytes']} -> "
+                       f"{cur_f[path]['bytes']} bytes)")
+    return out
+
+
+#: Environment variable that turns "product absent" from a skip into a
+#: FAILURE.  Set it (to anything but '', '0', 'false', 'no') in the release
+#: check and in CI.
+REQUIRE_PRODUCTS_ENV = "MACRO_REQUIRE_PRODUCTS"
+
+#: The wordings this suite uses when it skips a test because the evidence
+#: it would check is not on disk.  A regular expression over the skip
+#: REASON, because the reason is the only thing a skip carries.  It
+#: deliberately does NOT match skips that mean "this assertion does not
+#: apply to this build" ('era 80 not present in this product', 'no scope
+#: below its instrumental contour') or "an optional tool is missing" (the
+#: de440s kernel, the tectonic build log): those are true skips in every
+#: mode.
+_ABSENT_PRODUCT_RE = re.compile(
+    r"not built|not emitted|not built yet|stage not run|not run$|"
+    r"no manifest on this machine|no products directory|"
+    r"live manifest not present|is empty in this checkout|"
+    r"cache not present", re.IGNORECASE)
+
+
+def is_absent_product_skip(reason: str) -> bool:
+    """Does a pytest skip reason mean "the product this test checks is not
+    on disk"?  PURE — the conftest hook and its unit test both call it.
+
+    WHY IT MATTERS (DS.F4).  About 130 product and manuscript tests skip
+    when their database is absent.  On a clean checkout that is every one
+    of them, and the suite still prints green: "0 failed" over a run that
+    examined none of the evidence.  With :data:`REQUIRE_PRODUCTS_ENV` set,
+    the conftest turns exactly these skips into failures, so a release
+    check cannot pass by not looking.
+    """
+    return bool(reason) and bool(_ABSENT_PRODUCT_RE.search(str(reason)))

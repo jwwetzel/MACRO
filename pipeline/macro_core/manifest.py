@@ -9,11 +9,21 @@ NOT work (e.g. two distinct dwarf fields merging).
 
 The binding conventions implemented here come from ROADMAP.md section 1:
 
-1.  Dedup is GLOBAL on (basename, jd) across and within trees.
+1.  Dedup is GLOBAL on (exposure, jd) across and within trees.  Until
+    2026-10-03 "exposure" meant the basename; it now means the basename's
+    EXPOSURE ROOT — the name with its packaging (``.fts`` vs ``.fts.fz``)
+    and its processing suffixes (``_calibrated``, ``_cal``, ``_wcs``)
+    removed — because a reduced or re-packaged copy of a frame is the same
+    exposure, not a second one (finding F-1 / TE.F6; see
+    :func:`exposure_name`).
 2.  ``rawimage`` is the canonical tree, with a documented, data-driven
-    exceptions mechanism (see ``TREE_PRIORITY_EXCEPTIONS``).
+    exceptions mechanism (see ``TREE_PRIORITY_EXCEPTIONS``).  Within a
+    duplicate group the LEAST-PROCESSED copy outranks tree priority: a raw
+    frame always beats its own calibrated derivative.
 3.  Era/camera assignment keys on (READOUTM, NAXIS geometry, XBINNING,
-    EGAIN) — never on filter name or date.
+    EGAIN) — never on filter name or date.  An era is a HEADER history;
+    the hardware history (camera, orientation, wheel map) is the
+    ``mech_epoch`` table S0b builds beneath it (finding F-3 / TE.F1).
 4.  Night label = local-noon-to-noon calendar date of (JD − 0.7917);
     Winer Observatory sits at UTC−7, so local noon is 19:00 UT.
 5.  Header JD is stored as-is (UTC exposure start).  BJD_TDB is stage S3's
@@ -141,21 +151,28 @@ def choose_canonical(members: Sequence[tuple[str, str]],
     -------
     int
         Index into ``members`` of the canonical row.  Selection is fully
-        deterministic: best tree rank first, then lexicographically smallest
-        path (so within one tree the earliest night directory wins — the
-        SN 2023ixf wholesale-copied July directories lose to the original
-        May/June directories).
+        deterministic: fewest processing suffixes first (a raw frame beats
+        its ``_calibrated`` twin), then best tree rank, then
+        lexicographically smallest path (so within one tree the earliest
+        night directory wins — the SN 2023ixf wholesale-copied July
+        directories lose to the original May/June directories).
     """
     # Look up the effective tree priority: the documented exception if this
     # target has one, the archive-wide default otherwise.
     priority = TREE_PRIORITY_EXCEPTIONS.get(target_key or "", DEFAULT_TREE_PRIORITY)
-    # Decorate each member with (rank, path, index) and take the minimum —
-    # tuple comparison gives us exactly the deterministic ordering we want.
+    # Decorate each member with (processing depth, rank, path, index) and
+    # take the minimum — tuple comparison gives us exactly the deterministic
+    # ordering we want.  Processing depth comes FIRST (F-1): since duplicate
+    # groups now hold a raw frame together with its reduced derivatives, the
+    # canonical member must be the one whose pixels nobody has touched, even
+    # when a derivative sits in a better-ranked tree (the archive holds 138
+    # ``_calibrated`` files inside ``rawimage`` itself).
     best = min(
-        (tree_rank(tree, priority), path, idx)
+        (exposure_name(basename_of(path)).n_processing,
+         tree_rank(tree, priority), path, idx)
         for idx, (tree, path) in enumerate(members)
     )
-    return best[2]
+    return best[3]
 
 
 # --------------------------------------------------------------------------
@@ -172,15 +189,213 @@ def basename_of(path: str) -> str:
     return path.rsplit("/", 1)[-1]
 
 
+# --------------------------------------------------------------------------
+# Exposure identity: one exposure, many filenames (finding F-1, TE.F6)
+# --------------------------------------------------------------------------
+# THE DEFECT.  S0 v1.0 deduplicated on (basename, jd).  That sees an exact
+# copy, and nothing else.  The observatory's own reduction pipeline writes a
+# calibrated copy of every frame as ``<raw name>_calibrated.fts.fz`` with the
+# header JD untouched; pyscope writes ``<raw name>_wcs`` after a plate solve;
+# the Calibrations tree holds uncompressed ``x.fts`` beside ``x.fts.fz``.
+# None of those share a basename with their parent, so every one of them was
+# counted as a SECOND canonical exposure: 25,442 era-79 and 1,681 era-82
+# reduced rows sat at ``is_canonical = 1`` beside the raw frames they were
+# made from, and every count of 2026 data was inflated by them.
+#
+# THE RULE.  Two files are the same exposure when their header JD is
+# IDENTICAL and one name is the other plus packaging and processing
+# suffixes.  Both halves are required.  The JD half is what makes the rule
+# safe: a name like ``xyz_cal_M42`` has a 'cal' token that is not a suffix
+# at all, but it can only ever merge with a file that ALSO shares its JD to
+# the last bit — which is the twin signature itself.
+
+#: FITS filename extensions, and the compression suffixes that may follow.
+FITS_EXTENSIONS: tuple[str, ...] = (".fts", ".fit", ".fits")
+COMPRESSION_EXTENSIONS: tuple[str, ...] = (".fz", ".gz")
+
+#: Underscore-delimited tokens the reduction software appends to a raw
+#: stem.  Census of the 330,865-row catalog (2026-10-03): ``_calibrated``
+#: 27,400 rows, ``_wcs`` 5,160, ``_cal`` 450.  Compared case-insensitively.
+#: ``red`` is deliberately absent: it is a FILTER name in this archive
+#: (``…_ngc3169_red_60s…``), not a reduction suffix.
+PROCESSING_TOKENS: frozenset[str] = frozenset({"calibrated", "cal", "wcs"})
+
+#: A copy counter is at most this many digits (``_1`` .. ``_99``).
+_COUNTER_MAX_DIGITS = 2
+
+
+def strip_compression(basename: str) -> str:
+    """Drop a trailing compression suffix (``.fz``/``.gz``) if present.
+
+    The archive stores most files fpack-compressed (``x.fts.fz``) but also
+    holds plain ``x.fts`` copies of the same frame; both must reduce to the
+    same identity.
+    """
+    low = basename.lower()
+    for ext in COMPRESSION_EXTENSIONS:
+        if low.endswith(ext):
+            return basename[: -len(ext)]
+    return basename
+
+
+def frame_stem(basename: str) -> str:
+    """Return the extension-free identity of a FITS filename.
+
+    ``mlw_V426_Oph_g_5s_2026-06-27T05-40-49.fts.fz`` and the uncompressed
+    ``….fts`` both become ``mlw_V426_Oph_g_5s_2026-06-27T05-40-49``.
+    A name with no recognized extension is returned unchanged.
+    """
+    s = strip_compression(basename)
+    low = s.lower()
+    for ext in FITS_EXTENSIONS:
+        if low.endswith(ext):
+            return s[: -len(ext)]
+    return s
+
+
+@dataclass(frozen=True)
+class ExposureName:
+    """One filename, taken apart into the pieces dedup reasons about.
+
+    Attributes
+    ----------
+    stem
+        The extension-free basename (:func:`frame_stem`).
+    base
+        ``stem`` cut immediately BEFORE its first processing token — the
+        name of the raw frame this file claims to derive from.  Equal to
+        ``stem`` when the name carries no processing token.
+    base_no_counter
+        ``base`` with one trailing copy counter removed, or ``None`` when
+        ``base`` does not end in one.  Needed for the form
+        ``…T05-16-00_1_wcs_calibrated``, where pyscope put a ``_1`` counter
+        BETWEEN the raw name and the suffix.  It is only ever used when a
+        raw frame of exactly that name exists at the same JD (see
+        :func:`exposure_root`), because a trailing number is far more often
+        a legitimate frame index (``…_r_1_wcs`` is a copy of ``…_r_1``).
+    n_processing
+        How many processing tokens the stem carries; 0 = an untouched raw
+        name.  This is the "processing depth" the canonical choice sorts on.
+    """
+    stem: str
+    base: str
+    base_no_counter: Optional[str]
+    n_processing: int
+
+
+def exposure_name(basename: str) -> ExposureName:
+    """Take a FITS basename apart (see :class:`ExposureName`).
+
+    The first token is never treated as a processing token: a name cannot
+    BEGIN with a suffix, and observer codes are three lower-case letters
+    that could collide (``cal_M13_…``).
+
+    ``mpg_M87_g_90s_2026-06-29T05-16-00_1_wcs_calibrated.fts.fz`` →
+    stem ``…T05-16-00_1_wcs_calibrated``, base ``…T05-16-00_1``,
+    base_no_counter ``…T05-16-00``, n_processing 2.
+    """
+    stem = frame_stem(basename)
+    tokens = stem.split("_")
+    hits = [i for i, tok in enumerate(tokens)
+            if i > 0 and tok.lower() in PROCESSING_TOKENS]
+    if not hits:
+        return ExposureName(stem=stem, base=stem, base_no_counter=None,
+                            n_processing=0)
+    head = tokens[:hits[0]]
+    no_counter: Optional[str] = None
+    if (len(head) > 1 and head[-1].isdigit()
+            and len(head[-1]) <= _COUNTER_MAX_DIGITS):
+        no_counter = "_".join(head[:-1])
+    return ExposureName(stem=stem, base="_".join(head),
+                        base_no_counter=no_counter, n_processing=len(hits))
+
+
+#: How a duplicate group member relates to the exposure's root name.
+ROOT_IS_SELF = "self"                      # an unprocessed name: its own root
+ROOT_BY_SUFFIX = "processing_suffix"       # root = name before the suffix
+ROOT_BY_COUNTER = "suffix_counter"         # ... after also dropping a counter
+ROOT_ORPHAN = "derivative_no_parent"       # no raw frame of that name exists
+
+
+def exposure_root(name: ExposureName, has_raw) -> tuple[str, str]:
+    """Resolve one file to the ROOT name of the exposure it belongs to.
+
+    Parameters
+    ----------
+    name
+        The :class:`ExposureName` of the file.
+    has_raw
+        Callable ``stem -> bool``: does an UNPROCESSED file of exactly this
+        stem exist AT THE SAME JD as this file?  The build supplies a set
+        lookup; the unit tests supply a lambda.
+
+    Returns
+    -------
+    (root, how)
+        ``root`` is the stem every copy of this exposure shares; ``how`` is
+        one of the ``ROOT_*`` constants and is the audit trail.
+
+    The ladder, strongest evidence first:
+
+    1.  an unprocessed name is its own root;
+    2.  a processed name whose ``base`` exists as a raw frame at the same JD
+        roots there — the mechanical ``_calibrated`` rename;
+    3.  otherwise, if dropping a copy counter from ``base`` reaches a raw
+        frame at the same JD, it roots there;
+    4.  otherwise the raw parent is not in the archive: the file roots at
+        its own ``base``, so that two derivatives of one missing parent
+        (``x_wcs`` and ``x_wcs_cal``) still collapse to one exposure.
+    """
+    if name.n_processing == 0:
+        return name.stem, ROOT_IS_SELF
+    if has_raw(name.base):
+        return name.base, ROOT_BY_SUFFIX
+    if name.base_no_counter is not None and has_raw(name.base_no_counter):
+        return name.base_no_counter, ROOT_BY_COUNTER
+    return name.base, ROOT_ORPHAN
+
+
+#: Why a NON-canonical row is a duplicate of its group's canonical row.
+DUP_CANONICAL = "canonical"                # the row IS the canonical member
+DUP_SAME_BASENAME = "same_basename_jd"     # an exact copy (the v1.0 rule)
+DUP_PACKAGING = "packaging"                # same stem, different extension
+DUP_PROCESSING = "processing_suffix"       # a reduced/solved derivative
+DUP_PROCESSING_COUNTER = "suffix_counter"  # ... reached through a counter
+
+
+def dup_basis(basename: str, canonical_basename: str, is_canonical: bool,
+              how: str = ROOT_IS_SELF,
+              canonical_how: str = ROOT_IS_SELF) -> str:
+    """Name the evidence that makes one row a duplicate of its group head.
+
+    Every non-canonical row in ``frames`` carries the answer, so a reader
+    can count exactly how many frames each dedup rule removed and audit the
+    weakest ones (``suffix_counter``) by hand.  ``how``/``canonical_how``
+    are the :func:`exposure_root` outcomes of the row and of the head.
+    """
+    if is_canonical:
+        return DUP_CANONICAL
+    if basename == canonical_basename:
+        return DUP_SAME_BASENAME
+    if frame_stem(basename) == frame_stem(canonical_basename):
+        return DUP_PACKAGING
+    if ROOT_BY_COUNTER in (how, canonical_how):
+        return DUP_PROCESSING_COUNTER
+    return DUP_PROCESSING
+
+
 def dup_key(basename: str, jd: Optional[float],
             row_id: Optional[int] = None) -> tuple:
     """Return the global duplicate-group key for a frame.
 
-    Duplicate identity is (basename, jd) — the same exposure written to two
-    places keeps its filename and its header JD, while two genuinely
-    different exposures never share both.  Frames with no JD (the handful of
-    unreadable files) can never be proven duplicates, so each becomes its
-    own singleton group, keyed by ``row_id`` to keep them distinct.
+    Duplicate identity is (exposure root, jd).  Callers pass the frame's
+    EXPOSURE ROOT (:func:`exposure_root`) as ``basename`` — for an
+    unprocessed, uniquely packaged file that is simply its stem, so the
+    original property holds: the same exposure written to two places keeps
+    its name and its header JD, while two genuinely different exposures
+    never share both.  Frames with no JD (the handful of unreadable files)
+    can never be proven duplicates, so each becomes its own singleton
+    group, keyed by ``row_id`` to keep them distinct.
     """
     if jd is None or (isinstance(jd, float) and math.isnan(jd)):
         # Unreadable header → no JD → not mergeable with anything.
@@ -473,6 +688,166 @@ def normalize_target(raw: Optional[str]) -> NormalizedName:
 
     return NormalizedName(key=key, cleaned=cleaned, rules=tuple(rules),
                           pre_synonym_key=pre_synonym_key)
+
+
+# --------------------------------------------------------------------------
+# Hardware-state columns from the header re-scrape (finding F-2, DE.F5)
+# --------------------------------------------------------------------------
+# ``rescan_geometry.py hdr-run`` stores the hardware cards of every file AS
+# THE HEADER SPELLS THEM (text; NULL = no such card, '' = blank card).  The
+# functions below turn that text into the typed ``frames`` columns.  Typing
+# is done here rather than in the scraper because it needs judgement the
+# scraper must not exercise: ``GAIN`` is the string '4x' on the Andor iKon
+# (a preamp setting) and the number 100 on the ASI (a gain register), so it
+# is kept twice — once verbatim, once numeric where a number exists.
+
+#: Normalized camera identity, from INSTRUME.  Four cameras have been on
+#: the telescope (TE.F1); INSTRUME names the DRIVER, which changed twice
+#: for the QHY600 without the camera changing (MaxIm ASCOM capture ->
+#: pyscope native), so three strings map to one camera.
+CAMERA_OF_INSTRUME: dict[str, str] = {
+    "DL Imaging": "AC4040",                      # SBIG Aluma AC4040 (GSENSE)
+    "Andor CCD/EMCCD (SDK2)": "iKon",            # Andor iKon-L 936
+    "ASI Camera (1)": "ASI",                     # ZWO ASI (IMX455)
+    "QHYCCD-Cameras-Capture": "QHY600",          # QHY600 via MaxIm/ASCOM
+    "QHY600Pro": "QHY600",                       # QHY600 via pyscope
+}
+
+#: CAMNAME prefixes that identify a camera when INSTRUME is absent.  The
+#: 854 pyscope-native frames of 2026-06-28/29 carry no INSTRUME card at all;
+#: their CAMNAME reads 'QHY600MPCIE-<serial>'.  MaxIm-era frames all say
+#: CAMNAME = 'ASCOM', which identifies nothing and is not listed.
+CAMERA_OF_CAMNAME_PREFIX: tuple[tuple[str, str], ...] = (
+    ("QHY600", "QHY600"),
+)
+
+
+def camera_id(instrume: Optional[str], camname: Optional[str]) -> Optional[str]:
+    """Normalized camera identity of a frame, or ``None`` when unknown.
+
+    INSTRUME decides when it is a known string; otherwise a CAMNAME prefix
+    may.  An UNKNOWN string returns ``None`` rather than a guess — a frame
+    with no provable camera gets no mechanical epoch, and the report counts
+    such frames instead of filing them under the nearest camera.
+    """
+    key = (instrume or "").strip()
+    if key in CAMERA_OF_INSTRUME:
+        return CAMERA_OF_INSTRUME[key]
+    name = (camname or "").strip()
+    for prefix, cam in CAMERA_OF_CAMNAME_PREFIX:
+        if name.startswith(prefix):
+            return cam
+    return None
+
+
+def card_float(text) -> Optional[float]:
+    """Numeric value of a re-scraped card, or ``None``.
+
+    ``None`` for an absent card, a blank card, and a card whose value is
+    not a number (the iKon's ``GAIN = '4x'``) — never 0.0, which is a real
+    set-point and a real cooler power.
+    """
+    if text is None:
+        return None
+    t = str(text).strip()
+    if not t:
+        return None
+    try:
+        v = float(t)
+    except ValueError:
+        return None
+    return None if math.isnan(v) else v
+
+
+_WHEEL_SLOT_RE = re.compile(r"'([^']*)'")
+
+
+def wheel_slots(fwallnam: Optional[str]) -> Optional[tuple[str, ...]]:
+    """The filter-wheel slot names, in slot order, from a FWALLNAM value.
+
+    The card holds a Python tuple/list literal written by pyscope —
+    ``('g', 'lrg', 'r', 'i', 'ha', 'hrg', 'empty')`` — so the slot names
+    are simply its quoted items.  Case is PRESERVED: the 2024-11-08 change
+    from 'HaGrism' to 'hrg' is a reloaded configuration, and whether a
+    rename is also a physical reload is for the reader of ``mech_epoch`` to
+    judge with the boundary in front of them, not for a case-fold to hide.
+
+    Returns ``None`` for an absent or blank card (the whole AC4040 era:
+    MaxIm wrote no wheel map), and for a value with no quoted item.
+    """
+    if fwallnam is None or not str(fwallnam).strip():
+        return None
+    slots = tuple(_WHEEL_SLOT_RE.findall(str(fwallnam)))
+    return slots or None
+
+
+def wheel_map_key(fwallnam: Optional[str]) -> Optional[str]:
+    """Canonical one-line spelling of a wheel map: slots joined by ``|``.
+
+    This is what ``frames.fwallnam`` stores and what the mechanical-epoch
+    segmentation compares; two headers describe the same wheel exactly
+    when their keys are equal.
+    """
+    slots = wheel_slots(fwallnam)
+    return None if slots is None else "|".join(slots)
+
+
+#: The typed hardware columns S0 adds to ``frames``, with the meaning of
+#: each (rendered into the report and the data README — one source).
+HARDWARE_FRAME_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("camera", "normalized camera identity (AC4040 / iKon / ASI / QHY600)"),
+    ("hdr_gain", "GAIN card exactly as written ('4x' on the iKon, 100 on "
+                 "the ASI, 56 on the QHY600)"),
+    ("hdr_gain_num", "GAIN as a number where it is one, else NULL"),
+    ("hdr_offset", "OFFSET card (camera bias-offset setting), numeric"),
+    ("set_temp", "SET-TEMP: cooler set-point, deg C"),
+    ("coolpowr", "COOLPOWR: cooler power, percent"),
+    ("focpos", "FOCPOS: pyscope's focuser position — the true one; "
+               "frames.focuspos is MaxIm's FOCUSPOS, which sticks (TE.F8)"),
+    ("flipstat", "FLIPSTAT: MaxIm's software flip state; '' = card present "
+                 "and blank, NULL = no card"),
+    ("telpier", "TELPIER: mount pier side"),
+    ("fwpos", "FWPOS: filter-wheel slot index of this exposure"),
+    ("fwallnam", "FWALLNAM: the wheel's slot map, slots joined by '|'"),
+    ("camname", "CAMNAME: camera name (identifies the pyscope-native QHY)"),
+    ("fwname", "FWNAME: filter-wheel hardware name"),
+    ("xpixsz", "XPIXSZ: binned pixel pitch, microns"),
+    ("hdr_scanned", "1 = this file's header was re-scraped; 0 = it was not "
+                    "(every hardware column is then NULL)"),
+)
+
+
+def hardware_columns(card: dict) -> dict:
+    """Typed ``frames`` columns for one row of the header re-scrape.
+
+    ``card`` maps the re-scrape's column names (``h_gain``, ``h_set_temp``,
+    …, plus ``h_scanned``) to their stored text; a row that was never
+    re-scraped passes an empty dict and gets NULLs with ``hdr_scanned = 0``.
+    Text columns keep the blank/absent distinction ('' vs None); numeric
+    columns are ``None`` for both.
+    """
+    def _text(key):
+        v = card.get(key)
+        return None if v is None else str(v).strip()
+
+    fwpos = card_float(card.get("h_fwpos"))
+    return {
+        "camera": camera_id(card.get("h_instrume"), card.get("h_camname")),
+        "hdr_gain": _text("h_gain"),
+        "hdr_gain_num": card_float(card.get("h_gain")),
+        "hdr_offset": card_float(card.get("h_offset")),
+        "set_temp": card_float(card.get("h_set_temp")),
+        "coolpowr": card_float(card.get("h_coolpowr")),
+        "focpos": card_float(card.get("h_focpos")),
+        "flipstat": _text("h_flipstat"),
+        "telpier": _text("h_telpier"),
+        "fwpos": None if fwpos is None else int(fwpos),
+        "fwallnam": wheel_map_key(card.get("h_fwallnam")),
+        "camname": _text("h_camname"),
+        "fwname": _text("h_fwname"),
+        "xpixsz": card_float(card.get("h_xpixsz")),
+        "hdr_scanned": 1 if card.get("h_scanned") else 0,
+    }
 
 
 # --------------------------------------------------------------------------

@@ -1115,3 +1115,383 @@ def test_no_stage_emits_a_bare_script_that_demands_a_subcommand():
                 f"{script} requires one of {sorted(needed)} — bare, it "
                 f"exits 2 without doing any work")
     assert not problems, "\n".join(problems)
+
+
+# ===========================================================================
+# F-7 (plan review 2026-10-03): a verdict is about DATA, not about pages
+# ===========================================================================
+# The incident: the 2026-08-21 site rebuild restyled s0e_geometry_fix.html.
+# S0e — the root of the DAG — read STALE ("written out of band"), and all
+# forty stages downstream inherited the verdict.  Underneath it, S2c really
+# was stale (it ran seven minutes before S0 rebuilt frames) and nobody could
+# see that through the noise.
+
+#: A real rendered page and a real data table, by their registered keys.
+PAGE = "file:docs/pipeline/s0e_geometry_fix.html"
+DATA = "stat:rlmt-catalog"
+
+#: S0e in miniature: writes data AND renders a page.
+MIXED = pv.Stage(key="S0e", title="t", code_version="v1", reads=(),
+                 writes=(DATA, PAGE), build_cmd="x.py")
+#: A pure report stage: reads data, writes only a page.
+REPORT = pv.Stage(key="R", title="t", code_version="v1",
+                  reads=("table:frames",), writes=(PAGE,), build_cmd="x.py")
+
+
+def _rec(stage, inputs, outputs):
+    return pv.Record(stage=stage.key, run_utc="2026-08-19T00:00:00Z",
+                     code_version="v1", git_commit="abc", inputs=inputs,
+                     outputs=outputs)
+
+
+def test_only_rendered_html_is_a_page():
+    assert pv.is_page_resource(PAGE)
+    assert pv.is_page_resource("file:docs/index.html")
+    assert not pv.is_page_resource("table:frames")
+    assert not pv.is_page_resource(DATA)
+    # A hand-authored document is DATA: nothing restyles it, so a changed
+    # byte in it is a changed claim.
+    assert not pv.is_page_resource("file:ROADMAP.md")
+    assert not pv.is_page_resource("file:ops/2026-08_observatory_request.md")
+    assert not pv.is_page_resource("no-such-resource")
+
+
+def test_a_restyled_page_leaves_the_stage_fresh():
+    """THE INCIDENT, as a test.  The page digest moved; the data did not."""
+    rec = _rec(MIXED, {}, {DATA: "400:aa", PAGE: "17971:8b4c"})
+    f = pv.is_stale(MIXED, rec, {}, {DATA: "400:aa", PAGE: "17521:c6ba"},
+                    "v1")
+    assert f.state == pv.FRESH and f.ok
+    assert not f.page_ok
+    assert len(f.page_reasons) == 1 and PAGE in f.page_reasons[0]
+    assert f.reasons == ()
+
+
+def test_a_restyled_page_does_not_stale_anything_downstream():
+    child = pv.Stage(key="S0", title="t", code_version="v1", reads=(DATA,),
+                     writes=("table:frames",), build_cmd="x.py")
+    parent = pv.is_stale(
+        MIXED, _rec(MIXED, {}, {DATA: "400:aa", PAGE: "1:old"}),
+        {}, {DATA: "400:aa", PAGE: "2:new"}, "v1")
+    kid = pv.is_stale(
+        child, _rec(child, {DATA: "400:aa"}, {"table:frames": "9:ff"}),
+        {DATA: "400:aa"}, {"table:frames": "9:ff"}, "v1")
+    out = pv.propagate_staleness({"S0e": parent, "S0": kid}, (MIXED, child))
+    assert out["S0"].state == pv.FRESH
+    assert pv.rerun_plan(out, (MIXED, child)) == []
+
+
+def test_changed_data_output_is_still_stale():
+    rec = _rec(MIXED, {}, {DATA: "400:aa", PAGE: "1:p"})
+    f = pv.is_stale(MIXED, rec, {}, {DATA: "400:bb", PAGE: "1:p"}, "v1")
+    assert f.state == pv.STALE and f.page_ok
+    assert "written out of band" in f.reasons[0]
+
+
+def test_a_report_whose_tables_moved_is_stale_whatever_its_page_did():
+    """The page/data split must not launder a page that is out of date
+    with its data: the INPUT is data, so the verdict is STALE."""
+    rec = _rec(REPORT, {"table:frames": "10:aa"}, {PAGE: "1:p"})
+    f = pv.is_stale(REPORT, rec, {"table:frames": "10:bb"}, {PAGE: "1:p"},
+                    "v1")
+    assert f.state == pv.STALE
+    assert f.changed_inputs == ("table:frames",)
+
+
+def test_data_and_page_findings_are_reported_side_by_side():
+    rec = _rec(REPORT, {"table:frames": "10:aa"}, {PAGE: "1:p"})
+    f = pv.is_stale(REPORT, rec, {"table:frames": "10:bb"}, {PAGE: "2:q"},
+                    "v1")
+    assert f.state == pv.STALE
+    assert len(f.reasons) == 1 and len(f.page_reasons) == 1
+
+
+def test_a_missing_page_is_cosmetic_only_when_the_stage_also_has_data():
+    # S0e with its page deleted: a publishing fault, the catalog is intact.
+    f = pv.is_stale(MIXED, _rec(MIXED, {}, {DATA: "400:aa", PAGE: "1:p"}),
+                    {}, {DATA: "400:aa", PAGE: "MISSING"}, "v1")
+    assert f.state == pv.FRESH and "absent" in f.page_reasons[0]
+    # A pure report stage with its page deleted has lost its only product.
+    f = pv.is_stale(REPORT, _rec(REPORT, {"table:frames": "1:a"},
+                                 {PAGE: "1:p"}),
+                    {"table:frames": "1:a"}, {PAGE: "MISSING"}, "v1")
+    assert f.state == pv.OUTPUT_MISSING
+    # And missing DATA is OUTPUT_MISSING whatever the page says.
+    f = pv.is_stale(MIXED, _rec(MIXED, {}, {DATA: "400:aa", PAGE: "1:p"}),
+                    {}, {DATA: "MISSING", PAGE: "1:p"}, "v1")
+    assert f.state == pv.OUTPUT_MISSING
+
+
+def test_no_stage_reads_a_page():
+    """The structural fact that makes the split SAFE.  A page is a leaf of
+    the DAG: no stage takes one as input, so ignoring a page digest can
+    never hide a change that some consumer depends on.  If a stage is ever
+    declared to read a rendered page, this fails — and the split must be
+    re-argued for that edge before the declaration is allowed in."""
+    offenders = [(s.key, r) for s in pv.STAGES for r in s.reads
+                 if pv.is_page_resource(r)]
+    assert offenders == []
+
+
+def test_page_findings_survive_upstream_propagation():
+    child = pv.Stage(key="R", title="t", code_version="v1",
+                     reads=("r:a",), writes=(PAGE,), build_cmd="x.py")
+    stale_parent = pv.Freshness("A", pv.STALE, ("moved",))
+    kid = pv.Freshness("R", pv.FRESH, page_reasons=("page restyled",))
+    out = pv.propagate_staleness({"A": stale_parent, "R": kid}, (A, child))
+    assert out["R"].state == pv.STALE_UPSTREAM
+    assert out["R"].page_reasons == ("page restyled",)
+
+
+# ---- optional and required columns ----------------------------------------
+def _spec(**kw):
+    base = dict(key="table:t", kind="table", name="t", why="test",
+                order_by="id", columns=("id", "v"))
+    base.update(kw)
+    return pv.ResourceSpec(**base)
+
+
+def test_optional_columns_are_hashed_only_when_present(tmp_path):
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE t (id INTEGER, v TEXT)")
+    con.execute("INSERT INTO t VALUES (1, 'a')")
+    plain = pv.fingerprint_resource(_spec(), con, tmp_path)
+    # A table that predates the column: status must not crash on it, and
+    # the digest must equal the one taken before the option was declared.
+    with_opt = pv.fingerprint_resource(_spec(optional=("mech_epoch",)),
+                                       con, tmp_path)
+    assert with_opt == plain
+    # Once the stage has been re-run to add the column, the digest moves —
+    # and moves again when the column's content does.
+    con.execute("ALTER TABLE t ADD COLUMN mech_epoch TEXT")
+    added = pv.fingerprint_resource(_spec(optional=("mech_epoch",)),
+                                    con, tmp_path)
+    assert added.digest != plain.digest
+    con.execute("UPDATE t SET mech_epoch = 'ASI:2025-10-15'")
+    filled = pv.fingerprint_resource(_spec(optional=("mech_epoch",)),
+                                     con, tmp_path)
+    assert filled.digest != added.digest
+
+
+def test_a_resource_missing_its_required_columns_is_absent(tmp_path):
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE t (id INTEGER, v TEXT)")
+    spec = _spec(requires=("camera",))
+    assert pv.fingerprint_resource(spec, con, tmp_path).present is False
+    con.execute("ALTER TABLE t ADD COLUMN camera TEXT")
+    assert pv.fingerprint_resource(spec, con, tmp_path).present is True
+
+
+def test_the_hardware_resource_is_absent_from_a_pre_rescrape_manifest(
+        tmp_path):
+    """status must keep working against a manifest built before S0 v1.1."""
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE frames (obs_rowid INTEGER, is_canonical INT)")
+    spec = pv.RESOURCES["table:frames:hardware"]
+    assert pv.fingerprint_resource(spec, con, tmp_path).token == "MISSING"
+
+
+def test_mechanical_tables_are_in_the_dag():
+    assert pv.producer_of("table:mech_epoch") == "S0b"
+    assert pv.producer_of("table:night_mech_epoch") == "S0b"
+    assert pv.producer_of("table:frames:hardware") == "S0"
+    # S0b reads the solves it segments on, and S0c the epochs it matches on.
+    assert "table:s1_batch" in pv.STAGE_BY_KEY["S0b"].reads
+    assert "table:night_mech_epoch" in pv.STAGE_BY_KEY["S0c"].reads
+    # ... and the new edge closes no cycle.
+    order = pv.topological_order(pv.STAGES)
+    assert order.index("S1b") < order.index("S0b") < order.index("S0c")
+
+
+# ===========================================================================
+# F-9: the release snapshot, and "product absent" as a failure
+# ===========================================================================
+def _toy_db(path, rows):
+    con = sqlite3.connect(path)
+    con.execute("CREATE TABLE t (id INTEGER, v REAL, s TEXT)")
+    con.executemany("INSERT INTO t VALUES (?,?,?)", rows)
+    con.execute("CREATE TABLE scratch_tmp (x)")
+    con.commit()
+    con.close()
+
+
+def test_snapshot_is_content_addressed_not_layout_addressed(tmp_path):
+    """Same rows, different insertion order and a VACUUM in between: the
+    file bytes differ, the snapshot must not."""
+    rows = [(1, 0.5, "a"), (2, None, "b"), (3, -0.0, None)]
+    _toy_db(tmp_path / "a.sqlite", rows)
+    _toy_db(tmp_path / "b.sqlite", list(reversed(rows)))
+    con = sqlite3.connect(tmp_path / "b.sqlite")
+    con.execute("VACUUM")
+    con.close()
+    a = pv.snapshot_database(str(tmp_path / "a.sqlite"))
+    b = pv.snapshot_database(str(tmp_path / "b.sqlite"))
+    assert a == b
+    assert a["tables"]["t"]["rows"] == 3
+    assert len(a["tables"]["t"]["sha256"]) == 64
+    # Build scratch is not a product.
+    assert "scratch_tmp" not in a["tables"]
+
+
+def test_snapshot_sees_a_changed_cell(tmp_path):
+    _toy_db(tmp_path / "a.sqlite", [(1, 0.5, "a")])
+    _toy_db(tmp_path / "b.sqlite", [(1, 0.5000001, "a")])
+    assert pv.snapshot_database(str(tmp_path / "a.sqlite")) != \
+        pv.snapshot_database(str(tmp_path / "b.sqlite"))
+
+
+def test_snapshot_file_hashes_bytes(tmp_path):
+    p = tmp_path / "numbers.tex"
+    p.write_bytes(b"\\newcommand{\\n}{42}\n")
+    got = pv.snapshot_file(str(p))
+    assert got["bytes"] == 20
+    import hashlib
+    assert got["sha256"] == hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def test_compare_snapshots_names_every_kind_of_difference():
+    t = lambda rows, sha: {"rows": rows, "sha256": sha}
+    rec = {"databases": {"p/a.sqlite": {"tables": {
+               "kept": t(3, "x"), "grew": t(3, "x"), "edited": t(3, "x"),
+               "gone": t(1, "x")}},
+           "p/lost.sqlite": {"tables": {}}},
+           "files": {"m/numbers.tex": {"bytes": 10, "sha256": "x"},
+                     "m/gone.csv": {"bytes": 1, "sha256": "x"}}}
+    cur = {"databases": {"p/a.sqlite": {"tables": {
+               "kept": t(3, "x"), "grew": t(4, "y"), "edited": t(3, "y"),
+               "new": t(1, "z")}},
+           "p/extra.sqlite": {"tables": {}}},
+           "files": {"m/numbers.tex": {"bytes": 11, "sha256": "y"}}}
+    diffs = pv.compare_snapshots(rec, cur)
+    text = "\n".join(diffs)
+    assert "p/a.sqlite:grew: rows 3 -> 4" in text
+    assert "p/a.sqlite:edited: content changed (3 rows)" in text
+    assert "p/a.sqlite:gone: table ABSENT" in text
+    assert "p/a.sqlite:new: table not in the recorded snapshot" in text
+    assert "p/lost.sqlite: product database ABSENT" in text
+    assert "p/extra.sqlite: product database not in the recorded" in text
+    assert "m/numbers.tex: content changed (10 -> 11 bytes)" in text
+    assert "m/gone.csv: product file ABSENT" in text
+    assert "kept" not in text
+    assert pv.compare_snapshots(rec, rec) == []
+
+
+@pytest.mark.parametrize("reason", [
+    "cv_timeseries.sqlite not built in this checkout",
+    "numbers.tex not emitted in this checkout",
+    "phase 3 not built in this checkout",
+    "cloud stage not run",
+    "no manifest on this machine",
+    "no products directory in this checkout",
+    "live manifest not present: /x/rlmt-manifest.sqlite",
+    "stage tables not built yet: ['stage_tcrb_monitoring']",
+    "s3_dateobs_audit is empty in this checkout",
+    "catalogue cache not present in this checkout",
+])
+def test_absent_product_skips_are_recognised(reason):
+    assert pv.is_absent_product_skip(reason)
+    assert pv.is_absent_product_skip("Skipped: " + reason)
+
+
+@pytest.mark.parametrize("reason", [
+    "era 80 not present in this product",        # assertion does not apply
+    "no scope below its instrumental contour",   # nothing to assert
+    "de440s kernel not available on this host",  # optional tool
+    "main.log not present; run tectonic first",  # optional tool
+    "the fitted range clears the threshold outright",
+    "", None,
+])
+def test_other_skips_stay_skips_in_every_mode(reason):
+    assert not pv.is_absent_product_skip(reason)
+
+
+# ---- the status script: what it prints and what it exits with -------------
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+import check_pipeline_status as cps                          # noqa: E402
+
+
+def test_page_refresh_list_names_only_page_findings(capsys):
+    fresh_restyled = pv.Freshness("S0e", pv.FRESH,
+                                  page_reasons=("page restyled",))
+    clean = pv.Freshness("S0", pv.FRESH)
+    cps.print_page_refresh({"S0e": fresh_restyled, "S0": clean})
+    out = capsys.readouterr().out
+    assert "PAGE REFRESH (1 stages" in out and "S0e" in out
+    assert "gates" in out and "exit status unaffected" in out
+    # Nothing to refresh -> nothing printed at all.
+    cps.print_page_refresh({"S0": clean})
+    assert capsys.readouterr().out == ""
+
+
+def test_the_rerun_plan_that_sets_the_exit_code_ignores_pages():
+    """status returns 0 iff rerun_plan is empty; a page finding must not
+    put a stage in it."""
+    freshness = {s.key: pv.Freshness(s.key, pv.FRESH,
+                                     page_reasons=("restyled",))
+                 for s in pv.STAGES}
+    assert pv.rerun_plan(freshness, pv.STAGES) == []
+
+
+@pytest.fixture
+def toy_products(tmp_path, monkeypatch):
+    """A repo-shaped directory with one product database, one product CSV,
+    one emitted numbers.tex and assorted things that are NOT products."""
+    (tmp_path / "products" / "phot").mkdir(parents=True)
+    (tmp_path / "products" / "grism" / "gaia_cache").mkdir(parents=True)
+    (tmp_path / "manuscripts" / "CV").mkdir(parents=True)
+    _toy_db(tmp_path / "products" / "phot" / "cv.sqlite", [(1, 0.5, "a")])
+    (tmp_path / "products" / "phot" / "eras.csv").write_text("a,b\n1,2\n")
+    (tmp_path / "products" / "grism" / "gaia_cache" / "q.json").write_text("{}")
+    (tmp_path / "products" / "phot" / "build.tmp.sqlite").write_text("x")
+    (tmp_path / "manuscripts" / "CV" / "numbers.tex").write_text("\\n")
+    monkeypatch.setattr(cps, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(cps, "SNAPSHOT_PATH",
+                        tmp_path / "pipeline" / "release" / "pm.json")
+    monkeypatch.setattr(cps, "git_commit", lambda: "abc1234")
+    return tmp_path
+
+
+class _SnapArgs:
+    check, label, quiet = False, "test-release", True
+
+
+def test_snapshot_covers_products_and_skips_scratch_and_caches(toy_products):
+    dbs, files = cps.snapshot_targets()
+    rel = lambda ps: sorted(str(p.relative_to(toy_products)) for p in ps)
+    assert rel(dbs) == ["products/phot/cv.sqlite"]
+    assert rel(files) == ["manuscripts/CV/numbers.tex",
+                          "products/phot/eras.csv"]
+
+
+def test_snapshot_roundtrip_then_detects_drift_and_absence(toy_products,
+                                                           capsys):
+    assert cps.cmd_snapshot(_SnapArgs()) == 0
+    snap = json.loads(cps.SNAPSHOT_PATH.read_text())
+    assert snap["schema"] == pv.SNAPSHOT_SCHEMA
+    assert snap["label"] == "test-release" and snap["git_commit"] == "abc1234"
+    assert snap["databases"]["products/phot/cv.sqlite"]["tables"]["t"][
+        "rows"] == 1
+
+    class Check(_SnapArgs):
+        check = True
+    # Unchanged products ARE the recorded release.
+    assert cps.cmd_snapshot(Check()) == 0
+    assert "MATCH" in capsys.readouterr().out
+    # A changed row is a difference ...
+    con = sqlite3.connect(toy_products / "products" / "phot" / "cv.sqlite")
+    con.execute("INSERT INTO t VALUES (2, 1.5, 'b')")
+    con.commit()
+    con.close()
+    assert cps.cmd_snapshot(Check()) == 1
+    assert "rows 1 -> 2" in capsys.readouterr().out
+    # ... and so is a product that is no longer there (the F-9 point:
+    # absence is a failure, not a pass-by-default).
+    (toy_products / "products" / "phot" / "cv.sqlite").unlink()
+    assert cps.cmd_snapshot(Check()) == 1
+    assert "product database ABSENT" in capsys.readouterr().out
+
+
+def test_snapshot_check_without_a_snapshot_is_an_error(toy_products):
+    class Check(_SnapArgs):
+        check = True
+    assert cps.cmd_snapshot(Check()) == 2

@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import pandas as pd
 
+from macro_core import inventory as inv
 from macro_core import staging as stg
 from macro_core.manifest import STRATEGY_CLAIMS
 
@@ -512,7 +513,18 @@ def _frames_df() -> pd.DataFrame:
              error=None, qc_flags="", pointing_offset_deg=None,
              ra_deg=280.635, dec_deg=38.785),
     ]
-    return pd.DataFrame(rows, columns=cols)
+    df = pd.DataFrame(rows, columns=cols)
+    # Every toy frame sits in ONE mechanical epoch unless a test moves it:
+    # the selection tests above are about targets and filters, and must not
+    # change meaning because the F-3 boundary rule exists.
+    df["mech_epoch"] = _EPOCH
+    df["detector_epoch"] = _EPOCH
+    df["epoch_certain"] = 1
+    return df
+
+
+#: The single mechanical epoch of the toy manifest (see _frames_df).
+_EPOCH = "ASI:2023-01-01"
 
 
 def _calib_df() -> pd.DataFrame:
@@ -533,7 +545,11 @@ def _calib_df() -> pd.DataFrame:
              night="2023-01-05", jd=2460005.2, era_id=99, exptime=1.0,
              filter="g", kind="flat", is_master=0, size=30),
     ]
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+    df["mech_epoch"] = _EPOCH
+    df["detector_epoch"] = _EPOCH
+    df["epoch_certain"] = 1
+    return df
 
 
 class TestBuildProjectStage:
@@ -876,3 +892,154 @@ class TestLiveManifest:
             "AND qc_flags LIKE '%pointing_gt1deg%'").fetchone()[0]
         assert n_flagged == 10, \
             "the mispointed 2023-03-25 night is still unflagged"
+
+
+# ---------------------------------------------------------------------------
+# F-3: calibration is never staged across a mechanical boundary
+# ---------------------------------------------------------------------------
+class TestMechanicalBoundaryRule:
+    """Finding F-3 / TE.F1 (2026-10-03).  Era used to be the only match key
+    for calibration rows, and an era is a header history: era 76 spans the
+    2025 monsoon shutdown, across which the camera was turned 180 degrees.
+    These tests pin the rule that replaced it, at the pure layer, at the
+    DataFrame wiring, and against the live manifest."""
+
+    A = inv.EpochTag("ASI:2024-12-13", "ASI:2024-12-13", True)
+    #: Same camera, same flip state, re-seated: new mech epoch, SAME detector.
+    RESEATED = inv.EpochTag("ASI:2025-03-01", "ASI:2024-12-13", True)
+    #: Flip state changed: new mech epoch AND new detector epoch.
+    FLIPPED = inv.EpochTag("ASI:2025-10-15", "ASI:2025-10-15", True)
+
+    def test_a_flat_serves_only_its_own_mech_epoch(self):
+        assert stg.calib_serves("flat", self.A, {self.A})
+        assert not stg.calib_serves("flat", self.RESEATED, {self.A})
+        assert not stg.calib_serves("flat", self.FLIPPED, {self.A})
+
+    def test_a_dark_survives_a_reseat_but_not_a_flip(self):
+        # Re-seating a camera moves the sky and the dust, not the hot pixels.
+        assert stg.calib_serves("dark", self.RESEATED, {self.A})
+        assert stg.calib_serves("bias", self.RESEATED, {self.A})
+        # A flip-state change mirrors the saved array.
+        assert not stg.calib_serves("dark", self.FLIPPED, {self.A})
+        assert not stg.calib_serves("bias", self.FLIPPED, {self.A})
+
+    def test_serving_any_one_science_epoch_is_enough_to_stage(self):
+        # A project whose science spans both sides gets both sides' flats —
+        # each row carrying its own epoch for the per-frame match.
+        assert stg.calib_serves("flat", self.FLIPPED, {self.A, self.FLIPPED})
+
+    def test_unknown_epochs_serve_nothing(self):
+        nowhere = inv.EpochTag(None, None, False)
+        for kind in ("flat", "dark", "bias"):
+            assert not stg.calib_serves(kind, nowhere, {self.A})
+            assert not stg.calib_serves(kind, self.A, {nowhere})
+            assert not stg.calib_serves(kind, nowhere, {nowhere})
+            assert not stg.calib_serves(kind, self.A, set())
+
+    def test_an_uncertain_night_gets_no_flat_but_keeps_its_darks(self):
+        gap = inv.EpochTag("ASI:2024-12-13", "ASI:2024-12-13", False)
+        assert not stg.calib_serves("flat", self.A, {gap})
+        assert not stg.calib_serves("flat", gap, {self.A})
+        assert stg.calib_serves("dark", self.A, {gap})
+
+    def test_kind_of_role(self):
+        assert stg.kind_of_role("master_flat") == "flat"
+        assert stg.kind_of_role("dark") == "dark"
+        with pytest.raises(ValueError):
+            stg.kind_of_role("science")
+
+    def test_epoch_tag_reads_nan_as_no_epoch(self):
+        tag = stg.epoch_tag({"mech_epoch": float("nan"),
+                             "detector_epoch": None, "epoch_certain": 1})
+        assert tag.mech_epoch is None and tag.detector_epoch is None
+        assert stg.epoch_tag({}).certain is False
+
+    # ---- the wiring ---------------------------------------------------
+    def _calib_across_the_flip(self) -> pd.DataFrame:
+        """Era-76 calibration on BOTH sides of a flip, for science that
+        sits (in _frames_df) entirely in _EPOCH."""
+        rows = [
+            dict(obs_rowid=20, path="calib/flat_pre.fts", tree="calib",
+                 night="2023-01-01", jd=2460001.1, era_id=76, exptime=2.0,
+                 filter="lrg", kind="flat", is_master=0, size=10,
+                 mech_epoch=_EPOCH, detector_epoch=_EPOCH, epoch_certain=1),
+            dict(obs_rowid=21, path="calib/flat_post.fts", tree="calib",
+                 night="2023-06-01", jd=2460097.1, era_id=76, exptime=2.0,
+                 filter="lrg", kind="flat", is_master=0, size=10,
+                 mech_epoch="ASI:2023-06-01", detector_epoch="ASI:2023-06-01",
+                 epoch_certain=1),
+            dict(obs_rowid=22, path="calib/dark_post.fts", tree="calib",
+                 night="2023-06-01", jd=2460097.2, era_id=76, exptime=240.0,
+                 filter=None, kind="dark", is_master=0, size=10,
+                 mech_epoch="ASI:2023-06-01", detector_epoch="ASI:2023-06-01",
+                 epoch_certain=1),
+            # Re-seated only: the dark still serves, the flat does not.
+            dict(obs_rowid=23, path="calib/dark_reseat.fts", tree="calib",
+                 night="2023-03-01", jd=2460005.2, era_id=76, exptime=240.0,
+                 filter=None, kind="dark", is_master=0, size=10,
+                 mech_epoch="ASI:2023-03-01", detector_epoch=_EPOCH,
+                 epoch_certain=1),
+            dict(obs_rowid=24, path="calib/flat_reseat.fts", tree="calib",
+                 night="2023-03-01", jd=2460005.3, era_id=76, exptime=2.0,
+                 filter="lrg", kind="flat", is_master=0, size=10,
+                 mech_epoch="ASI:2023-03-01", detector_epoch=_EPOCH,
+                 epoch_certain=1),
+        ]
+        return pd.DataFrame(rows)
+
+    def test_same_era_calibration_across_a_boundary_is_not_staged(self):
+        sel = stg.selection_for("TCrB_Monitoring")
+        df = build.build_project_stage(sel, _frames_df(),
+                                       self._calib_across_the_flip(),
+                                       "/arch", "bid")
+        cal = df[~df["role"].isin(stg.SCIENCE_ROLES)]
+        # Staged: the same-epoch flat and the re-seat dark.  Refused: the
+        # post-flip flat and dark, and the re-seat flat.
+        assert sorted(cal["obs_rowid"]) == [20, 23]
+        assert df.attrs["n_calib_cross_epoch"] == 3
+
+    def test_every_staged_row_carries_its_epoch(self):
+        sel = stg.selection_for("TCrB_Monitoring")
+        df = build.build_project_stage(sel, _frames_df(),
+                                       self._calib_across_the_flip(),
+                                       "/arch", "bid")
+        assert df["mech_epoch"].notna().all()
+        assert set(df["epoch_certain"]) == {1}
+        assert tuple(df.columns)[-3:] == ("mech_epoch", "detector_epoch",
+                                          "epoch_certain")
+
+    # ---- the live manifest --------------------------------------------
+    def test_no_staged_calibration_crosses_a_boundary(self, live):
+        """THE F-3 ACCEPTANCE TEST, on the real stage tables.
+
+        For every project: every staged calibration row must be valid, by
+        ``inventory.calib_valid_for``, for at least one science row of the
+        same era in the same stage table.  A flat whose mech_epoch no
+        science frame shares, or a dark whose detector_epoch none shares,
+        is a master applied across a boundary waiting to happen.
+        """
+        for sel in stg.PROJECT_SELECTIONS:
+            table = stg.stage_table_name(sel.project)
+            cols = {r[1] for r in live.execute(f"PRAGMA table_info({table})")}
+            if "mech_epoch" not in cols:
+                pytest.skip("stage tables not built yet: they predate the "
+                            "mechanical-epoch columns (S0c v1.1)")
+            sci: dict[int, set] = {}
+            for era, mech, det, cert in live.execute(
+                    f"SELECT DISTINCT era_id, mech_epoch, detector_epoch, "
+                    f"epoch_certain FROM {table} "
+                    f"WHERE {stg.SQL_SCIENCE_ROLES}"):
+                sci.setdefault(era, set()).add(
+                    inv.EpochTag(mech, det, bool(cert)))
+            offenders = []
+            for path, role, era, mech, det, cert in live.execute(
+                    f"SELECT path, role, era_id, mech_epoch, detector_epoch, "
+                    f"epoch_certain FROM {table} "
+                    f"WHERE {stg.SQL_CALIB_ROLES}"):
+                tag = inv.EpochTag(mech, det, bool(cert))
+                if not stg.calib_serves(stg.kind_of_role(role), tag,
+                                        sci.get(era, set())):
+                    offenders.append((role, era, mech, path))
+            assert not offenders, (
+                f"{sel.project}: {len(offenders)} calibration rows staged "
+                f"across a mechanical boundary, e.g. {offenders[:3]}")

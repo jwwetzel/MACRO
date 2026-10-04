@@ -20,7 +20,9 @@ for, and every one of them has a way of producing a confident wrong answer:
     error bar from an edge fit is a fiction: the trapezoid does not fit the
     flickering, so chi2_nu comes out at 5-400 and the interval it implies is
     absurdly small.  :func:`fit_edge` therefore rescales to chi2_nu = 1
-    before quoting anything, and :func:`sigma_t_injection` measures the real
+    before quoting anything (in BOTH directions since the 2026-10-03
+    committee review: no error bar in this module is clipped at chi2_nu = 1
+    any more), and :func:`sigma_t_injection` measures the real
     sigma_t by injecting known edges into the real cadence with the real
     error model and recovering them.
 3.  **O-C.**  An O-C diagram needs a cycle count, and a cycle count 20,000
@@ -303,11 +305,20 @@ def fit_linear_ephemeris(cycle, t_obs_d, sigma_t_d
     """Weighted straight line ``t = E + P * cycle``.
 
     Returns ``(E, sigma_E, P, sigma_P, chi2_nu)``.  The errors are the
-    formal ones from the weighted normal equations RESCALED so chi2_nu = 1
-    when chi2_nu > 1 — the same discipline the edge fits use, and for the
-    same reason: the scatter of real edge times around a linear ephemeris
-    is dominated by the star, not by the photon noise, and an error bar
-    that ignores that is not an error bar.
+    formal ones from the weighted normal equations multiplied by
+    ``sqrt(chi2_nu)`` — SCATTER-BASED errors, rescaled in whichever
+    direction the residuals demand.  The scatter of real edge times around
+    a linear ephemeris is dominated by the star, not by the photon noise,
+    and an error bar that ignores that is not an error bar.
+
+    Until the committee review of 2026-10-03 the factor was
+    ``sqrt(max(chi2_nu, 1))``: errors could be inflated and never deflated.
+    That one-sidedness is what let a transported error budget twice the
+    size of the real scatter turn a four-sigma band offset into "1.9
+    sigma" (SYNTHESIS, standing rule 1: a chi2_nu below 0.5 is a defect
+    equal to one above 2, and nothing is clipped at one).  ``chi2_nu`` is
+    returned so a caller can see, and must report, which way the input
+    errors were wrong; its degrees of freedom are ``n - 2``.
     """
     c = np.asarray(cycle, dtype=float)
     t = np.asarray(t_obs_d, dtype=float)
@@ -326,7 +337,9 @@ def fit_linear_ephemeris(cycle, t_obs_d, sigma_t_d
     chi2 = float(np.sum(w * resid ** 2))
     dof = max(c.size - 2, 1)
     chi2nu = chi2 / dof
-    scale = math.sqrt(max(chi2nu, 1.0))
+    # Symmetric: no max(chi2nu, 1).  A perfect fit (chi2 = 0) keeps the
+    # formal bar rather than collapsing to zero.
+    scale = math.sqrt(chi2nu) if chi2nu > 0 else 1.0
     return (float(p[0]), float(math.sqrt(cov[0, 0])) * scale,
             float(p[1]), float(math.sqrt(cov[1, 1])) * scale, float(chi2nu))
 
@@ -911,7 +924,17 @@ def fit_edge(times_d, y, dy, t_grid_d, width_grid_d,
     chi2_nu = 1 before taking the interval converts "the model is wrong" into
     "the error bar is bigger", which is the only honest of the two.  Even
     then the rescaled bar is a FORMAL number; the authority on sigma_t is
-    :func:`sigma_t_injection`.
+    :func:`sigma_t_injection` and, since the 2026-10-03 review, the
+    per-edge bootstrap in :mod:`macro_phot.revision_cv`.
+
+    The rescaling is SYMMETRIC: the threshold is ``chi2_min + chi2_nu``
+    whatever chi2_nu is, with no ``max(chi2_nu, 1)``.  Every real edge in
+    this archive has chi2_nu of 2 or more, so nothing stored changes; the
+    symmetry matters for the principle (standing rule 1) and for synthetic
+    edges, where a clean fit must not be handed an error bar it did not
+    earn.  With two to eight degrees of freedom chi2_nu is itself noisy,
+    which is one more reason this bar is never published.  It is floored
+    at one grid step.
 
     Returns an :class:`EdgeFit` whose ``accepted`` flag is False, with a
     ``reason``, whenever the fit is not a measurement: too few points, the
@@ -966,7 +989,7 @@ def fit_edge(times_d, y, dy, t_grid_d, width_grid_d,
     # threshold is delta-chi2 = 1 SCALED by chi2_nu, which is exactly the
     # same as rescaling every error bar by sqrt(chi2_nu) and using 1.
     prof = chi2.min(axis=1)
-    thresh = chi_min + max(chi2nu, 1.0)
+    thresh = chi_min + (chi2nu if chi2nu > 0 else 1.0)
     inside = np.flatnonzero(prof <= thresh)
     if inside.size >= 2:
         sigma_s = float((tg[inside[-1]] - tg[inside[0]]) / 2.0 * 86400.0)
@@ -1031,10 +1054,24 @@ def band_difference(t_a_d, sig_a_s, t_b_d, sig_b_s
     ``t_a - t_b``.  Paired per cycle rather than differencing two means:
     the two bands see the same cycle-to-cycle wander of the accretion spot,
     so pairing cancels it and leaves the systematic band offset, which is
-    the cyclotron quantity.  ``chi2nu`` is reported because a value far
-    above 1 means the offset is not constant from cycle to cycle, which is
-    itself the interesting result and must not be hidden inside a smaller
-    error bar.
+    the cyclotron quantity.
+
+    ``sigma_s`` is the error PROPAGATED from the supplied per-edge errors
+    and nothing else.  It is not rescaled by ``chi2nu`` in either
+    direction.  Until the committee review of 2026-10-03 it was multiplied
+    by ``sqrt(max(chi2nu, 1))``, which could only ever widen it — and on
+    the ST LMi pairs, whose differences scatter HALF as much as their
+    assigned errors (chi2nu = 0.26 on 11 degrees of freedom), that
+    one-sidedness is what kept a four-sigma offset at "1.9 sigma".
+
+    ``chi2nu`` (on ``n - 1`` degrees of freedom) is therefore a first-class
+    output and has to be read: far above one, the offset is not constant
+    from cycle to cycle or the errors are too small; far below one, the
+    errors are too LARGE and ``sigma_s`` over-states the uncertainty.  In
+    both cases the scatter-based companion :func:`band_difference_scatter`
+    is the error to quote, and the significance of an offset is decided by
+    the paired tests in :mod:`macro_phot.revision_cv`, never by comparing
+    ``delta_s`` with a multiple of ``sigma_s``.
     """
     ta = np.asarray(t_a_d, dtype=float)
     tb = np.asarray(t_b_d, dtype=float)
@@ -1048,15 +1085,32 @@ def band_difference(t_a_d, sig_a_s, t_b_d, sig_b_s
     s = np.hypot(sa[ok], sb[ok])
     w = 1.0 / s ** 2
     mean = float(np.sum(w * d) / np.sum(w))
-    var = 1.0 / float(np.sum(w))
-    if d.size > 1:
-        chi2nu = float(np.sum(w * (d - mean) ** 2) / (d.size - 1))
-        # Same discipline as everywhere else: a misfit inflates the bar.
-        sigma = math.sqrt(var * max(chi2nu, 1.0))
-    else:
-        chi2nu = float("nan")
-        sigma = math.sqrt(var)
+    sigma = math.sqrt(1.0 / float(np.sum(w)))
+    chi2nu = (float(np.sum(w * (d - mean) ** 2) / (d.size - 1))
+              if d.size > 1 else float("nan"))
     return mean, sigma, chi2nu
+
+
+def band_difference_scatter(t_a_d, t_b_d) -> tuple[float, float, int]:
+    """Unweighted mean inter-band difference with a SCATTER-BASED error.
+
+    Returns ``(mean_s, se_s, n)``: the plain mean of the per-cycle
+    differences ``t_a - t_b`` in seconds, its standard error
+    ``sd / sqrt(n)`` from the differences' own scatter, and the number of
+    pairs.  No per-edge error enters, so no error model can inflate or
+    deflate the answer.  ``se_s`` is NaN for fewer than two pairs, and with
+    fewer than about five it is itself uncertain by a factor of two — the
+    caller should say how many pairs stand behind it.
+    """
+    ta = np.asarray(t_a_d, dtype=float)
+    tb = np.asarray(t_b_d, dtype=float)
+    ok = np.isfinite(ta) & np.isfinite(tb)
+    n = int(ok.sum())
+    if n < 1:
+        return float("nan"), float("nan"), 0
+    d = (ta[ok] - tb[ok]) * 86400.0
+    se = float(d.std(ddof=1) / math.sqrt(n)) if n > 1 else float("nan")
+    return float(d.mean()), se, n
 
 
 # ===========================================================================

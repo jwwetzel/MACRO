@@ -42,6 +42,10 @@ So this module offers two things, both pure and both unit-tested:
   rescue path, tolerant of the malformed ``CONTINUE`` cards astropy
   rejects, so a frame astropy cannot fully parse still yields its
   geometry instead of a phantom.
+* :func:`read_hardware_cards` — the same tolerant card reader pointed at
+  the cards that record the HARDWARE state of a frame (gain/offset
+  setting, cooler, focuser, flip state, wheel map).  Added for the F-2
+  header re-scrape; see the section at the bottom of this file.
 
 HOUSE RULE ENFORCED HERE: a header that cannot be understood raises
 :class:`GeometryError`.  It never returns a plausible-looking number.  The
@@ -61,6 +65,9 @@ __all__ = [
     "parse_card_block",
     "geometry_from_card_block",
     "CARD_LEN",
+    "HARDWARE_CARDS",
+    "parse_hardware_cards",
+    "read_hardware_cards",
 ]
 
 #: Every FITS header card is exactly 80 bytes.  Headers are padded to
@@ -297,3 +304,211 @@ def geometry_from_card_block(block: bytes | str) -> tuple[int, int]:
     The rescue path in one call, with the same loud-failure contract.
     """
     return resolve_geometry(parse_card_block(block))
+
+
+# ===========================================================================
+# Hardware-state cards (finding F-2, plan review 2026-10-03)
+# ===========================================================================
+# WHY THIS LIVES HERE.  The original catalog scan read headers through
+# astropy and kept a fixed list of cards.  Two things went wrong with that,
+# and both are the same story as the geometry artifact above:
+#
+# * the cards that say WHAT HARDWARE TOOK THE FRAME — gain and offset
+#   setting, cooler set-point and power, the true focuser position, the
+#   software flip state, the pier side, the filter-wheel slot and the wheel's
+#   whole slot map — were never in the list, so the manifest could not tell a
+#   re-seated camera from an untouched one (TE.F1, DE.F5);
+# * ~20k files carry a malformed ``CONTINUE`` card *inside ``FWALLNAM``
+#   itself*, so the one card that records the wheel map is exactly the card
+#   astropy refuses to parse.
+#
+# So the re-scrape reads the raw 80-byte cards with the tolerant parser this
+# module already owns.  It is also an order of magnitude cheaper than
+# ``fits.open``: no HDU objects, no table machinery, one or two short reads
+# per file — which matters when 330k files sit on one spinning disk.
+
+#: The header cards the re-scrape collects, in the column order of the
+#: ``hdr_rescrape`` table.  The first twelve are the list ruled by the
+#: chair's synthesis (F-2); the last four are IDENTITY helpers the
+#: mechanical-epoch table needs and that cost nothing to read in the same
+#: pass: ``CAMNAME`` names the camera on the pyscope-native frames whose
+#: ``INSTRUME`` is absent, ``XPIXSZ`` is the binned pixel pitch (a physical
+#: camera property), ``FWNAME`` names the wheel hardware, and ``FOCUSPOS`` is
+#: MaxIm's focuser card — kept beside pyscope's ``FOCPOS`` precisely because
+#: TE.F8 showed it sticks, and a stuck card can only be demonstrated by
+#: storing both.
+HARDWARE_CARDS: tuple[str, ...] = (
+    "INSTRUME", "GAIN", "OFFSET", "SET-TEMP", "CCD-TEMP", "COOLPOWR",
+    "FOCPOS", "FLIPSTAT", "TELPIER", "FWPOS", "FWALLNAM", "SWCREATE",
+    "CAMNAME", "XPIXSZ", "FWNAME", "FOCUSPOS",
+)
+
+#: A FITS header is written in 2880-byte blocks of 36 cards.
+BLOCK_LEN = 2880
+
+#: Upper bound on the header bytes read from one HDU.  The longest real
+#: header in the archive is ~620 cards (50 kB); 400 blocks (1.15 MB) is far
+#: beyond any header and stops a corrupt file with no ``END`` card from being
+#: read to its last byte.
+MAX_HEADER_BLOCKS = 400
+
+
+def _card_string_value(field: str) -> tuple[str, bool]:
+    """Extract a quoted string from one card's value field.
+
+    Returns ``(text, continues)``; ``continues`` is True when the string
+    ends in the long-string continuation marker ``&``.
+
+    Two dialects must both survive:
+
+    * the standard one, where an embedded quote is doubled —
+      ``'(''g'', ''OGGrism'', &'``;
+    * pyscope's native header (2026-06-28 onward), which writes the wheel
+      map with RAW embedded quotes — ``'('g', 'lrg', 'r')' / Filter`` — an
+      illegal card under the standard grammar, which would read it as the
+      one-character string ``(``.
+
+    The standard parse is tried first and accepted only when what follows
+    the closing quote is empty or a comment.  Otherwise the card is the
+    second dialect and the string is everything between the first quote and
+    the last quote that precedes the comment separator.
+    """
+    body = field.lstrip()
+    # --- standard grammar: scan to the first undoubled quote --------------
+    i, out = 1, []
+    while i < len(body):
+        ch = body[i]
+        if ch == "'":
+            if i + 1 < len(body) and body[i + 1] == "'":
+                out.append("'")
+                i += 2
+                continue
+            break
+        out.append(ch)
+        i += 1
+    rest = body[i + 1:].strip()
+    if i < len(body) and (not rest or rest.startswith("/")):
+        text = "".join(out).rstrip()
+    else:
+        # --- raw-quote dialect: last quote before the comment separator ---
+        cut = body.rfind(" /")
+        head = body if cut == -1 else body[:cut]
+        end = head.rfind("'")
+        text = (head[1:end] if end > 0 else head[1:]).rstrip()
+    continues = text.endswith("&")
+    return (text[:-1] if continues else text), continues
+
+
+def parse_hardware_cards(block: bytes | str,
+                         wanted: Iterable[str] = HARDWARE_CARDS) -> dict:
+    """Pull the wanted cards out of a raw header block → ``{KEY: text}``.
+
+    Every value comes back as STRIPPED TEXT, exactly as the header spells
+    it; typing is the manifest's job, because one card means different
+    things on different cameras (``GAIN`` is ``'4x'`` on the Andor iKon and
+    ``100`` on the ASI) and coercing here would destroy that.
+
+    Three states are kept apart, because the acceptance test for the
+    re-scrape ("no nulls where the card exists") turns on the difference:
+
+    * key ABSENT from the result — the header has no such card;
+    * value ``''`` — the card exists and is blank (``OFFSET  =  / Image
+      offset``; the post-monsoon ``FLIPSTAT= '        '``, whose blankness
+      is itself the measurement);
+    * anything else — the value.
+
+    ``CONTINUE`` cards are FOLLOWED here (unlike :func:`parse_card_block`,
+    which skips them): the wheel map is a long string and its tail lives in
+    them.  The first occurrence of a keyword wins.
+
+    Raises :class:`GeometryError` on a block that is not card-structured.
+    """
+    text = block.decode("ascii", "replace") if isinstance(block, bytes) \
+        else block
+    if not text or len(text) % CARD_LEN:
+        raise GeometryError(
+            f"header block is {len(text)} bytes, not a whole number of "
+            f"{CARD_LEN}-byte cards")
+    want = frozenset(wanted)
+    out: dict[str, str] = {}
+    open_key: Optional[str] = None       # a string still being continued
+    for i in range(0, len(text), CARD_LEN):
+        card = text[i:i + CARD_LEN]
+        key = card[:8].strip()
+        if key == "END":
+            break
+        if key == "CONTINUE":
+            if open_key is not None:
+                more, cont = _card_string_value(card[8:]) \
+                    if "'" in card[8:] else ("", False)
+                out[open_key] += more
+                if not cont:
+                    open_key = None
+            continue
+        open_key = None
+        if key not in want or key in out or card[8:10] != "= ":
+            continue
+        field = card[10:]
+        if field.lstrip().startswith("'"):
+            value, cont = _card_string_value(field)
+            out[key] = value
+            if cont:
+                open_key = key
+        else:
+            # Unquoted: number, logical, or nothing.  Cut the comment.
+            out[key] = field.split("/", 1)[0].strip()
+    # A continued string may carry trailing pad from its last segment.
+    return {k: v.strip() for k, v in out.items()}
+
+
+def _read_one_header(fh) -> bytes:
+    """Read one HDU header (through its ``END`` card) from an open binary
+    file positioned at a header start.  Returns ``b''`` at end of file."""
+    chunks: list[bytes] = []
+    for _ in range(MAX_HEADER_BLOCKS):
+        blk = fh.read(BLOCK_LEN)
+        if len(blk) < BLOCK_LEN:
+            if not chunks and not blk:
+                return b""
+            raise GeometryError("file ends inside a header block")
+        chunks.append(blk)
+        # END is a card of its own: 'END' + 77 spaces at an 80-byte boundary.
+        for j in range(0, BLOCK_LEN, CARD_LEN):
+            if blk[j:j + 8] == b"END     ":
+                return b"".join(chunks)
+    raise GeometryError(f"no END card within {MAX_HEADER_BLOCKS} blocks")
+
+
+def read_hardware_cards(path: str,
+                        wanted: Iterable[str] = HARDWARE_CARDS) -> dict:
+    """Read the wanted hardware cards of one FITS file from disk.
+
+    Reads the primary header and — only when the primary holds no image
+    (``NAXIS = 0``, the layout of every fpack ``.fz`` file, whose real
+    header sits in the first extension) — the first extension header,
+    which follows immediately because a dataless primary has no data
+    blocks.  Nothing beyond those header blocks is read, and the file is
+    opened read-only.
+
+    ``.gz`` files are read through :mod:`gzip`; everything else is read
+    raw.  Cards from the primary win over the extension's, matching the
+    first-occurrence rule.
+
+    Raises :class:`GeometryError` for a file with no parsable header, and
+    lets ``OSError`` through for a file that cannot be opened — the caller
+    records either in its ``error`` column.
+    """
+    import gzip
+    opener = gzip.open if path.lower().endswith(".gz") else open
+    with opener(path, "rb") as fh:
+        primary = _read_one_header(fh)
+        if not primary:
+            raise GeometryError("empty file")
+        cards = parse_hardware_cards(primary, wanted)
+        head = parse_card_block(primary)
+        if head.get("NAXIS") == 0:
+            ext = _read_one_header(fh)
+            if ext:
+                for k, v in parse_hardware_cards(ext, wanted).items():
+                    cards.setdefault(k, v)
+    return cards

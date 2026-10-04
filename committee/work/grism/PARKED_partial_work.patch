@@ -1,0 +1,3654 @@
+diff --git a/pipeline/macro_grism/db.py b/pipeline/macro_grism/db.py
+index ef15cbc..4405c03 100644
+--- a/pipeline/macro_grism/db.py
++++ b/pipeline/macro_grism/db.py
+@@ -11,6 +11,35 @@ are never modified; the manifest stays append-only across stages).
+ Writes go through one transaction per batch; a crashed run leaves the
+ last complete batch, and the runner resumes by skipping rows that exist
+ (the (obs_rowid, method) uniqueness is the resume key).
++
++2026-10-03 (committee wave 0).  The calibration-library tables below
++(``G2_SCHEMA``) are written to the grism track's OWN database,
++``products/grism/grism.sqlite``, because the shared manifest is read-only
++for every package but ``foundation-s0`` this wave; the integrated rebuild
++lands them in the manifest unchanged.  Every table is keyed on the archive
++``path`` (stable across an S0 rebuild) and carries ``obs_rowid`` only as a
++convenience copy of the manifest key at the time of the run.
++
++* ``g_frames``          — one row per frame this track has reduced: the
++                          header cards the committee asked for (true
++                          focus, sensor temperature, flip), mechanical
++                          epoch, detector key, trace geometry and the
++                          1-D quality numbers.
++* ``g_line_id``         — D1: line identification under the adopted and
++                          the rival dispersion hypotheses, per calibrator.
++* ``g_line_meas``       — every measured line / band-edge centre.
++* ``g_dispersion``      — G-1: THE solution, one row per (grism, epoch).
++* ``g_dispersion_resid``— its per-line residuals (the acceptance test).
++* ``g_telluric_lambda`` — measured effective wavelengths of the telluric
++                          band edges on the stellar scale.
++* ``g_zero_point``      — per-frame zero point and the Halpha-O2B
++                          separation check for science frames.
++* ``g_variance_check``  — G-2: predicted vs measured sky variance.
++* ``g_identity``        — G-3: the pixel-based identity gate.
++* ``g_null_sky``        — G-4: empty-aperture residual per sky method.
++* ``g_lsf``             — G-5: measured line-spread function.
++* ``g_ew``              — step 7: equivalent widths, old and new library.
++* ``g_meta``            — key/value provenance.
+ """
+ 
+ from __future__ import annotations
+@@ -90,11 +119,234 @@ CREATE TABLE IF NOT EXISTS g_build_meta (
+ """
+ 
+ 
++G2_SCHEMA = """
++CREATE TABLE IF NOT EXISTS g_frames (
++    path         TEXT PRIMARY KEY,   -- archive-relative (stable key)
++    obs_rowid    INTEGER,            -- manifest key at run time
++    sample       TEXT,               -- calibrator | tcrb | tcrb_slot |
++                                     -- ngc5548 | identity_control | ...
++    target       TEXT,               -- manifest target_best
++    star         TEXT,               -- calibrator registry name (if any)
++    filter       TEXT,               -- FILTER card as written
++    grism        TEXT,               -- hrg | lrg | NULL (slot 6 / W)
++    night        TEXT,
++    mech_epoch   TEXT,               -- macro_grism.config working table
++    jd           REAL,               -- header JD, UTC exposure START
++    exptime      REAL,
++    detector_key TEXT,
++    instrume TEXT, readoutm TEXT, flipstat TEXT, telpier TEXT,
++    ccd_temp REAL, set_temp REAL,
++    focpos REAL,                     -- pyscope FOCPOS (true focuser)
++    focuspos REAL,                   -- MaxIm FOCUSPOS (can be stuck)
++    airmass REAL,
++    hdr_ra TEXT, hdr_dec TEXT,       -- OBJCTRA / OBJCTDEC as written
++    pointing_offset_deg REAL,        -- manifest value (header vs target)
++    ny INTEGER, nx INTEGER, layout TEXT,
++    -- trace -----------------------------------------------------------
++    status       TEXT,               -- ok | no_trace | error text
++    trace_height REAL, trace_slope REAL, trace_u REAL,
++    trace_rms_px REAL, trace_n INTEGER,
++    trace_x0 INTEGER, trace_x1 INTEGER,     -- signal extent (columns)
++    trace_coeffs TEXT,               -- JSON polynomial, polyval order
++    -- extraction quality --------------------------------------------------
++    peak_adu REAL,                   -- brightest raw pixel in aperture
++    n_sat_cols INTEGER,              -- native-saturation-possible columns
++    snr_median REAL,
++    fwhm_px REAL,                    -- cross-dispersion FWHM (median)
++    sky_adu REAL,                    -- sky above pedestal under trace
++    spec_file TEXT,                  -- products-relative .npz
++    code_version TEXT
++);
++CREATE TABLE IF NOT EXISTS g_line_id (
++    path TEXT PRIMARY KEY,
++    star TEXT, grism TEXT, mech_epoch TEXT, spt TEXT,
++    n_features INTEGER,
++    -- adopted-seed hypothesis ------------------------------------------
++    n_match INTEGER, n_stellar INTEGER, n_lines INTEGER,
++    disp_at_ha REAL,                 -- signed A/px from the ID refinement
++    sign INTEGER, x_halpha REAL, rms_px REAL,
++    coeffs_json TEXT,                -- polyval order, lambda - 6562.80
++    refined INTEGER,                 -- 1 = >=4 lines survived tight re-match
++    matches_json TEXT,               -- [[line, x, resid_px], ...]
++    -- rival hypotheses (same features, same tolerance) ------------------
++    rivals_json TEXT,                -- {name: {n_match, n_stellar, rms}}
++    best_rival_match INTEGER,
++    hbeta_depth_159 REAL,            -- hrg: depth where 1.59 A/px puts
++    hbeta_depth_159_err REAL         --   Hbeta (best of both signs)
++);
++CREATE TABLE IF NOT EXISTS g_line_meas (
++    path TEXT NOT NULL, line TEXT NOT NULL,
++    star TEXT, grism TEXT, mech_epoch TEXT,
++    kind TEXT, shape TEXT,           -- stellar|telluric ; line|edge
++    wave_ref REAL,                   -- a-priori wavelength (air, A)
++    x REAL, x_err REAL,              -- measured centre / edge (px)
++    fwhm_px REAL, amp_frac REAL, snr REAL, rchi2 REAL,
++    used INTEGER,                    -- 1 = entered the primary fit
++    PRIMARY KEY (path, line)
++);
++CREATE TABLE IF NOT EXISTS g_dispersion (
++    grism TEXT NOT NULL, mech_epoch TEXT NOT NULL,
++    disp_a_per_px REAL,              -- at x_ref; signed: + = red to +x
++    disp_err REAL,
++    disp_minus1000 REAL,             -- |A/px| at x_ref - 1000 px
++    disp_plus1000 REAL,              -- |A/px| at x_ref + 1000 px
++    x_ref REAL,                      -- detector reference column
++    coeffs_json TEXT,                -- [k1, k2, (k3)]: lambda = c_frame +
++                                     --   sum k_j ((x - x_ref)/1000)^j
++    coeff_errs_json TEXT,
++    degree INTEGER,
++    n_frames INTEGER, n_stars INTEGER, n_lines INTEGER, n_meas INTEGER,
++    n_clipped INTEGER,
++    rms_px REAL, rms_a REAL, max_abs_resid_px REAL,
++    chi2 REAL, dof INTEGER, rchi2 REAL,
++    o2b_wave_eff REAL, o2b_wave_err REAL,   -- O2-B edge on this scale
++    stars TEXT, lines TEXT,
++    status TEXT,                     -- adopted | provisional | unsolved
++    note TEXT,
++    PRIMARY KEY (grism, mech_epoch)
++);
++CREATE TABLE IF NOT EXISTS g_dispersion_resid (
++    grism TEXT, mech_epoch TEXT, path TEXT, star TEXT, line TEXT,
++    wave_ref REAL, x REAL, x_err REAL, resid_px REAL, resid_a REAL,
++    PRIMARY KEY (path, line)
++);
++CREATE TABLE IF NOT EXISTS g_telluric_lambda (
++    grism TEXT NOT NULL, mech_epoch TEXT NOT NULL, feature TEXT NOT NULL,
++    wave_head REAL,                  -- a-priori band-head wavelength
++    wave_eff REAL, wave_eff_err REAL,       -- measured on stellar scale
++    scatter_a REAL, n_frames INTEGER, n_stars INTEGER,
++    PRIMARY KEY (grism, mech_epoch, feature)
++);
++CREATE TABLE IF NOT EXISTS g_zero_point (
++    path TEXT PRIMARY KEY,
++    sample TEXT, target TEXT, grism TEXT, mech_epoch TEXT, night TEXT,
++    anchor TEXT,                     -- halpha_em | none
++    x_halpha REAL, x_halpha_err REAL, halpha_snr REAL,
++    halpha_fwhm_px REAL, halpha_amp_frac REAL,
++    disp_at_halpha REAL,             -- |A/px| at the Halpha pixel
++    x_o2b REAL, x_o2b_err REAL, o2b_depth REAL,
++    o2b_wave REAL, o2b_wave_err REAL,       -- edge wavelength, this frame
++    o2b_dwave REAL,                  -- minus the calibrated edge wavelength
++    sep_px REAL,                     -- |x_o2b - x_halpha|
++    sep_pred_px REAL,                -- detector-coordinate solution
++    sep_frac_dev REAL,               -- (sep - pred) / pred
++    status TEXT
++);
++CREATE TABLE IF NOT EXISTS g_variance_check (
++    path TEXT PRIMARY KEY,
++    sample TEXT, grism TEXT, mech_epoch TEXT, detector_key TEXT,
++    n_bins INTEGER,
++    level_lo REAL, level_hi REAL,    -- sky above pedestal (ADU) spanned
++    var_ratio_median REAL,           -- measured / predicted variance
++    var_ratio_lo REAL, var_ratio_hi REAL,   -- 16th / 84th pct over bins
++    ptc_gain REAL, ptc_gain_err REAL,       -- e-/ADU from var vs level
++    ptc_rn_adu REAL, ptc_rn_err REAL,
++    bins_json TEXT                   -- [[level, var_meas, var_pred, n]..]
++);
++CREATE TABLE IF NOT EXISTS g_identity (
++    path TEXT PRIMARY KEY,
++    sample TEXT, claimed TEXT, grism TEXT, mech_epoch TEXT, night TEXT,
++    pointing_offset_deg REAL,
++    old_verdict TEXT, old_reason TEXT,      -- v1 gate (header-first)
++    cc_peak REAL,                    -- fingerprint cross-correlation
++    cc_lag_px REAL,
++    cc_second REAL,                  -- runner-up peak (ambiguity)
++    halpha_em_snr REAL, halpha_ew_px REAL,
++    tio_step REAL,                   -- flux ratio across TiO 7054 head
++    cont_adu REAL,                   -- continuum level (ADU/column)
++    verdict TEXT,                    -- ACCEPT | REJECT
++    reason TEXT,
++    truth TEXT                       -- target | non_target (controls)
++);
++CREATE TABLE IF NOT EXISTS g_null_sky (
++    path TEXT NOT NULL, method TEXT NOT NULL, row_offset INTEGER NOT NULL,
++    sample TEXT, grism TEXT, mech_epoch TEXT,
++    null_median_adu REAL,            -- median empty-aperture sum
++    null_p16 REAL, null_p84 REAL,
++    cont_median_adu REAL,            -- target continuum, same columns
++    null_frac REAL,                  -- null_median / cont_median
++    n_cols INTEGER,
++    PRIMARY KEY (path, method, row_offset)
++);
++CREATE TABLE IF NOT EXISTS g_lsf (
++    path TEXT PRIMARY KEY,
++    sample TEXT, target TEXT, grism TEXT, mech_epoch TEXT, night TEXT,
++    focpos REAL, focus_offset REAL,  -- focpos minus nightly g-band focus
++    ccd_temp REAL,
++    fwhm_xd_px REAL,                 -- cross-dispersion FWHM at Halpha
++    fwhm_xd_min_px REAL,             -- best-focus chunk on the frame
++    edge_width_px REAL,              -- O2B blue-edge 16-84% width
++    line_fwhm_px REAL,               -- narrowest unresolved line
++    lsf_fwhm_px REAL,                -- adopted (see lsf.py)
++    lsf_fwhm_a REAL, lsf_fwhm_kms REAL, resolving_power REAL,
++    off_nominal INTEGER
++);
++CREATE TABLE IF NOT EXISTS g_ew (
++    path TEXT NOT NULL, library TEXT NOT NULL,   -- 'v1' | 'v2'
++    grism TEXT, night TEXT, jd REAL, mech_epoch TEXT,
++    gate TEXT,
++    disp_a_per_px REAL, disp_source TEXT,
++    x_halpha REAL,
++    ew_a REAL, ew_err_a REAL,        -- emission positive
++    ew_box_a REAL,                   -- same, plain aperture sum
++    ew_px REAL,                      -- dispersion-free EW in pixels
++    cont_adu REAL, cont_snr REAL,
++    line_peak_adu REAL, n_sat_cols INTEGER, n_masked_line INTEGER,
++    sky_method TEXT, status TEXT,
++    PRIMARY KEY (path, library)
++);
++CREATE TABLE IF NOT EXISTS g_meta (
++    key TEXT PRIMARY KEY,
++    value TEXT
++);
++"""
++
++
+ def ensure_schema(con: sqlite3.Connection) -> None:
+     """Create the g_* tables when absent (idempotent — IF NOT EXISTS)."""
+     con.executescript(G_SCHEMA)
+ 
+ 
++def connect_grism(path=None) -> sqlite3.Connection:
++    """Open (creating if needed) the grism track's own database and make
++    sure the calibration-library tables exist.  WAL is NOT enabled: the
++    file lives on a Dropbox volume, where -wal/-shm sidecars are the
++    documented way to lose a transaction."""
++    from .config import GRISM_DB
++    target = path or GRISM_DB
++    import os
++    os.makedirs(os.path.dirname(str(target)), exist_ok=True)
++    con = sqlite3.connect(str(target), timeout=600)
++    con.executescript(G2_SCHEMA)
++    return con
++
++
++def connect_manifest_ro(path) -> sqlite3.Connection:
++    """The shared manifest, READ-ONLY (ground rule: only ``foundation-s0``
++    writes it this wave).  ``mode=ro`` makes a stray INSERT an error
++    instead of a race."""
++    return sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=120)
++
++
++def upsert(con: sqlite3.Connection, table: str, row: dict) -> None:
++    """INSERT OR REPLACE one row from a plain dict; keys that are not
++    columns of ``table`` are an error (a misspelt column must not vanish
++    silently), missing columns become NULL."""
++    cols = [r[1] for r in con.execute(f"PRAGMA table_info({table})")]
++    unknown = set(row) - set(cols)
++    if unknown:
++        raise KeyError(f"{table}: unknown column(s) {sorted(unknown)}")
++    con.execute(
++        f"INSERT OR REPLACE INTO {table} ({','.join(cols)}) "
++        f"VALUES ({','.join('?' * len(cols))})",
++        [row.get(c) for c in cols])
++
++
++def set_g_meta(con: sqlite3.Connection, key: str, value) -> None:
++    con.execute("INSERT OR REPLACE INTO g_meta (key, value) VALUES (?, ?)",
++                (key, str(value)))
++
++
+ def existing_keys(con: sqlite3.Connection) -> set:
+     """(obs_rowid, method) pairs already recorded — the resume key set."""
+     try:
+diff --git a/pipeline/macro_grism/extract.py b/pipeline/macro_grism/extract.py
+index a9f3628..a973eac 100644
+--- a/pipeline/macro_grism/extract.py
++++ b/pipeline/macro_grism/extract.py
+@@ -1,24 +1,71 @@
+-"""Horne-style optimal extraction with flanking-band background.
+-
+-Background policy (the paper's calibration-debt argument lives here):
+-
+-* The FLANKING BANDS — two strips above and below the trace window —
+-  measure sky + scattered-light halo + smooth dark current locally, per
+-  column, and a straight line through the two band medians is subtracted
+-  across the window.  On a raw frame this doubles as local dark removal:
+-  any dark structure smooth over ~60 px vanishes with the halo.
+-* What flanking bands CANNOT remove is pixel-scale dark structure (hot
+-  pixels inside the aperture).  The recovered era-76 Mode0 master darks
+-  can.  Every frame is therefore extracted TWICE — once from the raw
+-  pixels, once from master-dark-subtracted pixels, flanking bands both
+-  times — and the difference between the two spectra is the calibration
+-  debt the paper must quote as an error term.
+-
+-The Horne weighting follows Horne (1986): with a normalized spatial
+-profile P and per-pixel variance V, the optimal flux estimate per column
+-is sum(P*(D-B)/V) / sum(P^2/V) — inverse-variance weighting that
+-down-weights the noisy profile wings (and, with the mask, ignores
+-saturated pixels instead of eating them).
++"""Horne-style optimal extraction for slitless grism frames.
++
++WHAT CHANGED ON 2026-10-03, AND WHY (committee findings DE.F1, OA.E7, OA.E8)
++-----------------------------------------------------------------------------
++The first version of this module carried three hardware constants and one
++background model.  The committee showed all four were wrong:
++
++* **Variance.**  It built the Horne variance from header ``EGAIN`` 0.2467
++  e-/ADU and 3.5 e- read noise.  Mode0 frames are 2x2 *average*-binned, so
++  the effective gain is ~1.0 e-/ADU and the read noise ~2.1 ADU: the read
++  term was 201 ADU^2 where ~4.4 is measured, the shot term four times too
++  large, and it charged shot noise on the 303 ADU electronic pedestal.
++  Every ``halpha_snr`` and every error bar was wrong by about a factor of
++  two.  The variance now comes from :class:`macro_grism.config.Detector`
++  (one record per camera configuration, fed by the detector package's
++  photon-transfer table) and nothing in this file holds a gain.
++* **Saturation.**  It masked every pixel above 16,300 ADU as "the Mode0
++  rail".  There is no rail: the pile-up near 16.6 kADU is one saturated
++  NATIVE hot pixel averaged with three ordinary ones.  Real trace pixels
++  between 16.3k and ~56k were being thrown away — on T CrB that is the
++  Halpha peak itself.  Saturation is now the detector's native clip
++  de-rated by the measured native-vs-binned peaking factor, and isolated
++  hot pixels are rejected where they belong: by the optimal-extraction
++  outlier test against the spatial profile, and by an optional hot-pixel
++  mask.
++* **Background.**  It drew a straight line through two flanking bands.  On
++  the low-resolution grism the dispersed sky is the image of the field
++  stop — a lozenge with a curved top and sharp ends — and a straight line
++  through curved sky over-subtracts (OA.E7).  The sky model is now a
++  robust per-column POLYNOMIAL through wide flanks (the straight line is
++  kept as ``sky="flanking"``, the legacy arm, so the difference between
++  the two is a measured systematic and not an argument).
++
++BACKGROUND POLICY
++-----------------
++* ``sky="flanking"`` — two bands, a straight line (the v1 arm; exact for a
++  linear gradient, biased by curvature).
++* ``sky="poly"``     — a degree-``SKY_POLY_DEG`` polynomial per column,
++  fitted with iterative clipping to every flank row between
++  ``SKY_INNER`` and ``SKY_OUTER`` px either side of the trace.  Wide
++  flanks see the curvature; clipping removes the instrumental ghost
++  traces that run parallel to the main trace inside the flanks.
++* a 2-D ``template`` (the sky-lozenge model of ``macro_grism.background``)
++  may be subtracted first; either arm then removes what the template left.
++
++How well each arm works is not asserted here: ``run_g_background.py``
++extracts an EMPTY aperture offset from the trace (a null test) with every
++arm and reports the residual.
++
++THE ESTIMATOR
++-------------
++Horne (1986), vectorised over columns.  With spatial profile P (unit sum
++per column), data D, sky S and variance V:
++
++    f = sum(M P (D - S) / V) / sum(M P^2 / V),   var(f) = 1 / sum(M P^2 / V)
++
++M masks saturated and outlier pixels.  Two details matter for bias:
++
++* the variance is evaluated from the MODEL (f P + S), not from the noisy
++  data, after the first pass — data-based weights correlate with the
++  noise and bias f low at low signal (Horne 1986, section II.e);
++* the profile is allowed to vary slowly along the dispersion
++  (``PROFILE_CHUNKS`` chunks, linearly interpolated): a grism's focus is
++  chromatic, and one global profile under-weights the wings where the
++  trace is broad.  A wrong profile biases the *level* smoothly with
++  wavelength; an equivalent width, being a local ratio, is immune to
++  first order — and the plain aperture sum ``box`` is carried beside
++  ``flux`` so the difference is measured per frame.
+ """
+ 
+ from __future__ import annotations
+@@ -27,51 +74,95 @@ from typing import Optional
+ 
+ import numpy as np
+ 
++from .config import Detector
+ from .trace import CENTROID_HALFWIN
+ 
+ # --------------------------------------------------------------------------
+ # Tunable constants (single source of truth — the report quotes these).
++# NOTE: no detector constant lives here.  See macro_grism.config.
+ # --------------------------------------------------------------------------
+ 
+ #: Extraction aperture half-width (px).  The trace FWHM measures ~5-9 px
+ #: on the validation frames; +/-12 px holds > 99% of a 9 px FWHM Gaussian.
+ APERTURE_HALFWIN = CENTROID_HALFWIN
+ 
+-#: Flanking bands: inner and outer edge offsets from the trace center
+-#: (px), used on BOTH sides.  Inner edge 30 px keeps the bands out of the
+-#: trace wings; outer edge 60 px keeps them inside the same patch of halo
+-#: (the halo varies over ~hundreds of px).
++#: Legacy flanking bands: inner and outer edge offsets from the trace
++#: center (px), used on BOTH sides.
+ BAND_INNER = 30
+ BAND_OUTER = 60
+ 
+-#: Spatial profile: median-combined over this many column chunks, then
+-#: smoothed along the dispersion is NOT done — the profile is one global
+-#: shape (the traces show no measurable profile change along x at the
+-#: validation SNR, and a global profile cannot chase noise).
++#: Polynomial sky: flank rows from SKY_INNER to SKY_OUTER px either side
++#: of the trace, degree SKY_POLY_DEG, SKY_CLIP_SIGMA iterative clipping.
++#: The inner edge clears the trace wings (FWHM up to ~12 px on defocused
++#: nights -> 20 px is > 3.9 sigma); the outer edge spans enough of the
++#: field-stop lozenge (~1500 px tall) to see its curvature while staying
++#: far inside its sharp ends.
++SKY_INNER = 20
++SKY_OUTER = 120
++SKY_POLY_DEG = 2
++SKY_CLIP_SIGMA = 3.0
++SKY_CLIP_ITERS = 4
++
++#: The fitted sky is smoothed ALONG the dispersion with a running median
++#: of this many columns.  A slitless sky has no sharp spectral features —
++#: every sky line is smeared over the full width of the field stop — so
++#: the true sky is smooth in x on this scale, while the per-column fit
++#: carries independent noise (~1.5 ADU per pixel, fully correlated down
++#: the 25 aperture rows, i.e. ~40 ADU per column on a 240 s frame).
++#: Smoothing removes that noise from the extracted spectrum instead of
++#: adding it to every column.  31 columns is ~1/7 of the sharpest sky
++#: structure measured (the ~200-column ends of the lrg lozenge).
++SKY_SMOOTH_X = 31
++
++#: Half-height of the rectified cutout around the trace (px).  Must hold
++#: the widest sky flank.
++RECT_HALF = SKY_OUTER
++
++#: Spatial profile: built in this many chunks along the dispersion and
++#: linearly interpolated between chunk centers.
+ PROFILE_CHUNKS = 16
+ 
+-#: Read noise in electrons for Mode0 (ASI/IMX455 class, gain setting 100).
+-#: The S2 detector campaign bracketed the CMOS families; Mode0's
+-#: conversion gain is 0.2467 e-/ADU (header EGAIN) and the read noise a
+-#: few electrons — 3.5 e- is the conservative bracket top.  The Horne
+-#: weights change negligibly across 1.5-3.5 e-, and the variance array is
+-#: labelled with the value used.
+-READ_NOISE_E = 3.5
++#: Outlier rejection in the Horne sum: a pixel whose residual from
++#: f*P exceeds this many sigma is masked (hot pixels, cosmic rays).  The
++#: variance used in the test carries a PROFILE_TOL fractional allowance
++#: for profile mismatch, so a bright, slightly mis-modelled core is not
++#: mistaken for a cosmic ray.
++HORNE_CLIP_SIGMA = 6.0
++HORNE_PROFILE_TOL = 0.10
++HORNE_ITERS = 3
+ 
+-#: Fallback conversion gain (e-/ADU) when the header lacks EGAIN.
+-DEFAULT_EGAIN = 0.2467
+ 
+-#: Saturation threshold (ADU).  Mode0 raws rail at ~16.4k ADU (12-bit ADC
+-#: scaled x4); pixels at or above this are masked out of the Horne sum and
+-#: counted per column.
+-SATURATION_ADU = 16300.0
++# --------------------------------------------------------------------------
++# Geometry
++# --------------------------------------------------------------------------
++def rectify(data: np.ndarray, yc: np.ndarray,
++            half: int = RECT_HALF) -> np.ndarray:
++    """Cut a strip of ``2*half+1`` rows that FOLLOWS the trace.
++
++    Row ``half`` of the result is the pixel row nearest the trace center
++    in every column (integer shifts — no resampling, so no correlated
++    noise and no interpolation of hot pixels into their neighbours).
++    Rows that fall off the frame are NaN.  Shape: (2*half+1, nx).
++    """
++    ny, nx = data.shape
++    y0 = np.round(yc).astype(int)
++    rows = y0[None, :] + np.arange(-half, half + 1)[:, None]
++    inside = (rows >= 0) & (rows < ny)
++    cut = data[np.clip(rows, 0, ny - 1),
++               np.arange(nx)[None, :]].astype(np.float64)
++    cut[~inside] = np.nan
++    return cut
+ 
+ 
++# --------------------------------------------------------------------------
++# Sky models (all return the sky at EVERY row of the rectified cutout)
++# --------------------------------------------------------------------------
+ def flanking_background(column: np.ndarray, yc: float,
+                         halfwin: int = APERTURE_HALFWIN,
+                         inner: int = BAND_INNER,
+                         outer: int = BAND_OUTER):
+-    """Per-column background from the two flanking bands.
++    """Per-column background from the two flanking bands (legacy arm,
++    scalar form kept for the unit tests and for one-off use).
+ 
+     Returns ``(background_at_window_rows, ok)`` where the background is a
+     straight line through (band centers, band medians) evaluated at the
+@@ -95,6 +186,109 @@ def flanking_background(column: np.ndarray, yc: float,
+     return below + slope * (rows - y_below), True
+ 
+ 
++def sky_flanking(cut: np.ndarray, inner: int = BAND_INNER,
++                 outer: int = BAND_OUTER) -> np.ndarray:
++    """Vectorised legacy arm: a straight line per column through the
++    medians of the two flanking bands of a rectified cutout.  Columns
++    with an incomplete band are NaN (unextractable, not invented)."""
++    half = cut.shape[0] // 2
++    dy = np.arange(-half, half + 1, dtype=float)
++    lo = cut[half - outer:half - inner]
++    hi = cut[half + inner:half + outer + 1]
++    with np.errstate(invalid="ignore"), _quiet():
++        below = np.nanmedian(lo, axis=0)
++        above = np.nanmedian(hi, axis=0)
++    bad = np.isnan(lo).any(axis=0) | np.isnan(hi).any(axis=0)
++    y_below = -(outer + inner + 1) / 2.0
++    y_above = (outer + inner) / 2.0
++    slope = (above - below) / (y_above - y_below)
++    sky = below[None, :] + slope[None, :] * (dy[:, None] - y_below)
++    sky[:, bad] = np.nan
++    return sky
++
++
++def sky_polynomial(cut: np.ndarray, inner: int = SKY_INNER,
++                   outer: int = SKY_OUTER, deg: int = SKY_POLY_DEG,
++                   clip: float = SKY_CLIP_SIGMA,
++                   iters: int = SKY_CLIP_ITERS,
++                   exclude: Optional[np.ndarray] = None,
++                   smooth_x: int = SKY_SMOOTH_X) -> np.ndarray:
++    """Robust polynomial sky: per column, a degree-``deg`` polynomial in
++    the cross-dispersion offset, fitted to the flank rows with iterative
++    sigma clipping, evaluated at every row, then median-smoothed along
++    the dispersion over ``smooth_x`` columns (0/1 disables; see
++    ``SKY_SMOOTH_X`` for why smoothing is physically justified).
++
++    Solved for ALL columns at once as a masked linear least-squares
++    problem (normal equations per column; the design matrix is shared).
++    ``exclude`` is an optional boolean row mask (True = never use this
++    row), for known ghost traces.  Columns with fewer than ``4*(deg+1)``
++    usable flank pixels are NaN.
++    """
++    half = cut.shape[0] // 2
++    dy = np.arange(-half, half + 1, dtype=float)
++    flank = (np.abs(dy) >= inner) & (np.abs(dy) <= outer)
++    if exclude is not None:
++        flank &= ~exclude
++    # Scaled abscissa keeps the normal equations well conditioned.
++    t = dy / float(outer)
++    basis = np.vstack([t ** k for k in range(deg + 1)])      # (deg+1, R)
++    use = flank[:, None] & np.isfinite(cut)                  # (R, nx)
++    d = np.where(use, cut, 0.0)
++    coef = np.full((deg + 1, cut.shape[1]), np.nan)
++    for _ in range(iters + 1):
++        w = use.astype(float)
++        # Normal matrix A[c] = sum_r w B_i B_j ; rhs b[c] = sum_r w B_i d
++        a = np.einsum("ir,jr,rc->cij", basis, basis, w)
++        b = np.einsum("ir,rc->ci", basis, w * d)
++        enough = use.sum(axis=0) >= 4 * (deg + 1)
++        coef[:] = np.nan
++        if enough.any():
++            coef[:, enough] = np.linalg.solve(
++                a[enough], b[enough][..., None])[..., 0].T
++        model = np.einsum("ic,ir->rc", coef, basis)
++        resid = np.where(use, cut - model, np.nan)
++        with np.errstate(invalid="ignore"), _quiet():
++            med = np.nanmedian(resid, axis=0)
++            sig = 1.4826 * np.nanmedian(np.abs(resid - med), axis=0)
++        new_use = use & (np.abs(resid - med) <= clip * np.maximum(sig, 1e-6))
++        if (new_use == use).all():
++            break
++        use = new_use
++    if smooth_x and smooth_x > 1:
++        from scipy.ndimage import median_filter
++        ok = np.isfinite(model)
++        filled = np.where(ok, model, 0.0)
++        # NaN-aware running median is expensive; the model is NaN only in
++        # whole columns (frame edges), so filter the finite block and
++        # restore the NaNs afterwards.
++        good_cols = ok.all(axis=0)
++        if good_cols.sum() > smooth_x:
++            sm = median_filter(filled[:, good_cols],
++                               size=(1, smooth_x), mode="nearest")
++            model = model.copy()
++            model[:, good_cols] = sm
++    return model
++
++
++class _quiet:
++    """Silence numpy's 'All-NaN slice' RuntimeWarning inside a block: an
++    all-NaN column is an expected, handled state here (frame edge), not a
++    surprise worth a line of log per column."""
++
++    def __enter__(self):
++        import warnings
++        self._cm = warnings.catch_warnings()
++        self._cm.__enter__()
++        warnings.simplefilter("ignore", category=RuntimeWarning)
++
++    def __exit__(self, *exc):
++        return self._cm.__exit__(*exc)
++
++
++# --------------------------------------------------------------------------
++# Spatial profile
++# --------------------------------------------------------------------------
+ def build_profile(cutouts: np.ndarray) -> np.ndarray:
+     """Normalized spatial profile from background-subtracted, per-column
+     flux-normalized cutouts (shape: n_columns x window).
+@@ -104,31 +298,96 @@ def build_profile(cutouts: np.ndarray) -> np.ndarray:
+     sum.  Falls back to a flat profile if everything medians to zero —
+     the extraction then degrades to a box sum instead of dividing by 0.
+     """
+-    prof = np.median(cutouts, axis=0)
+-    prof = np.clip(prof, 0.0, None)
++    with _quiet():
++        prof = np.nanmedian(cutouts, axis=0)
++    prof = np.clip(np.nan_to_num(prof), 0.0, None)
+     total = prof.sum()
+     if total <= 0:
+         return np.full(cutouts.shape[1], 1.0 / cutouts.shape[1])
+     return prof / total
+ 
+ 
++def profile_map(net: np.ndarray, n_chunks: int = PROFILE_CHUNKS):
++    """Slowly varying spatial profile P(row, column) for an aperture
++    window ``net`` (rows x nx, sky-subtracted).
++
++    Each chunk's profile is the median of its columns' unit-sum cutouts
++    (only columns with positive net flux vote — a profile of noise is a
++    random number); profiles are then linearly interpolated between chunk
++    centers and re-normalized per column.  Returns (P, chunk_fwhm_px,
++    chunk_centers): the per-chunk FWHM of the profile is the trace's
++    cross-dispersion width, which for a point source is also the line
++    spread function along the dispersion (see ``macro_grism.lsf``).
++    """
++    n_rows, nx = net.shape
++    edges = np.linspace(0, nx, n_chunks + 1).astype(int)
++    centers, profs, fwhms = [], [], []
++    for i in range(n_chunks):
++        seg = net[:, edges[i]:edges[i + 1]]
++        tot = np.nansum(seg, axis=0)
++        noise = 1.4826 * np.nanmedian(np.abs(seg - np.nanmedian(seg))) \
++            if np.isfinite(seg).any() else np.nan
++        good = np.isfinite(tot) & (tot > 0)
++        if np.isfinite(noise):
++            good &= tot > 5.0 * noise * np.sqrt(n_rows)
++        if good.sum() < 8:
++            continue
++        p = build_profile((seg[:, good] / tot[good]).T)
++        centers.append(0.5 * (edges[i] + edges[i + 1]))
++        profs.append(p)
++        fwhms.append(profile_fwhm(p))
++    if not profs:
++        flat = np.full((n_rows, nx), 1.0 / n_rows)
++        return flat, np.array([]), np.array([])
++    centers = np.array(centers)
++    profs = np.array(profs)                       # (n_good_chunks, rows)
++    x = np.arange(nx)
++    pmap = np.empty((n_rows, nx))
++    for r in range(n_rows):
++        pmap[r] = np.interp(x, centers, profs[:, r])
++    pmap /= pmap.sum(axis=0, keepdims=True)
++    return pmap, np.array(fwhms), centers
++
++
++def profile_fwhm(prof: np.ndarray) -> float:
++    """Full width at half maximum of a 1-D profile, by linear
++    interpolation of the half-maximum crossings either side of the peak
++    (px).  NaN when a crossing falls outside the window."""
++    i = int(np.argmax(prof))
++    half = prof[i] / 2.0
++    lo = i
++    while lo > 0 and prof[lo] > half:
++        lo -= 1
++    hi = i
++    while hi < len(prof) - 1 and prof[hi] > half:
++        hi += 1
++    if prof[lo] > half or prof[hi] > half:
++        return float("nan")
++    x_lo = lo + (half - prof[lo]) / (prof[lo + 1] - prof[lo])
++    x_hi = hi - (half - prof[hi]) / (prof[hi - 1] - prof[hi])
++    return float(x_hi - x_lo)
++
++
++# --------------------------------------------------------------------------
++# The estimator
++# --------------------------------------------------------------------------
+ def horne_column(window: np.ndarray, background: np.ndarray,
+-                 profile: np.ndarray, egain: float, read_noise_e: float,
+-                 sat_adu: float = SATURATION_ADU):
+-    """Optimal flux for ONE column window (Horne 1986 eq. 8, one pass).
+-
+-    Variance model per pixel, in ADU^2:  V = (RN/g)^2 + max(D, 0)/g
+-    with g = e-/ADU — read noise plus photon noise of the TOTAL counts
+-    (source + background; the background's photons are noise too).
+-    Saturated pixels are masked.  Returns (flux, variance, n_saturated);
+-    flux is None when every pixel of the window is masked.
++                 profile: np.ndarray, detector: Detector):
++    """Optimal flux for ONE column window (Horne 1986 eq. 8) — the scalar
++    reference implementation the vectorised path is tested against.
++
++    Variance per pixel from ``detector.variance_adu2`` (read noise plus
++    photon noise of everything above the pedestal).  Pixels at or above
++    ``detector.saturation_cap_adu()`` are masked.  Returns
++    (flux, variance, n_saturated); flux is None when every pixel is
++    masked.
+     """
+-    sat = window >= sat_adu
+-    good = ~sat
++    sat = window >= detector.saturation_cap_adu()
++    good = ~sat & np.isfinite(window)
+     if not good.any():
+         return None, None, int(sat.sum())
+     d = window - background                        # net counts, ADU
+-    var = (read_noise_e / egain) ** 2 + np.clip(window, 0, None) / egain
++    var = detector.variance_adu2(window)
+     p, v = profile[good], var[good]
+     denom = float((p * p / v).sum())
+     if denom <= 0:
+@@ -137,77 +396,247 @@ def horne_column(window: np.ndarray, background: np.ndarray,
+     return flux, 1.0 / denom, int(sat.sum())
+ 
+ 
++def horne_extract(win: np.ndarray, sky: np.ndarray, pmap: np.ndarray,
++                  detector: Detector, hot: Optional[np.ndarray] = None,
++                  clip_sigma: float = HORNE_CLIP_SIGMA,
++                  iters: int = HORNE_ITERS) -> dict:
++    """Vectorised Horne extraction of an aperture window (rows x nx).
++
++    ``win`` holds RAW stored counts (pedestal included — the variance
++    model needs them), ``sky`` the sky model at the same pixels (also
++    raw-count scale, i.e. including the pedestal), ``pmap`` the spatial
++    profile.  ``hot`` is an optional boolean mask of known-bad pixels.
++
++    Pass 1 weights with the data-based variance; later passes use the
++    MODEL variance (f*P + sky) and reject outliers against it.  Returns
++    flux, var, n_sat (per column), n_rej (per column) and the final mask.
++    """
++    cap = detector.saturation_cap_adu()
++    finite = np.isfinite(win) & np.isfinite(sky)
++    sat = finite & (win >= cap)
++    mask = finite & ~sat
++    if hot is not None:
++        mask &= ~hot
++    net = np.where(mask, win - sky, 0.0)
++    var = detector.variance_adu2(np.where(finite, win, 0.0))
++    flux = np.full(win.shape[1], np.nan)
++    fvar = np.full(win.shape[1], np.nan)
++    rejected = np.zeros_like(mask)
++    for it in range(iters + 1):
++        w = np.where(mask, 1.0 / var, 0.0)
++        denom = (pmap * pmap * w).sum(axis=0)
++        ok = denom > 0
++        flux = np.where(ok, (pmap * net * w).sum(axis=0)
++                        / np.where(ok, denom, 1.0), np.nan)
++        fvar = np.where(ok, 1.0 / np.where(ok, denom, 1.0), np.nan)
++        if it == iters:
++            break
++        # Model variance and outlier test for the next pass.
++        f = np.nan_to_num(flux)
++        model = f[None, :] * pmap
++        var = detector.variance_adu2(model + np.where(finite, sky, 0.0))
++        tol = (HORNE_PROFILE_TOL * model) ** 2
++        chi2 = np.where(mask, (net - model) ** 2 / (var + tol), 0.0)
++        # Reject only the single worst pixel per column per pass (Horne's
++        # prescription): a genuine outlier distorts f, which inflates its
++        # neighbours' residuals; removing them all at once over-rejects.
++        worst = np.argmax(chi2, axis=0)
++        cols = np.arange(win.shape[1])
++        bad = chi2[worst, cols] > clip_sigma ** 2
++        if not bad.any():
++            # Converged: one more pass with the model variance in place.
++            if it > 0:
++                break
++            continue
++        mask[worst[bad], cols[bad]] = False
++        rejected[worst[bad], cols[bad]] = True
++        net = np.where(mask, win - sky, 0.0)
++    return {"flux": flux, "var": fvar,
++            "n_sat": sat.sum(axis=0).astype(np.int32),
++            "n_rej": rejected.sum(axis=0).astype(np.int32),
++            "mask": mask}
++
++
+ def extract_spectrum(data: np.ndarray, trace_coeffs: np.ndarray,
+-                     egain: float = DEFAULT_EGAIN,
+-                     read_noise_e: float = READ_NOISE_E,
++                     detector: Detector,
+                      dark: Optional[np.ndarray] = None,
+-                     halfwin: int = APERTURE_HALFWIN) -> dict:
++                     sky: str = "poly",
++                     template: Optional[np.ndarray] = None,
++                     hot: Optional[np.ndarray] = None,
++                     halfwin: int = APERTURE_HALFWIN,
++                     row_offset: float = 0.0,
++                     null_guard: int = SKY_INNER) -> dict:
+     """Extract the full spectrum along a fitted trace.
+ 
+-    ``dark`` (a master dark, same shape) is subtracted pixel-wise first
+-    when given — the comparison arm.  Flanking-band background is applied
+-    in BOTH modes (see the module header for why).
++    Parameters
++    ----------
++    data : raw frame (stored ADU, pedestal included).
++    trace_coeffs : polynomial of the trace center, ``np.polyval`` order.
++    detector : the :class:`~macro_grism.config.Detector` for this frame.
++    dark : optional master dark (same shape, pedestal included).  When
++        given, ``dark - pedestal`` is subtracted first — the comparison
++        arm for the calibration-debt statistic.  The pedestal is kept in
++        the working frame so the variance model stays valid.
++    sky : 'poly' (default) or 'flanking' (legacy straight line).
++    template : optional 2-D sky model (stored ADU above pedestal) to
++        subtract before the local sky fit — the lozenge template.
++    hot : optional boolean bad-pixel mask (frame shape).
++    halfwin : aperture half-width in px.
++    row_offset : shift the whole aperture this many px in y.  Used ONLY by
++        the null test (extract an empty aperture beside the trace).  The
++        rows within ``null_guard`` px of the REAL trace are then excluded
++        from the sky fit, so the null aperture's sky is interpolated
++        across a gap exactly as the real aperture's is.
+ 
+     Returns a dict of 1-D arrays over columns: ``flux`` (optimal, ADU),
+-    ``var``, ``box`` (plain aperture sum, the cross-check), ``bg``
+-    (background level at trace center), ``n_sat``, plus scalars
+-    ``profile`` and ``n_extracted``.  Columns that cannot be extracted
+-    (windows off frame) carry NaN.
++    ``var`` (ADU^2), ``box`` (plain aperture sum), ``box_var``, ``bg``
++    (sky level at trace center, pedestal included), ``n_sat``, ``n_rej``,
++    ``peak`` (brightest raw pixel in the aperture — the saturation
++    evidence), plus ``fwhm_px`` / ``fwhm_x`` (cross-dispersion profile
++    FWHM per chunk) and ``n_extracted``.  Unextractable columns are NaN.
+     """
+-    work = data if dark is None else data - dark
++    if sky not in ("poly", "flanking"):
++        raise ValueError(f"unknown sky model {sky!r}")
++    work = np.asarray(data, dtype=np.float64)
++    if dark is not None:
++        work = work - (dark - detector.pedestal_adu)
++    if template is not None:
++        work = work - template
+     ny, nx = work.shape
++    yc = np.polyval(trace_coeffs, np.arange(nx)) + row_offset
++    cut = rectify(work, yc)
++    raw_cut = rectify(np.asarray(data, dtype=np.float64), yc)
++    hot_cut = rectify(hot.astype(float), yc) > 0.5 if hot is not None \
++        else None
++    half = cut.shape[0] // 2
++    exclude = None
++    if row_offset:
++        dy = np.arange(-half, half + 1)
++        exclude = np.abs(dy + row_offset) <= null_guard
++    skymod = (sky_polynomial(cut, exclude=exclude) if sky == "poly"
++              else sky_flanking(cut))
++    a0, a1 = half - halfwin, half + halfwin + 1
++    win, sky_win = cut[a0:a1], skymod[a0:a1]
++    net = win - sky_win
++    if row_offset:
++        # Null aperture: there is no trace to take a profile from, so
++        # weight uniformly — the null test is about the SKY model.
++        pmap = np.full(win.shape, 1.0 / win.shape[0])
++        fwhms, centers = np.array([]), np.array([])
++    else:
++        pmap, fwhms, centers = profile_map(net)
++    res = horne_extract(win, sky_win, pmap, detector,
++                        hot=None if hot_cut is None else hot_cut[a0:a1])
++    # Plain aperture sum and its variance — the cross-check.
++    valid = np.isfinite(net).all(axis=0)
++    box = np.where(valid, np.nansum(net, axis=0), np.nan)
++    box_var = np.where(valid, np.nansum(
++        detector.variance_adu2(np.nan_to_num(raw_cut[a0:a1])), axis=0),
++        np.nan)
++    with _quiet():
++        peak = np.nanmax(raw_cut[a0:a1], axis=0)
++    flux = np.where(valid, res["flux"], np.nan)
++    return {"flux": flux, "var": np.where(valid, res["var"], np.nan),
++            "box": box, "box_var": box_var,
++            "bg": np.where(valid, sky_win[halfwin], np.nan),
++            "n_sat": res["n_sat"], "n_rej": res["n_rej"], "peak": peak,
++            "profile": pmap, "fwhm_px": fwhms, "fwhm_x": centers,
++            "n_extracted": int(np.isfinite(flux).sum())}
++
++
++#: Row offsets (px) of the empty "null" apertures of the sky-model test,
++#: and the column block of the sky-variance measurement.  +/-200 px is
++#: beyond the star's halo (invisible against the sky past ~30 px on the
++#: 240 s frames) and beyond the nearest instrumental ghosts' rows as seen
++#: from the null aperture itself, while still inside the field-stop
++#: lozenge whose curvature the sky model has to follow.
++NULL_OFFSETS = (-200, 200)
++SKYVAR_BLOCK = 100
++
++
++def null_aperture(data: np.ndarray, trace_coeffs: np.ndarray,
++                  detector: Detector, sky: str, offset: int,
++                  halfwin: int = APERTURE_HALFWIN) -> np.ndarray:
++    """Plain aperture sum of an EMPTY aperture ``offset`` px from the
++    trace, with the sky modelled exactly as for a real extraction (same
++    flanks, same clipping, same smoothing — centred on the null
++    aperture).  A perfect sky model returns zero in every column; the
++    median of what it does return, as a fraction of the target's
++    continuum, is the sky-method bias (G-4's "no negative continuum").
++
++    If the real trace lies inside the null aperture's sky flanks its
++    rows are excluded from the fit.  Returns the per-column sums (NaN
++    where the window leaves the frame).
++    """
++    ny, nx = data.shape
++    yc = np.polyval(trace_coeffs, np.arange(nx)) + offset
++    cut = rectify(np.asarray(data, dtype=np.float64), yc)
++    half = cut.shape[0] // 2
++    exclude = None
++    if abs(offset) <= SKY_OUTER + SKY_INNER:
++        dy = np.arange(-half, half + 1)
++        exclude = np.abs(dy + offset) <= SKY_INNER
++    model = (sky_polynomial(cut, exclude=exclude) if sky == "poly"
++             else sky_flanking(cut))
++    a0, a1 = half - halfwin, half + halfwin + 1
++    net = cut[a0:a1] - model[a0:a1]
++    valid = np.isfinite(net).all(axis=0)
++    return np.where(valid, np.nansum(net, axis=0), np.nan)
++
++
++def sky_variance_bins(data: np.ndarray, trace_coeffs: np.ndarray,
++                      detector: Detector,
++                      block: int = SKYVAR_BLOCK) -> np.ndarray:
++    """Measured vs predicted pixel variance of the SKY in the flanks of
++    the trace, in column blocks — the G-2 acceptance test.
++
++    For each block of ``block`` columns: the flank pixels' residuals from
++    the polynomial sky model give a robust variance ((1.4826 MAD)^2 —
++    ghost traces, field-star spectra and hot pixels sit in the tails the
++    MAD ignores); the model's median level above the pedestal gives the
++    variance the detector record predicts.  Returns an array of rows
++    [level_adu, var_measured, var_predicted, n_pixels].
++
++    The polynomial (3 parameters per column, smoothed over 31 columns)
++    removes < 2% of the white-noise variance from ~200 flank pixels per
++    column, so the measurement is not biased low at the 20% level the
++    test is run at.
++    """
++    ny, nx = data.shape
+     yc = np.polyval(trace_coeffs, np.arange(nx))
+-    flux = np.full(nx, np.nan)
+-    var = np.full(nx, np.nan)
+-    box = np.full(nx, np.nan)
+-    bg = np.full(nx, np.nan)
+-    n_sat = np.zeros(nx, dtype=np.int32)
+-
+-    # ---- pass 1: background-subtracted cutouts for the spatial profile.
+-    # Sampled on a chunk grid; each cutout is normalized by its own sum so
+-    # bright and faint columns vote equally on the SHAPE.
+-    cut = []
+-    for x in range(0, nx, max(1, nx // (PROFILE_CHUNKS * 8))):
+-        b, ok = flanking_background(work[:, x], yc[x], halfwin)
+-        if not ok:
+-            continue
+-        lo = int(round(yc[x])) - halfwin
+-        w = work[lo:lo + 2 * halfwin + 1, x] - b
+-        s = w.sum()
+-        if s > 0:
+-            cut.append(w / s)
+-    profile = (build_profile(np.array(cut)) if cut
+-               else np.full(2 * halfwin + 1, 1.0 / (2 * halfwin + 1)))
+-
+-    # ---- pass 2: per-column optimal extraction with that profile.
+-    for x in range(nx):
+-        b, ok = flanking_background(work[:, x], yc[x], halfwin)
+-        if not ok:
++    cut = rectify(np.asarray(data, dtype=np.float64), yc)
++    half = cut.shape[0] // 2
++    model = sky_polynomial(cut)
++    dy = np.abs(np.arange(-half, half + 1))
++    flank = (dy >= SKY_INNER) & (dy <= SKY_OUTER)
++    resid = (cut - model)[flank]
++    level = model[flank] - detector.pedestal_adu
++    rows = []
++    for x0 in range(0, nx - block + 1, block):
++        r = resid[:, x0:x0 + block].ravel()
++        lv = level[:, x0:x0 + block].ravel()
++        ok = np.isfinite(r) & np.isfinite(lv)
++        if ok.sum() < 0.8 * r.size:
+             continue
+-        lo = int(round(yc[x])) - halfwin
+-        w = work[lo:lo + 2 * halfwin + 1, x]
+-        f, v, ns = horne_column(w, b, profile, egain, read_noise_e)
+-        n_sat[x] = ns
+-        if f is None:
+-            continue
+-        flux[x] = f
+-        var[x] = v
+-        box[x] = float((w - b).sum())
+-        bg[x] = float(b[halfwin])
+-    return {"flux": flux, "var": var, "box": box, "bg": bg,
+-            "n_sat": n_sat, "profile": profile,
+-            "n_extracted": int(np.isfinite(flux).sum())}
++        r, lv = r[ok], lv[ok]
++        med = np.median(r)
++        var = (1.4826 * np.median(np.abs(r - med))) ** 2
++        lev = float(np.median(lv))
++        pred = float(detector.read_noise_adu ** 2
++                     + max(lev, 0.0) / detector.gain_e_per_adu)
++        rows.append([lev, float(var), pred, int(ok.sum())])
++    return np.array(rows).reshape(-1, 4)
+ 
+ 
+ def median_relative_difference(flux_a: np.ndarray,
+                                flux_b: np.ndarray) -> Optional[float]:
+-    """The calibration-debt statistic: median over columns of
++    """The method-difference statistic: median over columns of
+     |A - B| / |A|, restricted to columns where both spectra exist and A
+     has meaningful signal (|A| above the 25th percentile of |A| — ratio
+     against near-zero flux measures nothing but noise).
+ 
+-    A = flanking-only, B = master-dark-subtracted; the paper quotes this
+-    number as the error bar for season-1's calibration debt.
++    Used for flanking-vs-master-dark (the calibration debt) and for
++    straight-line-vs-polynomial sky (the G-4 method difference).
+     """
+     both = np.isfinite(flux_a) & np.isfinite(flux_b)
+     if both.sum() < 100:
+diff --git a/pipeline/macro_grism/trace.py b/pipeline/macro_grism/trace.py
+index 556d85f..fa9599d 100644
+--- a/pipeline/macro_grism/trace.py
++++ b/pipeline/macro_grism/trace.py
+@@ -53,7 +53,14 @@ COLLAPSE_STRIDE = 9
+ #: Half-width of the window used for per-column flux-weighted trace
+ #: centroids, and the degree of the polynomial fitted through them.
+ CENTROID_HALFWIN = 12
+-TRACE_POLY_DEG = 2
++TRACE_POLY_DEG = 3
++
++#: Column block of the centroid fit (median-combined) and the search
++#: half-windows of the first, wide passes (px).  The low-resolution trace
++#: departs from its chord by up to ~35 px, so the first pass must look
++#: +/-40 px; the passes then tighten onto the curve.
++TRACE_BLOCK = 8
++TRACE_PASS_HALFWINS = (40, 20)
+ 
+ #: A column whose background-subtracted window sum falls below this many
+ #: times the local noise is excluded from the centroid fit (no signal — a
+@@ -151,46 +158,120 @@ def main_trace_u(halo_subtracted: np.ndarray) -> tuple[int, float]:
+ def fit_trace_centers(data: np.ndarray, slope: float, u_main: float,
+                       halfwin: int = CENTROID_HALFWIN,
+                       deg: int = TRACE_POLY_DEG):
+-    """Refine the main trace: per-column flux-weighted centroid inside a
+-    window that follows the coarse (slope, u) line, then a deg-2
+-    polynomial through the good centroids.
++    """Refine the main trace: block centroids inside a window that follows
++    the current trace model, then a polynomial through the good
++    centroids — ITERATED, so the window follows the curve it is fitting.
+ 
+     Returns ``(poly_coeffs, n_used, rms_px)``; ``np.polyval(coeffs, x)``
+-    is the trace center at column x.  Columns with window SNR below
+-    ``CENTROID_MIN_SNR`` are excluded (an emission-line star's continuum
+-    can vanish into the noise between features; fitting centroids there
+-    would chase noise).  Falls back to the coarse line when fewer than 10
+-    columns qualify.
++    is the trace center at column x.
++
++    Why it iterates (2026-10-03 revision).  The first version centroided
++    once, inside +/-``halfwin`` px of the coarse straight line.  A real
++    trace is curved: on the low-resolution grism it departs from the
++    chord by 30+ px toward the ends, so the centroid window slid off the
++    trace exactly where the curvature was largest, the polynomial was
++    fitted to sky, and the "extraction aperture" then sat beside the
++    spectrum (visible as trace peaks 10-35 px off the aperture center in
++    the rectified cutouts).  Now pass 1 uses a wide window
++    (``TRACE_SEARCH_HALFWIN``) around the straight line and each later
++    pass re-centroids in the narrow window around the previous
++    polynomial, with sigma clipping; the loop stops when the fit moves
++    by less than 0.05 px rms.
++
++    Blocks (``TRACE_BLOCK`` columns, median-combined so one cosmic ray
++    cannot move a centroid) with window S/N below ``CENTROID_MIN_SNR``
++    are excluded — a centroid of noise is a random number.  Falls back
++    to the coarse line when fewer than 10 blocks qualify (``rms_px`` is
++    then None, and the caller must treat the trace as unverified).
++    """
++    ny, nx = data.shape
++    x_blk = np.arange(TRACE_BLOCK // 2, nx, TRACE_BLOCK)
++    line = np.zeros(deg + 1)
++    line[-1] = u_main - slope * (nx / 2)
++    line[-2] = slope
++    coeffs, n_used, rms = line, 0, None
++    for it, hw in enumerate(TRACE_PASS_HALFWINS + (halfwin,) * 3):
++        yc = np.polyval(coeffs, x_blk)
++        cx, cy = _block_centroids(data, x_blk, yc, hw)
++        if len(cx) < 10:
++            break
++        # Robust polynomial: fit, clip at 3 sigma (MAD), refit.
++        keep = np.ones(len(cx), dtype=bool)
++        for _ in range(4):
++            c = np.polyfit(cx[keep], cy[keep], deg)
++            r = cy - np.polyval(c, cx)
++            sig = 1.4826 * np.median(np.abs(r[keep] - np.median(r[keep])))
++            new = np.abs(r) <= 3.0 * max(sig, 0.05)
++            if new.sum() < 10 or (new == keep).all():
++                break
++            keep = new
++        moved = np.sqrt(np.mean((np.polyval(c, x_blk)
++                                 - np.polyval(coeffs, x_blk)) ** 2))
++        coeffs, n_used = c, int(keep.sum())
++        rms = float(np.sqrt(np.mean(r[keep] ** 2)))
++        if it >= len(TRACE_PASS_HALFWINS) and moved < 0.05:
++            break
++    return coeffs, n_used, rms
++
++
++def _block_centroids(data: np.ndarray, x_blk: np.ndarray, yc: np.ndarray,
++                     halfwin: int):
++    """Flux-weighted cross-dispersion centroids of column blocks.
++
++    For each block center x (``TRACE_BLOCK`` columns, median-combined),
++    the window ``yc +/- halfwin`` is baseline-subtracted (median of the
++    window's outer quarter on each side — a local linear-free pedestal
++    that the trace core cannot bias) and centroided over its positive
++    part.  Returns (x, y) arrays of the blocks that pass the S/N cut.
+     """
+     ny, nx = data.shape
+-    xs = np.arange(0, nx, 4)                    # every 4th column: plenty
+     cx, cy = [], []
+-    for x in xs:
+-        yc = u_main + slope * (x - nx / 2)      # coarse center here
+-        lo, hi = int(yc) - halfwin, int(yc) + halfwin + 1
++    half_blk = TRACE_BLOCK // 2
++    for x, y in zip(x_blk, yc):
++        lo, hi = int(round(y)) - halfwin, int(round(y)) + halfwin + 1
+         if lo < 0 or hi > ny:
+             continue
+-        win = data[lo:hi, x].astype(np.float64)
+-        base = np.median(win)                    # local pedestal
++        seg = data[lo:hi, max(0, x - half_blk):x + half_blk + 1]
++        win = np.median(seg, axis=1).astype(np.float64)
++        q = max(2, len(win) // 4)
++        edge = np.concatenate([win[:q], win[-q:]])
++        base = np.median(edge)
++        noise = 1.4826 * np.median(np.abs(edge - base)) + 1e-3
+         sig = win - base
+-        noise = 1.4826 * np.median(np.abs(sig - np.median(sig))) + 1e-3
+-        if sig.sum() < CENTROID_MIN_SNR * noise * np.sqrt(len(win)):
++        if sig.max() < CENTROID_MIN_SNR * noise:
+             continue                             # no believable signal
+-        w = np.clip(sig, 0, None)
+-        if w.sum() <= 0:
++        w = np.clip(sig - 2.0 * noise, 0, None)   # core only: wings and
++        if w.sum() <= 0:                         # sky slope cannot pull
+             continue
+-        cx.append(x)
++        cx.append(float(x))
+         cy.append(lo + float((w * np.arange(len(win))).sum() / w.sum()))
+-    if len(cx) < 10:
+-        # Coarse fallback: the straight line as a degree-``deg`` poly.
+-        coeffs = np.zeros(deg + 1)
+-        coeffs[-1] = u_main - slope * (nx / 2)
+-        coeffs[-2] = slope
+-        return coeffs, len(cx), None
+-    cx, cy = np.array(cx, float), np.array(cy)
+-    coeffs = np.polyfit(cx, cy, deg)
+-    rms = float(np.sqrt(np.mean((np.polyval(coeffs, cx) - cy) ** 2)))
+-    return coeffs, len(cx), rms
++    return np.array(cx), np.array(cy)
++
++
++def trace_extent(data: np.ndarray, coeffs: np.ndarray,
++                 halfwin: int = CENTROID_HALFWIN,
++                 min_snr: float = CENTROID_MIN_SNR):
++    """(x_first, x_last): the column range over which the trace actually
++    carries signal.
++
++    A slitless trace does not span the detector: the low-resolution grism
++    puts the whole 4000-9500 A spectrum on ~2700 of 4788 columns, and
++    past its ends the polynomial is an EXTRAPOLATION through empty sky.
++    Everything downstream (line search, sky-method statistics) must stay
++    inside this range.  Measured from the same block centroids as the
++    fit: the first and last block whose window passes the S/N cut and
++    whose centroid lies within 2 px of the polynomial.
++    """
++    ny, nx = data.shape
++    x_blk = np.arange(TRACE_BLOCK // 2, nx, TRACE_BLOCK)
++    cx, cy = _block_centroids(data, x_blk, np.polyval(coeffs, x_blk),
++                              halfwin)
++    if len(cx) == 0:
++        return None
++    on = np.abs(cy - np.polyval(coeffs, cx)) <= 2.0
++    if not on.any():
++        return None
++    return int(cx[on].min()), int(cx[on].max())
+ 
+ 
+ def profile_noise(halo_subtracted: np.ndarray, exclude_u: int,
+diff --git a/pipeline/macro_grism/wavelength.py b/pipeline/macro_grism/wavelength.py
+index 1842f8f..64019fe 100644
+--- a/pipeline/macro_grism/wavelength.py
++++ b/pipeline/macro_grism/wavelength.py
+@@ -1,63 +1,65 @@
+-"""Per-frame self-anchored wavelength solution for the grism track.
+-
+-There is no arc lamp and no absolute flux in season 1 — the wavelength
+-scale must come from the spectra themselves.  Anchors, in order of trust:
+-
+-1. **Halpha emission** (6562.8 A).  T CrB is a symbiotic recurrent nova:
+-   its Halpha emission is the strongest sharp feature on every validation
+-   frame (hrg peak SNR >> 10).  Its pixel position anchors the zero point
+-   of the solution frame by frame — which also makes the anchor immune to
+-   flexure between frames.
+-2. **The telluric O2 PAIR** (B band 6867.2 A, A band 7593.7 A).  The
+-   atmosphere imprints both at fixed wavelengths on every spectrum, so
+-   their pixel offsets from Halpha must sit in the exact ratio
+-   (7593.7-6562.8)/(6867.2-6562.8) = 3.387 — and that ratio is the
+-   identification test.  The validation run PROVED a single-dip search is
+-   ambiguous: the deepest dip near Halpha on the hrg frames (at +650 px)
+-   was first read as O2-B (implying 0.47 A/px), but every high-SNR frame
+-   shows a second dip at +193 px, and 654/193 = 3.39 — the +650 dip is
+-   O2-A, the +193 dip is O2-B, and the true hrg dispersion is ~1.59 A/px.
+-   A decoy dip has no partner at the exact ratio on the same side, so the
+-   PAIR is required before any dispersion is claimed; the A band (3.4x
+-   the lever arm) supplies the number.  The per-(grism) median across
+-   pair-anchored frames is the adopted fallback, its robust scatter the
+-   honest uncertainty.
+-3. Frames where only Halpha is found get the per-grism FALLBACK dispersion
+-   with anchor_status = 'halpha_only'; frames with neither anchor get
+-   'none' and NO wavelength column — an unanchored scale is worse than an
+-   absent one.
+-
+-Direction convention: on the era-76 frames red runs toward +x for both
+-grisms (established by the O2 pair landing redward of Halpha on the
+-validation frames); the search is symmetric and records the sign it found,
+-so a future grism mounted the other way round is measured, not assumed.
+-
+-Precision statement (the report quotes it): the anchors are pixel
+-positions of extrema; their frame-to-frame scatter (in px, converted
+-through the dispersion) IS the wavelength precision — nothing finer is
+-claimed.
++"""Wavelength scale of a science frame: FIXED dispersion, per-frame zero
++point (committee rulings U2 / G-1; findings OA.E1, PH.P7, TE.F3).
++
++WHAT THIS MODULE USED TO DO, AND WHY IT WAS WITHDRAWN
++-----------------------------------------------------
++Version 1 solved a wavelength scale per frame from the frame itself: find
++Halpha, find a PAIR of telluric dips whose offsets sit in the O2 A/B
++lever ratio (3.387), read the dispersion off the pair.  Three reviewers
++independently showed the stored results were not measurements of a
++physical quantity: accepted T CrB frames carried dispersions from -1.8 to
+++2.0 A/px on one grism, bimodal at 0.46 and 1.59 — the ratio of the two
++modes being exactly 3.39.  On an M giant, TiO band heads supply decoy
++dips at every spacing, and the pair test is satisfied by (TiO 6651, O2-B)
++as readily as by (O2-B, O2-A).  A grism at a fixed distance from a
++detector has ONE dispersion and ONE sign until someone moves the camera.
++
++WHAT IT DOES NOW
++----------------
++* The dispersion comes from ``g_dispersion``: one row per (grism,
++  mechanical epoch), solved on hot stars by ``run_g_dispersion.py``.
++  The scale is a polynomial in DETECTOR position (an optical distortion
++  of the grism-camera pair, the same for every star); this module never
++  fits a dispersion.
++* Per frame it measures exactly one number: the ZERO POINT — the pixel of
++  Halpha.  For an emission-line target that is the centroid of the Halpha
++  emission; for an absorption-line star, of the absorption core.
++* It then performs one CHECK, which is not allowed to change anything:
++  the blue edge of the telluric O2 B band must sit at the separation from
++  Halpha that the fixed solution predicts.  The measured separation is
++  stored per frame; its constancy across a series is the acceptance test
++  of the whole scheme (G-1: constant to 1-2%).
++
++A caveat that belongs in every paper using this: a zero point taken from
++the target's own Halpha puts the wavelength scale in the TARGET's rest
++frame for that line.  Velocities of Halpha itself are therefore zero by
++construction; only the separation to a telluric feature (the O2-B check
++here) carries velocity information, and it is limited by the edge-
++position error stored beside it.
+ """
+ 
+ from __future__ import annotations
+ 
++from dataclasses import dataclass
+ from typing import Optional
+ 
+ import numpy as np
+ 
++from . import config as gconfig
++from . import linecal as lc
+ from .trace import running_median
+ 
+ # --------------------------------------------------------------------------
+ # Tunable constants (single source of truth — the report quotes these).
+ # --------------------------------------------------------------------------
+ 
+-#: Rest wavelengths (Angstrom, air) of the anchors.
+-HALPHA_A = 6562.8
+-O2_B_A = 6867.2          # telluric O2 B band head
+-O2_A_A = 7593.7          # telluric O2 A band head
++#: Rest wavelength (Angstrom, air) of the zero-point anchor.
++HALPHA_A = lc.HALPHA_A
+ 
+-#: Continuum window for the running-median continuum estimate (px).  Wide
+-#: enough that Halpha (FWHM ~20 px on hrg) does not lift its own
+-#: continuum; narrow enough to follow the TiO band structure.
++#: Continuum window for the running-median continuum estimate (px) of the
++#: emission-peak SEARCH.  Wide enough that Halpha (FWHM up to ~25 px on a
++#: defocused night) does not lift its own continuum; narrow enough to
++#: follow the TiO band structure of an M giant.
+ CONT_WIN = 151
+ 
+ #: Emission peak acceptance: minimum SNR of the continuum-subtracted peak
+@@ -68,48 +70,117 @@ PEAK_MIN_SNR = 8.0
+ PEAK_MIN_WIDTH = 3
+ PEAK_MAX_WIDTH = 80
+ 
+-#: Telluric dip acceptance: minimum depth SNR for a dip to enter the
+-#: pair search at all, and the minimum contiguous pixels below half the
+-#: acceptance threshold (a one-pixel negative excursion is not a band).
+-DIP_MIN_SNR = 5.0
+-DIP_MIN_PIXELS = 2
+-
+-#: The O2 identification ratio: (A-Halpha)/(B-Halpha) separations.  Both
+-#: dips of a candidate pair must sit at this ratio from Halpha, within
+-#: O2_RATIO_TOL (fractional) — the measured pairs on the validation
+-#: frames hit it to 0.1-2%, and no plausible decoy (TiO band heads,
+-#: artifacts) lands a partner at the exact ratio on the same side.
+-O2_RATIO = (O2_A_A - HALPHA_A) / (O2_B_A - HALPHA_A)      # = 3.387
+-O2_RATIO_TOL = 0.06
+-
+-#: Physical dispersion bracket (|A/px|) a candidate pair must imply.
+-#: Measured on the validation frames: hrg ~1.59, lrg ~1.9-2.2; the
+-#: bracket brackets both with margin without allowing absurd solutions.
+-DISP_BRACKET_A_PER_PX = (0.3, 3.0)
+-
+-#: Columns to keep either side of Halpha in the stored spectrum snippet
+-#: (the g_extractions quick-look; full spectra live in the FITS/parquet).
++#: Half-window (px) of the Gaussian refinement of the Halpha centre, in
++#: units of the search FWHM (floor ``FIT_MIN_HALFWIN``).
++FIT_HALFWIN_FWHM = 2.5
++FIT_MIN_HALFWIN = 14
++
++#: O2-B check: how far from the predicted position the band edge may be
++#: looked for — a constant plus a fraction of the predicted separation —
++#: and the minimum depth for the edge to count as measured.  The window
++#: is deliberately generous (several per cent): the check must be able to
++#: FAIL, i.e. to report a separation that disagrees with the solution.
++O2B_SEARCH_PX = 8.0
++O2B_SEARCH_FRAC = 0.04
++O2B_MIN_DEPTH = 0.03
++
++#: Columns to keep either side of Halpha in the stored spectrum snippet.
+ SNIPPET_HALFWIN = 150
+ SNIPPET_STRIDE = 3
+ 
+ 
++# --------------------------------------------------------------------------
++# The fixed solution
++# --------------------------------------------------------------------------
++@dataclass(frozen=True)
++class Solution:
++    """One fixed dispersion solution (a row of ``g_dispersion``).
++
++    The scale is a polynomial in DETECTOR position,
++    lambda(x) = const + P(x), P(x) = sum_k coeffs[k-1] ((x - x_ref)/1000)^k
++    (see ``linecal.solve_dispersion`` for why it is tied to the detector
++    and not to the star).  A frame contributes only the constant, fixed
++    by the pixel of Halpha.  ``o2b_wave`` is the measured effective
++    wavelength of the O2-B blue edge on this scale (None if not
++    calibrated).
++    """
++    grism: str
++    mech_epoch: str
++    coeffs: tuple
++    x_ref: float
++    disp_ref: float              # signed A/px at x_ref
++    disp_err: float
++    rms_px: Optional[float]
++    o2b_wave: Optional[float]
++    status: str
++
++    @property
++    def red_sign(self) -> int:
++        return 1 if self.disp_ref > 0 else -1
++
++    def wave_of(self, x, x_halpha: float):
++        return lc.wavelength_of(x, x_halpha, self.coeffs, self.x_ref)
++
++    def x_of(self, wave, x_halpha: float):
++        return lc.predict_x(wave, x_halpha, self.coeffs, self.x_ref)
++
++    def local_disp(self, x) -> float:
++        """|A/px| at a detector position (it varies across the chip: the
++        hrg runs from ~0.40 to ~0.51 A/px over the central 2000 px)."""
++        return float(abs(lc.local_dispersion(x, self.coeffs, self.x_ref)))
++
++
++def load_solutions(con) -> dict:
++    """{(grism, mech_epoch): Solution} from ``g_dispersion`` (rows with a
++    solved dispersion only)."""
++    import json
++    out = {}
++    for row in con.execute("""
++            SELECT grism, mech_epoch, coeffs_json, x_ref, disp_a_per_px,
++                   disp_err, rms_px, o2b_wave_eff, status
++            FROM g_dispersion WHERE coeffs_json IS NOT NULL"""):
++        out[(row[0], row[1])] = Solution(
++            grism=row[0], mech_epoch=row[1],
++            coeffs=tuple(json.loads(row[2])), x_ref=row[3],
++            disp_ref=row[4], disp_err=row[5], rms_px=row[6],
++            o2b_wave=row[7], status=row[8])
++    return out
++
++
++def solution_for(solutions: dict, grism: Optional[str],
++                 night: str) -> Optional[Solution]:
++    """The solution that applies to a frame, by grism unit and the
++    mechanical epoch of its night — None when that (grism, epoch) has no
++    solution.  There is deliberately NO fallback to another epoch: a
++    borrowed dispersion is how a re-seated grism goes unnoticed."""
++    if grism is None:
++        return None
++    return solutions.get((grism, gconfig.mech_epoch_id(night)))
++
++
++# --------------------------------------------------------------------------
++# The zero point
++# --------------------------------------------------------------------------
+ def continuum_residual(flux: np.ndarray, win: int = CONT_WIN):
+     """(residual, noise): flux minus its running-median continuum, and the
+     robust (MAD) noise of that residual.  NaNs pass through as NaN."""
+-    filled = np.where(np.isfinite(flux), flux, np.nanmedian(flux))
++    finite = np.isfinite(flux)
++    filled = np.where(finite, flux, np.nanmedian(flux) if finite.any()
++                      else 0.0)
+     resid = flux - running_median(filled, win)
+-    finite = resid[np.isfinite(resid)]
+-    noise = float(1.4826 * np.median(np.abs(finite - np.median(finite))))
++    ok = resid[np.isfinite(resid)]
++    if len(ok) == 0:
++        return resid, 1e-9
++    noise = float(1.4826 * np.median(np.abs(ok - np.median(ok))))
+     return resid, max(noise, 1e-9)
+ 
+ 
+ def find_emission_peak(flux: np.ndarray) -> Optional[dict]:
+-    """The strongest sharp emission feature: candidate Halpha.
++    """The strongest sharp emission feature: candidate Halpha (search
++    only — :func:`halpha_zero_point` refines it).
+ 
+-    Returns {'x': subpixel position, 'snr', 'width_px'} or None.  The
+-    subpixel position is the flux-weighted centroid over the peak's
+-    half-maximum span — robust for asymmetric lines, and its stability
+-    across frames is exactly what the anchor-precision figure measures.
++    Returns {'x': centroid over the half-maximum span, 'snr',
++    'width_px'} or None.
+     """
+     resid, noise = continuum_residual(flux)
+     resid = np.where(np.isfinite(resid), resid, 0.0)
+@@ -117,7 +188,6 @@ def find_emission_peak(flux: np.ndarray) -> Optional[dict]:
+     height = resid[i]
+     if height < PEAK_MIN_SNR * noise:
+         return None
+-    # Half-maximum span around the peak.
+     half = height / 2.0
+     lo = i
+     while lo > 0 and resid[lo - 1] > half:
+@@ -133,125 +203,79 @@ def find_emission_peak(flux: np.ndarray) -> Optional[dict]:
+     return {"x": x, "snr": float(height / noise), "width_px": int(width)}
+ 
+ 
+-def significant_dips(flux: np.ndarray, min_snr: float = DIP_MIN_SNR,
+-                     min_pixels: int = DIP_MIN_PIXELS,
+-                     gap: int = 5) -> list[dict]:
+-    """Every significant absorption dip of a spectrum, as
+-    [{'x', 'snr', 'width_px'}, ...] sorted deepest-first.
++def halpha_zero_point(flux: np.ndarray,
++                      var: Optional[np.ndarray] = None) -> Optional[dict]:
++    """Zero point from Halpha EMISSION: search for the strongest sharp
++    emission feature, then refine with a Gaussian + linear-continuum fit.
+ 
+-    A dip = a run of pixels (gaps under ``gap`` px bridged) whose
+-    continuum residual drops below ``-min_snr * noise``, at least
+-    ``min_pixels`` long (a single-pixel excursion is not a band).  'x' is
+-    the run's minimum (the band head's core), 'width_px' the span below
+-    half the dip's own depth — the report's honesty check that a claimed
+-    O2 band has band-like width.
+-    """
+-    resid, noise = continuum_residual(flux)
+-    resid = np.where(np.isfinite(resid), resid, 0.0)
+-    idx = np.where(resid < -min_snr * noise)[0]
+-    if len(idx) == 0:
+-        return []
+-    groups = np.split(idx, np.where(np.diff(idx) > gap)[0] + 1)
+-    dips = []
+-    for g in groups:
+-        if len(g) < min_pixels:
+-            continue
+-        i = int(g[np.argmin(resid[g])])
+-        depth = -resid[i]
+-        lo = i
+-        while lo > 0 and resid[lo - 1] < -depth / 2:
+-            lo -= 1
+-        hi = i
+-        while hi < len(resid) - 1 and resid[hi + 1] < -depth / 2:
+-            hi += 1
+-        dips.append({"x": float(i), "snr": float(depth / noise),
+-                     "width_px": int(hi - lo + 1)})
+-    dips.sort(key=lambda d: -d["snr"])
+-    return dips
+-
+-
+-def find_o2_pair(flux: np.ndarray, x_ref: float,
+-                 disp_bracket=DISP_BRACKET_A_PER_PX,
+-                 ratio_tol: float = O2_RATIO_TOL) -> Optional[dict]:
+-    """The self-validating O2 anchor: a PAIR of dips whose offsets from
+-    Halpha sit in the exact A:B separation ratio (``O2_RATIO``), on the
+-    same side, implying a dispersion inside the physical bracket.
+-
+-    Among valid pairs the highest combined SNR wins.  Returns
+-    {'x_o2b', 'o2b_snr', 'x_o2a', 'o2a_snr', 'disp_a_per_px'} — the
+-    dispersion signed (positive = red toward +x) and taken from the A
+-    band (3.4x the lever arm of B) — or None when no pair qualifies.
+-    """
+-    dips = significant_dips(flux)
+-    sep_a = O2_A_A - HALPHA_A
+-    best, best_score = None, 0.0
+-    for d_b in dips:
+-        xb = d_b["x"] - x_ref
+-        if xb == 0:
+-            continue
+-        for d_a in dips:
+-            xa = d_a["x"] - x_ref
+-            if xa == 0 or xb * xa <= 0:          # same side only
+-                continue
+-            ratio = xa / xb                      # sign cancels: both same side
+-            if not (O2_RATIO * (1 - ratio_tol) <= ratio
+-                    <= O2_RATIO * (1 + ratio_tol)):
+-                continue
+-            disp = sep_a / xa                    # signed A/px
+-            if not (disp_bracket[0] <= abs(disp) <= disp_bracket[1]):
+-                continue
+-            score = d_b["snr"] + d_a["snr"]
+-            if score > best_score:
+-                best_score = score
+-                best = {"x_o2b": d_b["x"], "o2b_snr": d_b["snr"],
+-                        "x_o2a": d_a["x"], "o2a_snr": d_a["snr"],
+-                        "disp_a_per_px": float(disp)}
+-    return best
+-
+-
+-def solve_wavelength(flux: np.ndarray) -> dict:
+-    """Per-frame anchor hunt.  Returns a dict of everything found:
+-
+-    ``x_halpha`` / ``halpha_snr`` / ``halpha_width_px`` — the emission
+-    anchor; ``x_o2b`` / ``x_o2a`` with SNRs (only ever set as a PAIR —
+-    see ``find_o2_pair``); ``disp_a_per_px`` (signed: positive = red
+-    toward +x, measured from the O2-A offset); ``disp_source`` in
+-    {'o2_pair', None}; ``anchor_status`` in {'halpha+o2', 'halpha_only',
+-    'none'}.
++    Returns {'x', 'x_err', 'snr', 'fwhm_px', 'amp_frac'} or None.  When
++    the Gaussian fit fails or runs away from the search position, the
++    search centroid is returned with ``x_err`` = None (flagged, not
++    silently trusted).
+     """
+-    out = {"x_halpha": None, "halpha_snr": None, "halpha_width_px": None,
+-           "x_o2b": None, "o2b_snr": None, "x_o2a": None, "o2a_snr": None,
+-           "disp_a_per_px": None, "disp_source": None,
+-           "anchor_status": "none"}
+     peak = find_emission_peak(flux)
+     if peak is None:
+-        return out
+-    out.update(x_halpha=peak["x"], halpha_snr=peak["snr"],
+-               halpha_width_px=peak["width_px"])
+-    out["anchor_status"] = "halpha_only"
+-    pair = find_o2_pair(flux, peak["x"])
+-    if pair is not None:
+-        out.update(pair)
+-        out["disp_source"] = "o2_pair"
+-        out["anchor_status"] = "halpha+o2"
+-    return out
++        return None
++    hw = max(FIT_MIN_HALFWIN, int(round(FIT_HALFWIN_FWHM * peak["width_px"])))
++    fit = lc.fit_line(flux, peak["x"], hw,
++                      core_halfwin=max(3, peak["width_px"]), var=var)
++    if (fit is None or fit["amp_frac"] <= 0
++            or abs(fit["x"] - peak["x"]) > peak["width_px"]):
++        return {"x": peak["x"], "x_err": None, "snr": peak["snr"],
++                "fwhm_px": float(peak["width_px"]), "amp_frac": None}
++    return {"x": fit["x"], "x_err": fit["x_err"], "snr": peak["snr"],
++            "fwhm_px": fit["fwhm_px"], "amp_frac": fit["amp_frac"]}
++
++
++def check_o2b(flux: np.ndarray, x_halpha: float,
++              sol: Solution) -> Optional[dict]:
++    """Measure the O2-B blue edge where the fixed solution predicts it
++    and report where it actually is, in wavelength.
++
++    Returns {'x', 'x_err', 'depth', 'wave' (edge wavelength on this
++    frame's scale), 'wave_err', 'dwave' (wave - calibrated edge
++    wavelength), 'sep_px' (pixel distance from Halpha), 'sep_pred_px',
++    'frac_dev' ((sep - pred)/pred)} or None when the solution has no
++    calibrated edge, the edge falls off the spectrum, or no edge deeper
++    than ``O2B_MIN_DEPTH`` is found.  NOTHING here feeds back into the
++    wavelength scale.
++
++    Because the zero point is the TARGET's Halpha, ``dwave`` contains the
++    target's velocity relative to the observer (1 A = 45.7 km/s) as well
++    as any scale error; a series' SCATTER in ``dwave`` is the acceptance
++    statistic, its mean is not.
++    """
++    if sol.o2b_wave is None:
++        return None
++    xp = float(sol.x_of(sol.o2b_wave, x_halpha))
++    sep = abs(xp - x_halpha)
++    span = lc.EDGE_FLOOR_SPAN_A["O2B"] / sol.local_disp(xp)
++    m = lc.edge_position(flux, xp, sol.red_sign,
++                         search_px=O2B_SEARCH_PX + O2B_SEARCH_FRAC * sep,
++                         span_px=max(4.0, span))
++    if m is None or m["depth"] < O2B_MIN_DEPTH:
++        return None
++    wave = float(sol.wave_of(m["x"], x_halpha))
++    meas = abs(m["x"] - x_halpha)
++    return {"x": m["x"], "x_err": m["x_err"], "depth": m["depth"],
++            "wave": wave, "wave_err": m["x_err"] * sol.local_disp(m["x"]),
++            "dwave": wave - sol.o2b_wave,
++            "sep_px": meas, "sep_pred_px": sep,
++            "frac_dev": (meas - sep) / sep}
+ 
+ 
+-def wavelength_axis(nx: int, x_halpha: float,
+-                    disp_a_per_px: float) -> np.ndarray:
+-    """The wavelength column: lambda(x) = 6562.8 + disp * (x - x_Halpha).
+-    Pure arithmetic, kept as a function so the FITS writer and the tests
+-    share one definition."""
+-    return HALPHA_A + disp_a_per_px * (np.arange(nx) - x_halpha)
++def wavelength_axis(nx: int, x_halpha: float, sol: Solution) -> np.ndarray:
++    """The wavelength column of a frame under a fixed solution, given the
++    pixel of Halpha.  One definition shared by the FITS writer, the EW
++    code and the tests."""
++    return sol.wave_of(np.arange(nx), x_halpha)
+ 
+ 
+ def snippet(flux: np.ndarray, x_center: float,
+             halfwin: int = SNIPPET_HALFWIN,
+             stride: int = SNIPPET_STRIDE) -> list:
+-    """The Halpha-region quick-look stored in g_extractions: [x, flux]
+-    pairs (JSON-ready floats, NaN -> None) every ``stride`` px within
+-    ``halfwin`` of the line.  Small enough for a DB row, detailed enough
+-    to eyeball a profile without opening the FITS."""
++    """The Halpha-region quick-look: [x, flux] pairs (JSON-ready floats,
++    NaN -> None) every ``stride`` px within ``halfwin`` of the line."""
+     n = len(flux)
+     lo = max(0, int(x_center) - halfwin)
+     hi = min(n, int(x_center) + halfwin + 1)
+diff --git a/pipeline/rlmt_diagnostics/dispersion.py b/pipeline/rlmt_diagnostics/dispersion.py
+index 299d81d..aef1e1f 100644
+--- a/pipeline/rlmt_diagnostics/dispersion.py
++++ b/pipeline/rlmt_diagnostics/dispersion.py
+@@ -97,7 +97,7 @@ import numpy as np
+ # change here would alter a stored verdict, so a later reader can tell which
+ # rules produced the numbers in front of them.
+ # ---------------------------------------------------------------------------
+-DISPERSION_CODE_VERSION = "S2c v1.1 (2026-08-18)"
++DISPERSION_CODE_VERSION = "S2c v1.2 (2026-10-03)"
+ 
+ # ---------------------------------------------------------------------------
+ # Tunable constants — single source of truth; the report interpolates these
+@@ -748,6 +748,273 @@ def expected_strength(filter_name: Optional[str]) -> Optional[str]:
+     return None
+ 
+ 
++# ---------------------------------------------------------------------------
++# The SECOND witness: background morphology (committee finding OA.E4 / F-6)
++# ---------------------------------------------------------------------------
++# WHY A SECOND TEST EXISTS
++# ------------------------
++# Everything above judges a frame by its SOURCES.  That fails silently in
++# exactly one direction, and the 2026-10-03 review caught it on NGC 5548:
++# 143 frames through one wheel slot, one exposure time, received three
++# different verdicts (17 direct, 91 dispersed, 35 indeterminate).  On a
++# long exposure of a FAINT target the first-order spectrum is spread below
++# the detection threshold; what the extractor does find are the compact
++# zero-order images of the field, which are round.  A frame of round
++# sources and no trace is, by rule 7, "direct" — a certificate for
++# aperture photometry issued to a spectrum.
++#
++# The sky does not have that problem.  A slitless grism disperses the SKY
++# too, and the sky fills the instrument's field stop.  The dispersed image
++# of the stop is a bright LOZENGE in the middle of the frame — tens to
++# thousands of ADU on a long exposure — while the rest of the detector,
++# top, bottom and corners alike, receives no first-order sky at all and
++# sits at the electronic pedestal.  A direct image is the opposite: sky
++# everywhere, falling off only in the vignetted corners.  The two are
++# distinguishable from a 128-cell thumbnail, need no source detection, and
++# get EASIER as the target gets fainter and the exposure longer — the
++# regime where the trace test goes blind.
++#
++# WHAT IS MEASURED (all pedestal-free: only DIFFERENCES of map cells)
++# -------------------------------------------------------------------
++# From a median-binned background map (medians remove stars and traces):
++#
++#   contrast    S = (peak - corner) / sigma
++#               how strongly the brightest region stands above the corners;
++#               below MORPH_MIN_CONTRAST there is no diffuse light to judge
++#   template_r  the Pearson correlation of the normalised map with the
++#               LOZENGE TEMPLATE of some grism/camera configuration — the
++#               median map of frames that the trace test (independent
++#               evidence) already calls dispersed.  The lozenge is the
++#               image of a fixed stop through a fixed grism: its shape and
++#               position are hardware, so a real one correlates at > 0.9.
++#   edge_ratio  E = (top/bottom edge - corner) / (peak - corner)
++#               a direct sky is bright at the frame edges and dark only in
++#               the vignetted corners (E ~ 0.4-0.9)
++#
++# WHY NOT THE SIMPLER TEST.  The first version used E and the area of the
++# bright region alone ("edges as dark as the corners").  Calibration on
++# undisputed labels killed it: an emission nebula on a faint sky (M16,
++# M27), a cluster, a bright star's halo on a 20 s exposure and a
++# flat-fielded reduced frame all have dark edges and a bright middle.  A
++# shape template does not confuse any of them with the stop's image (the
++# highest correlation of 150 undisputed direct frames is 0.67; the lowest
++# of 143 NGC 5548 slot-'6' frames is 0.93).
++#
++# The thresholds below are CALIBRATED on frames whose filter label is not
++# in dispute (named grisms vs ordinary photometric filters) and SCORED on
++# an independently drawn, eyeball-labelled truth set; neither number set
++# is typed here — see ``run_s2c_dispersion.py morph-calibrate`` and
++# ``truth-score``.  A template is never built from frames of the target
++# it is applied to (leave-one-target-out), so a frame cannot vouch for
++# itself.
++
++#: Background map size: the frame is median-binned to about this many
++#: cells along its longer side.
++MORPH_CELLS = 128
++
++#: Box geometry, in fractions of the frame: corner boxes, the top/bottom
++#: mid-edge boxes, and the border excluded from the peak search.
++MORPH_CORNER_FRAC = 0.10
++MORPH_EDGE_HALFWIDTH = 0.12
++MORPH_EDGE_DEPTH = 0.07
++
++#: Verdict thresholds (see the calibration table for where the two
++#: labelled populations actually fall).
++MORPH_MIN_CONTRAST = 15.0        # S: below this there is no sky to judge
++MORPH_LOZENGE_MIN_R = 0.75       # template correlation: at/above -> lozenge
++MORPH_DIRECT_MAX_R = 0.55        # ... and a direct sky must stay below this
++MORPH_DIRECT_MIN_EDGE = 0.40     # E: at or above -> edges carry sky
++
++#: Floor of the cell-to-cell noise (ADU).  Cell medians of integer frames
++#: are quantised: on a dark grism frame most cells equal their neighbours
++#: exactly and the MAD is identically zero.  Half an ADU is the
++#: quantisation scale of a median of integers.
++MORPH_SIGMA_FLOOR = 0.5
++
++#: Side of the square grid a map is resampled to for template work.
++MORPH_TEMPLATE_GRID = 48
++
++#: A lozenge template is the median of at least this many frames, each
++#: with contrast above this value.
++MORPH_TEMPLATE_MIN_FRAMES = 3
++MORPH_TEMPLATE_MIN_CONTRAST = 40.0
++
++MORPH_LOZENGE = "lozenge"
++MORPH_FLAT = "direct_sky"
++MORPH_NONE = "no_sky_signal"
++MORPH_AMBIGUOUS = "ambiguous"
++
++
++def background_map(data: np.ndarray, cells: int = MORPH_CELLS) -> np.ndarray:
++    """Median-binned background map of a frame.
++
++    Cell size is chosen so the longer side has about ``cells`` cells; the
++    median inside a cell removes stars, cosmic rays and narrow traces
++    (a 25-px-wide trace cannot own the median of a 32x32 cell), leaving
++    the diffuse light.  Ragged edges are trimmed.
++    """
++    ny, nx = data.shape
++    b = max(1, int(round(max(ny, nx) / float(cells))))
++    gy, gx = ny // b, nx // b
++    cut = np.asarray(data[:gy * b, :gx * b], dtype=np.float32)
++    blocks = cut.reshape(gy, b, gx, b).transpose(0, 2, 1, 3)
++    return np.median(blocks.reshape(gy, gx, b * b), axis=2)
++
++
++def morphology_metrics(bmap: np.ndarray) -> dict:
++    """The three pedestal-free numbers of the background-morphology test
++    (plus the raw levels they were formed from, for the record).
++
++    Returns {'corner', 'edge_tb', 'peak', 'sigma', 'contrast',
++    'edge_ratio', 'area_frac'}.  ``sigma`` is the larger of the MAD and
++    the 16-84 half-spread of the cell-to-cell residual, floored at
++    ``MORPH_SIGMA_FLOOR`` (quantised medians).  ``area_frac`` (cells
++    above half of peak - corner) is recorded for the report; it no
++    longer enters the verdict.
++    """
++    from scipy.ndimage import median_filter, uniform_filter
++    gy, gx = bmap.shape
++    cy = max(1, int(round(MORPH_CORNER_FRAC * gy)))
++    cx = max(1, int(round(MORPH_CORNER_FRAC * gx)))
++    corners = [bmap[:cy, :cx], bmap[:cy, -cx:], bmap[-cy:, :cx],
++               bmap[-cy:, -cx:]]
++    corner = float(np.median([np.median(c) for c in corners]))
++    ex0 = int(round((0.5 - MORPH_EDGE_HALFWIDTH) * gx))
++    ex1 = int(round((0.5 + MORPH_EDGE_HALFWIDTH) * gx))
++    ed = max(1, int(round(MORPH_EDGE_DEPTH * gy)))
++    edge_tb = float(np.median([np.median(bmap[:ed, ex0:ex1]),
++                               np.median(bmap[-ed:, ex0:ex1])]))
++    # Peak: 99th percentile of the 3x3-smoothed interior (one hot cell or
++    # a single bright star's cell cannot be "the lozenge").
++    sm = uniform_filter(bmap.astype(np.float64), size=3, mode="nearest")
++    peak = float(np.percentile(sm[ed:-ed, cx:-cx] if gy > 2 * ed
++                               and gx > 2 * cx else sm, 99.0))
++    # Cell-to-cell noise: MAD of the map minus its 3x3 median smoothing.
++    resid = bmap - median_filter(bmap, size=3, mode="nearest")
++    mad = 1.4826 * np.median(np.abs(resid - np.median(resid)))
++    spread = 0.5 * (np.percentile(resid, 84) - np.percentile(resid, 16))
++    sigma = float(max(mad, spread, MORPH_SIGMA_FLOOR))
++    out = {"corner": corner, "edge_tb": edge_tb, "peak": peak,
++           "sigma": sigma, "contrast": None, "edge_ratio": None,
++           "area_frac": None}
++    if not np.isfinite(sigma):
++        return out
++    rise = peak - corner
++    out["contrast"] = float(rise / sigma)
++    if rise > 0:
++        out["edge_ratio"] = float((edge_tb - corner) / rise)
++        out["area_frac"] = float(np.mean(sm > corner + 0.5 * rise))
++    return out
++
++
++def normalized_map(bmap: np.ndarray,
++                   grid: int = MORPH_TEMPLATE_GRID) -> np.ndarray:
++    """A background map resampled to ``grid`` x ``grid`` and scaled so the
++    corners are 0 and the peak is 1 — camera- and exposure-independent,
++    ready to be correlated with a template."""
++    from scipy.ndimage import zoom
++    gy, gx = bmap.shape
++    z = zoom(bmap.astype(np.float64), (grid / gy, grid / gx), order=1)
++    m = morphology_metrics(bmap)
++    rise = m["peak"] - m["corner"]
++    return (z - m["corner"]) / (rise if rise > 0 else 1.0)
++
++
++def build_template(norm_maps: Sequence[np.ndarray]) -> Optional[np.ndarray]:
++    """Median of normalised maps — a lozenge template — or None when
++    fewer than ``MORPH_TEMPLATE_MIN_FRAMES`` are offered."""
++    if len(norm_maps) < MORPH_TEMPLATE_MIN_FRAMES:
++        return None
++    return np.median(np.array(norm_maps), axis=0)
++
++
++def template_correlation(norm_map: np.ndarray, templates: dict):
++    """(best r, best template key, rotation) over all templates, each
++    tried as built and rotated by 180 degrees (the camera was turned end
++    for end across the 2025 monsoon; the stop's image turns with it)."""
++    best = (None, None, None)
++    for key, tpl in templates.items():
++        if tpl is None:
++            continue
++        for rot in (0, 2):
++            r = float(np.corrcoef(norm_map.ravel(),
++                                  np.rot90(tpl, rot).ravel())[0, 1])
++            if np.isfinite(r) and (best[0] is None or r > best[0]):
++                best = (r, key, 90 * rot)
++    return best
++
++
++def classify_morphology(metrics: dict) -> tuple[str, str]:
++    """(class, reason) from the morphology numbers (``metrics`` must
++    carry 'contrast', 'edge_ratio' and 'template_r').
++
++    * ``no_sky_signal`` — the brightest region does not stand
++      ``MORPH_MIN_CONTRAST`` sigma above the corners: a short exposure
++      with no measurable diffuse light.  NOT evidence either way.
++    * ``lozenge``       — the diffuse light has the shape of the dispersed
++      field stop (template correlation >= ``MORPH_LOZENGE_MIN_R``).
++      Positive evidence of a disperser in the beam.
++    * ``direct_sky``    — sky reaches the frame edges and the map does not
++      resemble a lozenge: an ordinary image.
++    * ``ambiguous``     — diffuse light that is neither (a nebula or
++      cluster on a faint sky; a bright star's halo).
++    """
++    s, e, r = (metrics.get("contrast"), metrics.get("edge_ratio"),
++               metrics.get("template_r"))
++    if s is None or s < MORPH_MIN_CONTRAST:
++        return MORPH_NONE, ("no diffuse light above the corners "
++                            f"(contrast {0.0 if s is None else s:.1f})")
++    if r is not None and r >= MORPH_LOZENGE_MIN_R:
++        return MORPH_LOZENGE, (f"dispersed-sky lozenge: template r "
++                               f"{r:.2f}, contrast {s:.0f}")
++    if (e is not None and e >= MORPH_DIRECT_MIN_EDGE
++            and (r is None or r < MORPH_DIRECT_MAX_R)):
++        return MORPH_FLAT, (f"sky reaches the frame edges (edge ratio "
++                            f"{e:.2f}, template r "
++                            f"{-1.0 if r is None else r:.2f})")
++    return MORPH_AMBIGUOUS, (f"contrast {s:.0f}, template r "
++                             f"{-1.0 if r is None else r:.2f}, edge ratio "
++                             f"{-1.0 if e is None else e:.2f}: neither "
++                             "pattern")
++
++
++def combine_verdicts(trace_verdict: Optional[str],
++                     morph_class: Optional[str]) -> tuple[str, str]:
++    """The re-issued S2c verdict from both witnesses: (verdict, basis).
++
++    The rule is asymmetric on purpose, because the two tests fail in
++    different directions:
++
++    * a ``lozenge`` is positive evidence of a disperser that needs no
++      source to be detected -> ``dispersed``, whatever the trace test
++      said (this is the NGC 5548 correction);
++    * a trace-test ``dispersed`` stands on its own evidence (bright
++      standard, short exposure, no sky) -> ``dispersed``;
++    * ``direct`` is a CERTIFICATE and now needs both witnesses not to
++      object: trace test direct AND morphology not a lozenge.  With
++      ``direct_sky`` it is "direct (sky confirmed)"; with no sky signal
++      it stays direct on the trace test alone and says so;
++    * everything else is ``indeterminate``.
++    """
++    if morph_class == MORPH_LOZENGE:
++        if trace_verdict == VERDICT_DISPERSED:
++            return VERDICT_DISPERSED, "traces + sky lozenge"
++        return VERDICT_DISPERSED, "sky lozenge (no trace detected)"
++    if trace_verdict == VERDICT_DISPERSED:
++        if morph_class == MORPH_FLAT:
++            # The witnesses disagree: sources say grism, sky says image.
++            # (A satellite or bleed trail on a star field.)  Withhold.
++            return VERDICT_INDETERMINATE, "traces but direct-image sky"
++        return VERDICT_DISPERSED, "traces (no sky evidence)"
++    if trace_verdict == VERDICT_DIRECT:
++        if morph_class == MORPH_FLAT:
++            return VERDICT_DIRECT, "round sources + direct-image sky"
++        if morph_class == MORPH_AMBIGUOUS:
++            return VERDICT_INDETERMINATE, "round sources, ambiguous sky"
++        return VERDICT_DIRECT, "round sources (no sky evidence)"
++    return VERDICT_INDETERMINATE, "no trace verdict; sky not a lozenge"
++
++
+ # ---------------------------------------------------------------------------
+ # Impure edge: pixels in, FrameShape out
+ # ---------------------------------------------------------------------------
+diff --git a/pipeline/scripts/run_g_tcrb_validation.py b/pipeline/scripts/run_g_tcrb_validation.py
+index 9b7930b..52eba7e 100644
+--- a/pipeline/scripts/run_g_tcrb_validation.py
++++ b/pipeline/scripts/run_g_tcrb_validation.py
+@@ -1,614 +1,533 @@
+ #!/usr/bin/env python
+-"""G-track validation runner: T CrB grism series, core machinery pass.
+-
+-Stages (each independently runnable; ``--all`` chains them):
+-
+-* ``--calibrate``  solve a handful of era-76 Mode0 IMAGING frames from the
+-                   grism season with the S1 astrometry wrapper, harvest
+-                   their CD matrices, and adopt the parity-normalized
+-                   median as the gate's camera model (g_gate_calib).
+-* ``--plan``       print the frame worklist (roles and counts), no work.
+-* ``--run``        process frames (gate -> extract x2 -> wavelength ->
+-                   FITS product + g_extractions row).  Resumable: frames
+-                   already in g_extractions are skipped; ``--limit N``
+-                   bounds one batch so no invocation outruns a shell
+-                   timeout.
+-* ``--parquet``    bundle every product FITS into one analysis-ready
+-                   parquet (adds the per-grism fallback wavelength axis
+-                   for halpha_only frames).
+-* ``--report``     render docs/pipeline/g_grism.html from the DB.
+-
+-The archive is READ-ONLY; outputs go to products/grism/ and docs/.
++"""G-track validation on the T CrB grism series — corrected library.
++
++This runner replaces the 2026-08-18 validation pass.  That pass solved a
++dispersion per frame, used a header gain that was four times too small
++and masked every pixel above 16.3 kADU; the committee review of
++2026-10-03 withdrew all three (findings OA.E1, DE.F1, TE.F3, PH.P7).
++What runs here is the corrected library, on EVERY T CrB hrg/lrg frame
++(not a sample), from the 1-D spectrum cache written by
++``run_g_reduce.py --sample tcrb`` — no stage below reads the archive.
++
++STAGES (each independent; ``--all`` chains them)
++------------------------------------------------
++``--zero``      per-frame zero point (Halpha emission) under the FIXED
++                detector-coordinate solution, and the O2-B edge check:
++                the acceptance test of G-1 (edge wavelength constant
++                across the series)                       -> g_zero_point
++``--variance``  G-2: measured vs predicted sky variance in the trace
++                flanks, per frame, and the photon-transfer fit over all
++                frames (an independent gain measurement)  -> g_variance_check
++``--null``      G-4: empty-aperture residual of each sky model, the
++                straight-line-vs-polynomial method difference and the
++                negative-continuum count                  -> g_null_sky
++``--lsf``       G-5: delivered line-spread function per frame, with the
++                focus-offset and sensor-temperature regressors -> g_lsf
++``--ew``        step 7: Halpha equivalent width with the corrected
++                library ('v2') and, on the frames the August pass
++                extracted, with ITS spectra, dispersion and variance
++                ('v1') — same estimator both times        -> g_ew
++``--summary``   print the acceptance numbers (every number in the work
++                package report comes from here or from the DB)
++
++Reads: ``products/grism/grism.sqlite`` (own tables), the spectrum cache,
++the manifest snapshot (v1 ``g_extractions`` rows, read-only) and the v1
++product FITS under ``products/grism/spectra``.
+ """
+ 
+ from __future__ import annotations
+ 
+ import argparse
+-import glob
+ import json
+-import os
+ import sys
+-import time
++from collections import defaultdict
+ from pathlib import Path
+ 
+ import numpy as np
+ 
+-# Make pipeline/ importable when run as a script from the repo root.
+ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+ 
+-import sqlite3
+-
+-from macro_core.astrom import solve_one_frame            # noqa: E402
++from macro_grism import config as gconfig                # noqa: E402
+ from macro_grism import db as gdb                        # noqa: E402
++from macro_grism import ew as gew                        # noqa: E402
+ from macro_grism import extract as gext                  # noqa: E402
+-from macro_grism import gate as ggate                    # noqa: E402
+-from macro_grism import trace as gtrace                  # noqa: E402
++from macro_grism import store as gstore                  # noqa: E402
+ from macro_grism import wavelength as gwave              # noqa: E402
+-from macro_grism.fits_io import GrismLayoutError, load_frame  # noqa: E402
+ 
+-# ---------------------------------------------------------------------------
+-# Locations (defaults follow the repo layout; every one is overridable).
+-# ---------------------------------------------------------------------------
+-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+-DEFAULT_MANIFEST = REPO_ROOT / "products" / "manifest" / "rlmt-manifest.sqlite"
+-DEFAULT_ARCHIVE = Path("/Volumes/OWC StudioStack HDD/DATA/ASTRO/rlmt-archive")
+-DEFAULT_PRODUCTS = REPO_ROOT / "products" / "grism"
+-ASTROMETRY_CFG = Path.home() / "astrometry-indices" / "astrometry.cfg"
+-
+-#: The validation sample sizes (the strategy's numbers).
+-N_TCRB_SAMPLE = 54          # stratified across the 60 nights, both grisms
+-N_CALIBRATOR = 10           # tet CrB frames (C4 Be-contamination flagged)
+-N_CD_SOLVES = 6             # imaging frames solved for the camera model
++#: Acceptance thresholds quoted from SYNTHESIS section 3.
++G1_SEP_TOL = 0.02          # O2-B edge constant to 1-2%
++G2_VAR_TOL = 0.20          # predicted vs measured variance within 20%
++G4_METHOD_TOL = 0.03       # sky-method difference < 3%
++
++#: Nominal hrg-minus-lrg focuser offset (counts) from the wheel's
++#: filter-offset table (TE.F4), and how far from it a night may sit
++#: before it is flagged off-nominal.
++NOMINAL_FOCUS_OFFSET = 650.0
++FOCUS_TOL = 150.0
++
++#: Sensor temperature (C) above which a frame is "warm" relative to the
++#: -10 C master darks (DE.F5).
++WARM_CCD_TEMP = -5.0
++
++
++def tcrb_rows(con, extra: str = "") -> list[dict]:
++    cur = con.execute(f"""
++        SELECT path, obs_rowid, sample, target, grism, night, mech_epoch,
++               jd, exptime, detector_key, focpos, ccd_temp, airmass,
++               pointing_offset_deg, snr_median, peak_adu, n_sat_cols,
++               fwhm_px, sky_adu, trace_x0, trace_x1
++        FROM g_frames WHERE sample = 'tcrb' AND status = 'ok' {extra}
++        ORDER BY night, path""")
++    cols = [c[0] for c in cur.description]
++    return [dict(zip(cols, r)) for r in cur]
+ 
+-#: tet CrB rows carry this flag everywhere (strategy ruling C4: the
+-#: calibrator is a Be/shell star — its Halpha region is astrophysically
+-#: contaminated and must never be used as a featureless reference there).
+-C4_FLAG = "C4_Be_Halpha"
+ 
+-#: The grism era under validation (T CrB series is entirely era 76 Mode0).
+-ERA_ID = 76
++def science_flux(spec: dict, key: str = "flux") -> np.ndarray:
++    """Optimal flux inside the trace extent (NaN elsewhere)."""
++    return np.where(spec["inside"], spec[key], np.nan)
+ 
+ 
+ # ---------------------------------------------------------------------------
+-# Camera-model calibration
++# --zero
+ # ---------------------------------------------------------------------------
+-def pick_calibration_frames(con) -> list[tuple]:
+-    """Era-76 Mode0 full-frame IMAGING frames spread across the T CrB
+-    season (2025-02..06): candidates for the CD solve.  Spread is by
+-    night percentile so pier-side/season drift is sampled, not assumed."""
+-    rows = con.execute("""
+-        SELECT path, night, ra_deg, dec_deg FROM frames
+-        WHERE is_canonical = 1 AND era_id = ? AND tree = 'rawimage'
+-          AND lower(coalesce(filter,'')) IN ('g','r','i')
+-          AND imagetyp LIKE 'Light%' AND naxis1 = 4788
+-          AND exptime BETWEEN 5 AND 300
+-          AND night BETWEEN '2025-02-15' AND '2025-06-30'
+-        ORDER BY night""", (ERA_ID,)).fetchall()
+-    if not rows:
+-        return []
+-    # Even spread: one frame at each of N evenly spaced positions.
+-    idx = np.unique(np.linspace(0, len(rows) - 1, N_CD_SOLVES).astype(int))
+-    return [rows[i] for i in idx]
+-
+-
+-def run_calibrate(con, archive: Path, scratch: Path) -> None:
+-    """Solve the calibration frames, store every result, adopt the
+-    parity-normalized element-wise median CD."""
+-    con.execute("DELETE FROM g_gate_calib")     # a re-calibration replaces
+-    frames = pick_calibration_frames(con)
+-    from astropy.io import fits as _fits
+-    cds = []
+-    for path, night, ra, dec in frames:
+-        work = scratch / f"solve_{Path(path).stem}"
+-        res = solve_one_frame(str(archive / path), str(work),
+-                              str(ASTROMETRY_CFG), "Mode0", 2, ra, dec)
+-        cd = [None] * 4
+-        if res["status"] == "solved":
+-            wcs_files = glob.glob(str(work / "*.wcs"))
+-            if wcs_files:
+-                h = _fits.getheader(wcs_files[0])
+-                cd = [h["CD1_1"], h["CD1_2"], h["CD2_1"], h["CD2_2"]]
+-                cds.append(cd)
+-        con.execute("""
+-            INSERT INTO g_gate_calib (era_id, frame_path, night, status,
+-                cd1_1, cd1_2, cd2_1, cd2_2, pixscale_arcsec, rotation_deg,
+-                rms_arcsec, n_matched, adopted)
+-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,0)""",
+-            (ERA_ID, path, night, res["status"], *cd,
+-             res["pixscale_arcsec"], res["rotation_deg"],
+-             res["rms_arcsec"], res["n_matched"]))
+-        print(f"  calib {night} {res['status']} "
+-              f"scale={res['pixscale_arcsec']} rot={res['rotation_deg']}")
+-    if not cds:
+-        raise SystemExit("no calibration frame solved — gate cannot run")
+-    # Parity normalization: a meridian flip negates the whole matrix, so
+-    # flip every solution onto the sign of the first, then take the
+-    # element-wise median (robust to one bad solve).
+-    ref_sign = np.sign(cds[0][0])
+-    normed = [np.array(c) if np.sign(c[0]) == ref_sign else -np.array(c)
+-              for c in cds]
+-    adopted = np.median(np.array(normed), axis=0)
+-    con.execute("""
+-        INSERT INTO g_gate_calib (era_id, frame_path, night, status,
+-            cd1_1, cd1_2, cd2_1, cd2_2, adopted)
+-        VALUES (?, 'ADOPTED-MEDIAN', NULL, 'adopted', ?,?,?,?, 1)""",
+-        (ERA_ID, *[float(v) for v in adopted]))
+-    gdb.set_meta(con, "cd_n_solved", str(len(cds)))
++def run_zero(con) -> None:
++    sols = gwave.load_solutions(con)
++    out = []
++    for r in tcrb_rows(con):
++        sol = gwave.solution_for(sols, r["grism"], r["night"])
++        spec = gstore.load_spec(r["path"])
++        row = {"path": r["path"], "sample": r["sample"],
++               "target": r["target"], "grism": r["grism"],
++               "mech_epoch": r["mech_epoch"], "night": r["night"],
++               "anchor": "none", "status": "no_solution"}
++        if sol is None or spec is None:
++            out.append(row)
++            continue
++        flux = science_flux(spec)
++        z = gwave.halpha_zero_point(flux, spec["var"])
++        if z is None:
++            row["status"] = "no_halpha"
++            out.append(row)
++            continue
++        row.update(anchor="halpha_em", x_halpha=z["x"],
++                   x_halpha_err=z["x_err"], halpha_snr=z["snr"],
++                   halpha_fwhm_px=z["fwhm_px"],
++                   halpha_amp_frac=z["amp_frac"],
++                   disp_at_halpha=sol.local_disp(z["x"]), status="ok")
++        o = gwave.check_o2b(flux, z["x"], sol)
++        if o is None:
++            row["status"] = "ok_no_o2b"
++        else:
++            row.update(x_o2b=o["x"], x_o2b_err=o["x_err"],
++                       o2b_depth=o["depth"], o2b_wave=o["wave"],
++                       o2b_wave_err=o["wave_err"], o2b_dwave=o["dwave"],
++                       sep_px=o["sep_px"], sep_pred_px=o["sep_pred_px"],
++                       sep_frac_dev=o["frac_dev"])
++        out.append(row)
++    con.execute("DELETE FROM g_zero_point WHERE sample = 'tcrb'")
++    for row in out:
++        gdb.upsert(con, "g_zero_point", row)
+     con.commit()
+-    print(f"adopted CD (median of {len(cds)}): {adopted.tolist()}")
+-
+-
+-def adopted_cd(con) -> np.ndarray:
+-    row = con.execute("""
+-        SELECT cd1_1, cd1_2, cd2_1, cd2_2 FROM g_gate_calib
+-        WHERE adopted = 1 ORDER BY calib_id DESC LIMIT 1""").fetchone()
+-    if row is None:
+-        raise SystemExit("no adopted CD — run --calibrate first")
+-    return np.array(row, dtype=float).reshape(2, 2)
++    print(f"zero points: {len(out)} frames")
+ 
+ 
+ # ---------------------------------------------------------------------------
+-# The worklist: which frames, in which role
++# --variance
+ # ---------------------------------------------------------------------------
+-def target_reference(con, like: str) -> tuple[float, float]:
+-    """A target's reference coordinates: the MEDIAN header pointing of its
+-    canonical grism series.  The median shrugs off the 21 bad pointings
+-    (they are < 10% of the series), so this stays honest without using
+-    the outlier flag it is about to help judge."""
+-    rows = con.execute("""
+-        SELECT ra_deg, dec_deg FROM frames
+-        WHERE is_canonical = 1 AND target_best LIKE ?
+-          AND lower(coalesce(filter,'')) IN ('hrg','lrg') AND era_id = ?
+-          AND ra_deg IS NOT NULL""", (like, ERA_ID)).fetchall()
+-    ra = float(np.median([r[0] for r in rows]))
+-    dec = float(np.median([r[1] for r in rows]))
+-    return ra, dec
+-
+-
+-BASE_COLS = ("obs_rowid, path, filter, night, jd, exptime, era_id, "
+-             "ra_deg, dec_deg, pointing_offset_deg, target_best")
+-
+-
+-def build_worklist(con) -> list[dict]:
+-    """The full validation worklist, deterministic, with roles:
+-
+-    * gate_bad    — ALL 21 known-bad T CrB pointings (the mandated set).
+-    * gate_good   — a matched good frame per bad one: same grism filter,
+-                    nearest night, pointing offset < 0.1 deg.
+-    * tcrb_sample — ~54 good frames stratified across nights, both grisms
+-                    (alternating by night index so hrg and lrg both cover
+-                    the season).
+-    * calibrator  — 10 tet CrB era-76 frames across its exposure strata.
+-    """
+-    def rowdicts(sql, params=()):
+-        cols = [c.strip() for c in BASE_COLS.split(",")]
+-        return [dict(zip(cols, r)) for r in con.execute(sql, params)]
+-
+-    bad = rowdicts(f"""
+-        SELECT {BASE_COLS} FROM frames
+-        WHERE is_canonical = 1 AND target_best = 'T CrB'
+-          AND lower(filter) IN ('hrg','lrg') AND pointing_offset_deg > 1
+-        ORDER BY night, path""")
+-    good_all = rowdicts(f"""
+-        SELECT {BASE_COLS} FROM frames
+-        WHERE is_canonical = 1 AND target_best = 'T CrB'
+-          AND lower(filter) IN ('hrg','lrg')
+-          AND pointing_offset_deg < 0.1
+-        ORDER BY night, path""")
+-    work, seen = [], set()
+-
+-    def add(row, role):
+-        if row["obs_rowid"] in seen:
+-            return
+-        seen.add(row["obs_rowid"])
+-        row = dict(row)
+-        row["role"] = role
+-        work.append(row)
+-
+-    for r in bad:
+-        add(r, "gate_bad")
+-    # Matched good frame per bad frame: same filter, nearest night.
+-    import datetime as dt
+-
+-    def night_num(n):
+-        return dt.date.fromisoformat(n).toordinal()
+-
+-    for b in bad:
+-        cands = [g for g in good_all if g["filter"] == b["filter"]
+-                 and g["obs_rowid"] not in seen]
+-        if not cands:
++def ptc_fit(level: np.ndarray, var: np.ndarray):
++    """Photon-transfer line var = RN^2 + level / K by ordinary least
++    squares over sky-level bins; returns (K, K_err, RN, RN_err) with
++    errors from the fit covariance scaled by the residual scatter."""
++    a = np.vstack([np.ones(len(level)), level]).T
++    coef, res, *_ = np.linalg.lstsq(a, var, rcond=None)
++    dof = max(1, len(level) - 2)
++    s2 = float(np.sum((var - a @ coef) ** 2) / dof)
++    cov = s2 * np.linalg.inv(a.T @ a)
++    k = 1.0 / coef[1]
++    k_err = np.sqrt(cov[1, 1]) / coef[1] ** 2
++    rn = np.sqrt(max(coef[0], 0.0))
++    rn_err = np.sqrt(cov[0, 0]) / (2.0 * max(rn, 1e-9))
++    return float(k), float(k_err), float(rn), float(rn_err)
++
++
++def run_variance(con) -> None:
++    out = []
++    for r in tcrb_rows(con):
++        spec = gstore.load_spec(r["path"])
++        if spec is None or "skyvar" not in spec or len(spec["skyvar"]) < 5:
+             continue
+-        cands.sort(key=lambda g: (abs(night_num(g["night"])
+-                                      - night_num(b["night"])), g["path"]))
+-        add(cands[0], "gate_good")
+-    # Stratified season sample: group good frames by night, walk nights
+-    # in order, alternate the preferred grism, one frame per night.
+-    by_night: dict = {}
+-    for g in good_all:
+-        by_night.setdefault(g["night"], []).append(g)
+-    nights = sorted(by_night)
+-    picked = 0
+-    for i, night in enumerate(nights):
+-        if picked >= N_TCRB_SAMPLE:
+-            break
+-        pref = "hrg" if i % 2 == 0 else "lrg"
+-        cands = ([g for g in by_night[night] if g["filter"] == pref
+-                  and g["obs_rowid"] not in seen]
+-                 or [g for g in by_night[night]
+-                     if g["obs_rowid"] not in seen])
+-        if cands:
+-            add(sorted(cands, key=lambda g: g["path"])[0], "tcrb_sample")
+-            picked += 1
+-    # tet CrB calibrator sample: spread across its exposure strata (the
+-    # target_best labels bin the series by exptime); shortest exposures
+-    # first within each stratum — tet CrB is G ~ 4, saturation is the
+-    # enemy, and short frames are the usable ones.  Frames whose header
+-    # pointing is > POINTING_TOL_DEG off the tet CrB reference are
+-    # EXCLUDED here: the first validation pass proved the March-2025
+-    # header-pointing bug hit the tet CrB series too (150-162 deg off),
+-    # and a calibrator sample must contain calibrator spectra — the
+-    # bad-header frames are gate evidence, not calibration material.
+-    tet_ref = target_reference(con, "tet CrB%")
+-    strata = con.execute("""
+-        SELECT DISTINCT target_best FROM frames
+-        WHERE is_canonical = 1 AND target_best LIKE 'tet CrB%'
+-          AND era_id = ? AND lower(filter) IN ('hrg','lrg')
+-        ORDER BY target_best""", (ERA_ID,)).fetchall()
+-    per = max(1, N_CALIBRATOR // max(1, len(strata)))
+-    n_cal = 0
+-    for (stratum,) in strata:
+-        rows = rowdicts(f"""
+-            SELECT {BASE_COLS} FROM frames
+-            WHERE is_canonical = 1 AND target_best = ? AND era_id = ?
+-              AND lower(filter) IN ('hrg','lrg')
+-            ORDER BY exptime, night, path""", (stratum, ERA_ID))
+-        n_stratum = 0
+-        for r in rows:
+-            if n_cal >= N_CALIBRATOR or n_stratum >= per:
+-                break
+-            if (r["ra_deg"] is None or ggate.angular_offset_deg(
+-                    r["ra_deg"], r["dec_deg"], *tet_ref)
+-                    > ggate.POINTING_TOL_DEG):
+-                continue                       # header-bug frame: skip
+-            add(r, "calibrator")
+-            n_cal += 1
+-            n_stratum += 1
+-    return work
++        sv = spec["skyvar"]
++        ratio = sv[:, 1] / sv[:, 2]
++        row = {"path": r["path"], "sample": r["sample"],
++               "grism": r["grism"], "mech_epoch": r["mech_epoch"],
++               "detector_key": r["detector_key"], "n_bins": int(len(sv)),
++               "level_lo": float(sv[:, 0].min()),
++               "level_hi": float(sv[:, 0].max()),
++               "var_ratio_median": float(np.median(ratio)),
++               "var_ratio_lo": float(np.percentile(ratio, 16)),
++               "var_ratio_hi": float(np.percentile(ratio, 84)),
++               "bins_json": json.dumps(np.round(sv, 2).tolist())}
++        if sv[:, 0].max() - sv[:, 0].min() > 30.0:
++            k, ke, rn, rne = ptc_fit(sv[:, 0], sv[:, 1])
++            row.update(ptc_gain=k, ptc_gain_err=ke, ptc_rn_adu=rn,
++                       ptc_rn_err=rne)
++        out.append(row)
++    con.execute("DELETE FROM g_variance_check WHERE sample = 'tcrb'")
++    for row in out:
++        gdb.upsert(con, "g_variance_check", row)
++    con.commit()
++    print(f"variance checks: {len(out)} frames")
+ 
+ 
+ # ---------------------------------------------------------------------------
+-# Master darks (the comparison arm's calibration source)
++# --null
+ # ---------------------------------------------------------------------------
+-class DarkLibrary:
+-    """Era-76 master darks by exposure time, loaded lazily and kept.
+-
+-    ``nearest(exptime)`` returns (path, exptime, pixels) for the master
+-    whose exposure is closest in LOG space — 2 s is 'nearer' to 4 s than
+-    to 0.5 s where dark current is concerned."""
+-
+-    def __init__(self, con, archive: Path):
+-        self.archive = archive
+-        self.rows = con.execute("""
+-            SELECT exptime, path FROM calib_frames
+-            WHERE era_id = ? AND kind = 'dark' AND is_master = 1
+-              AND exptime > 0 ORDER BY exptime""", (ERA_ID,)).fetchall()
+-        self._cache: dict = {}
+-
+-    def nearest(self, exptime: float):
+-        if not self.rows or not exptime or exptime <= 0:
+-            return None
+-        best = min(self.rows,
+-                   key=lambda r: abs(np.log(r[0]) - np.log(exptime)))
+-        if best[0] not in self._cache:
+-            data, _, _ = load_frame(str(self.archive / best[1]))
+-            self._cache[best[0]] = (best[1], data)
+-        path, data = self._cache[best[0]]
+-        return path, float(best[0]), data
++def run_null(con) -> None:
++    out = []
++    for r in tcrb_rows(con):
++        spec = gstore.load_spec(r["path"])
++        if spec is None or "null_poly_p200" not in spec:
++            continue
++        inside = spec["inside"]
++        cont = float(np.nanmedian(spec["box"][inside]))
++        for method in ("poly", "flanking"):
++            for off in gext.NULL_OFFSETS:
++                tag = f"null_{method}_{'m' if off < 0 else 'p'}{abs(off)}"
++                b = spec[tag][inside]
++                b = b[np.isfinite(b)]
++                if len(b) < 100:
++                    continue
++                out.append({
++                    "path": r["path"], "method": method,
++                    "row_offset": int(off), "sample": r["sample"],
++                    "grism": r["grism"], "mech_epoch": r["mech_epoch"],
++                    "null_median_adu": float(np.median(b)),
++                    "null_p16": float(np.percentile(b, 16)),
++                    "null_p84": float(np.percentile(b, 84)),
++                    "cont_median_adu": cont,
++                    "null_frac": float(np.median(b) / cont) if cont else None,
++                    "n_cols": int(len(b))})
++    con.execute("DELETE FROM g_null_sky WHERE sample = 'tcrb'")
++    for row in out:
++        gdb.upsert(con, "g_null_sky", row)
++    con.commit()
++    print(f"null-aperture rows: {len(out)}")
+ 
+ 
+ # ---------------------------------------------------------------------------
+-# One frame, end to end
++# --lsf
+ # ---------------------------------------------------------------------------
+-def process_frame(row: dict, cd: np.ndarray, refs: dict, darks: DarkLibrary,
+-                  archive: Path, spectra_dir: Path, cache_dir: Path) -> list[dict]:
+-    """Gate + double extraction + wavelength for one frame.  Returns the
+-    two g_extractions row dicts (flanking, masterdark).  Any failure is
+-    captured into ``status`` — a bad frame must produce a record, not a
+-    crashed batch."""
+-    base = {k: row.get(k) for k in ("obs_rowid", "path", "filter", "night",
+-                                    "jd", "exptime", "era_id", "role")}
+-    base["target"] = row["target_best"]
+-    if row["target_best"].startswith("tet CrB"):
+-        base["contamination_flag"] = C4_FLAG
+-    try:
+-        data, header, layout = load_frame(str(archive / row["path"]))
+-    except (GrismLayoutError, OSError) as exc:
+-        base.update(method="flanking", status=f"load_error: {exc}"[:300])
+-        return [base]
+-    base["layout"] = layout
+-    ny, nx = data.shape
+-
+-    # ---- trace geometry -------------------------------------------------
+-    xs, ys, amps = gtrace.chunk_peaks(data)
+-    slope = gtrace.fit_slope(xs, ys, amps)
+-    _, resid = gtrace.detilted_profile(data, slope)
+-    u_obs, height = gtrace.main_trace_u(resid)
+-    base.update(trace_slope=slope, trace_height=height, u_obs=float(u_obs))
+-
+-    # ---- identity gate --------------------------------------------------
+-    ra0, dec0 = row.get("ra_deg"), row.get("dec_deg")
+-    ref = refs["tet" if row["target_best"].startswith("tet") else "tcrb"]
+-    offset = (ggate.angular_offset_deg(ra0, dec0, *ref)
+-              if ra0 is not None and dec0 is not None else None)
+-    stars = np.empty((0, 3))
+-    if ra0 is not None:
+-        try:
+-            stars = ggate.gaia_cone(ra0, dec0, str(cache_dir))
+-        except Exception as exc:                     # noqa: BLE001
+-            base.update(method="flanking",
+-                        status=f"gaia_error: {exc}"[:300])
+-            return [base]
+-    preds = (ggate.brightest_prediction(cd, ra0, dec0, stars, slope, ny, nx)
+-             if len(stars) else {"A": None, "B": None})
+-    g = ggate.gate_verdict(offset, height, float(u_obs), preds, len(stars))
+-    base.update(gate_verdict=g.verdict, gate_reason=g.reason,
+-                pointing_offset_deg=offset, u_pred=g.u_pred_best,
+-                u_resid_px=g.u_resid_px, gate_parity=g.parity,
+-                n_gaia=g.n_gaia, brightest_g=g.brightest_g)
+-
+-    # A frame with no usable trace cannot be extracted; record and stop.
+-    if height < ggate.MIN_TRACE_HEIGHT_ADU:
+-        base.update(method="flanking", status="ok_no_trace")
+-        return [base]
+-
+-    # ---- extraction, both background methods ---------------------------
+-    coeffs, n_cent, t_rms = gtrace.fit_trace_centers(data, slope, u_obs)
+-    base.update(trace_c0=float(coeffs[0]), trace_c1=float(coeffs[1]),
+-                trace_c2=float(coeffs[2]), trace_rms_px=t_rms,
+-                trace_n_centroids=n_cent)
+-    egain = float(header.get("EGAIN", gext.DEFAULT_EGAIN))
+-    dark = darks.nearest(row.get("exptime"))
+-    spectra, rows_out = {}, []
+-    for method in ("flanking", "masterdark"):
+-        r = dict(base)
+-        r["method"] = method
+-        if method == "masterdark":
+-            if dark is None:
+-                r["status"] = "no_master_dark"
+-                rows_out.append(r)
+-                continue
+-            r.update(dark_path=dark[0], dark_exptime=dark[1],
+-                     bg_method="masterdark+flanking")
+-            spec = gext.extract_spectrum(data, coeffs, egain, dark=dark[2])
+-        else:
+-            r["bg_method"] = "flanking"
+-            spec = gext.extract_spectrum(data, coeffs, egain)
+-        spectra[method] = spec
+-        flux = spec["flux"]
+-        r.update(n_extracted=spec["n_extracted"],
+-                 n_sat_cols=int((spec["n_sat"] > 0).sum()),
+-                 peak_flux=float(np.nanmax(flux)),
+-                 median_flux=float(np.nanmedian(flux)))
+-        # ---- wavelength anchors (per method: the debt shows up here too)
+-        w = gwave.solve_wavelength(flux)
+-        r.update(anchor_status=w["anchor_status"], x_halpha=w["x_halpha"],
+-                 halpha_snr=w["halpha_snr"],
+-                 halpha_width_px=w["halpha_width_px"], x_o2b=w["x_o2b"],
+-                 o2b_snr=w["o2b_snr"], x_o2a=w["x_o2a"],
+-                 o2a_snr=w["o2a_snr"], disp_a_per_px=w["disp_a_per_px"],
+-                 disp_source=w["disp_source"])
+-        if w["x_halpha"] is not None:
+-            r["snippet_json"] = json.dumps(
+-                gwave.snippet(flux, w["x_halpha"]))
+-        r["status"] = "ok"
+-        rows_out.append(r)
+-
+-    # ---- the debt number + the FITS product -----------------------------
+-    if "flanking" in spectra and "masterdark" in spectra:
+-        debt = gext.median_relative_difference(
+-            spectra["flanking"]["flux"], spectra["masterdark"]["flux"])
+-        for r in rows_out:
+-            r["debt_median_rel_diff"] = debt
+-    fits_rel = write_spectrum_fits(row, base, rows_out, spectra,
+-                                   spectra_dir)
+-    for r in rows_out:
+-        r["spectrum_fits"] = fits_rel
+-    return rows_out
+-
+-
+-def write_spectrum_fits(row, base, rows_out, spectra, spectra_dir: Path):
+-    """One FITS per frame: a binary-table extension per method with
+-    x / wavelength (when anchored) / flux / var / background / n_sat.
+-    Written atomically (tmp + rename)."""
+-    if not spectra:
+-        return None
+-    from astropy.io import fits as _fits
+-    hdus = [_fits.PrimaryHDU()]
+-    hdr0 = hdus[0].header
+-    hdr0["SRCPATH"] = (row["path"], "archive frame (read-only)")
+-    hdr0["TARGET"] = row["target_best"]
+-    hdr0["NIGHT"] = row["night"]
+-    hdr0["JDSTART"] = (row["jd"], "header JD, UTC exposure START")
+-    hdr0["GATE"] = (base.get("gate_verdict") or "", "identity gate")
+-    if base.get("contamination_flag"):
+-        hdr0["C4FLAG"] = (base["contamination_flag"],
+-                          "Be/shell calibrator: Halpha contaminated")
+-    for r in rows_out:
+-        m = r["method"]
+-        if m not in spectra:
++C_KMS = 299792.458
++
++
++def run_lsf(con) -> None:
++    """Delivered LSF per frame.
++
++    For a point source a slitless spectrograph's line-spread function IS
++    the stellar image along the dispersion, and the image across the
++    dispersion is measured directly: the trace's cross-dispersion FWHM.
++    The adopted LSF is that FWHM interpolated to the Halpha column
++    (focus is chromatic: the trace is 5.5 px wide at best focus and
++    10-19 px at the ends of the chip), converted with the LOCAL
++    dispersion.  The fitted FWHM of T CrB's own Halpha emission is
++    stored beside it: it is an upper bound (intrinsic width included)
++    and must not be smaller than the LSF — a check the summary prints.
++    """
++    zero = {r[0]: r[1:] for r in con.execute(
++        "SELECT path, x_halpha, halpha_fwhm_px, disp_at_halpha "
++        "FROM g_zero_point WHERE x_halpha IS NOT NULL")}
++    rows = tcrb_rows(con)
++    # Nightly reference focus: the median lrg focuser position.
++    lrg_focus = defaultdict(list)
++    for r in rows:
++        if r["grism"] == "lrg" and r["focpos"] is not None:
++            lrg_focus[r["night"]].append(r["focpos"])
++    out = []
++    for r in rows:
++        if r["path"] not in zero:
++            continue
++        x_ha, ha_fwhm, disp = zero[r["path"]]
++        spec = gstore.load_spec(r["path"])
++        fx, fw = spec["fwhm_x"], spec["fwhm_px"]
++        good = np.isfinite(fw)
++        if good.sum() < 2:
+             continue
+-        spec = spectra[m]
+-        nx = len(spec["flux"])
+-        cols = [
+-            _fits.Column(name="X_PX", format="J",
+-                         array=np.arange(nx, dtype=np.int32)),
+-            _fits.Column(name="FLUX_ADU", format="E", array=spec["flux"]),
+-            _fits.Column(name="VAR_ADU2", format="E", array=spec["var"]),
+-            _fits.Column(name="BOX_ADU", format="E", array=spec["box"]),
+-            _fits.Column(name="BG_ADU", format="E", array=spec["bg"]),
+-            _fits.Column(name="N_SAT", format="I",
+-                         array=spec["n_sat"].astype(np.int16)),
+-        ]
+-        if r.get("x_halpha") is not None and r.get("disp_a_per_px"):
+-            cols.insert(1, _fits.Column(
+-                name="WAVE_A", format="E",
+-                array=gwave.wavelength_axis(nx, r["x_halpha"],
+-                                            r["disp_a_per_px"])))
+-        t = _fits.BinTableHDU.from_columns(cols, name=m.upper())
+-        t.header["BGMETHOD"] = r.get("bg_method") or ""
+-        t.header["ANCHORS"] = r.get("anchor_status") or ""
+-        if r.get("x_halpha") is not None:
+-            t.header["XHALPHA"] = r["x_halpha"]
+-        if r.get("disp_a_per_px"):
+-            t.header["DISPAPX"] = (r["disp_a_per_px"],
+-                                   "A/px, signed, per-frame O2 anchor")
+-        hdus.append(t)
+-    name = Path(row["path"]).stem.replace(".fts", "") + "_spec.fits"
+-    out = spectra_dir / name
+-    tmp = out.with_suffix(".tmp")
+-    _fits.HDUList(hdus).writeto(tmp, overwrite=True)
+-    os.replace(tmp, out)
+-    return str(Path("spectra") / name)
++        xd = float(np.interp(x_ha, fx[good], fw[good]))
++        offset = None
++        if r["focpos"] is not None and lrg_focus.get(r["night"]):
++            offset = r["focpos"] - float(np.median(lrg_focus[r["night"]]))
++        nominal = (0.0 if r["grism"] == "lrg" else NOMINAL_FOCUS_OFFSET)
++        lsf_a = xd * disp
++        out.append({
++            "path": r["path"], "sample": r["sample"], "target": r["target"],
++            "grism": r["grism"], "mech_epoch": r["mech_epoch"],
++            "night": r["night"], "focpos": r["focpos"],
++            "focus_offset": offset, "ccd_temp": r["ccd_temp"],
++            "fwhm_xd_px": xd, "fwhm_xd_min_px": float(np.nanmin(fw)),
++            "line_fwhm_px": ha_fwhm, "lsf_fwhm_px": xd,
++            "lsf_fwhm_a": lsf_a,
++            "lsf_fwhm_kms": lsf_a / gew.HALPHA_A * C_KMS,
++            "resolving_power": gew.HALPHA_A / lsf_a,
++            "off_nominal": int(offset is not None
++                               and abs(offset - nominal) > FOCUS_TOL)})
++    con.execute("DELETE FROM g_lsf WHERE sample = 'tcrb'")
++    for row in out:
++        gdb.upsert(con, "g_lsf", row)
++    con.commit()
++    print(f"LSF rows: {len(out)}")
+ 
+ 
+ # ---------------------------------------------------------------------------
+-# Parquet bundling
++# --ew
+ # ---------------------------------------------------------------------------
+-def run_parquet(con, products: Path) -> None:
+-    """Long-format parquet over every product FITS.  Adds the per-grism
+-    median dispersion as the fallback wavelength for halpha_only frames
+-    (recorded as wave_source='grism_median')."""
+-    import pandas as pd
+-    from astropy.io import fits as _fits
+-    # Per-grism median dispersion, computed in Python (SQLite has no
+-    # median) from the flanking-method rows that carried an O2 anchor.
+-    disp_rows = con.execute("""
+-        SELECT filter, disp_a_per_px FROM g_extractions
+-        WHERE disp_a_per_px IS NOT NULL AND method = 'flanking'""")
+-    by_filt: dict = {}
+-    for filt, disp in disp_rows:
+-        by_filt.setdefault(filt, []).append(disp)
+-    med = {filt: float(np.median(v)) for filt, v in by_filt.items()}
+-    rows = con.execute("""
+-        SELECT obs_rowid, method, target, filter, night, jd, role,
+-               gate_verdict, contamination_flag, spectrum_fits,
+-               anchor_status, x_halpha, disp_a_per_px
++def v1_rows(mcon) -> dict:
++    """The August library's accepted flanking-method rows, by path."""
++    cur = mcon.execute("""
++        SELECT path, filter, x_halpha, disp_a_per_px, anchor_status,
++               gate_verdict, spectrum_fits, n_sat_cols
+         FROM g_extractions
+-        WHERE spectrum_fits IS NOT NULL AND status = 'ok'""").fetchall()
+-    frames = []
+-    for (rowid, method, target, filt, night, jd, role, verdict, c4,
+-         rel, anchor, x_ha, disp) in rows:
+-        path = products / rel
+-        if not path.exists():
+-            continue
+-        with _fits.open(path) as h:
+-            if method.upper() not in h:
++        WHERE method = 'flanking' AND target = 'T CrB'
++          AND spectrum_fits IS NOT NULL AND x_halpha IS NOT NULL""")
++    cols = [c[0] for c in cur.description]
++    return {r[0]: dict(zip(cols, r)) for r in cur}
++
++
++def run_ew(con, mcon) -> None:
++    from astropy.io import fits
++    sols = gwave.load_solutions(con)
++    zero = {r[0]: r[1] for r in con.execute(
++        "SELECT path, x_halpha FROM g_zero_point WHERE x_halpha IS NOT NULL")}
++    v1 = v1_rows(mcon)
++    # v1's fallback for frames without an O2 pair: the per-grism median
++    # of its own per-frame dispersions (as its parquet stage did).
++    v1_med = {}
++    for g in ("hrg", "lrg"):
++        d = [r["disp_a_per_px"] for r in v1.values()
++             if r["filter"] == g and r["disp_a_per_px"]]
++        if d:
++            v1_med[g] = float(np.median(d))
++    out = []
++    for r in tcrb_rows(con):
++        base = {"path": r["path"], "grism": r["grism"], "night": r["night"],
++                "jd": r["jd"], "mech_epoch": r["mech_epoch"]}
++        # ---- corrected library ------------------------------------------
++        sol = gwave.solution_for(sols, r["grism"], r["night"])
++        if sol is not None and r["path"] in zero:
++            spec = gstore.load_spec(r["path"])
++            x_ha = zero[r["path"]]
++            wave = gwave.wavelength_axis(len(spec["flux"]), x_ha, sol)
++            flux = science_flux(spec)
++            flux = np.where(spec["n_sat"] > 0, np.nan, flux)
++            m = gew.equivalent_width(wave, flux, spec["var"])
++            mb = gew.equivalent_width(wave, science_flux(spec, "box"),
++                                      spec["box_var"])
++            row = dict(base, library="v2", x_halpha=x_ha,
++                       disp_a_per_px=sol.local_disp(x_ha),
++                       disp_source="fixed (g_dispersion)",
++                       sky_method="poly", n_sat_cols=r["n_sat_cols"],
++                       status="ok" if m else "no_ew")
++            if m:
++                row.update(ew_a=m["ew_a"], ew_err_a=m["ew_err_a"],
++                           ew_px=m["ew_px"], cont_adu=m["cont"],
++                           cont_snr=m["cont_snr"], line_peak_adu=m["peak"],
++                           n_masked_line=m["n_masked"],
++                           ew_box_a=mb["ew_a"] if mb else None)
++            out.append(row)
++        # ---- August library, same estimator -----------------------------
++        if r["path"] in v1:
++            o = v1[r["path"]]
++            fpath = gconfig.PRODUCTS / o["spectrum_fits"]
++            if not fpath.exists():
+                 continue
+-            t = h[method.upper()].data
+-        df = pd.DataFrame({"x_px": t["X_PX"], "flux_adu": t["FLUX_ADU"],
+-                           "var_adu2": t["VAR_ADU2"]})
+-        wave_source = None
+-        if "WAVE_A" in t.dtype.names:
+-            df["wave_a"] = t["WAVE_A"]
+-            wave_source = "frame_o2"
+-        elif x_ha is not None and filt in med:
+-            df["wave_a"] = gwave.wavelength_axis(len(df), x_ha, med[filt])
+-            wave_source = "grism_median"
+-        df["obs_rowid"] = rowid
+-        df["method"] = method
+-        df["target"] = target
+-        df["filter"] = filt
+-        df["night"] = night
+-        df["jd_start_utc"] = jd
+-        df["role"] = role
+-        df["gate_verdict"] = verdict
+-        df["contamination_flag"] = c4
+-        df["wave_source"] = wave_source
+-        frames.append(df)
+-    out = products / "spectra_g_validation.parquet"
+-    tmp = out.with_suffix(".tmp")
+-    pd.concat(frames, ignore_index=True).to_parquet(tmp, index=False)
+-    os.replace(tmp, out)
+-    print(f"parquet: {out} ({sum(len(f) for f in frames):,} rows, "
+-          f"{len(frames)} spectra)")
++            with fits.open(fpath) as h:
++                t = h["FLANKING"].data
++                f1 = np.array(t["FLUX_ADU"], dtype=float)
++                var1 = np.array(t["VAR_ADU2"], dtype=float)
++                nsat = np.array(t["N_SAT"])
++            disp = o["disp_a_per_px"] or v1_med.get(o["filter"])
++            if not disp:
++                continue
++            wave1 = gew.HALPHA_A + disp * (np.arange(len(f1)) - o["x_halpha"])
++            # v1 masked pixels >= 16,300 ADU inside its Horne sum; columns
++            # where that happened are the ones whose flux is biased.
++            m = gew.equivalent_width(wave1, f1, var1)
++            row = dict(base, library="v1", x_halpha=o["x_halpha"],
++                       disp_a_per_px=abs(disp), gate=o["gate_verdict"],
++                       disp_source=("per-frame O2 pair"
++                                    if o["disp_a_per_px"] else
++                                    "v1 grism median"),
++                       sky_method="flanking", n_sat_cols=o["n_sat_cols"],
++                       status="ok" if m else "no_ew")
++            if m:
++                lo = int(max(0, o["x_halpha"] - 40))
++                row.update(ew_a=m["ew_a"], ew_err_a=m["ew_err_a"],
++                           ew_px=m["ew_px"], cont_adu=m["cont"],
++                           cont_snr=m["cont_snr"], line_peak_adu=m["peak"],
++                           n_masked_line=int((nsat[lo:lo + 80] > 0).sum()))
++            out.append(row)
++    con.execute("DELETE FROM g_ew")
++    for row in out:
++        gdb.upsert(con, "g_ew", row)
++    con.commit()
++    print(f"EW rows: {len(out)}")
+ 
+ 
+ # ---------------------------------------------------------------------------
+-# main
++# --summary
+ # ---------------------------------------------------------------------------
+-def main(argv=None):
+-    ap = argparse.ArgumentParser(description=__doc__)
+-    ap.add_argument("--manifest", default=str(DEFAULT_MANIFEST))
+-    ap.add_argument("--archive", default=str(DEFAULT_ARCHIVE))
+-    ap.add_argument("--products", default=str(DEFAULT_PRODUCTS))
+-    ap.add_argument("--calibrate", action="store_true")
+-    ap.add_argument("--plan", action="store_true")
+-    ap.add_argument("--run", action="store_true")
+-    ap.add_argument("--limit", type=int, default=0,
+-                    help="max frames this batch (0 = no limit)")
+-    ap.add_argument("--parquet", action="store_true")
+-    ap.add_argument("--report", action="store_true")
+-    ap.add_argument("--all", action="store_true")
++def mad_sigma(v) -> float:
++    v = np.asarray(v, dtype=float)
++    return float(1.4826 * np.median(np.abs(v - np.median(v))))
++
++
++def run_summary(con) -> None:
++    q = con.execute
++    print("\\n== G-1: O2-B edge on T CrB under the fixed solution ==")
++    for g in ("hrg", "lrg"):
++        rows = q("SELECT o2b_dwave, sep_px, sep_frac_dev, x_halpha, "
++                 "disp_at_halpha FROM g_zero_point WHERE sample='tcrb' "
++                 "AND grism=? AND o2b_wave IS NOT NULL", (g,)).fetchall()
++        n_all = q("SELECT count(*), sum(x_halpha IS NOT NULL) FROM "
++                  "g_zero_point WHERE sample='tcrb' AND grism=?",
++                  (g,)).fetchone()
++        if not rows:
++            continue
++        dw = np.array([r[0] for r in rows])
++        sep = np.array([r[1] for r in rows])
++        fd = np.array([r[2] for r in rows])
++        lever = 6866.2 - gew.HALPHA_A
++        print(f" {g}: frames {n_all[0]}, Halpha found {n_all[1]}, O2-B "
++              f"edge measured {len(rows)}")
++        print(f"   raw pixel separation: median {np.median(sep):.1f} px, "
++              f"robust scatter {mad_sigma(sep):.1f} px = "
++              f"{100 * mad_sigma(sep) / np.median(sep):.2f}% "
++              f"(range {sep.min():.1f}-{sep.max():.1f})")
++        print(f"   edge wavelength minus standard: median {np.median(dw):+.2f}"
++              f" A, robust scatter {mad_sigma(dw):.2f} A = "
++              f"{100 * mad_sigma(dw) / lever:.2f}% of the Halpha-O2B lever;"
++              f" |dev| > {100 * G1_SEP_TOL:.0f}%: "
++              f"{int((np.abs(fd) > G1_SEP_TOL).sum())} of {len(fd)}")
++    print("\\n== G-2: sky variance, measured / predicted ==")
++    for g in ("hrg", "lrg"):
++        rows = q("SELECT var_ratio_median, ptc_gain, ptc_rn_adu, bins_json "
++                 "FROM g_variance_check WHERE sample='tcrb' AND grism=?",
++                 (g,)).fetchall()
++        if not rows:
++            continue
++        ratio = np.array([r[0] for r in rows])
++        bins = np.vstack([np.array(json.loads(r[3])) for r in rows])
++        k, ke, rn, rne = ptc_fit(bins[:, 0], bins[:, 1])
++        print(f" {g}: {len(rows)} frames; per-frame median ratio: median "
++              f"{np.median(ratio):.3f}, 16-84% {np.percentile(ratio, 16):.3f}"
++              f"-{np.percentile(ratio, 84):.3f}; within +/-"
++              f"{100 * G2_VAR_TOL:.0f}%: "
++              f"{int((np.abs(ratio - 1) <= G2_VAR_TOL).sum())}/{len(ratio)}")
++        print(f"   pooled photon-transfer fit over {len(bins)} sky bins "
++              f"({bins[:, 0].min():.0f}-{bins[:, 0].max():.0f} ADU): "
++              f"K = {k:.3f} +/- {ke:.3f} e-/ADU, floor = {rn:.2f} +/- "
++              f"{rne:.2f} ADU")
++    print("\\n== G-4: empty-aperture residual (fraction of continuum) ==")
++    for g in ("hrg", "lrg"):
++        for method in ("poly", "flanking"):
++            v = np.array([r[0] for r in q(
++                "SELECT null_frac FROM g_null_sky WHERE sample='tcrb' AND "
++                "grism=? AND method=? AND null_frac IS NOT NULL",
++                (g, method))])
++            if len(v):
++                print(f" {g} {method:8s}: n={len(v):3d}  median "
++                      f"{100 * np.median(v):+.2f}%  robust scatter "
++                      f"{100 * mad_sigma(v):.2f}%  |frac| > 3%: "
++                      f"{int((np.abs(v) > G4_METHOD_TOL).sum())}")
++    print("\\n== G-5: delivered LSF at Halpha ==")
++    for g in ("hrg", "lrg"):
++        rows = q("SELECT lsf_fwhm_px, lsf_fwhm_a, lsf_fwhm_kms, "
++                 "resolving_power, line_fwhm_px, off_nominal, ccd_temp, "
++                 "focus_offset FROM g_lsf WHERE sample='tcrb' AND grism=?",
++                 (g,)).fetchall()
++        if not rows:
++            continue
++        a = np.array([[np.nan if v is None else v for v in r] for r in rows],
++                     dtype=float)
++        print(f" {g}: n={len(a)}  LSF FWHM median {np.median(a[:, 0]):.1f} px"
++              f" = {np.median(a[:, 1]):.1f} A = {np.median(a[:, 2]):.0f} km/s"
++              f" (R = {np.median(a[:, 3]):.0f}); 16-84%: "
++              f"{np.percentile(a[:, 1], 16):.1f}-"
++              f"{np.percentile(a[:, 1], 84):.1f} A; Halpha emission FWHM "
++              f"median {np.nanmedian(a[:, 4]):.1f} px; off-nominal focus: "
++              f"{int(np.nansum(a[:, 5]))}; warm (> {WARM_CCD_TEMP:.0f} C): "
++              f"{int((a[:, 6] > WARM_CCD_TEMP).sum())}")
++        for name, col in (("focus offset (counts)", 7), ("CCD-TEMP (C)", 6)):
++            ok = np.isfinite(a[:, col]) & np.isfinite(a[:, 0])
++            if ok.sum() > 10 and np.ptp(a[ok, col]) > 0:
++                c = np.polyfit(a[ok, col], a[ok, 0], 1)
++                rr = np.corrcoef(a[ok, col], a[ok, 0])[0, 1]
++                print(f"   LSF(px) vs {name}: slope {c[0]:+.4g} px/unit, "
++                      f"r = {rr:+.2f}, n = {int(ok.sum())}")
++    print("\\n== Step 7: Halpha EW, August library (v1) vs corrected (v2) ==")
++    for g in ("hrg", "lrg"):
++        rows = q("""SELECT a.ew_a, a.ew_err_a, b.ew_a, b.ew_err_a, a.ew_px,
++                           b.ew_px, a.disp_a_per_px, b.disp_a_per_px,
++                           a.n_masked_line
++                    FROM g_ew a JOIN g_ew b USING (path)
++                    WHERE a.library='v1' AND b.library='v2' AND a.grism=?
++                      AND a.ew_a IS NOT NULL AND b.ew_a IS NOT NULL""",
++                 (g,)).fetchall()
++        allv2 = np.array(q("SELECT ew_a, ew_err_a FROM g_ew WHERE "
++                           "library='v2' AND grism=? AND ew_a IS NOT NULL",
++                           (g,)).fetchall())
++        if len(allv2):
++            print(f" {g}: v2 on {len(allv2)} frames: EW median "
++                  f"{np.median(allv2[:, 0]):.1f} A, 16-84% "
++                  f"{np.percentile(allv2[:, 0], 16):.1f}-"
++                  f"{np.percentile(allv2[:, 0], 84):.1f} A; median error "
++                  f"{np.median(allv2[:, 1]):.2f} A")
++        if not rows:
++            continue
++        a = np.array(rows, dtype=float)
++        ratio = a[:, 2] / a[:, 0]
++        print(f"   paired frames {len(a)}: v1 EW median {np.median(a[:, 0]):.1f}"
++              f" A (16-84% {np.percentile(a[:, 0], 16):.1f}-"
++              f"{np.percentile(a[:, 0], 84):.1f}), v2 {np.median(a[:, 2]):.1f}"
++              f" A ({np.percentile(a[:, 2], 16):.1f}-"
++              f"{np.percentile(a[:, 2], 84):.1f}); v2/v1 median "
++              f"{np.median(ratio):.2f}, range {ratio.min():.2f}-"
++              f"{ratio.max():.2f}")
++        print(f"   frame-to-frame robust scatter of EW: v1 "
++              f"{100 * mad_sigma(a[:, 0]) / abs(np.median(a[:, 0])):.0f}%, "
++              f"v2 {100 * mad_sigma(a[:, 2]) / abs(np.median(a[:, 2])):.0f}%")
++        print(f"   median error: v1 {np.median(a[:, 1]):.2f} A "
++              f"({100 * np.median(a[:, 1] / np.abs(a[:, 0])):.1f}%), v2 "
++              f"{np.median(a[:, 3]):.2f} A "
++              f"({100 * np.median(a[:, 3] / np.abs(a[:, 2])):.1f}%)")
++        print(f"   v1 dispersions used: {np.min(a[:, 6]):.2f}-"
++              f"{np.max(a[:, 6]):.2f} A/px; v2 {np.min(a[:, 7]):.3f}-"
++              f"{np.max(a[:, 7]):.3f}; v1 frames with masked line pixels: "
++              f"{int((a[:, 8] > 0).sum())}")
++
++
++def main(argv=None) -> int:
++    ap = argparse.ArgumentParser(description=__doc__,
++                                 formatter_class=argparse.RawTextHelpFormatter)
++    ap.add_argument("--db", default=str(gconfig.GRISM_DB))
++    ap.add_argument("--manifest", default=str(gstore.default_manifest()))
++    for stage in ("zero", "variance", "null", "lsf", "ew", "summary", "all"):
++        ap.add_argument(f"--{stage}", action="store_true")
+     args = ap.parse_args(argv)
+-
+-    products = Path(args.products)
+-    spectra_dir = products / "spectra"
+-    cache_dir = products / "gaia_cache"
+-    scratch = products / "scratch"
+-    for d in (spectra_dir, cache_dir, scratch):
+-        d.mkdir(parents=True, exist_ok=True)
+-
+-    con = sqlite3.connect(args.manifest)
+-    gdb.ensure_schema(con)
+-    gdb.set_meta(con, "code_version", ggate.G_CODE_VERSION)
+-    con.commit()
+-
+-    if args.calibrate or args.all:
+-        run_calibrate(con, Path(args.archive), scratch)
+-
+-    work = build_worklist(con)
+-    if args.plan:
+-        from collections import Counter
+-        print(Counter(w["role"] for w in work))
+-        for w in work:
+-            print(f"  {w['role']:12s} {w['filter']:3s} {w['night']} "
+-                  f"{w['path']}")
+-
+-    if args.run or args.all:
+-        cd = adopted_cd(con)
+-        refs = {"tcrb": target_reference(con, "T CrB"),
+-                "tet": target_reference(con, "tet CrB%")}
+-        gdb.set_meta(con, "ref_tcrb", json.dumps(refs["tcrb"]))
+-        gdb.set_meta(con, "ref_tet", json.dumps(refs["tet"]))
+-        darks = DarkLibrary(con, Path(args.archive))
+-        done = gdb.existing_keys(con)
+-        todo = [w for w in work if (w["obs_rowid"], "flanking") not in done]
+-        if args.limit:
+-            todo = todo[:args.limit]
+-        print(f"worklist {len(work)}, remaining {len(todo)}")
+-        t0 = time.time()
+-        for i, w in enumerate(todo):
+-            rows = process_frame(w, cd, refs, darks, Path(args.archive),
+-                                 spectra_dir, cache_dir)
+-            for r in rows:
+-                gdb.insert_extraction(con, r)
+-            con.commit()                     # one frame = one transaction
+-            v = rows[0].get("gate_verdict")
+-            print(f"  [{i + 1}/{len(todo)}] {w['role']:11s} "
+-                  f"{w['filter']:3s} {w['night']} {v} "
+-                  f"({time.time() - t0:.0f}s)")
+-        gdb.set_meta(con, "last_run_utc",
+-                     time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+-        con.commit()
+-
+-    if args.parquet or args.all:
+-        run_parquet(con, products)
+-
+-    if args.report or args.all:
+-        from macro_grism.report_g import render_report
+-        out = render_report(Path(args.manifest))
+-        print(f"report: {out}")
++    con = gdb.connect_grism(args.db)
++    if args.zero or args.all:
++        run_zero(con)
++    if args.variance or args.all:
++        run_variance(con)
++    if args.null or args.all:
++        run_null(con)
++    if args.lsf or args.all:
++        run_lsf(con)
++    if args.ew or args.all:
++        run_ew(con, gdb.connect_manifest_ro(args.manifest))
++    if args.summary or args.all:
++        run_summary(con)
++    return 0
+ 
+ 
+ if __name__ == "__main__":
+-    main()
++    raise SystemExit(main())
+diff --git a/pipeline/scripts/run_s2c_dispersion.py b/pipeline/scripts/run_s2c_dispersion.py
+index 8c8f2ee..c499d21 100644
+--- a/pipeline/scripts/run_s2c_dispersion.py
++++ b/pipeline/scripts/run_s2c_dispersion.py
+@@ -50,6 +50,23 @@ SUBCOMMANDS
+     reclassify  recompute verdicts from the STORED numbers, no pixel reads
+     calibrate   print the known-label separation table (read-only)
+ 
++    -- background-morphology second witness + truth set (F-6, 2026-10-03) --
++    morph-plan       choose the frames: threshold-calibration sample,
++                     the 200-frame stratified TRUTH set, and the frames
++                     whose verdicts are re-issued (NGC 5548 slot '6',
++                     T CrB slot '6'/'W')
++    morph-run        read those frames: background map, morphology
++                     numbers, thumbnail (resumable)
++    morph-calibrate  where the labelled populations fall (read-only)
++    truth-sheets     anonymous contact sheets for eyeball labelling
++    truth-score      confusion matrices with Wilson intervals, v1 and v2
++    reissue          re-issued verdict tables for the disputed slots
++
++    The F-6 subcommands read the manifest READ-ONLY and write to the grism
++    track's own database (``products/grism/grism.sqlite``, table
++    ``frame_dispersion`` with the manifest's schema plus the morphology
++    columns); the integrated rebuild lands that table in the manifest.
++
+ USAGE
+ -----
+     PY=/opt/miniconda3/envs/rlmt-checks/bin/python
+@@ -620,6 +637,570 @@ def cmd_report(args) -> int:
+     return 0
+ 
+ 
++# ---------------------------------------------------------------------------
++# F-6: background morphology, truth set, re-issued verdicts
++# ---------------------------------------------------------------------------
++GRISM_DB = REPO_ROOT / "products" / "grism" / "grism.sqlite"
++TRUTH_DIR = REPO_ROOT / "products" / "grism" / "truth"
++#: Tracked copies of the labels and the scored tables live beside the
++#: work-package report (``products/`` is not under version control).
++WORK_DIR = REPO_ROOT / "committee" / "work" / "grism"
++LABELS_CSV = WORK_DIR / "truth_labels.csv"
++
++MORPH_SCHEMA = """
++CREATE TABLE IF NOT EXISTS frame_dispersion (
++    obs_rowid        INTEGER PRIMARY KEY,
++    path             TEXT NOT NULL,
++    tree             TEXT,
++    filter           TEXT,
++    night            TEXT,
++    canonical_target TEXT,
++    exptime          REAL,
++    xbinning         REAL,
++    era_id           INTEGER,
++    population       TEXT NOT NULL,
++    priority         INTEGER NOT NULL DEFAULT 4,
++    status           TEXT NOT NULL,
++    n_detected INTEGER, n_sources INTEGER, n_bright INTEGER,
++    median_ab REAL, max_ab REAL, pa_median REAL, pa_scatter REAL,
++    n_trace INTEGER, trace_frac REAL, trace_ab REAL, trace_a_px REAL,
++    trace_pa REAL, trace_pa_scatter REAL, detect_sigma REAL,
++    height INTEGER, width INTEGER,
++    verdict          TEXT,            -- RE-ISSUED (both witnesses)
++    strength_class   TEXT,
++    reason           TEXT,
++    measure_s REAL, error TEXT, code_version TEXT, measured_at TEXT,
++    -- ---- added 2026-10-03 (F-6) ----
++    verdict_v1       TEXT,            -- the trace-only verdict it replaces
++    verdict_basis    TEXT,            -- which witness(es) decided
++    samples          TEXT,            -- calib_dispersed|calib_direct|
++                                      -- truth|reissue (comma-joined)
++    truth_idx        INTEGER,         -- anonymous id on the contact sheets
++    morph_status     TEXT,            -- pending | measured | unreadable
++    bg_corner REAL, bg_edge_tb REAL, bg_peak REAL, bg_sigma REAL,
++    bg_contrast REAL, bg_edge_ratio REAL, bg_area_frac REAL,
++    bg_template_r REAL,               -- best lozenge-template correlation
++    bg_template   TEXT,               -- which template (class/shape/rot)
++    morph_class      TEXT,
++    morph_reason     TEXT,
++    map_file         TEXT,            -- products-relative background map
++    thumb_file       TEXT             -- products-relative thumbnail
++);
++CREATE TABLE IF NOT EXISTS s2c_truth (
++    truth_idx   INTEGER PRIMARY KEY,
++    path        TEXT,
++    label       TEXT,                 -- dispersed | direct | unusable
++    note        TEXT,
++    labelled_by TEXT,
++    labelled_at TEXT
++);
++CREATE TABLE IF NOT EXISTS s2c_morph_meta (key TEXT PRIMARY KEY, value TEXT);
++"""
++
++#: Truth-set strata: (name, SQL predicate over the manifest's
++#: frame_dispersion, target count).  The weights follow DS.F8 — the
++#: populations whose verdicts nobody has ever checked get the most
++#: frames: grism-labelled frames called direct or indeterminate, the
++#: disputed slots, and the ordinary-filter frames called dispersed.
++_NAMED = "lower(filter) IN ('hrg','lrg','hagrism','oggrism','hag')"
++_ORD = "filter IN ('g','r','i','V','R','I','B','L')"
++TRUTH_STRATA = (
++    ("named_grism/dispersed",     f"{_NAMED} AND verdict='dispersed'", 20),
++    ("named_grism/indeterminate", f"{_NAMED} AND verdict='indeterminate'", 30),
++    ("named_grism/direct",        f"{_NAMED} AND verdict='direct'", 30),
++    ("slot6/dispersed",           "filter='6' AND verdict='dispersed'", 15),
++    ("slot6/indeterminate",       "filter='6' AND verdict='indeterminate'", 20),
++    ("slot6/direct",              "filter='6' AND verdict='direct'", 20),
++    ("slotW/dispersed",           "lower(filter)='w' AND verdict='dispersed'", 8),
++    ("slotW/indeterminate",       "lower(filter)='w' AND verdict='indeterminate'", 8),
++    ("slotW/direct",              "lower(filter)='w' AND verdict='direct'", 9),
++    ("ordinary/dispersed",        f"{_ORD} AND verdict='dispersed'", 20),
++    ("ordinary/indeterminate",    f"{_ORD} AND verdict='indeterminate'", 8),
++    ("ordinary/direct",           f"{_ORD} AND verdict='direct'", 12),
++)
++TRUTH_SEED = 20261003
++CALIB_SEED = 20261004
++CALIB_PER_CLASS = 150
++
++
++def _grism_con():
++    GRISM_DB.parent.mkdir(parents=True, exist_ok=True)
++    con = sqlite3.connect(str(GRISM_DB), timeout=300)
++    con.executescript(MORPH_SCHEMA)
++    return con
++
++
++def _fd_columns(con) -> list[str]:
++    """Column names shared by the manifest's frame_dispersion and ours."""
++    return ["obs_rowid", "path", "tree", "filter", "night",
++            "canonical_target", "exptime", "xbinning", "era_id",
++            "population", "priority", "status", "n_detected", "n_sources",
++            "n_bright", "median_ab", "max_ab", "pa_median", "pa_scatter",
++            "n_trace", "trace_frac", "trace_ab", "trace_a_px", "trace_pa",
++            "trace_pa_scatter", "detect_sigma", "height", "width",
++            "verdict", "strength_class", "reason", "measure_s", "error",
++            "code_version", "measured_at"]
++
++
++def cmd_morph_plan(args) -> int:
++    """Choose the F-6 frames and copy their v1 rows into the grism DB.
++
++    Three disjoint-by-construction draws from the manifest's measured
++    ``frame_dispersion`` rows (fixed seeds, so the plan is reproducible):
++
++    1. the TRUTH set (stratified; drawn first so nothing else can shape
++       it), 2. the threshold-CALIBRATION sample (named grisms judged
++       dispersed vs ordinary filters judged direct — labels nobody
++       disputes), excluded from the truth set, 3. the RE-ISSUE frames
++       (NGC 5548 slot '6'; T CrB slot '6'/'W') — these MAY overlap the
++       truth set (a truth frame is just a frame that was also looked at).
++    """
++    mcon = connect(args.manifest, read_only=True)
++    gcon = _grism_con()
++    cols = _fd_columns(mcon)
++    sel = ", ".join(cols)
++    chosen: dict[int, dict] = {}
++
++    def add(rows, sample):
++        for r in rows:
++            d = dict(zip(cols, r))
++            cur = chosen.setdefault(d["obs_rowid"], d)
++            cur.setdefault("_samples", set()).add(sample)
++
++    # 1. truth set
++    rng = random.Random(TRUTH_SEED)
++    truth_ids = []
++    for name, pred, n in TRUTH_STRATA:
++        rows = mcon.execute(
++            f"SELECT {sel} FROM frame_dispersion WHERE status='measured' "
++            f"AND {pred} ORDER BY obs_rowid").fetchall()
++        pick = rows if len(rows) <= n else rng.sample(rows, n)
++        add(pick, "truth")
++        truth_ids += [r[0] for r in pick]
++        print(f"  truth stratum {name:28s} {len(pick):3d} of {len(rows)}")
++    # 2. calibration sample (disjoint from truth)
++    rng = random.Random(CALIB_SEED)
++    for sample, pred in (
++            ("calib_dispersed", f"{_NAMED} AND verdict='dispersed'"),
++            ("calib_direct", f"{_ORD} AND verdict='direct'")):
++        rows = [r for r in mcon.execute(
++            f"SELECT {sel} FROM frame_dispersion WHERE status='measured' "
++            f"AND {pred} ORDER BY obs_rowid") if r[0] not in set(truth_ids)]
++        add(rng.sample(rows, min(CALIB_PER_CLASS, len(rows))), sample)
++    # 3. re-issue frames
++    rows = mcon.execute(f"""
++        SELECT {", ".join("d." + c for c in cols)}
++        FROM frame_dispersion d JOIN frames f USING (obs_rowid)
++        WHERE f.is_canonical = 1 AND d.status = 'measured'
++          AND ((lower(f.target_best) IN ('ngc 5548','ngc5548')
++                AND d.filter = '6')
++            OR (lower(f.target_best) = 't crb'
++                AND lower(d.filter) IN ('6','w')))""").fetchall()
++    add(rows, "reissue")
++    # Anonymous truth indices in a shuffled order (the sheets must not
++    # reveal the stratum by position).
++    order = list(truth_ids)
++    random.Random(TRUTH_SEED + 1).shuffle(order)
++    truth_idx = {rid: i + 1 for i, rid in enumerate(order)}
++    n_new = 0
++    for rid, d in chosen.items():
++        samples = ",".join(sorted(d.pop("_samples")))
++        exists = gcon.execute("SELECT morph_status FROM frame_dispersion "
++                              "WHERE obs_rowid = ?", (rid,)).fetchone()
++        if exists:
++            gcon.execute("UPDATE frame_dispersion SET samples = ?, "
++                         "truth_idx = ? WHERE obs_rowid = ?",
++                         (samples, truth_idx.get(rid), rid))
++            continue
++        d.update(verdict_v1=d["verdict"], samples=samples,
++                 truth_idx=truth_idx.get(rid), morph_status="pending")
++        keys = list(d)
++        gcon.execute(
++            f"INSERT INTO frame_dispersion ({','.join(keys)}) "
++            f"VALUES ({','.join('?' * len(keys))})", [d[k] for k in keys])
++        n_new += 1
++    gcon.execute("INSERT OR REPLACE INTO s2c_morph_meta VALUES (?, ?)",
++                 ("planned_at", utcnow()))
++    gcon.execute("INSERT OR REPLACE INTO s2c_morph_meta VALUES (?, ?)",
++                 ("truth_seed", str(TRUTH_SEED)))
++    gcon.execute("INSERT OR REPLACE INTO s2c_morph_meta VALUES (?, ?)",
++                 ("calib_seed", str(CALIB_SEED)))
++    gcon.commit()
++    print(f"morph-plan: {len(chosen)} frames ({n_new} new); truth set "
++          f"{len(truth_ids)}")
++    return 0
++
++
++def _thumbnail(data, out_png: Path) -> None:
++    """Two-panel thumbnail for eyeball labelling: the whole frame
++    (mean-binned, asinh stretch) and a 2x-binned zoom on the brightest
++    region.  No text is drawn — the sheets carry only an anonymous id."""
++    import matplotlib
++    matplotlib.use("Agg")
++    import matplotlib.pyplot as plt
++    import numpy as np
++    ny, nx = data.shape
++    b = max(1, max(ny, nx) // 512)
++    gy, gx = ny // b, nx // b
++    small = data[:gy * b, :gx * b].reshape(gy, b, gx, b).mean(axis=(1, 3))
++    med = float(np.median(small))
++    # Zoom centre: brightest cell of a coarse (64-px mean) map, away from
++    # the border — the target or its trace.
++    c = 64
++    cy_, cx_ = ny // c, nx // c
++    coarse = data[:cy_ * c, :cx_ * c].reshape(cy_, c, cx_, c).mean(axis=(1, 3))
++    iy, ix = np.unravel_index(int(np.argmax(coarse[1:-1, 1:-1])),
++                              coarse[1:-1, 1:-1].shape)
++    zy, zx = (iy + 1) * c + c // 2, (ix + 1) * c + c // 2
++    hw_y, hw_x = min(400, ny // 2), min(600, nx // 2)
++    y0 = int(np.clip(zy - hw_y, 0, ny - 2 * hw_y))
++    x0 = int(np.clip(zx - hw_x, 0, nx - 2 * hw_x))
++    zoom = data[y0:y0 + 2 * hw_y, x0:x0 + 2 * hw_x]
++    zoom = zoom[:zoom.shape[0] // 2 * 2, :zoom.shape[1] // 2 * 2]
++    zoom = zoom.reshape(zoom.shape[0] // 2, 2, zoom.shape[1] // 2, 2).mean(
++        axis=(1, 3))
++
++    def stretch(img):
++        lo = float(np.percentile(img, 5.0))
++        hi = float(np.percentile(img, 99.8))
++        scale = max(hi - lo, 1e-6)
++        return np.arcsinh(10.0 * np.clip((img - lo) / scale, 0, None))
++
++    fig, axes = plt.subplots(1, 2, figsize=(6.4, 2.6), dpi=100)
++    axes[0].imshow(stretch(small), origin="lower", cmap="gray")
++    axes[1].imshow(stretch(zoom), origin="lower", cmap="gray")
++    for ax in axes:
++        ax.set_xticks([])
++        ax.set_yticks([])
++    fig.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01,
++                        wspace=0.02)
++    out_png.parent.mkdir(parents=True, exist_ok=True)
++    fig.savefig(out_png)
++    plt.close(fig)
++
++
++def _morph_task(task: dict) -> tuple[int, dict]:
++    """Worker: read one frame, return its morphology numbers; write the
++    background map (always) and a thumbnail (truth frames only)."""
++    import numpy as np
++    from macro_grism.fits_io import load_frame
++    rid, rel = task["obs_rowid"], task["path"]
++    try:
++        data, _h, _l = load_frame(str(Path(task["archive"]) / rel))
++    except Exception as exc:                             # noqa: BLE001
++        return rid, {"morph_status": "unreadable",
++                     "morph_reason": f"{type(exc).__name__}: {exc}"[:200]}
++    bmap = dsp.background_map(data)
++    m = dsp.morphology_metrics(bmap)
++    cls, why = dsp.classify_morphology(m)
++    out_dir = Path(task["truth_dir"])
++    map_file = out_dir / "maps" / f"{rid}.npy"
++    map_file.parent.mkdir(parents=True, exist_ok=True)
++    np.save(map_file, bmap.astype(np.float32))
++    res = {"morph_status": "measured", "bg_corner": m["corner"],
++           "bg_edge_tb": m["edge_tb"], "bg_peak": m["peak"],
++           "bg_sigma": m["sigma"], "bg_contrast": m["contrast"],
++           "bg_edge_ratio": m["edge_ratio"], "bg_area_frac": m["area_frac"],
++           "morph_class": cls, "morph_reason": why,
++           "map_file": f"truth/maps/{rid}.npy"}
++    if task.get("truth_idx"):
++        png = out_dir / "thumbs" / f"t{task['truth_idx']:03d}.png"
++        _thumbnail(data, png)
++        res["thumb_file"] = f"truth/thumbs/{png.name}"
++    return rid, res
++
++
++def cmd_morph_run(args) -> int:
++    """Measure pending frames (resumable; a killed run loses only the
++    frames in flight)."""
++    gcon = _grism_con()
++    rows = gcon.execute(
++        "SELECT obs_rowid, path, truth_idx FROM frame_dispersion "
++        "WHERE morph_status = 'pending' ORDER BY "
++        "(truth_idx IS NULL), samples, obs_rowid").fetchall()
++    if args.limit:
++        rows = rows[:args.limit]
++    tasks = [{"obs_rowid": r[0], "path": r[1], "truth_idx": r[2],
++              "archive": str(args.archive), "truth_dir": str(TRUTH_DIR)}
++             for r in rows]
++    print(f"morph-run: {len(tasks)} pending")
++    t0, n = time.time(), 0
++    with concurrent.futures.ProcessPoolExecutor(args.workers) as pool:
++        for rid, res in pool.map(_morph_task, tasks, chunksize=1):
++            keys = list(res)
++            gcon.execute(
++                f"UPDATE frame_dispersion SET "
++                f"{', '.join(k + ' = ?' for k in keys)} WHERE obs_rowid = ?",
++                [res[k] for k in keys] + [rid])
++            gcon.commit()        # one frame = one transaction: other G
++            n += 1               # runners write this database too
++            if n % 10 == 0:
++                print(f"  {n}/{len(tasks)}  ({time.time() - t0:.0f}s)")
++            if args.max_seconds and time.time() - t0 > args.max_seconds:
++                break
++    gcon.commit()
++    return 0
++
++
++def _filter_class(filt) -> str:
++    """Template group of a FILTER card: the two named units, the two
++    disputed slots, or 'ordinary'."""
++    f = (filt or "").strip().lower()
++    return {"hrg": "hrg", "hagrism": "hrg", "hag": "hrg", "lrg": "lrg",
++            "oggrism": "lrg", "6": "slot6", "w": "slotW"}.get(f, "ordinary")
++
++
++def cmd_morph_reclassify(args) -> int:
++    """Recompute everything that needs no pixels: the noise floor, the
++    lozenge-template correlation (leave-one-target-out), the morphology
++    class and the re-issued verdict — from the STORED background maps."""
++    import numpy as np
++    gcon = _grism_con()
++    have = {r[1] for r in gcon.execute("PRAGMA table_info(frame_dispersion)")}
++    for col, typ in (("bg_template_r", "REAL"), ("bg_template", "TEXT")):
++        if col not in have:                       # database predates them
++            gcon.execute(f"ALTER TABLE frame_dispersion ADD COLUMN {col} {typ}")
++    rows = gcon.execute(
++        "SELECT obs_rowid, verdict_v1, filter, height, width, "
++        "canonical_target FROM frame_dispersion "
++        "WHERE morph_status = 'measured'").fetchall()
++    metrics, norm = {}, {}
++    for rid, *_ in rows:
++        bmap = np.load(TRUTH_DIR / "maps" / f"{rid}.npy")
++        metrics[rid] = dsp.morphology_metrics(bmap)
++        norm[rid] = dsp.normalized_map(bmap)
++    # Template members: frames the TRACE test calls dispersed, under a
++    # grism-capable card, with strong diffuse light; grouped by
++    # (card class, frame shape).
++    groups: dict = {}
++    for rid, v1, filt, h, w, tgt in rows:
++        cls = _filter_class(filt)
++        if (v1 == dsp.VERDICT_DISPERSED and cls != "ordinary"
++                and (metrics[rid]["contrast"] or 0)
++                >= dsp.MORPH_TEMPLATE_MIN_CONTRAST):
++            groups.setdefault((cls, h, w), []).append((rid, tgt))
++    n_tpl = {k: len(v) for k, v in groups.items()}
++    print("template groups:", {f"{k[0]} {k[2]}x{k[1]}": n
++                               for k, n in sorted(n_tpl.items())})
++    for rid, v1, filt, h, w, tgt in rows:
++        # Leave-one-target-out: no frame of this frame's target (and not
++        # the frame itself) contributes to the templates it is judged by.
++        tpls = {}
++        for key, members in groups.items():
++            use = [norm[m] for m, t in members
++                   if m != rid and (t is None or tgt is None or t != tgt)]
++            tpls[key] = dsp.build_template(use)
++        r, key, rot = dsp.template_correlation(norm[rid], tpls)
++        m = dict(metrics[rid])
++        m["template_r"] = r
++        cls, why = dsp.classify_morphology(m)
++        verdict, basis = dsp.combine_verdicts(v1, cls)
++        gcon.execute(
++            "UPDATE frame_dispersion SET bg_sigma = ?, bg_contrast = ?, "
++            "bg_edge_ratio = ?, bg_area_frac = ?, bg_template_r = ?, "
++            "bg_template = ?, morph_class = ?, morph_reason = ?, "
++            "verdict = ?, verdict_basis = ?, code_version = ? "
++            "WHERE obs_rowid = ?",
++            (m["sigma"], m["contrast"], m["edge_ratio"], m["area_frac"], r,
++             None if key is None else f"{key[0]} {key[2]}x{key[1]} rot{rot}",
++             cls, why, verdict, basis, dsp.DISPERSION_CODE_VERSION, rid))
++    gcon.commit()
++    print(f"morph-reclassify: {len(rows)} frames re-judged")
++    return 0
++
++
++def wilson(k: int, n: int, z: float = 1.959964) -> tuple[float, float]:
++    """Wilson score interval for a binomial proportion k/n (95% by
++    default).  Returns (lo, hi); (nan, nan) for n = 0."""
++    if n == 0:
++        return float("nan"), float("nan")
++    p = k / n
++    denom = 1 + z * z / n
++    centre = (p + z * z / (2 * n)) / denom
++    half = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / denom
++    return max(0.0, centre - half), min(1.0, centre + half)
++
++
++def cmd_morph_calibrate(args) -> int:
++    """Where the undisputed-label populations fall in the three
++    morphology numbers (the evidence the thresholds rest on)."""
++    import numpy as np
++    gcon = _grism_con()
++    print(f"{'sample':16s} {'n':>4s} {'class counts':40s}  "
++          f"contrast p10/p50/p90      edge_ratio p10/p50/p90   "
++          f"template_r min/p10/p50/p90/max")
++    for sample in ("calib_dispersed", "calib_direct"):
++        rows = gcon.execute(
++            "SELECT morph_class, bg_contrast, bg_edge_ratio, bg_template_r, "
++            "exptime FROM frame_dispersion WHERE morph_status='measured' "
++            "AND samples LIKE ?", (f"%{sample}%",)).fetchall()
++        for label, sub in (("all", rows),
++                           (">=60s", [r for r in rows if (r[4] or 0) >= 60])):
++            if not sub:
++                continue
++            cls = {}
++            for r in sub:
++                cls[r[0]] = cls.get(r[0], 0) + 1
++
++            def pct(i):
++                v = np.array([r[i] for r in sub if r[i] is not None])
++                q = [0, 10, 50, 90, 100] if i == 3 else [10, 50, 90]
++                return ("   n/a" if len(v) == 0 else
++                        "/".join(f"{x:8.2f}" for x in np.percentile(v, q)))
++            print(f"{sample:16s} {len(sub):4d} "
++                  f"{label + ' ' + str(cls):40s}  {pct(1)}  {pct(2)}  "
++                  f"{pct(3)}")
++    return 0
++
++
++def cmd_truth_sheets(args) -> int:
++    """Contact sheets of the truth-set thumbnails, 12 per sheet, labelled
++    ONLY with the anonymous truth index — the labeller sees neither the
++    filter card nor either classifier's verdict."""
++    import matplotlib
++    matplotlib.use("Agg")
++    import matplotlib.image as mpimg
++    import matplotlib.pyplot as plt
++    gcon = _grism_con()
++    rows = gcon.execute(
++        "SELECT truth_idx, thumb_file FROM frame_dispersion "
++        "WHERE truth_idx IS NOT NULL AND thumb_file IS NOT NULL "
++        "ORDER BY truth_idx").fetchall()
++    sheets = TRUTH_DIR / "sheets"
++    sheets.mkdir(parents=True, exist_ok=True)
++    per = 12
++    for s0 in range(0, len(rows), per):
++        chunk = rows[s0:s0 + per]
++        fig, axes = plt.subplots(4, 3, figsize=(19.2, 10.6), dpi=75)
++        for ax in axes.ravel():
++            ax.axis("off")
++        for ax, (idx, thumb) in zip(axes.ravel(), chunk):
++            ax.imshow(mpimg.imread(TRUTH_DIR.parent / thumb))
++            ax.set_title(f"#{idx}", fontsize=13, loc="left", pad=2)
++        fig.subplots_adjust(left=0.005, right=0.995, top=0.97, bottom=0.005,
++                            wspace=0.02, hspace=0.10)
++        out = sheets / f"sheet_{chunk[0][0]:03d}_{chunk[-1][0]:03d}.png"
++        fig.savefig(out)
++        plt.close(fig)
++        print(f"sheet: {out}")
++    return 0
++
++
++def cmd_truth_score(args) -> int:
++    """Load the eyeball labels, store them, and print the confusion
++    matrices (v1 trace-only verdict and v2 two-witness verdict against
++    truth) with Wilson 95% intervals; also written as a tracked CSV."""
++    import csv
++    gcon = _grism_con()
++    if not LABELS_CSV.exists():
++        print(f"truth-score: no labels file at {LABELS_CSV}")
++        return 2
++    with open(LABELS_CSV, newline="") as fh:
++        labels = [r for r in csv.DictReader(fh)]
++    gcon.execute("DELETE FROM s2c_truth")
++    for r in labels:
++        path = gcon.execute("SELECT path FROM frame_dispersion WHERE "
++                            "truth_idx = ?", (int(r["truth_idx"]),)).fetchone()
++        gcon.execute("INSERT INTO s2c_truth VALUES (?,?,?,?,?,?)",
++                     (int(r["truth_idx"]), path[0] if path else None,
++                      r["label"], r.get("note", ""),
++                      r.get("labelled_by", ""), r.get("labelled_at", "")))
++    gcon.commit()
++    rows = gcon.execute("""
++        SELECT t.label, d.verdict_v1, d.verdict, d.filter
++        FROM s2c_truth t JOIN frame_dispersion d USING (truth_idx)
++        WHERE d.morph_status = 'measured'""").fetchall()
++    verdicts = ("dispersed", "indeterminate", "direct")
++    truths = ("dispersed", "direct", "unusable")
++    out_lines = []
++    for name, col in (("v1 (traces only)", 1), ("v2 (traces + sky)", 2)):
++        print(f"\nConfusion matrix — {name}   rows = truth, cols = verdict")
++        print(f"{'truth':12s} " + " ".join(f"{v:>14s}" for v in verdicts)
++              + f" {'n':>5s}")
++        for t in truths:
++            sub = [r for r in rows if r[0] == t]
++            counts = [sum(1 for r in sub if r[col] == v) for v in verdicts]
++            print(f"{t:12s} " + " ".join(f"{c:14d}" for c in counts)
++                  + f" {len(sub):5d}")
++            for v, c in zip(verdicts, counts):
++                lo, hi = wilson(c, len(sub))
++                out_lines.append([name, t, v, c, len(sub),
++                                  f"{c / len(sub):.4f}" if sub else "",
++                                  f"{lo:.4f}", f"{hi:.4f}"])
++        # The rates that matter, stated as rates.
++        disp_t = [r for r in rows if r[0] == "dispersed"]
++        dir_t = [r for r in rows if r[0] == "direct"]
++        for label, sub, bad in (
++                ("spectra certified 'direct' (the dangerous error)",
++                 disp_t, "direct"),
++                ("spectra recognised as dispersed (sensitivity)",
++                 disp_t, "dispersed"),
++                ("images called 'dispersed' (false positive)",
++                 dir_t, "dispersed"),
++                ("images certified direct", dir_t, "direct")):
++            k = sum(1 for r in sub if r[col] == bad)
++            lo, hi = wilson(k, len(sub))
++            rate = k / len(sub) if sub else float("nan")
++            print(f"  {label:50s} {k:3d}/{len(sub):3d} = {rate:6.1%}  "
++                  f"Wilson 95% [{lo:.1%}, {hi:.1%}]")
++    out_csv = WORK_DIR / "truth_confusion.csv"
++    with open(out_csv, "w", newline="") as fh:
++        w = csv.writer(fh)
++        w.writerow(["classifier", "truth", "verdict", "k", "n", "rate",
++                    "wilson95_lo", "wilson95_hi"])
++        w.writerows(out_lines)
++    print(f"\nconfusion table: {out_csv}")
++    return 0
++
++
++def cmd_reissue(args) -> int:
++    """Re-issued verdicts for the disputed slots, per target/slot and per
++    night, written as a tracked CSV."""
++    import csv
++    mcon = connect(args.manifest, read_only=True)
++    gcon = _grism_con()
++    tgt = {r[0]: r[1] for r in mcon.execute(
++        "SELECT obs_rowid, target_best FROM frames WHERE "
++        "lower(target_best) IN ('ngc 5548','ngc5548','t crb')")}
++    rows = gcon.execute(
++        "SELECT obs_rowid, path, filter, night, exptime, verdict_v1, "
++        "verdict, verdict_basis, morph_class, bg_contrast, bg_edge_ratio, "
++        "bg_area_frac FROM frame_dispersion WHERE samples LIKE '%reissue%' "
++        "AND morph_status = 'measured' ORDER BY night, path").fetchall()
++    out_csv = WORK_DIR / "reissued_verdicts.csv"
++    with open(out_csv, "w", newline="") as fh:
++        w = csv.writer(fh)
++        w.writerow(["target", "filter", "night", "path", "exptime",
++                    "verdict_v1", "verdict_v2", "basis", "morph_class",
++                    "contrast", "edge_ratio", "area_frac"])
++        for r in rows:
++            w.writerow([tgt.get(r[0], "")] + list(r[2:4]) + [r[1]]
++                       + [f"{r[4]:.1f}"] + list(r[5:9])
++                       + [("" if v is None else f"{v:.3f}") for v in r[9:]])
++    groups: dict = {}
++    for r in rows:
++        key = (tgt.get(r[0], "").upper().replace("NGC5548", "NGC 5548"),
++               r[2].upper())
++        g = groups.setdefault(key, {"n": 0, "v1": {}, "v2": {},
++                                    "nights": {}})
++        g["n"] += 1
++        g["v1"][r[5]] = g["v1"].get(r[5], 0) + 1
++        g["v2"][r[6]] = g["v2"].get(r[6], 0) + 1
++        nn = g["nights"].setdefault(r[3], {})
++        nn[r[6]] = nn.get(r[6], 0) + 1
++    for key in sorted(groups):
++        g = groups[key]
++        print(f"\n{key[0]} slot {key[1]}: {g['n']} frames")
++        print(f"   v1 (traces only):  {dict(sorted(g['v1'].items()))}")
++        print(f"   v2 (traces + sky): {dict(sorted(g['v2'].items()))}")
++        nights_all = sum(1 for v in g["nights"].values()
++                         if set(v) == {"dispersed"})
++        print(f"   nights: {len(g['nights'])}, of which every frame "
++              f"dispersed on {nights_all}")
++    print(f"\nper-frame table: {out_csv}")
++    return 0
++
++
+ # ---------------------------------------------------------------------------
+ # CLI
+ # ---------------------------------------------------------------------------
+@@ -661,6 +1242,28 @@ def main(argv=None) -> int:
+     rp = sub.add_parser("report", help="render the S2c evidence report")
+     rp.set_defaults(func=cmd_report)
+ 
++    mp = sub.add_parser("morph-plan", help="choose F-6 frames (truth set, "
++                        "calibration sample, re-issue frames)")
++    mp.set_defaults(func=cmd_morph_plan)
++    mr = sub.add_parser("morph-run", help="measure background morphology")
++    mr.add_argument("--workers", type=int, default=4)
++    mr.add_argument("--limit", type=int, default=0)
++    mr.add_argument("--max-seconds", type=float, default=0.0)
++    mr.set_defaults(func=cmd_morph_run)
++    mc = sub.add_parser("morph-calibrate",
++                        help="morphology numbers of the labelled samples")
++    mc.set_defaults(func=cmd_morph_calibrate)
++    mrc = sub.add_parser("morph-reclassify",
++                         help="re-judge from stored morphology numbers")
++    mrc.set_defaults(func=cmd_morph_reclassify)
++    ts = sub.add_parser("truth-sheets", help="anonymous contact sheets")
++    ts.set_defaults(func=cmd_truth_sheets)
++    tsc = sub.add_parser("truth-score",
++                         help="confusion matrices with Wilson intervals")
++    tsc.set_defaults(func=cmd_truth_score)
++    ri = sub.add_parser("reissue", help="re-issued verdicts, disputed slots")
++    ri.set_defaults(func=cmd_reissue)
++
+     args = p.parse_args(argv)
+     # Guard the house rule: never more than six workers against this disk.
+     if getattr(args, "workers", 0) > 6:

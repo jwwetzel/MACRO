@@ -30,12 +30,24 @@ For each of the five projects:
   ``is_canonical``; the reduced tree is excluded outright because its
   canonical rows are renamed copies — the S0b lesson).
 * **calibration rows** — for every camera era the project's science
-  touches, ALL of that era's calibration frames from the S0b census
-  (bias/dark/flat, raw and recovered ``Calibrations/`` masters alike), with
-  an explicit ``match_basis`` recording *why* each row is present.  Era is
-  the only match key used at staging time (kind/exposure/filter narrowing
-  is each stage's job, with the S0b coverage matrix as its guide) — staging
+  touches, that era's calibration frames from the S0b census (bias/dark/
+  flat, raw and recovered ``Calibrations/`` masters alike) **that may
+  actually be applied to that science**, with an explicit ``match_basis``
+  recording *why* each row is present.  Kind/exposure/filter narrowing is
+  each stage's job, with the S0b coverage matrix as its guide — staging
   over-includes deliberately so no stage has to go back to the census.
+
+  "May actually be applied" is the mechanical-epoch rule (finding F-3,
+  2026-10-03).  Era alone used to be the match key, and an era is a header
+  history: era 76 spans the 2025 monsoon shutdown, across which the camera
+  was turned 180 degrees, so "same era" staged pre-flip flats beside
+  post-flip science.  A calibration row is now staged only when
+  :func:`macro_core.inventory.calib_valid_for` holds for at least one of
+  the project's science frames in that era — a flat inside the same
+  ``mech_epoch``, a dark or bias inside the same ``detector_epoch``.  Every
+  row carries its own epoch columns so a stage can make the per-frame
+  match; frames excluded by the rule are COUNTED in ``s0c_stage_files``,
+  not silently dropped.
 
 INTEGRITY SURROGATE (why size, not a checksum)
 ----------------------------------------------
@@ -94,6 +106,11 @@ STAGE_CSV_COLUMNS: tuple[str, ...] = (
     "size_bytes",           # integrity surrogate — see CHECKSUM_NOTE
     "obs_rowid",            # catalog row id: the join key back to obs/frames
     "stage_build_id",       # which S0c build emitted this row
+    # Appended 2026-10-03 (F-3), AFTER the original columns so that any
+    # positional reader of the older layout is undisturbed:
+    "mech_epoch",           # S0b mechanical epoch (<camera>:<first night>)
+    "detector_epoch",       # S0b detector epoch (bounds darks and biases)
+    "epoch_certain",        # 1 = the night is placed with certainty
 )
 
 #: match_basis for science rows: the row is present because the project's
@@ -101,9 +118,13 @@ STAGE_CSV_COLUMNS: tuple[str, ...] = (
 MATCH_BASIS_SCIENCE = "selection_rule"
 
 #: match_basis for calibration rows: the frame's S0 era_id equals an era the
-#: project's science frames touch.  Masters are flagged by their role
-#: (``master_bias``/``master_dark``/``master_flat``), not by a basis change.
-MATCH_BASIS_CALIB = "era_exact"
+#: project's science frames touch AND the mechanical-epoch rule lets it serve
+#: at least one of them (:func:`calib_serves`).  Masters are flagged by their
+#: role (``master_bias``/``master_dark``/``master_flat``), not by a basis
+#: change.  The value was ``era_exact`` until 2026-10-03; it was renamed
+#: with the rule, so a consumer keyed on the old string fails loudly rather
+#: than silently reading the new, narrower set as the old one.
+MATCH_BASIS_CALIB = "era_epoch_exact"
 
 #: match_basis for a frame that carries NO target name but whose coordinates
 #: fall inside a staged target's cone (see :func:`cone_match`).  Deliberately
@@ -533,6 +554,50 @@ def role_of_calib(kind: str, is_master: object) -> str:
     return f"master_{kind}" if (is_master == 1 or is_master is True) else kind
 
 
+def kind_of_role(role: str) -> str:
+    """Calibration kind behind a staging role: ``master_flat`` → ``flat``.
+
+    Inverse of :func:`role_of_calib` as far as the kind goes; raises for a
+    science role, which has no calibration kind.
+    """
+    kind = role[len("master_"):] if role.startswith("master_") else role
+    if kind not in ("bias", "dark", "flat"):
+        raise ValueError(f"role {role!r} is not a calibration role")
+    return kind
+
+
+def epoch_tag(record: dict) -> inv.EpochTag:
+    """The :class:`macro_core.inventory.EpochTag` of one frame record.
+
+    ``record`` is any mapping carrying ``mech_epoch`` / ``detector_epoch`` /
+    ``epoch_certain`` (a frames row joined to ``frame_mech_epoch``, or an
+    S0b ``calib_frames`` row).  Missing keys and NaN (what pandas hands
+    back for a NULL) both mean "no epoch".
+    """
+    def _clean(v):
+        return None if (v is None or v != v) else v
+    certain = _clean(record.get("epoch_certain"))
+    return inv.EpochTag(_clean(record.get("mech_epoch")),
+                        _clean(record.get("detector_epoch")),
+                        bool(certain))
+
+
+def calib_serves(kind: str, calib: inv.EpochTag,
+                 science_tags) -> bool:
+    """May this calibration frame be applied to ANY of these science frames?
+
+    The staging form of the F-3 rule.  ``science_tags`` is the set of
+    distinct epoch tags of the project's science frames IN THE SAME ERA as
+    the calibration frame; the frame is staged when
+    :func:`macro_core.inventory.calib_valid_for` holds for at least one.
+
+    An empty ``science_tags`` — or science with no epoch at all — serves
+    nothing: unknown is never read as "same".
+    """
+    return any(inv.calib_valid_for(kind, tag, calib)
+               for tag in science_tags)
+
+
 def abs_archive_path(archive_root: str, rel_path: str) -> str:
     """Absolute path of an archive-relative manifest path.
 
@@ -551,6 +616,15 @@ def farm_link_name(night: Optional[str], basename: str) -> str:
     role directory.  Frames with no night label group under ``no-night``.
     """
     return f"{night or 'no-night'}_{basename}"
+
+
+def _epoch_columns(record: dict) -> dict:
+    """The three mechanical-epoch columns of a stage row, from a frame or
+    calibration record (NULL / 0 when the record has no epoch)."""
+    tag = epoch_tag(record)
+    return {"mech_epoch": tag.mech_epoch,
+            "detector_epoch": tag.detector_epoch,
+            "epoch_certain": int(tag.certain)}
 
 
 def science_row(sel: ProjectSelection, frame: dict, archive_root: str,
@@ -576,6 +650,7 @@ def science_row(sel: ProjectSelection, frame: dict, archive_root: str,
         "size_bytes": frame.get("size"),
         "obs_rowid": frame.get("obs_rowid"),
         "stage_build_id": build_id,
+        **_epoch_columns(frame),
     }
 
 
@@ -614,6 +689,7 @@ def cone_candidate_row(frame: dict, matched_key: str, sep_deg: float,
         "size_bytes": frame.get("size"),
         "obs_rowid": frame.get("obs_rowid"),
         "stage_build_id": build_id,
+        **_epoch_columns(frame),
     }
 
 
@@ -643,6 +719,7 @@ def calib_row(calib: dict, archive_root: str, build_id: str) -> dict:
         "size_bytes": calib.get("size"),
         "obs_rowid": calib.get("obs_rowid"),
         "stage_build_id": build_id,
+        **_epoch_columns(calib),
     }
 
 

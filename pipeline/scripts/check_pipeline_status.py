@@ -8,6 +8,8 @@ THE COMMAND TO RUN BEFORE TRUSTING ANY RESULT.
     python pipeline/scripts/check_pipeline_status.py backfill
     python pipeline/scripts/check_pipeline_status.py record S0c
     python pipeline/scripts/check_pipeline_status.py plan
+    python pipeline/scripts/check_pipeline_status.py snapshot --label <name>
+    python pipeline/scripts/check_pipeline_status.py snapshot --check
 
 Prints the stage DAG with a freshness verdict per stage, the specific
 reason each stale stage is stale, and the ORDERED list of stages that must
@@ -28,6 +30,29 @@ SUBCOMMANDS
               declaring an unexamined pipeline healthy.
 ``record``    record the CURRENT state of one stage as a fresh run.  Run it
               immediately after a stage's build script finishes.
+``snapshot``  write (or, with ``--check``, verify) the RELEASE SNAPSHOT:
+              ``pipeline/release/products_manifest.json``, a tracked file
+              holding the row count and content hash of every table of
+              every product database.  See "RELEASE SNAPSHOT" below.
+
+EXIT STATUS OF ``status``  (changed 2026-10-03, finding F-7)
+------------------------------------------------------------
+0 when every stage's DATA is fresh; 1 when any stage is data-stale, never
+run, or missing its product.  A rendered page that was restyled or
+re-rendered since it was recorded is REPORTED (the ``~ page:`` lines and
+the PAGE REFRESH list) and does not affect the exit status: until this
+change one restyled HTML page at the root of the DAG made all forty stages
+read stale, and a gate that is always shut tells nobody anything.
+
+RELEASE SNAPSHOT  (finding F-9)
+-------------------------------
+``products/`` is gitignored — the repo carries code, never data — so until
+this command existed nothing under version control recorded WHICH evidence
+base a set of published numbers came from.  ``snapshot`` writes that
+record; committing the file pins a release.  ``snapshot --check`` recomputes
+it and exits 1 on any difference, including a product that is absent: the
+companion of ``MACRO_REQUIRE_PRODUCTS=1 python -m pytest pipeline/tests``,
+under which a test that would skip for want of a product FAILS instead.
 
 WRITE DISCIPLINE
 ----------------
@@ -353,10 +378,12 @@ def cmd_status(args) -> int:
     print("=" * 78)
 
     counts: dict[str, int] = {}
+    n_page_only = 0
     for key in order:
         stage = pv.STAGE_BY_KEY[key]
         f = freshness[key]
         counts[f.state] = counts.get(f.state, 0) + 1
+        n_page_only += bool(f.ok and not f.page_ok)
         parents = sorted({writer[r] for r in stage.reads
                           if r in writer and writer[r] != key})
         dep = ("<- " + ", ".join(parents)) if parents else "<- (external catalog)"
@@ -368,6 +395,11 @@ def cmd_status(args) -> int:
         print(f"{'':17} last run: {when}   code: {current_code_version(stage)}")
         for reason in f.reasons:
             print(f"{'':17}   ! {reason}")
+        # Page findings: printed, never counted.  '~' not '!': a restyled
+        # page is something to know, not something to act on before
+        # trusting a number.
+        for reason in f.page_reasons:
+            print(f"{'':17}   ~ page: {reason}")
         if args.verbose:
             for w in stage.writes:
                 print(f"{'':17}   out {w} = {fps[w]}")
@@ -376,12 +408,40 @@ def cmd_status(args) -> int:
     print("-" * 78)
     print("SUMMARY: " + "  ".join(
         f"{_paint(k, k)}={v}" for k, v in sorted(counts.items())))
+    if n_page_only:
+        print(f"         ({n_page_only} of the FRESH stages have a page that "
+              f"changed since it was recorded — cosmetic, listed below)")
     plan = pv.rerun_plan(freshness, pv.STAGES)
     print()
     print_plan(plan, freshness)
+    print_page_refresh(freshness)
     con.close()
-    # Exit status is machine-readable: 0 = everything fresh, 1 = work to do.
+    # Exit status is machine-readable and is about DATA ONLY (F-7):
+    # 0 = every stage's data is fresh, 1 = data work to do.  The page
+    # refresh list above never contributes.
     return 0 if not plan else 1
+
+
+def print_page_refresh(freshness) -> None:
+    """List stages whose rendered page moved without their data moving.
+
+    Separate from the re-run plan on purpose: nothing here has to happen
+    before a number can be trusted.  The fix is to re-render (if the page
+    is merely restyled, nothing) and re-record, which stores the page's
+    current digest.
+    """
+    stale_pages = [k for k in pv.topological_order(pv.STAGES)
+                   if k in freshness and freshness[k].page_reasons]
+    if not stale_pages:
+        return
+    print()
+    print(f"PAGE REFRESH ({len(stale_pages)} stages — cosmetic, gates "
+          f"nothing, exit status unaffected):")
+    for key in stale_pages:
+        f = freshness[key]
+        tag = "" if f.ok else f"   (also in the re-run plan: {f.state})"
+        print(f"   - {key:8} {len(f.page_reasons)} page(s) differ from the "
+              f"record{tag}")
 
 
 def print_plan(plan, freshness) -> None:
@@ -415,6 +475,7 @@ def cmd_plan(args) -> int:
     con = open_manifest(args.manifest, read_only=True)
     freshness, _, _ = evaluate(con)
     print_plan(pv.rerun_plan(freshness, pv.STAGES), freshness)
+    print_page_refresh(freshness)
     con.close()
     return 0
 
@@ -643,6 +704,104 @@ def cmd_report(args) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Subcommand: snapshot (the release record of the products — F-9)
+# ---------------------------------------------------------------------------
+#: Where the release snapshot lives.  Under ``pipeline/`` so that it is
+#: TRACKED: ``products/`` itself is gitignored by design.
+SNAPSHOT_PATH = REPO_ROOT / "pipeline" / "release" / "products_manifest.json"
+
+#: Directories searched for products, and the plain-file suffixes that count
+#: as evidence (a product database is always included).  ``manuscripts`` is
+#: scanned for ``numbers.tex`` only: the emitted macro file is the bridge
+#: between a database and a printed number, so its identity belongs in the
+#: release record even while the manuscript text itself stays untracked.
+SNAPSHOT_ROOTS = ("products",)
+SNAPSHOT_FILE_SUFFIXES = (".csv", ".json", ".tex")
+SNAPSHOT_EXTRA_GLOBS = ("manuscripts/*/numbers.tex",)
+
+#: Path fragments never snapshotted: build scratch, and caches of EXTERNAL
+#: catalogue queries (re-fetchable, and large in number).
+SNAPSHOT_SKIP_PARTS = ("_tmp", ".tmp", "gaia_cache", "/wcs/", "/cache/")
+
+
+def snapshot_targets() -> tuple[list[Path], list[Path]]:
+    """``(databases, files)`` the snapshot covers, as sorted absolute paths."""
+    dbs: list[Path] = []
+    files: list[Path] = []
+    for root in SNAPSHOT_ROOTS:
+        base = REPO_ROOT / root
+        if not base.exists():
+            continue
+        for path in sorted(base.rglob("*")):
+            rel = "/" + str(path.relative_to(REPO_ROOT))
+            if not path.is_file() or any(p in rel for p in SNAPSHOT_SKIP_PARTS):
+                continue
+            if path.suffix == ".sqlite":
+                dbs.append(path)
+            elif path.suffix in SNAPSHOT_FILE_SUFFIXES:
+                files.append(path)
+    for pattern in SNAPSHOT_EXTRA_GLOBS:
+        files.extend(sorted(REPO_ROOT.glob(pattern)))
+    return dbs, files
+
+
+def build_snapshot(label: str = "", verbose: bool = True) -> dict:
+    """Compute the snapshot of everything on disk right now."""
+    dbs, files = snapshot_targets()
+    snap = {"schema": pv.SNAPSHOT_SCHEMA, "label": label,
+            "generated_utc": utcnow(), "git_commit": git_commit(),
+            "databases": {}, "files": {}}
+    for path in dbs:
+        rel = str(path.relative_to(REPO_ROOT))
+        if verbose:
+            print(f"  hashing {rel} ...", flush=True)
+        snap["databases"][rel] = pv.snapshot_database(str(path))
+    for path in files:
+        rel = str(path.relative_to(REPO_ROOT))
+        snap["files"][rel] = pv.snapshot_file(str(path))
+    return snap
+
+
+def cmd_snapshot(args) -> int:
+    """Write the release snapshot, or verify the products against it."""
+    if args.check:
+        if not SNAPSHOT_PATH.exists():
+            print(f"no snapshot at {SNAPSHOT_PATH} — run `snapshot` first",
+                  file=sys.stderr)
+            return 2
+        recorded = json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
+        current = build_snapshot(verbose=not args.quiet)
+        diffs = pv.compare_snapshots(recorded, current)
+        print(f"snapshot '{recorded.get('label', '')}' of "
+              f"{recorded.get('generated_utc', '?')} @ "
+              f"{recorded.get('git_commit', '?')}")
+        if not diffs:
+            n_tab = sum(len(d["tables"])
+                        for d in recorded["databases"].values())
+            print(f"MATCH: {len(recorded['databases'])} databases "
+                  f"({n_tab} tables) and {len(recorded['files'])} files are "
+                  f"the recorded release.")
+            return 0
+        print(f"{len(diffs)} difference(s) from the recorded release:")
+        for line in diffs:
+            print(f"   ! {line}")
+        return 1
+    snap = build_snapshot(label=args.label or "", verbose=not args.quiet)
+    SNAPSHOT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = SNAPSHOT_PATH.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(snap, indent=1, sort_keys=True) + "\n",
+                   encoding="utf-8")
+    os.replace(tmp, SNAPSHOT_PATH)            # atomic, like every product
+    n_tab = sum(len(d["tables"]) for d in snap["databases"].values())
+    n_row = sum(t["rows"] for d in snap["databases"].values()
+                for t in d["tables"].values())
+    print(f"wrote {SNAPSHOT_PATH.relative_to(REPO_ROOT)}: "
+          f"{len(snap['databases'])} databases, {n_tab} tables, "
+          f"{n_row:,} rows, {len(snap['files'])} files")
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # Subcommand: resources (the fingerprint contract, printed)
 # ---------------------------------------------------------------------------
 def cmd_resources(args) -> int:
@@ -699,6 +858,19 @@ def main(argv=None) -> int:
 
     p = sub.add_parser("resources", help="print the fingerprint contract")
     p.set_defaults(func=cmd_resources)
+
+    p = sub.add_parser("snapshot",
+                       help="write or verify the release snapshot of the "
+                            "products (pipeline/release/products_manifest"
+                            ".json)")
+    p.add_argument("--check", action="store_true",
+                   help="recompute and compare against the recorded "
+                        "snapshot; exit 1 on any difference")
+    p.add_argument("--label", default="",
+                   help="release name stored in the snapshot")
+    p.add_argument("--quiet", action="store_true",
+                   help="do not print per-database progress")
+    p.set_defaults(func=cmd_snapshot)
 
     args = ap.parse_args(argv)
     if not getattr(args, "func", None):

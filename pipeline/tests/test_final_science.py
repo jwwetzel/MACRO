@@ -106,6 +106,26 @@ def test_fold_fit_recovers_an_injected_hump():
     assert 0.5 < fit["chi2nu"] < 2.0
 
 
+def test_fold_fit_amplitude_error_is_scatter_based_in_both_directions():
+    """Committee standing rule 1 (2026-10-03): no ``max(chi2nu, 1)``.
+
+    The same data fitted with error bars five times too large must return
+    the SAME amplitude error as with the right ones: the covariance scales
+    up by 25 and chi2/dof down by 25, and their product is what the scatter
+    supports.  The one-sided clip this replaces returned a bar five times
+    too wide and would have turned a real hump into a non-detection."""
+    rng = np.random.default_rng(31)
+    t = EPOCH + np.sort(rng.uniform(0.0, 0.4, 160))
+    ph = fs.orbital_phase(t, PERIOD_D, EPOCH)
+    m = 14.0 - 0.05 * np.cos(2 * np.pi * ph) + rng.normal(0.0, 0.01, t.size)
+    right = fs.fold_fit(t, m, np.full(t.size, 0.01), PERIOD_D, EPOCH)
+    wide = fs.fold_fit(t, m, np.full(t.size, 0.05), PERIOD_D, EPOCH)
+    assert wide["chi2nu"] == pytest.approx(right["chi2nu"] / 25.0, rel=1e-6)
+    assert wide["chi2nu"] < 0.2
+    assert wide["amp"] == pytest.approx(right["amp"], rel=1e-9)
+    assert wide["amp_sigma"] == pytest.approx(right["amp_sigma"], rel=1e-6)
+
+
 def test_fold_fit_nightly_constants_absorb_a_night_to_night_step():
     """Two nights with a 0.3 mag offset and the SAME hump.
 

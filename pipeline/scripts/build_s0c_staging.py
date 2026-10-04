@@ -9,8 +9,11 @@ Reads the S0/S0b manifest database and, for each of the five projects
 * selects the project's **science frames** (canonical, error-free Light
   frames of the project's published target list, per its filter rule);
 * attaches the **calibration frames of every camera era that science
-  touches** (bias/dark/flat, raw and recovered masters alike, from the S0b
-  census), each row carrying an explicit ``match_basis``;
+  touches, wherever the mechanical-epoch rule lets them serve it** (bias/
+  dark/flat, raw and recovered masters alike, from the S0b census; a flat
+  only inside the science's own ``mech_epoch``, a dark or bias only inside
+  its ``detector_epoch`` — finding F-3), each row carrying an explicit
+  ``match_basis`` and its own epoch columns;
 * writes the combined list to a ``stage_<project>`` table in the manifest
   (atomic swap, S0/S0b tables never touched) **and** to
   ``<repo>/<Project>/data/stage_manifest.csv`` (atomic os.replace) with a
@@ -109,8 +112,35 @@ PROTECTED_TABLES = frozenset({
 # ---------------------------------------------------------------------------
 def load_frames(con: sqlite3.Connection) -> pd.DataFrame:
     """Read the S0 frames table (selected columns) into a DataFrame."""
-    cols = ", ".join(f'"{c}"' for c in FRAME_COLUMNS)
-    return pd.read_sql_query(f"SELECT {cols} FROM frames", con)
+    cols = ", ".join(f'f."{c}"' for c in FRAME_COLUMNS)
+    require_mech_tables(con)
+    # Each frame's place in the hardware history, from S0b's
+    # frame_mech_epoch (LEFT JOIN: a frame whose camera is unknown has no
+    # epoch, and that is a fact to carry, not a row to lose).
+    return pd.read_sql_query(
+        f"SELECT {cols}, m.mech_epoch, m.detector_epoch, m.epoch_certain "
+        "FROM frames f LEFT JOIN frame_mech_epoch m "
+        "ON m.obs_rowid = f.obs_rowid", con)
+
+
+def require_mech_tables(con: sqlite3.Connection) -> None:
+    """Refuse to stage against a manifest with no mechanical epochs.
+
+    S0c v1.1 matches calibration to science on S0b's mechanical epochs.
+    Run against an S0b that predates them, every epoch would be NULL, the
+    boundary rule would (correctly) find nothing valid, and the stage
+    tables would come out with no calibration at all — a silent, total
+    loss that looks like a successful build.  Better to stop and say which
+    command to run.
+    """
+    have = {r[0] for r in con.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table'")}
+    cal_cols = {r[1] for r in con.execute("PRAGMA table_info(calib_frames)")}
+    if "frame_mech_epoch" not in have or "mech_epoch" not in cal_cols:
+        raise SystemExit(
+            "ERROR: this manifest has no mechanical epochs (S0b v1.2 "
+            "tables).  Run pipeline/scripts/build_s0b_inventory.py first; "
+            "the ingest chain is S0 -> S0b -> S0c.")
 
 
 def load_calib(con: sqlite3.Connection) -> pd.DataFrame:
@@ -121,7 +151,8 @@ def load_calib(con: sqlite3.Connection) -> pd.DataFrame:
     """
     df = pd.read_sql_query(
         """SELECT c.obs_rowid, c.path, c.tree, c.night, c.jd, c.era_id,
-                  c.exptime, c."filter", c.kind, c.is_master, f.size
+                  c.exptime, c."filter", c.kind, c.is_master, f.size,
+                  c.mech_epoch, c.detector_epoch, c.epoch_certain
            FROM calib_frames c JOIN frames f ON f.obs_rowid = c.obs_rowid""",
         con)
     assert df["size"].notna().all(), \
@@ -197,14 +228,30 @@ def build_project_stage(sel: stg.ProjectSelection, frames: pd.DataFrame,
                 cone_rows.append(stg.cone_candidate_row(
                     rec, hit[0], hit[1], archive_root, build_id))
 
-    # ---- calibration: every frame of every era the science touches -------
-    eras = sorted({int(e) for e in sci["era_id"].dropna().unique()})
-    cal = calib[calib["era_id"].isin(eras)]
-    cal_rows = [stg.calib_row(rec, archive_root, build_id)
-                for rec in cal.to_dict("records")]
+    # ---- calibration: the frames of every era the science touches that the
+    # mechanical-epoch rule lets serve it (F-3) -----------------------------
+    # Per era, the distinct epoch tags of this project's science frames;
+    # a calibration frame of that era is staged when it is valid for at
+    # least one of them.  Frames refused by the rule are counted and
+    # returned in ``out.attrs`` so the build can publish the number.
+    tags_of_era: dict[int, set] = {}
+    for rec in sci[["era_id", "mech_epoch", "detector_epoch",
+                    "epoch_certain"]].drop_duplicates().to_dict("records"):
+        if rec["era_id"] == rec["era_id"] and rec["era_id"] is not None:
+            tags_of_era.setdefault(int(rec["era_id"]), set()).add(
+                stg.epoch_tag(rec))
+    cal = calib[calib["era_id"].isin(list(tags_of_era))]
+    cal_rows, n_refused = [], 0
+    for rec in cal.to_dict("records"):
+        if stg.calib_serves(rec["kind"], stg.epoch_tag(rec),
+                            tags_of_era[int(rec["era_id"])]):
+            cal_rows.append(stg.calib_row(rec, archive_root, build_id))
+        else:
+            n_refused += 1
 
     out = pd.DataFrame(sci_rows + cone_rows + cal_rows,
                        columns=stg.STAGE_CSV_COLUMNS)
+    out.attrs["n_calib_cross_epoch"] = n_refused
     # Deterministic order: science first, then cone candidates, then
     # calibration grouped by role/era.  A stable sort on a synthetic rank
     # (science 0, unresolved 1, calibration 2) does all three at once.
@@ -213,7 +260,9 @@ def build_project_stage(sel: stg.ProjectSelection, frames: pd.DataFrame,
     out = out.sort_values(
         ["_sci", "role", "era_id", "night", "jd", "path"],
         na_position="last", kind="mergesort").drop(columns="_sci")
-    return out.reset_index(drop=True)
+    out = out.reset_index(drop=True)
+    out.attrs["n_calib_cross_epoch"] = n_refused   # sort_values drops attrs
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -326,6 +375,13 @@ def readme_text(sel: stg.ProjectSelection, n_science: int, n_calib: int,
         "size_bytes": "integrity surrogate (see note below)",
         "obs_rowid": "catalog/manifest join key",
         "stage_build_id": "S0c build that emitted the row",
+        "mech_epoch": "S0b mechanical epoch `<camera>:<first night>` — a "
+                      "FLAT may be applied only to science in the same one",
+        "detector_epoch": "S0b detector epoch — a DARK or BIAS may be "
+                          "applied only to science in the same one",
+        "epoch_certain": "1 = the night is placed in its epoch with "
+                         "certainty; 0 = it lies in the gap before a "
+                         "rotation-only boundary (no flat is valid)",
     }[c] + " |" for c in stg.STAGE_CSV_COLUMNS)
     # The cone paragraph appears ONLY for a selection that enables the cone
     # clause, so the other four READMEs never document a rule they do not run.
@@ -358,11 +414,20 @@ contains spaces:
 **Selection rule (science rows).** {sel.rule}
 Source: {sel.source}{cone_note}
 
-**Calibration rows.** For every camera era the science frames touch, ALL of
-that era's calibration frames from the S0b census are included (raw frames
-and recovered `Calibrations/` masters alike), `match_basis =
-'{stg.MATCH_BASIS_CALIB}'`. Staging deliberately over-includes; each stage
-narrows by kind/exposure/filter with the S0b coverage matrix as its guide.
+**Calibration rows.** For every camera era the science frames touch, that
+era's calibration frames from the S0b census are included (raw frames and
+recovered `Calibrations/` masters alike) **wherever they may be applied to
+this science**, `match_basis = '{stg.MATCH_BASIS_CALIB}'`. Staging
+deliberately over-includes on kind/exposure/filter; each stage narrows those
+with the S0b coverage matrix as its guide.
+
+**The boundary rule.** An era is a header history; the hardware history is
+the `mech_epoch` column. A flat is staged only if some science frame of this
+project shares its `mech_epoch` (the camera was not re-seated, rotated,
+flipped or re-wheeled in between); a dark or bias only if one shares its
+`detector_epoch` (same camera, same flip state). **Match per frame**: a
+calibration row may be applied to a science row only when their epoch
+columns agree — `macro_core.inventory.calib_valid_for` is the rule.
 
 **This build ({build_id}):** {n_science:,} science rows +
 {n_cone:,} cone-candidate rows + {n_calib:,} calibration rows.
@@ -427,6 +492,15 @@ def build_symlink_farm(data_dir: Path, df: pd.DataFrame) -> int:
             link.symlink_to(rec["abs_path"])
             n += 1
     return n
+
+
+def _rel(path: Path) -> str:
+    """``path`` relative to the repo when it lies inside it, else as given
+    (a rehearsal's ``--data-root`` may be anywhere)."""
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
 
 
 def _git_commit() -> str:
@@ -500,6 +574,12 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "Dropbox does not sync symlink targets)")
     p.add_argument("--skip-report", action="store_true",
                    help="build tables/CSVs only; skip the HTML report")
+    p.add_argument("--data-root", type=Path, default=REPO_ROOT,
+                   help="directory under which <Project>/data/"
+                        "stage_manifest.csv is written.  The default is the "
+                        "repo; point it elsewhere to REHEARSE a build "
+                        "against a copy of the manifest without touching "
+                        "the CSVs live stages are reading")
     return p.parse_args(argv)
 
 
@@ -541,7 +621,7 @@ def main(argv=None) -> int:
         assert n_sci + n_cone + n_cal == len(df), "a row escaped its role"
         stages[sel.project] = df
 
-        data_dir = REPO_ROOT / sel.project / "data"
+        data_dir = args.data_root / sel.project / "data"
         csv_path = data_dir / "stage_manifest.csv"
         write_csv_atomic(csv_path, df)
         write_readme(data_dir,
@@ -553,15 +633,23 @@ def main(argv=None) -> int:
         file_rows.append({
             "project": sel.project,
             "stage_table": stg.stage_table_name(sel.project),
-            "csv_path": str(csv_path.relative_to(REPO_ROOT)),
+            "csv_path": _rel(csv_path),
             "n_rows": len(df), "n_science": n_sci, "n_calib": n_cal,
             "n_cone": n_cone,
+            # Same-era calibration frames the mechanical-epoch rule refused
+            # (F-3): they exist, and may not be applied to this science.
+            "n_calib_cross_epoch": int(df.attrs.get("n_calib_cross_epoch", 0)),
+            "n_mech_epochs": int(df.loc[df["role"].isin(stg.SCIENCE_ROLES),
+                                        "mech_epoch"].dropna().nunique()),
             "n_eras": int(df["era_id"].dropna().nunique()),
             "n_symlinks": n_links,
             "selection_rule": sel.rule, "selection_source": sel.source,
         })
         print(f"[S0c]   {sel.project}: {n_sci:,} science + {n_cone:,} cone "
-              f"+ {n_cal:,} calib rows -> {csv_path.relative_to(REPO_ROOT)}"
+              f"+ {n_cal:,} calib rows "
+              f"({df.attrs.get('n_calib_cross_epoch', 0):,} same-era calib "
+              f"refused across a mechanical boundary) -> "
+              f"{_rel(csv_path)}"
               + (f" (+{n_links:,} farm links)" if args.symlink_farm else ""))
 
     stage_files = pd.DataFrame(file_rows)
@@ -587,6 +675,11 @@ def main(argv=None) -> int:
     # no n_cone value; it had no cone rows either, so zero is the truth.
     if "n_cone" in stage_files:
         stage_files["n_cone"] = stage_files["n_cone"].fillna(0).astype(int)
+    # Likewise a row carried from before the mechanical-epoch rule: it
+    # refused nothing, because the rule did not exist.
+    for col in ("n_calib_cross_epoch", "n_mech_epochs"):
+        if col in stage_files:
+            stage_files[col] = stage_files[col].fillna(0).astype(int)
     print(f"[S0c] writing stage tables -> {args.manifest}")
     write_stage_tables(args.manifest, stages, stage_files, build_id)
 

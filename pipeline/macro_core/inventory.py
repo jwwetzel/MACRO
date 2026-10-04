@@ -28,13 +28,26 @@ S0b answers two questions S0 deliberately left open:
     header is explicit, and from a short list of observed filename
     conventions where it is not (master files written with IMAGETYP =
     'Light Frame'; iKon/grism twilight-flat series).
+
+3.  **What physically changed on the telescope, and when?**  (Added by the
+    plan review of 2026-10-03, findings F-3 / TE.F1 / DE.F5.)  An era is a
+    HEADER history: it sees a readout-mode string change and misses a
+    camera rotated by 180 degrees.  The ``mech_epoch`` layer built by the
+    last section of this module is the HARDWARE history beneath the eras —
+    camera identity, software flip state, filter-wheel map, and measured
+    sky rotation — and it bounds which calibration frame may serve which
+    science frame (:func:`calib_valid_for`).
 """
 
 from __future__ import annotations
 
 import math
 import re
+from dataclasses import dataclass
+from statistics import median
 from typing import Iterable, Optional, Sequence
+
+from . import manifest as _mf
 
 # --------------------------------------------------------------------------
 # Tunable constants (single source of truth — the report interpolates these,
@@ -78,11 +91,9 @@ CALIB_KIND_OF_IMAGETYP: dict[str, str] = {
 #: Processing suffixes the reduction pipeline appends to a raw basename
 #: (observed in the manifest: 27,122 ``_calibrated``, 48 ``_cal``, a handful
 #: of ``_wcs``).  Lowercase; compared case-insensitively.
-REDUCED_SUFFIX_TOKENS: frozenset[str] = frozenset({"calibrated", "cal", "wcs"})
-
-#: FITS extensions (compression suffix handled separately).
-_FITS_EXTENSIONS = (".fts", ".fit", ".fits")
-_COMPRESSION_EXTENSIONS = (".fz", ".gz")
+#: One vocabulary, defined once: S0's dedup and S0b's link ladder must agree
+#: on what a processing suffix is, so this IS the manifest's set.
+REDUCED_SUFFIX_TOKENS: frozenset[str] = _mf.PROCESSING_TOKENS
 
 #: Filename patterns that mark a flat series written with IMAGETYP =
 #: 'Light Frame' (or blank): the iKon / grism twilight-flat convention
@@ -113,33 +124,12 @@ DW_SURVEY_PREFIX = "dw1"
 # Basename surgery: compression, extensions, processing suffixes
 # --------------------------------------------------------------------------
 
-def strip_compression(basename: str) -> str:
-    """Drop a trailing compression suffix (``.fz``/``.gz``) if present.
-
-    The archive stores most files fpack-compressed (``x.fts.fz``) but the
-    reduced tree also holds plain ``x.fts`` copies of the same frame; both
-    must reduce to the same identity.
-    """
-    low = basename.lower()
-    for ext in _COMPRESSION_EXTENSIONS:
-        if low.endswith(ext):
-            return basename[: -len(ext)]
-    return basename
-
-
-def frame_stem(basename: str) -> str:
-    """Return the extension-free identity of a FITS filename.
-
-    ``mlw_V426_Oph_g_5s_2026-06-27T05-40-49.fts.fz`` and the uncompressed
-    ``….fts`` both become ``mlw_V426_Oph_g_5s_2026-06-27T05-40-49``.
-    A name with no recognized extension is returned unchanged.
-    """
-    s = strip_compression(basename)
-    low = s.lower()
-    for ext in _FITS_EXTENSIONS:
-        if low.endswith(ext):
-            return s[: -len(ext)]
-    return s
+#: ``strip_compression`` and ``frame_stem`` moved to ``macro_core.manifest``
+#: on 2026-10-03, because S0's dedup now needs them (finding F-1) and S0 must
+#: not import its own downstream stage.  They are re-exported here under
+#: their original names so every existing caller keeps working.
+strip_compression = _mf.strip_compression
+frame_stem = _mf.frame_stem
 
 
 def reduced_stem(basename: str) -> str:
@@ -435,3 +425,601 @@ def projects_of_target(target_key: Optional[str],
     if target_key.startswith(DW_SURVEY_PREFIX):
         out |= dw_projects
     return frozenset(out)
+
+
+# ==========================================================================
+# Mechanical epochs — the hardware history beneath the eras  (F-3, TE.F1)
+# ==========================================================================
+# THE DEFECT.  The era registry keys on four header values (READOUTM, NAXIS,
+# XBINNING, EGAIN).  The telescope has had four cameras and a dozen
+# mechanical states, and the registry sees neither number: era 76 runs
+# straight through the 2025 monsoon shutdown, across which the sky rotated
+# by 179.3 degrees on the detector.  A flat field, a dust-donut map, a
+# grism trace prior — all are valid for one orientation only — and nothing
+# in the manifest could say which side of the boundary a frame was on.
+#
+# THE EVIDENCE USED, strongest first:
+#
+#   camera      which camera took the frame (manifest.camera_id) — exact.
+#   flipstat    MaxIm's software flip state, from the header — exact.
+#   wheel map   the filter wheel's slot list (FWALLNAM) — exact.
+#   rotation    the position angle S1 measured on plate-solved frames.
+#
+# THE ROTATION TRAP, and how it is avoided.  The measured position angle is
+# NOT a pure hardware number: it carries a term that depends on where the
+# telescope points (polar misalignment turns the field by an angle that
+# grows as 1/cos(dec) and varies with hour angle).  Measured on the ASI
+# camera's first season, with nothing touched: +0.03 deg at dec +56,
+# +0.45 at dec +25, +0.70 at dec -19 — a 0.7-degree spread from pointing
+# alone.  A rule "nightly median moved by more than 0.3 deg" therefore
+# fires on nearly every change of target list (it finds 30 "re-seats" in
+# 2025 where the hardware log has none).  Two tests replace it:
+#
+#   FINE    compare the SAME TARGET across nights.  Pointing cancels; what
+#           is left is the hardware.  A step is declared when the median
+#           same-target difference exceeds MECH_ROT_STEP_DEG.
+#   COARSE  compare nightly medians, but only against a threshold
+#           (MECH_ROT_COARSE_DEG) set well above the measured pointing
+#           spread.  It needs no shared target, so it still sees a flipped
+#           or grossly rotated camera on a night of new fields.
+#
+# A step between 0.3 and 1.5 degrees on a night that shares no target with
+# the nights before it is INVISIBLE to both tests.  That is stated, not
+# hidden: every epoch records how many of its night-to-night transitions
+# each test could actually examine.
+
+#: A same-target rotation step larger than this starts a new mechanical
+#: epoch.  The value is the chair's (SYNTHESIS F-3, from TE.F1); its
+#: false-alarm rate on this archive is MEASURED by the null distribution
+#: :func:`segment_mech_epochs` returns, not assumed.
+MECH_ROT_STEP_DEG = 0.3
+
+#: A nightly-median rotation change larger than this starts a new epoch
+#: even with no shared target.  Must exceed the pointing-induced spread
+#: (0.7 deg measured, see above) with margin.
+MECH_ROT_COARSE_DEG = 1.5
+
+#: Rotation samples beyond this |declination| are ignored: the pointing
+#: term scales as 1/cos(dec) and the one dec +85 field in the archive
+#: (NGC 188) sits 1.9 deg from its night's other fields.
+MECH_ROT_MAX_ABS_DEC = 65.0
+
+#: Fewest plate-solved frames for a night (or a target on a night) to count
+#: as rotation evidence.  One or two solves are an anecdote; a wrong
+#: astrometric match is rare but not absent.
+MECH_ROT_MIN_FRAMES = 3
+
+#: Two nights' solves of "the same target" must also agree on the sky to
+#: this tolerance (great-circle degrees).  Target names like 'stars' or
+#: 'guide field' are re-used for different fields; the name alone is not
+#: evidence that the pointing term cancels.
+MECH_TARGET_MATCH_DEG = 0.5
+
+#: Dark/bias set-point tolerance, deg C (DE.F5: "set-point +/- 2 C").
+SET_TEMP_TOL_C = 2.0
+
+#: Slot names that are two SPELLINGS of one element.  The wheel map is
+#: written by whichever program took the frame, and the two programs name
+#: the grisms differently: MaxIm's wheel labels say 'OGGrism' / 'HaGrism',
+#: pyscope's say 'lrg' / 'hrg' (the same pairing staging.GRISM_ALL records).
+#: In January 2025 the two alternated night by night on an untouched wheel;
+#: without this table every such night would read as a reloaded wheel.
+#: Applied after case-folding.  Keep it to names PROVEN to be one element.
+WHEEL_SLOT_SYNONYMS: dict[str, str] = {
+    "oggrism": "lrg",
+    "hagrism": "hrg",
+}
+
+
+def wheel_compare_key(wheel_map: Optional[str]) -> Optional[tuple[str, ...]]:
+    """A wheel map reduced to what a PHYSICAL change would alter.
+
+    ``wheel_map`` is the ``|``-joined slot list S0 stores in
+    ``frames.fwallnam``.  The key is the slot tuple, case-folded and passed
+    through :data:`WHEEL_SLOT_SYNONYMS`, so a map re-spelled by different
+    software compares equal and a slot holding a different element does
+    not.  ``None`` for a missing map.
+    """
+    if wheel_map is None or not str(wheel_map).strip():
+        return None
+    return tuple(WHEEL_SLOT_SYNONYMS.get(tok.strip().lower(),
+                                         tok.strip().lower())
+                 for tok in str(wheel_map).split("|"))
+
+
+#: Boundary causes, as written into ``mech_epoch.boundary_cause``.
+CAUSE_CAMERA = "camera"                  # first appearance of this camera
+CAUSE_CAMERA_SWAP = "camera_swap"        # another camera was mounted between
+CAUSE_FLIPSTAT = "flipstat"              # software flip state changed
+CAUSE_WHEEL = "wheel_map"                # a wheel slot's content changed
+CAUSE_ROT_FINE = "rotation_fine"         # same-target step > 0.3 deg
+CAUSE_ROT_COARSE = "rotation_coarse"     # nightly-median step > 1.5 deg
+
+#: Causes that change WHERE A PIXEL LANDS IN THE FILE.  A new camera is a
+#: new sensor; a flip-state change mirrors the saved array.  Rotating or
+#: re-seating a camera, or reloading the wheel, moves the sky and the dust
+#: but leaves every hot pixel and the bias structure at the same array
+#: coordinates.  Darks and biases are therefore bounded by these causes
+#: only; flats by every cause.  (TE.F1: "a hot-pixel map showing the same
+#: pixel coordinates before and after … would leave darks valid (flats
+#: still not)".)
+DETECTOR_CAUSES: frozenset[str] = frozenset(
+    {CAUSE_CAMERA, CAUSE_CAMERA_SWAP, CAUSE_FLIPSTAT})
+
+
+def circ_diff(a: float, b: float) -> float:
+    """Signed smallest difference ``a - b`` between two angles, degrees,
+    in (-180, 180].  359.9 vs 0.1 is -0.2, not 359.8."""
+    d = (float(a) - float(b) + 180.0) % 360.0 - 180.0
+    return 180.0 if d == -180.0 else d
+
+
+def circular_median(angles: Iterable[float]) -> tuple[float, float]:
+    """Robust centre and scatter of a set of angles: ``(median, MAD)``.
+
+    A plain median fails across the 0/360 seam (the ASI's first season
+    sits at +0.4 deg with some frames at 359.9).  The angles are first
+    referred to their circular MEAN direction, where the seam is as far
+    away as it can be; the median and the median absolute deviation are
+    taken there and the median is folded back into [0, 360).
+
+    The MAD is returned unscaled (multiply by 1.4826 for a Gaussian sigma).
+    """
+    vals = [float(a) for a in angles]
+    if not vals:
+        raise ValueError("circular_median needs at least one angle")
+    sx = sum(math.cos(math.radians(a)) for a in vals)
+    sy = sum(math.sin(math.radians(a)) for a in vals)
+    centre = math.degrees(math.atan2(sy, sx))
+    offs = [circ_diff(a, centre) for a in vals]
+    med = median(offs)
+    mad = median(abs(o - med) for o in offs)
+    return (centre + med) % 360.0, mad
+
+
+@dataclass(frozen=True)
+class RotSample:
+    """One plate-solved frame's contribution: where it pointed and the
+    position angle S1 measured there."""
+    target: Optional[str]
+    rot_deg: float
+    ra_deg: float
+    dec_deg: float
+
+
+@dataclass(frozen=True)
+class NightState:
+    """Everything known about one camera on one night.
+
+    ``flipstat`` / ``wheel_map`` are the night's modal header values, or
+    ``None`` when no frame of the night carries the card (the whole AC4040
+    era has no wheel map).  ``rot`` holds the night's plate-solved frames.
+
+    ``wheel_maps`` holds the night's modal map FOR EACH SLOT COUNT seen
+    that night.  The telescope reports its wheels in more than one way —
+    in November 2024 single nights carry both a 16-slot 'Dual Wheels' map
+    and a 5-slot 'FLI' map — and a 16-slot list cannot be compared with a
+    5-slot one: they are different descriptions, not different states.
+    Maps are therefore only ever compared with the last map OF THE SAME
+    LENGTH.  When ``wheel_maps`` is empty, ``wheel_map`` alone is used.
+    """
+    camera: str
+    night: str
+    n_frames: int
+    flipstat: Optional[str] = None
+    wheel_map: Optional[str] = None
+    swcreate: Optional[str] = None
+    telpier: Optional[str] = None
+    rot: tuple[RotSample, ...] = ()
+    wheel_maps: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class _TargetRot:
+    """A target's rotation on one night: median, standard error, position."""
+    rot: float
+    se: float
+    n: int
+    ra: float
+    dec: float
+
+
+def _usable(samples: Iterable[RotSample]) -> list[RotSample]:
+    """Rotation samples inside the declination limit."""
+    return [s for s in samples if abs(s.dec_deg) <= MECH_ROT_MAX_ABS_DEC]
+
+
+def night_rotation(state: NightState) -> Optional[tuple[float, float, int]]:
+    """The night's rotation level: ``(median, MAD, n)`` over every usable
+    solve, or ``None`` with fewer than :data:`MECH_ROT_MIN_FRAMES`."""
+    use = _usable(state.rot)
+    if len(use) < MECH_ROT_MIN_FRAMES:
+        return None
+    med, mad = circular_median(s.rot_deg for s in use)
+    return med, mad, len(use)
+
+
+def target_rotations(state: NightState) -> dict[str, _TargetRot]:
+    """Per-target rotation on one night, for the same-target (fine) test.
+
+    Only NAMED targets with at least :data:`MECH_ROT_MIN_FRAMES` usable
+    solves qualify.  The standard error is 1.4826 MAD / sqrt(n) — the
+    scatter of the solves themselves, which is all one night can know.
+    """
+    groups: dict[str, list[RotSample]] = {}
+    for s in _usable(state.rot):
+        if s.target:
+            groups.setdefault(s.target, []).append(s)
+    out: dict[str, _TargetRot] = {}
+    for tgt, grp in groups.items():
+        if len(grp) < MECH_ROT_MIN_FRAMES:
+            continue
+        med, mad = circular_median(g.rot_deg for g in grp)
+        ra, dec = _mf.median_radec([g.ra_deg for g in grp],
+                                   [g.dec_deg for g in grp])
+        out[tgt] = _TargetRot(rot=med, se=1.4826 * mad / math.sqrt(len(grp)),
+                              n=len(grp), ra=ra, dec=dec)
+    return out
+
+
+def mech_epoch_id(camera: str, first_night: str) -> str:
+    """Identifier of a mechanical epoch: ``<camera>:<first night>``.
+
+    A NAME, not a counter, on purpose.  Era ids are a pinned registry
+    because a counter renumbers when a configuration is discovered
+    mid-timeline; an id made of the camera and the night the state began is
+    stable under every later ingest and says what it is.
+    """
+    return f"{camera}:{first_night}"
+
+
+def segment_mech_epochs(states: Sequence[NightState]
+                        ) -> tuple[list[dict], list[dict], list[dict]]:
+    """Cut the telescope's history into mechanical epochs.
+
+    Parameters
+    ----------
+    states
+        One :class:`NightState` per (camera, night) that holds any frame,
+        in any order.
+
+    Returns
+    -------
+    epochs : list of dict
+        One row per mechanical epoch, chronological — the ``mech_epoch``
+        table.  ``boundary_cause`` says why the epoch BEGAN; ``step_deg`` is
+        the measured rotation step into it (same-target where a shared
+        target existed, nightly-median otherwise) with ``step_err_deg``;
+        ``n_transitions`` / ``n_tested_fine`` / ``n_tested_coarse`` say how
+        many of the night-to-night transitions INSIDE the epoch each
+        rotation test was able to examine.
+    nights : list of dict
+        One row per (camera, night) — the ``night_mech_epoch`` table.
+        ``certain = 0`` marks a night that carries no rotation evidence and
+        lies between the last evidenced night of one epoch and a boundary
+        found by rotation alone: the hardware changed somewhere in that
+        gap and the night cannot be placed on either side.  It is filed
+        under the EARLIER epoch and no flat may be matched to it.
+    null : list of dict
+        Every same-target, night-to-night rotation difference measured
+        INSIDE an epoch.  This is the empirical distribution of the fine
+        statistic when nothing changed — the false-alarm test of
+        :data:`MECH_ROT_STEP_DEG`.
+
+    The walk is per camera, in night order.  A new epoch begins when
+
+    * the camera is seen for the first time, or returns after another
+      camera was mounted in between (``camera`` / ``camera_swap``);
+    * the software flip state changes (``flipstat``);
+    * a filter-wheel slot's content changes (``wheel_map``): the night's
+      map differs, after :func:`wheel_compare_key`, from the last map of
+      the SAME slot count.  A map of a different length is a different
+      description of the wheels and is never compared slot by slot — but
+      the FIRST appearance, on a camera, of a slot count it has never
+      reported before is itself a boundary: the wheel went from 7 named
+      slots to 9 on 2026-06-28, and no slot-by-slot comparison could see
+      that.  A slot count that merely RE-appears (the 16-slot and 5-slot
+      descriptions alternated through November 2024) is not;
+    * the same-target rotation step exceeds :data:`MECH_ROT_STEP_DEG`
+      (``rotation_fine``), or the nightly median moves by more than
+      :data:`MECH_ROT_COARSE_DEG` (``rotation_coarse``).
+
+    A header value of ``None`` (card absent that night) never triggers a
+    boundary and never overwrites the epoch's last known value.
+    """
+    by_cam: dict[str, list[NightState]] = {}
+    for st in states:
+        by_cam.setdefault(st.camera, []).append(st)
+    # Every (night, camera) pair, to detect a different camera in between.
+    cam_nights = sorted((st.night, st.camera) for st in states)
+
+    def _other_camera_between(cam: str, lo: str, hi: str) -> bool:
+        return any(lo < n < hi and c != cam for n, c in cam_nights)
+
+    epochs: list[dict] = []
+    nights: list[dict] = []
+    null: list[dict] = []
+
+    for cam in sorted(by_cam):
+        seq = sorted(by_cam[cam], key=lambda s: s.night)
+        cur: Optional[dict] = None           # the open epoch's working state
+        seen_lens: set[int] = set()          # slot counts this camera has shown
+        det_first: Optional[str] = None      # first night of the detector run
+        prev_night: Optional[str] = None
+
+        def _open(st: NightState, causes: list[str], step, step_err,
+                  step_n, step_basis) -> dict:
+            return {
+                "camera": cam, "first_night": st.night, "causes": causes,
+                "step": step, "step_err": step_err, "step_n": step_n,
+                "step_basis": step_basis,
+                "flipstat": None, "wheel_map": None,
+                "wheel_by_len": {},      # slot count -> last compare key
+                "levels": [],            # nightly median rotations
+                "targets": {},           # target -> list of _TargetRot
+                "night_rows": [],        # indices into ``nights``
+                "n_frames": 0, "n_rot_frames": 0,
+                "n_transitions": 0, "n_fine": 0, "n_coarse": 0,
+                "swcreate": {}, "telpier": {},
+            }
+
+        def _close(ep: dict, last_night: str) -> None:
+            level = circular_median(ep["levels"]) if ep["levels"] else None
+            modal = lambda d: max(sorted(d), key=d.get) if d else None
+            epochs.append({
+                "mech_epoch": mech_epoch_id(cam, ep["first_night"]),
+                "camera": cam,
+                "first_night": ep["first_night"], "last_night": last_night,
+                "n_nights": len(ep["night_rows"]),
+                "n_frames": ep["n_frames"],
+                "boundary_cause": ",".join(ep["causes"]),
+                "detector_epoch": mech_epoch_id(cam, ep["det_first"]),
+                "rotation_deg": None if level is None else level[0],
+                "rotation_mad_deg": None if level is None else level[1],
+                "n_rot_nights": len(ep["levels"]),
+                "n_rot_frames": ep["n_rot_frames"],
+                "step_deg": ep["step"], "step_err_deg": ep["step_err"],
+                "step_n_targets": ep["step_n"],
+                "step_basis": ep["step_basis"],
+                "flipstat": ep["flipstat"], "wheel_map": ep["wheel_map"],
+                "swcreate": modal(ep["swcreate"]),
+                "telpier": modal(ep["telpier"]),
+                "n_transitions": ep["n_transitions"],
+                "n_tested_fine": ep["n_fine"],
+                "n_tested_coarse": ep["n_coarse"],
+                "n_gap_nights": sum(1 for i in ep["night_rows"]
+                                    if not nights[i]["certain"]),
+            })
+
+        for st in seq:
+            nrot = night_rotation(st)
+            trot = target_rotations(st)
+            causes: list[str] = []
+            step = step_err = step_basis = None
+            step_n = 0
+            tested_fine = tested_coarse = False
+            deltas: list[tuple[str, float, float, float]] = []
+
+            if cur is None:
+                causes.append(CAUSE_CAMERA)
+            else:
+                if _other_camera_between(cam, prev_night, st.night):
+                    causes.append(CAUSE_CAMERA_SWAP)
+                if (st.flipstat is not None and cur["flipstat"] is not None
+                        and st.flipstat != cur["flipstat"]):
+                    causes.append(CAUSE_FLIPSTAT)
+                for wm in (st.wheel_maps or (st.wheel_map,)):
+                    key = wheel_compare_key(wm)
+                    if key is None:
+                        continue
+                    last = cur["wheel_by_len"].get(len(key))
+                    if (last is not None and last != key) or (
+                            seen_lens and len(key) not in seen_lens):
+                        causes.append(CAUSE_WHEEL)
+                        break
+                # ---- fine test: the same target, before and after ---------
+                for tgt, now in trot.items():
+                    hist = cur["targets"].get(tgt)
+                    if not hist:
+                        continue
+                    ra0, dec0 = _mf.median_radec([h.ra for h in hist],
+                                                 [h.dec for h in hist])
+                    if _mf.angular_separation_deg(
+                            now.ra, now.dec, ra0, dec0) > MECH_TARGET_MATCH_DEG:
+                        continue        # same name, different field
+                    ref, ref_mad = circular_median(h.rot for h in hist)
+                    ref_se = (1.4826 * ref_mad / math.sqrt(len(hist))
+                              if len(hist) > 1 else hist[0].se)
+                    deltas.append((tgt, circ_diff(now.rot, ref),
+                                   math.hypot(now.se, ref_se), now.dec))
+                if deltas:
+                    tested_fine = True
+                    ds = [d[1] for d in deltas]
+                    step = median(ds)
+                    step_n = len(ds)
+                    scatter = (1.4826 * median(abs(d - step) for d in ds)
+                               / math.sqrt(len(ds))) if len(ds) > 1 else 0.0
+                    formal = math.sqrt(sum(d[2] ** 2 for d in deltas)) \
+                        / len(deltas)
+                    step_err = max(scatter, formal)
+                    step_basis = "same_target"
+                    if abs(step) > MECH_ROT_STEP_DEG:
+                        causes.append(CAUSE_ROT_FINE)
+                # ---- coarse test: nightly medians, generous threshold -----
+                if nrot is not None and cur["levels"]:
+                    tested_coarse = True
+                    level, level_mad = circular_median(cur["levels"])
+                    d = circ_diff(nrot[0], level)
+                    if step is None:
+                        step, step_basis = d, "nightly_median"
+                        step_err = math.hypot(
+                            1.4826 * nrot[1] / math.sqrt(nrot[2]),
+                            1.4826 * level_mad
+                            / math.sqrt(len(cur["levels"])))
+                    if abs(d) > MECH_ROT_COARSE_DEG:
+                        causes.append(CAUSE_ROT_COARSE)
+
+            if causes:
+                if cur is not None:
+                    # A boundary found by ROTATION ALONE is dated only to
+                    # "after the last night that showed the old angle": the
+                    # trailing nights of the old epoch with no rotation
+                    # evidence could belong to either side.
+                    if all(c in (CAUSE_ROT_FINE, CAUSE_ROT_COARSE)
+                           for c in causes):
+                        for i in reversed(cur["night_rows"]):
+                            if nights[i]["n_rot"] >= MECH_ROT_MIN_FRAMES:
+                                break
+                            nights[i]["certain"] = 0
+                            nights[i]["basis"] = "gap"
+                    _close(cur, prev_night)
+                if det_first is None or any(c in DETECTOR_CAUSES
+                                            for c in causes):
+                    det_first = st.night
+                cur = _open(st, causes, step, step_err, step_n, step_basis)
+                cur["det_first"] = det_first
+            else:
+                cur["n_transitions"] += 1
+                cur["n_fine"] += tested_fine
+                cur["n_coarse"] += tested_coarse
+                # Inside an epoch every same-target difference is a draw
+                # from the "nothing changed" distribution.
+                for tgt, d, se, dec in deltas:
+                    null.append({"camera": cam, "night": st.night,
+                                 "mech_epoch": mech_epoch_id(
+                                     cam, cur["first_night"]),
+                                 "target": tgt, "delta_deg": d,
+                                 "delta_se_deg": se, "dec_deg": dec})
+
+            # ---- fold this night into the open epoch -----------------------
+            if st.flipstat is not None:
+                cur["flipstat"] = st.flipstat
+            if st.wheel_map is not None:
+                cur["wheel_map"] = st.wheel_map
+            for wm in (st.wheel_maps or (st.wheel_map,)):
+                key = wheel_compare_key(wm)
+                if key is not None:
+                    cur["wheel_by_len"][len(key)] = key
+                    seen_lens.add(len(key))
+            if nrot is not None:
+                cur["levels"].append(nrot[0])
+                cur["n_rot_frames"] += nrot[2]
+            for tgt, tr in trot.items():
+                cur["targets"].setdefault(tgt, []).append(tr)
+            cur["n_frames"] += st.n_frames
+            for bucket, val in (("swcreate", st.swcreate),
+                                ("telpier", st.telpier)):
+                if val:
+                    cur[bucket][val] = cur[bucket].get(val, 0) + st.n_frames
+            cur["night_rows"].append(len(nights))
+            nights.append({
+                "camera": cam, "night": st.night,
+                "mech_epoch": mech_epoch_id(cam, cur["first_night"]),
+                "detector_epoch": mech_epoch_id(cam, cur["det_first"]),
+                "certain": 1,
+                "basis": "rotation" if nrot is not None else "header",
+                "n_frames": st.n_frames,
+                "rot_median_deg": None if nrot is None else nrot[0],
+                "rot_mad_deg": None if nrot is None else nrot[1],
+                "n_rot": 0 if nrot is None else nrot[2],
+                "flipstat": st.flipstat, "wheel_map": st.wheel_map,
+            })
+            prev_night = st.night
+        if cur is not None:
+            _close(cur, prev_night)
+
+    epochs.sort(key=lambda e: (e["first_night"], e["camera"]))
+    for i, ep in enumerate(epochs, 1):
+        ep["seq"] = i
+    return epochs, nights, null
+
+
+# --------------------------------------------------------------------------
+# Calibration validity across mechanical boundaries
+# --------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class EpochTag:
+    """Where one frame sits in the hardware history."""
+    mech_epoch: Optional[str]
+    detector_epoch: Optional[str]
+    certain: bool = True
+
+
+def calib_valid_for(kind: str, science: EpochTag, calib: EpochTag) -> bool:
+    """May a calibration frame of ``kind`` be applied to a science frame?
+
+    THE RULE THAT F-3 EXISTS TO ENFORCE: **no calibration is applied across
+    a boundary that invalidates it.**
+
+    * a ``flat`` records the illumination pattern — vignetting, dust,
+      filter — in detector coordinates.  Any re-seat, rotation, flip or
+      wheel reload moves it.  A flat is valid only inside the science
+      frame's own ``mech_epoch``, and only when BOTH frames are placed with
+      certainty (an uncertain-gap night cannot be shown not to cross).
+    * a ``bias`` or ``dark`` records the sensor.  It survives a rotation
+      or a wheel reload and dies with a camera change or a flip-state
+      change: valid inside the same ``detector_epoch``.
+
+    A frame with no epoch at all (unknown camera) is valid for nothing and
+    nothing is valid for it: unknown is never read as "same".
+    """
+    if kind == "flat":
+        return (science.mech_epoch is not None
+                and science.mech_epoch == calib.mech_epoch
+                and bool(science.certain) and bool(calib.certain))
+    if kind in ("bias", "dark"):
+        return (science.detector_epoch is not None
+                and science.detector_epoch == calib.detector_epoch)
+    raise ValueError(f"unknown calibration kind {kind!r}")
+
+
+#: Outcomes of :func:`settings_match`.
+SETTINGS_MATCH = "match"
+SETTINGS_MISMATCH = "mismatch"
+SETTINGS_UNVERIFIED = "unverified"
+
+
+def settings_match(sci_gain: Optional[str], sci_offset: Optional[float],
+                   sci_temp: Optional[float], cal_gain: Optional[str],
+                   cal_offset: Optional[float], cal_temp: Optional[float],
+                   ) -> str:
+    """Do a dark/bias frame's camera settings match a science frame's?
+
+    DE.F5: calibration matching must key on gain setting, offset setting
+    and cooler set-point (within :data:`SET_TEMP_TOL_C`) — era 76 pools
+    Mode0 at -10 C with Mode0 at 0 C, and a -10 C dark does not describe a
+    0 C frame.
+
+    Three outcomes, because "the header does not say" is not "the same":
+
+    * ``mismatch``   — a setting known on BOTH frames differs;
+    * ``unverified`` — nothing contradicts, but a setting the science
+      frame records is missing from the calibration frame (stacked masters
+      often lose their cards).  Counted separately; never as a match;
+    * ``match``      — every setting the science frame records is present
+      on the calibration frame and agrees.
+
+    A setting the SCIENCE frame does not record constrains nothing (the
+    AC4040 headers carry no GAIN or OFFSET card at all; its gain is in the
+    era key).
+    """
+    def _blank(v) -> bool:
+        return v is None or (isinstance(v, float) and math.isnan(v)) \
+            or (isinstance(v, str) and not v.strip())
+
+    unverified = False
+    for sci, cal, numeric_tol in ((sci_gain, cal_gain, None),
+                                  (sci_offset, cal_offset, 0.0),
+                                  (sci_temp, cal_temp, SET_TEMP_TOL_C)):
+        if _blank(sci):
+            continue
+        if _blank(cal):
+            unverified = True
+            continue
+        if numeric_tol is None:
+            if str(sci).strip() != str(cal).strip():
+                return SETTINGS_MISMATCH
+        elif abs(float(sci) - float(cal)) > numeric_tol:
+            return SETTINGS_MISMATCH
+    return SETTINGS_UNVERIFIED if unverified else SETTINGS_MATCH

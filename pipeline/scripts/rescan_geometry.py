@@ -50,6 +50,34 @@ SUBCOMMANDS
     status    progress + change tally (read-only)
     verify    prove correct rows were untouched; show the change matrix
 
+    hdr-run     re-scrape the HARDWARE cards of every catalog row (resumable)
+    hdr-status  progress of the hardware-card re-scrape (read-only)
+    hdr-verify  prove the re-scrape against the cards the catalog already had
+
+THE HARDWARE-CARD RE-SCRAPE (finding F-2, plan review 2026-10-03)
+-----------------------------------------------------------------
+The original scan kept the cards that describe the EXPOSURE and dropped the
+cards that describe the HARDWARE: GAIN, OFFSET, SET-TEMP, COOLPOWR, FOCPOS,
+FLIPSTAT, TELPIER, FWPOS, FWALLNAM.  Without them the manifest cannot tell a
+re-seated or flipped camera from an untouched one, cannot key a dark on its
+set-point, and reports a focuser position from a card that sticks.  The
+``hdr-*`` subcommands read those cards for EVERY catalog row (all 330k, not
+just the canonical ones — a duplicate copy's header is evidence too) with
+the raw card parser in ``macro_core.fitsgeom`` and store them, as the header
+spells them, in a NEW catalog table ``hdr_rescrape``.
+
+Same commitments as the geometry repair, plus one:
+
+* **Additive.**  ``obs`` is not touched at all — not one column.  The
+  re-scrape only ever writes its own table; S0 joins it.
+* **Resumable.**  Rows already in ``hdr_rescrape`` are skipped.
+* **Self-checking.**  Four of the collected cards (INSTRUME, SWCREATE,
+  CCD-TEMP, FOCUSPOS) were ALSO read by the original astropy scan.  They are
+  collected again on purpose: ``hdr-verify`` compares the two readings row
+  by row, so the raw parser is validated on ~1.2M card readings it had no
+  way to copy, before any of its new columns is trusted.
+* The archive is opened READ-ONLY, headers only — no pixel is read.
+
 USAGE
 -----
     PY=/opt/miniconda3/envs/rlmt-checks/bin/python
@@ -57,6 +85,10 @@ USAGE
     $PY pipeline/scripts/rescan_geometry.py run --workers 4
     $PY pipeline/scripts/rescan_geometry.py status
     $PY pipeline/scripts/rescan_geometry.py verify
+
+    $PY pipeline/scripts/rescan_geometry.py hdr-run --workers 12
+    $PY pipeline/scripts/rescan_geometry.py hdr-status
+    $PY pipeline/scripts/rescan_geometry.py hdr-verify
 """
 
 from __future__ import annotations
@@ -66,7 +98,7 @@ import os
 import sqlite3
 import sys
 import warnings
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 os.pardir))
@@ -421,9 +453,272 @@ def cmd_exemplar(args) -> int:
     return 0
 
 
+# ===========================================================================
+# The hardware-card re-scrape (F-2)
+# ===========================================================================
+
+#: Thread count for the header re-scrape.  THREADS, not processes: the work
+#: is two short reads per file and a string split, so the interpreter lock is
+#: released almost the whole time and a process pool would only add pickling.
+#: Measured on the archive volume under load (random order): 1.1 files/s
+#: with one reader, 13.5 files/s with twelve — the volume queues well, so the
+#: default is generous; the cap keeps a typo from starving the sibling stages
+#: that share the disk.
+HDR_DEFAULT_WORKERS = 12
+HDR_MAX_WORKERS = 32
+
+#: Rows committed per transaction.  Small enough that a killed run loses at
+#: most a few seconds of reading; large enough that the catalog's write lock
+#: is taken a few hundred times in total rather than 330k times.
+HDR_COMMIT_EVERY = 500
+
+
+def hdr_column(card: str) -> str:
+    """SQL column name for a header card: ``SET-TEMP`` -> ``h_set_temp``.
+
+    The ``h_`` prefix is not decoration: ``OFFSET`` is an SQL keyword, and a
+    bare column of that name would need quoting in every query anyone ever
+    writes against the table.
+    """
+    return "h_" + card.lower().replace("-", "_")
+
+
+#: ``hdr_rescrape`` data columns, in :data:`fitsgeom.HARDWARE_CARDS` order.
+HDR_COLUMNS = tuple(hdr_column(c) for c in fitsgeom.HARDWARE_CARDS)
+
+
+def ensure_hdr_table(con: sqlite3.Connection) -> None:
+    """Create ``hdr_rescrape`` if absent.  Never dropped: like
+    ``geom_rescan`` it is evidence, and it is the resume state.
+
+    Every card column is TEXT and holds the value AS THE HEADER SPELLS IT:
+    NULL = the header has no such card, ``''`` = the card exists and is
+    blank, anything else = the value.  Typing happens in S0, where the
+    camera is known.
+    """
+    cols = ",\n            ".join(f"{c} TEXT" for c in HDR_COLUMNS)
+    con.execute(f"""
+        CREATE TABLE IF NOT EXISTS hdr_rescrape (
+            path        TEXT PRIMARY KEY,
+            {cols},
+            n_cards     INTEGER,   -- how many of the wanted cards were found
+            error       TEXT,      -- NULL when the header was read
+            scanned_utc TEXT NOT NULL DEFAULT (datetime('now'))
+        )""")
+    con.commit()
+
+
+def hardware_cards_of(rel_path: str) -> dict:
+    """Read one file's hardware cards.  Runs in a worker thread.
+
+    Never raises: an unreadable file becomes a row with ``error`` set, so
+    the run always terminates and the failure is counted instead of lost.
+    """
+    out = {"path": rel_path, "cards": {}, "error": None}
+    try:
+        out["cards"] = fitsgeom.read_hardware_cards(
+            os.path.join(ROOT, rel_path))
+    except Exception as e:                       # noqa: BLE001 — recorded
+        out["error"] = f"{type(e).__name__}: {e}"[:300]
+    return out
+
+
+def hdr_todo(con: sqlite3.Connection, retry_errors: bool = False
+             ) -> list[str]:
+    """Catalog paths not yet re-scraped, in READ order.
+
+    ``rawimage`` first — it holds the canonical pixels, so an interrupted
+    run has already covered the frames that matter most — then every other
+    tree, with ``reduced`` LAST (it is almost entirely copies and
+    derivatives of rawimage frames); within a tree by path, which walks the
+    disk one night directory at a time instead of seeking across the whole
+    volume.
+    """
+    done = "SELECT path FROM hdr_rescrape"
+    if retry_errors:
+        done += " WHERE error IS NULL"
+    return [r[0] for r in con.execute(
+        f"SELECT path FROM obs WHERE path NOT IN ({done}) "
+        "ORDER BY (tree != 'rawimage'), (tree = 'reduced'), path")]
+
+
+def cmd_hdr_run(args) -> int:
+    workers = max(1, min(args.workers, HDR_MAX_WORKERS))
+    con = connect(DB)
+    ensure_hdr_table(con)
+    todo = hdr_todo(con, retry_errors=args.retry_errors)
+    if args.limit:
+        todo = todo[:args.limit]
+    print(f"re-scraping hardware cards of {len(todo)} rows with "
+          f"{workers} reader threads", flush=True)
+    if not todo:
+        print("nothing to do — already complete")
+        return 0
+    ins = ("INSERT OR REPLACE INTO hdr_rescrape (path, "
+           + ", ".join(HDR_COLUMNS) + ", n_cards, error) VALUES ("
+           + ", ".join("?" * (len(HDR_COLUMNS) + 3)) + ")")
+    batch, n, n_err = [], 0, 0
+    with ThreadPoolExecutor(workers) as ex:
+        # ex.map preserves submission order, so commits advance through the
+        # path-sorted list and a resumed run restarts where this one died.
+        for r in ex.map(hardware_cards_of, todo):
+            cards = r["cards"]
+            n_err += r["error"] is not None
+            batch.append((r["path"],
+                          *(cards.get(c) for c in fitsgeom.HARDWARE_CARDS),
+                          len(cards) if r["error"] is None else None,
+                          r["error"]))
+            n += 1
+            if len(batch) >= HDR_COMMIT_EVERY:
+                con.executemany(ins, batch)
+                con.commit()
+                batch = []
+            if n % 5000 == 0:
+                print(f"  {n}/{len(todo)}  errors={n_err}", flush=True)
+    if batch:
+        con.executemany(ins, batch)
+        con.commit()
+    print(f"DONE: {n} re-scraped, {n_err} unreadable", flush=True)
+    con.close()
+    return 0
+
+
+def cmd_hdr_status(args) -> int:
+    con = connect(DB, read_only=True)
+    total = con.execute("SELECT COUNT(*) FROM obs").fetchone()[0]
+    try:
+        done, errs = con.execute(
+            "SELECT COUNT(*), SUM(error IS NOT NULL) FROM hdr_rescrape"
+        ).fetchone()
+    except sqlite3.OperationalError:
+        print("no hdr_rescrape table yet — run `hdr-run`")
+        return 0
+    print(f"re-scraped {done} of {total} catalog rows   "
+          f"unreadable {errs or 0}   remaining {total - done}")
+    return 0
+
+
+def _num_equal(a, b, tol: float = 1e-6) -> bool:
+    """Do two readings of one numeric card agree?  The catalog holds what
+    astropy parsed into a float, the re-scrape holds the header's text."""
+    try:
+        return abs(float(a) - float(b)) <= tol * max(1.0, abs(float(a)))
+    except (TypeError, ValueError):
+        return False
+
+
+#: The control group of ``hdr-verify``: cards the ORIGINAL scan also read,
+#: as (catalog column in ``obs``, re-scrape column, is_numeric).
+HDR_CONTROL = (
+    ("instrume", "h_instrume", False),
+    ("swcreate", "h_swcreate", False),
+    ("ccd_temp", "h_ccd_temp", True),
+    ("focuspos", "h_focuspos", True),
+)
+
+
+def hdr_verify_counts(con: sqlite3.Connection) -> dict:
+    """Every number ``hdr-verify`` prints, as a dict (so the tests can
+    drive the same arithmetic on a hand-built catalog).
+
+    * ``n_obs`` / ``n_scanned`` / ``n_unreadable`` — coverage;
+    * ``n_unreadable_new`` — files the re-scrape could not read that the
+      ORIGINAL scan could (a regression of the reader, must be 0);
+    * ``control`` — per control card: rows where both scans hold a value,
+      and how many of those DISAGREE (must be 0);
+    * ``recovered`` — per control card: rows where the original scan had
+      NULL and the re-scrape found a value.  This is the F-2 acceptance
+      line "no nulls where the card exists", measured;
+    * ``cards`` — per collected card: rows with a value / blank / absent.
+    """
+    # TWO SEQUENTIAL SCANS, compared in memory — not SQL joins.  The first
+    # version joined obs to hdr_rescrape on path, six times over; on the
+    # archive's spinning disk each join is 330k random index probes into a
+    # 500 MB file, and the command ran for half an hour doing three seconds
+    # of arithmetic.  Reading each table once, front to back, takes about
+    # as long as S0's own catalog load.
+    obs = {}
+    ocols = [c for c, _, _ in HDR_CONTROL]
+    for row in con.execute(f"SELECT path, error, {', '.join(ocols)} "
+                           f"FROM obs"):
+        obs[row[0]] = row[1:]
+    out: dict = {"n_obs": len(obs), "n_scanned": 0, "n_unreadable": 0,
+                 "n_unreadable_new": 0}
+    hidx = {c: i for i, c in enumerate(HDR_COLUMNS)}
+    control = {h: [0, 0] for _, h, _ in HDR_CONTROL}
+    recovered = {h: 0 for _, h, _ in HDR_CONTROL}
+    cards = {c: [0, 0, 0] for c in HDR_COLUMNS}      # value, blank, absent
+    for row in con.execute(f"SELECT path, error, {', '.join(HDR_COLUMNS)} "
+                           f"FROM hdr_rescrape"):
+        path, err, vals = row[0], row[1], row[2:]
+        out["n_scanned"] += 1
+        orow = obs.get(path)
+        if err is not None:
+            out["n_unreadable"] += 1
+            # Readable by the original scan, unreadable here = a regression
+            # of the reader.
+            out["n_unreadable_new"] += bool(orow is not None
+                                            and orow[0] is None)
+            continue
+        for c, v in zip(HDR_COLUMNS, vals):
+            cards[c][2 if v is None else (1 if v == "" else 0)] += 1
+        if orow is None:
+            continue
+        for k, (_, hcol, numeric) in enumerate(HDR_CONTROL):
+            a, b = orow[1 + k], vals[hidx[hcol]]
+            if b is None or b == "":
+                continue
+            if a is None:
+                recovered[hcol] += 1
+                continue
+            control[hcol][0] += 1
+            same = _num_equal(a, b) if numeric \
+                else str(a).strip() == str(b).strip()
+            control[hcol][1] += not same
+    out["control"] = {h: tuple(v) for h, v in control.items()}
+    out["recovered"] = recovered
+    out["cards"] = {c: tuple(v) for c, v in cards.items()}
+    return out
+
+
+def cmd_hdr_verify(args) -> int:
+    """Prove the re-scrape before S0 is allowed to trust it.
+
+    Claims checked:
+      1. every catalog row was re-scraped;
+      2. nothing the original scan could read failed to read here;
+      3. on the four cards BOTH scans read, the two readings never
+         disagree (the control group — it must also be non-empty, the
+         lesson of the geometry verify's vacuous first version).
+    """
+    con = connect(DB, read_only=True)
+    c = hdr_verify_counts(con)
+    print(f"catalog rows: {c['n_obs']}   re-scraped: {c['n_scanned']}   "
+          f"missing: {c['n_obs'] - c['n_scanned']}   (MUST be 0)")
+    print(f"unreadable: {c['n_unreadable']}   of which readable by the "
+          f"original scan: {c['n_unreadable_new']}   (MUST be 0)")
+    print("\ncontrol group — cards both scans read:")
+    n_control = n_bad = 0
+    for col, (both, bad) in c["control"].items():
+        n_control += both
+        n_bad += bad
+        print(f"   {col:<12} compared {both:>7}   disagree {bad:>5}   "
+              f"(MUST be 0)   recovered where the catalog was NULL: "
+              f"{c['recovered'][col]}")
+    print("\nper card, over readable rows (value / blank / absent):")
+    for col, (v, b, a) in c["cards"].items():
+        print(f"   {col:<12} {v:>7} / {b:>6} / {a:>7}")
+    ok = (c["n_obs"] == c["n_scanned"] and c["n_unreadable_new"] == 0
+          and n_bad == 0 and n_control > 0)
+    print("\nVERDICT:", "PASS — every row re-scraped, control group agrees"
+          if ok else "FAIL — see the MUST-be-0 lines above")
+    return 0 if ok else 1
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Repair phantom BINTABLE geometry in the RLMT catalog.")
+        description="Repair phantom BINTABLE geometry in the RLMT catalog, "
+                    "and re-scrape the hardware-state header cards.")
     ap.add_argument("--max-naxis1", type=int, default=CANDIDATE_MAX_NAXIS1,
                     dest="max_naxis1",
                     help="rescan rows whose stored naxis1 is <= this "
@@ -445,6 +740,17 @@ def main() -> int:
     e.add_argument("--n-cards", type=int, default=22, dest="n_cards",
                    help="how many leading cards to store")
     e.set_defaults(fn=cmd_exemplar)
+    h = sub.add_parser("hdr-run")
+    h.add_argument("--workers", type=int, default=HDR_DEFAULT_WORKERS,
+                   help=f"reader threads (capped at {HDR_MAX_WORKERS})")
+    h.add_argument("--limit", type=int, default=None,
+                   help="stop after N rows (for a trial run)")
+    h.add_argument("--retry-errors", action="store_true",
+                   dest="retry_errors",
+                   help="also re-read rows whose last attempt failed")
+    h.set_defaults(fn=cmd_hdr_run)
+    sub.add_parser("hdr-status").set_defaults(fn=cmd_hdr_status)
+    sub.add_parser("hdr-verify").set_defaults(fn=cmd_hdr_verify)
     args = ap.parse_args()
     return args.fn(args)
 

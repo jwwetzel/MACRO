@@ -2717,3 +2717,837 @@ BUILDERS: dict[str, dict] = {
 }
 
 FIGURE_IDS: tuple[str, ...] = tuple(sorted(BUILDERS))
+
+
+# ===========================================================================
+# REVISION FIGURES (committee review of 2026-10-03, CV-R1...R8)
+# ===========================================================================
+# These are drawn from the ``rv_`` tables that
+# ``pipeline/scripts/run_cv_revision.py`` writes, by that script's
+# ``figures`` stage.  They live in their own registry, NOT in ``BUILDERS``:
+# the thirteen figures above are the first draft's and ``main.tex``
+# includes exactly those; which of the figures below replaces which is the
+# manuscript package's decision, and until it is made the first draft's
+# figure count, captions file and macros must not move underneath it.
+#
+# Every builder takes the photometry-products connection and returns
+# ``(Figure, FigureSpec)`` exactly like the builders above.  ``spec.note``
+# carries the committee finding ids the figure answers.
+
+_REV_BANDS = ("g", "r", "i")
+_REV_EST_LABEL = {
+    "v1": "published (mag, per-band widths)",
+    "magc": "mag, common widths",
+    "v2": "flux, common widths",
+}
+_REV_EST_COLOR = {"v1": OKABE_ITO["black"], "magc": OKABE_ITO["orange"],
+                  "v2": OKABE_ITO["purple"]}
+_REV_EST_MARKER = {"v1": "o", "magc": "s", "v2": "D"}
+
+
+def _rv(cv, key: str, default=None):
+    """One scalar from ``rv_result``, or ``default`` when it is absent."""
+    r = cv.execute("SELECT value FROM rv_result WHERE key = ?",
+                   (key,)).fetchone()
+    return default if r is None or r[0] is None else float(r[0])
+
+
+def figR1_band_offset(cv):
+    """R1/D3 -- the inter-band edge offset, shown four ways."""
+    fig, axes = plt.subplots(2, 2, figsize=(COL_DOUBLE, 5.4))
+    (ax_stack, ax_pairs), (ax_forest, ax_inj) = axes
+
+    # (a) The cycle-aligned, level-normalised egress, per band.
+    scope = "aligned all"
+    n_cyc = _rv(cv, "rv halfflux aligned all gi cycles", 0)
+    for b in _REV_BANDS:
+        rows = read_rows(cv, "SELECT dt_s, level, err FROM rv_stack WHERE "
+                             "scope=? AND band=? AND level IS NOT NULL "
+                             "ORDER BY dt_s", (scope, b))
+        if not rows:
+            continue
+        x = np.array([r["dt_s"] for r in rows])
+        y = np.array([r["level"] for r in rows])
+        e = np.array([r["err"] if r["err"] is not None else np.nan
+                      for r in rows])
+        ax_stack.errorbar(x, y, yerr=e, lw=0.7, capsize=0, ms=3.2,
+                          ecolor=BAND_COLOR[b],
+                          **ps.measurement_kw(BAND_COLOR[b], BAND_MARKER[b]))
+        ax_stack.plot(x, y, lw=0.7, color=BAND_COLOR[b], alpha=0.6)
+        th = cv.execute("SELECT t_half_s FROM rv_halfflux WHERE era=? AND "
+                        "band=?", (scope, b)).fetchone()
+        if th and th[0] is not None:
+            ax_stack.plot([th[0]], [0.5], marker="|", ms=13, mew=1.6,
+                          color=BAND_COLOR[b])
+    ax_stack.axhline(0.5, **ps.reference_kw())
+    ax_stack.set_xlim(-700, 700)
+    ax_stack.set_ylim(-0.25, 1.3)
+    ax_stack.set_xlabel("time from the cycle's mean edge epoch (s)")
+    ax_stack.set_ylabel("flux level (bright = 1, faint = 0)")
+    ax_stack.set_title(f"(a) egress stacked over {n_cyc:.0f} cycles timed "
+                       "in g, r and i", fontsize=7, loc="left")
+    ax_stack.legend(handles=[ps.measurement_handle(b, BAND_COLOR[b],
+                                                   BAND_MARKER[b])
+                             for b in _REV_BANDS], fontsize=6,
+                    loc="upper right", frameon=False)
+
+    # (b) Every same-cycle g-i difference, two estimators.
+    for est, dx in (("v1", -0.13), ("v2", 0.13)):
+        rows = read_rows(cv, """
+            SELECT a.cycle, a.era_id, (a.t_edge_bjd - b.t_edge_bjd) * 86400.0
+                   AS d, a.sigma_edge_s AS sa, b.sigma_edge_s AS sb
+            FROM rv_edge a JOIN rv_edge b ON a.cycle = b.cycle
+             AND a.estimator = b.estimator
+            WHERE a.estimator = ? AND a.band = 'g' AND b.band = 'i'
+              AND a.accepted = 1 AND b.accepted = 1 ORDER BY a.cycle""",
+                         (est,))
+        if not rows:
+            continue
+        x = np.arange(len(rows)) + dx
+        d = np.array([r["d"] for r in rows])
+        s = np.array([math.hypot(r["sa"] or 0.0, r["sb"] or 0.0)
+                      for r in rows])
+        ax_pairs.errorbar(x, d, yerr=s, lw=0.6, capsize=0, ms=3.0,
+                          ecolor=_REV_EST_COLOR[est],
+                          **ps.measurement_kw(_REV_EST_COLOR[est],
+                                              _REV_EST_MARKER[est]))
+        m = _rv(cv, f"rv off {est} gi era all mean s")
+        se = _rv(cv, f"rv off {est} gi era all se s")
+        if m is not None and se is not None:
+            ax_pairs.axhspan(m - se, m + se, color=_REV_EST_COLOR[est],
+                             alpha=0.13, lw=0)
+            ax_pairs.axhline(m, color=_REV_EST_COLOR[est], lw=0.9)
+        if est == "v1":
+            n7 = sum(1 for r in rows if r["era_id"] == 7)
+            if 0 < n7 < len(rows):
+                ax_pairs.axvline(n7 - 0.5, color=ps.WISP, lw=0.8)
+                ax_pairs.text(n7 - 0.6, 0.97, "2024", fontsize=5.6,
+                              ha="right", va="top", color=ps.MUTED,
+                              transform=ax_pairs.get_xaxis_transform())
+                ax_pairs.text(n7 - 0.4, 0.97, "2025", fontsize=5.6,
+                              ha="left", va="top", color=ps.MUTED,
+                              transform=ax_pairs.get_xaxis_transform())
+    ax_pairs.axhline(0.0, **ps.reference_kw())
+    ax_pairs.set_xlabel("same-cycle pair, in time order")
+    ax_pairs.set_ylabel(r"$t_g - t_i$ (s)")
+    ax_pairs.set_title("(b) every cycle timed in both g and i", fontsize=7,
+                       loc="left")
+    ax_pairs.legend(handles=[ps.measurement_handle(
+        _REV_EST_LABEL[e], _REV_EST_COLOR[e], _REV_EST_MARKER[e])
+        for e in ("v1", "v2")], fontsize=5.6, loc="lower left",
+        frameon=False)
+
+    # (c) Forest: three pairs x three estimators, scatter-based errors,
+    # with the first draft's budget-based interval behind the v1 rows.
+    ypos, ylab = [], []
+    y = 0.0
+    for a, b in (("g", "i"), ("g", "r"), ("r", "i")):
+        for est in ("v1", "magc", "v2"):
+            tag = f"rv off {est} {a}{b} era all"
+            m, se = _rv(cv, f"{tag} mean s"), _rv(cv, f"{tag} se s")
+            if m is None or se is None:
+                continue
+            if est == "v1":
+                sp = _rv(cv, f"{tag} sigma pub s")
+                pooled = cv.execute(
+                    "SELECT delta_s, sigma_s FROM p3_band_pair WHERE "
+                    "target_key='stlmi' AND era_id=76 AND night='(pooled)' "
+                    "AND band_a=? AND band_b=?", (a, b)).fetchone()
+                if pooled is not None and pooled[1]:
+                    ax_forest.errorbar([pooled[0]], [y], xerr=[pooled[1]],
+                                       lw=3.2, capsize=0, fmt="none",
+                                       ecolor=ps.WISP)
+                del sp
+            ax_forest.errorbar([m], [y], xerr=[se], lw=0.9, capsize=1.6,
+                               ms=3.4, ecolor=_REV_EST_COLOR[est],
+                               **ps.measurement_kw(_REV_EST_COLOR[est],
+                                                   _REV_EST_MARKER[est]))
+            ypos.append(y)
+            ylab.append(f"${a}-{b}$" if est == "magc" else "")
+            y -= 1.0
+        y -= 0.8
+    ax_forest.axvline(0.0, **ps.reference_kw())
+    ax_forest.set_yticks(ypos)
+    ax_forest.set_yticklabels(ylab)
+    ax_forest.tick_params(axis="y", length=0)
+    ax_forest.set_xlabel("mean same-cycle edge-time difference (s)")
+    ax_forest.set_title("(c) all pairs: scatter-based errors (points); "
+                        "first draft's interval (grey)", fontsize=7,
+                        loc="left")
+    ax_forest.legend(handles=[ps.measurement_handle(
+        _REV_EST_LABEL[e], _REV_EST_COLOR[e], _REV_EST_MARKER[e])
+        for e in ("v1", "magc", "v2")], fontsize=5.4, loc="lower left",
+        frameon=False)
+
+    # (d) What an achromatic edge does to each estimator's g-i.
+    for est in ("v1", "magc", "v2"):
+        rows = read_rows(cv, """
+            SELECT true_width_a_s AS w, bias_s, bias_se_s FROM
+            rv_inject_summary WHERE kind='pair' AND era='all' AND
+            estimator=? AND noise='rolled' AND band_a='g' AND band_b='i'
+            AND true_width_a_s = true_width_b_s ORDER BY w""", (est,))
+        if rows:
+            ax_inj.errorbar([r["w"] for r in rows],
+                            [r["bias_s"] for r in rows],
+                            yerr=[r["bias_se_s"] for r in rows], lw=0.8,
+                            capsize=0, ms=3.2, ecolor=_REV_EST_COLOR[est],
+                            **ps.measurement_kw(_REV_EST_COLOR[est],
+                                                _REV_EST_MARKER[est]))
+            ax_inj.plot([r["w"] for r in rows], [r["bias_s"] for r in rows],
+                        lw=0.7, color=_REV_EST_COLOR[est])
+        lo = _rv(cv, f"rv dbias {est} gi min s")
+        hi = _rv(cv, f"rv dbias {est} gi max s")
+        if lo is not None and hi is not None:
+            x0 = {"v1": 560, "magc": 600, "v2": 640}[est]
+            ax_inj.plot([x0, x0], [lo, hi], lw=2.4,
+                        color=_REV_EST_COLOR[est], alpha=0.45,
+                        solid_capstyle="butt")
+    for est in ("v1", "v2"):
+        m = _rv(cv, f"rv off {est} gi era all mean s")
+        se = _rv(cv, f"rv off {est} gi era all se s")
+        if m is not None and se is not None:
+            ax_inj.axhspan(m - se, m + se, color=_REV_EST_COLOR[est],
+                           alpha=0.13, lw=0)
+            ax_inj.axhline(m, color=_REV_EST_COLOR[est], lw=0.9, ls="--")
+            ax_inj.text(22, m + 4, f"observed, {est}", fontsize=5.6,
+                        color=_REV_EST_COLOR[est], va="bottom")
+    ax_inj.axhline(0.0, **ps.reference_kw())
+    ax_inj.set_xscale("log")
+    ax_inj.set_xlim(20, 760)
+    ax_inj.set_xticks([30, 60, 120, 240, 480])
+    ax_inj.set_xticklabels(["30", "60", "120", "240", "480"])
+    ax_inj.minorticks_off()
+    ax_inj.set_xlabel("injected ramp width, same in both bands (s)")
+    ax_inj.set_ylabel(r"recovered $t_g - t_i$ (s)")
+    ax_inj.set_title("(d) the same instant injected in g and i",
+                     fontsize=7, loc="left")
+    for ax in axes.ravel():
+        ax.grid(color=ps.GRID)
+    fig.tight_layout()
+
+    def num(key, nd=0):
+        v = _rv(cv, key)
+        return "?" if v is None else f"{v:.{nd}f}"
+    spec = FigureSpec(
+        fig_id="figR1", label="fig:bandoffset",
+        title="The g-i edge offset: stack, pairs, estimators, injection",
+        caption=(
+            "The bright-phase edge of ST LMi falls earlier in $g$ than in "
+            "$i$. (a) Relative flux through egress, each cycle normalised "
+            "to its own fitted bright and faint levels and aligned on the "
+            "mean of its three bands' flux-fit epochs, median-binned over "
+            "the cycles timed in all three bands; ticks mark where each "
+            "band crosses the half level. (b) The same-cycle difference "
+            "$t_g - t_i$ for every cycle timed in both bands, under the "
+            "published magnitude-space estimator and the flux-space one; "
+            "error bars are per-edge bootstrap errors, bands are the mean "
+            "and its scatter-based standard error "
+            f"({num('rv off v1 gi era all mean s')} $\\pm$ "
+            f"{num('rv off v1 gi era all se s')} s and "
+            f"{num('rv off v2 gi era all mean s')} $\\pm$ "
+            f"{num('rv off v2 gi era all se s')} s). (c) All three band "
+            "pairs under three estimators; the grey bars are the first "
+            "draft's budget-based intervals for the 2025 pairs. (d) The "
+            "difference each estimator returns when ONE instant is "
+            "injected into both bands' real timestamps with each band's "
+            "real depth and real residuals, against the injected ramp "
+            "width; the vertical bars at right span all 25 combinations "
+            "of unequal widths. Dashed lines are the observed offsets."),
+        tables=("rv_stack", "rv_halfflux", "rv_edge", "rv_band_offset",
+                "rv_inject_summary", "p3_band_pair", "rv_result"),
+        width_in=COL_DOUBLE, note="CV-R1, CV-R2, D3 (DS.F1, RF.B1, RF.B2)")
+    return fig, spec
+
+
+def figR2_injection_bias(cv):
+    """R2 -- the SIGNED injection bias per band, era and estimator."""
+    eras = (7, 76)
+    ests = ("v1", "magc", "v2")
+    fig, axes = plt.subplots(len(eras), len(ests),
+                             figsize=(COL_DOUBLE, 4.3), sharex=True,
+                             sharey=True, squeeze=False)
+    floor_old = cv.execute("SELECT max(sigma_floor_s) FROM p3_oc_night "
+                           "WHERE target_key='stlmi'").fetchone()[0]
+    for r_, era in enumerate(eras):
+        for c_, est in enumerate(ests):
+            ax = axes[r_][c_]
+            for b in _REV_BANDS:
+                rows = read_rows(cv, """
+                    SELECT true_width_a_s AS w, bias_s, bias_se_s, matched
+                    FROM rv_inject_summary WHERE kind='band' AND era=? AND
+                    estimator=? AND noise='rolled' AND band_a=?
+                    ORDER BY w""", (str(era), est, b))
+                if not rows:
+                    continue
+                w = np.array([r["w"] for r in rows])
+                y = np.array([r["bias_s"] for r in rows])
+                e = np.array([r["bias_se_s"] for r in rows])
+                ax.errorbar(w, y, yerr=e, lw=0.8, capsize=0, ms=3.0,
+                            ecolor=BAND_COLOR[b],
+                            **ps.measurement_kw(BAND_COLOR[b],
+                                                BAND_MARKER[b]))
+                ax.plot(w, y, lw=0.7, color=BAND_COLOR[b])
+                for r in rows:
+                    if r["matched"]:
+                        ax.plot([r["w"]], [r["bias_s"]], marker="o", ms=8.5,
+                                mfc="none", mec=BAND_COLOR[b], mew=0.9,
+                                ls="none")
+            if floor_old:
+                ax.axhspan(-floor_old, floor_old, color=ps.WISP, alpha=0.6,
+                           lw=0)
+            ax.axhline(0.0, **ps.reference_kw())
+            ax.set_xscale("log")
+            ax.set_xlim(22, 650)
+            ax.set_xticks([30, 60, 120, 240, 480])
+            ax.set_xticklabels(["30", "60", "120", "240", "480"])
+            ax.minorticks_off()
+            ax.grid(color=ps.GRID)
+            if r_ == 0:
+                ax.set_title(_REV_EST_LABEL[est], fontsize=7, loc="left")
+            if c_ == 0:
+                ax.set_ylabel(f"{'2024 High Gain' if era == 7 else '2025 Mode0'}"
+                              "\nsigned bias (s)", fontsize=7)
+            if r_ == len(eras) - 1:
+                ax.set_xlabel("injected flux-ramp width (s)")
+    axes[0][0].legend(handles=[ps.measurement_handle(b, BAND_COLOR[b],
+                                                     BAND_MARKER[b])
+                               for b in _REV_BANDS], fontsize=6,
+                      loc="upper left", frameon=False, ncol=3)
+    fig.tight_layout()
+    spec = FigureSpec(
+        fig_id="figR2", label="fig:injectionbias",
+        title="Signed injection bias per band, era and estimator",
+        caption=(
+            "Recovered minus injected edge time, SIGNED, when a linear "
+            "flux ramp of known epoch is written into the real timestamps "
+            "of every night that contributes a timing epoch and recovered "
+            "by each estimator, with each band's real depth and real "
+            "residual noise; nights are combined with the weights the real "
+            "epochs have. Error bars are standard errors over "
+            "realisations. Open rings mark each band's matched cell (the "
+            "injected width nearest the width the flux fit returns for "
+            "that band's real edges). The grey band is the "
+            f"$\\pm${floor_old:.1f} s `bias floor' the first draft "
+            "carried, a median of absolute values. The magnitude-space "
+            "estimators time a wide ramp late, and later in the deeper "
+            "bands, because the magnitude midpoint of a linear flux ramp "
+            "is not its flux midpoint; the flux-space estimator does not."
+            if floor_old else
+            "Recovered minus injected edge time, signed, per band, era and "
+            "estimator."),
+        tables=("rv_inject_summary", "rv_inject_band", "p3_oc_night"),
+        width_in=COL_DOUBLE, note="CV-R2 (RF.B2, RF.B3, DS.F3)")
+    return fig, spec
+
+
+def figR3_oc_refit(cv):
+    """R3 -- the O-C with per-band constants, and the bound every way."""
+    eph = read_ephemeris(cv)["stlmi"]
+    period = float(eph["period_d"])
+    fig = plt.figure(figsize=(COL_DOUBLE, 5.6))
+    gs = fig.add_gridspec(2, 3, width_ratios=[1.0, 2.2, 0.55],
+                          height_ratios=[1.0, 1.05], hspace=0.42,
+                          wspace=0.08)
+    ax24 = fig.add_subplot(gs[0, 0])
+    ax25 = fig.add_subplot(gs[0, 1], sharey=ax24)
+    ax26 = fig.add_subplot(gs[0, 2], sharey=ax24)
+    ax_f = fig.add_subplot(gs[1, :])
+
+    ep = read_rows(cv, """SELECT night, filter, era_id, cycle_mean, oc_s,
+        n_cycles FROM p3_oc_night WHERE target_key='stlmi'""")
+    fit = cv.execute("SELECT * FROM rv_oc_fit WHERE variant='v1/scatter' "
+                     "AND model='band'").fetchone()
+    sb = {b: _rv(cv, f"rv oc v1 cycle scatter {b} s") for b in _REV_BANDS}
+    panels = ((ax24, 13000, 13800, "2024"), (ax25, 17900, 19200, "2025"),
+              (ax26, 21700, 22100, "2025-26"))
+    for ax, lo, hi, lab in panels:
+        for r in ep:
+            if not lo <= r["cycle_mean"] <= hi:
+                continue
+            b = r["filter"].lower()
+            s = (sb.get(b) or 0.0) / math.sqrt(r["n_cycles"]) \
+                if b in sb and sb[b] else None
+            ax.errorbar([r["cycle_mean"]], [r["oc_s"]],
+                        yerr=[s] if s else None, lw=0.6, capsize=0, ms=3.2,
+                        ecolor=BAND_COLOR.get(b, "k"),
+                        **ps.measurement_kw(BAND_COLOR.get(b, "k"),
+                                            BAND_MARKER.get(b, "o")))
+        if fit is not None:
+            for b in _REV_BANDS:
+                c = fit[f"const_{b}_s"]
+                if c is not None:
+                    ax.axhline(c, color=BAND_COLOR[b], lw=0.9, alpha=0.75)
+        ax.axhline(0.0, **ps.reference_kw())
+        ax.set_xlim(lo, hi)
+        ax.set_title(lab, fontsize=7, loc="left")
+        ax.grid(color=ps.GRID)
+        ax.tick_params(axis="x", labelsize=6)
+    ax24.set_ylabel("O$-$C (s)")
+    ax25.set_xlabel("cycle from the catalogue epoch")
+    for ax in (ax25, ax26):
+        plt.setp(ax.get_yticklabels(), visible=False)
+    ax25.legend(handles=[ps.measurement_handle(b, BAND_COLOR[b],
+                                               BAND_MARKER[b])
+                         for b in _REV_BANDS], fontsize=6, ncol=3,
+                loc="lower left", frameon=False)
+
+    # Forest of the period derivative, every model, two estimators.
+    order = ("pooled", "band", "night", "band+era", "night+era",
+             "band no2024", "night no2024")
+    nice = {"pooled": "one constant (first draft's model)",
+            "band": "per-band constants",
+            "night": "night-level epochs",
+            "band+era": "per-band constants + era offset",
+            "night+era": "night-level + era offset",
+            "band no2024": "per-band constants, 2024 dropped",
+            "night no2024": "night-level, 2024 dropped"}
+    y = 0.0
+    yt, yl = [], []
+    for model in order:
+        for variant, col, mk, dy in (("v1/scatter", _REV_EST_COLOR["v1"],
+                                      "o", 0.16),
+                                     ("v2/scatter", _REV_EST_COLOR["v2"],
+                                      "D", -0.16)):
+            r = cv.execute("SELECT pdot, pdot_sigma_scatter, "
+                           "pdot_limit3_scatter FROM rv_oc_fit WHERE "
+                           "variant=? AND model=?", (variant, model)
+                           ).fetchone()
+            if r is None or r["pdot"] is None:
+                continue
+            ax_f.errorbar([r["pdot"] * 1e9], [y + dy],
+                          xerr=[3 * r["pdot_sigma_scatter"] * 1e9], lw=0.5,
+                          capsize=0, fmt="none", ecolor=col, alpha=0.5)
+            ax_f.errorbar([r["pdot"] * 1e9], [y + dy],
+                          xerr=[r["pdot_sigma_scatter"] * 1e9], lw=1.4,
+                          capsize=0, ms=3.2, ecolor=col,
+                          **ps.measurement_kw(col, mk))
+        yt.append(y)
+        yl.append(nice[model])
+        y -= 1.0
+    pub = cv.execute("SELECT pdot_limit3_budget FROM rv_oc_fit WHERE "
+                     "variant='v1/pub' AND model='pooled'").fetchone()
+    if pub is not None and pub[0]:
+        for sgn in (-1, 1):
+            ax_f.axvline(sgn * pub[0] * 1e9, color=ps.WARN, lw=0.9, ls=":")
+        ax_f.text(pub[0] * 1e9, 0.55, " first draft's bound", fontsize=5.6,
+                  color=ps.WARN, va="bottom", ha="left")
+    ax_f.axvline(0.0, **ps.reference_kw())
+    ax_f.set_yticks(yt)
+    ax_f.set_yticklabels(yl, fontsize=6.4)
+    ax_f.set_ylim(y + 0.4, 1.0)
+    ax_f.set_xlabel(r"$\dot P$ ($10^{-9}$, dimensionless); thick bar "
+                    r"$1\sigma$, thin bar $3\sigma$, scatter-based")
+    ax_f.grid(color=ps.GRID, axis="x")
+    ax_f.legend(handles=[
+        ps.measurement_handle("published estimator",
+                              _REV_EST_COLOR["v1"], "o"),
+        ps.measurement_handle("flux-space estimator",
+                              _REV_EST_COLOR["v2"], "D")],
+        fontsize=6, loc="lower right", frameon=False)
+    del period
+    spec = FigureSpec(
+        fig_id="figR3", label="fig:ocrefit",
+        title="O-C with per-band constants; the period-derivative bound "
+              "every way",
+        caption=(
+            "Top: the per-night, per-band edge epochs of ST LMi against "
+            "the catalogue ephemeris (mean removed), in the three seasons "
+            "they fall in. Horizontal lines are the per-band constants of "
+            "the fit with one constant per band; error bars are the "
+            "scatter-based errors $s_{\\rm band}/\\sqrt{n}$ that fit "
+            "implies, not the first draft's transported budget. Bottom: "
+            "the period derivative from the quadratic term under every "
+            "model the committee asked for, with $1\\sigma$ (thick) and "
+            "$3\\sigma$ (thin) scatter-based intervals, for the published "
+            "and the flux-space estimators. Dotted lines mark the first "
+            "draft's bound. Per-band constants and night-level epochs "
+            "leave the bound where it was; an era-offset nuisance term or "
+            "dropping the 2024 season widens it severalfold, because the "
+            "quadratic is then constrained only within one season."),
+        tables=("p3_oc_night", "rv_oc_fit", "rv_result"),
+        width_in=COL_DOUBLE, note="CV-R3 (DS.F2, RF.M3, RF.B2)")
+    return fig, spec
+
+
+def figR4_longitude(cv):
+    """R5 -- the same residuals as spot longitude, by accretion state."""
+    eph = read_ephemeris(cv)["stlmi"]
+    period_s = float(eph["period_d"]) * 86400.0
+    fit = cv.execute("SELECT * FROM rv_oc_fit WHERE variant='v1/scatter' "
+                     "AND model='band'").fetchone()
+    ep = read_rows(cv, """
+        SELECT o.night, o.filter, o.era_id, o.cycle_mean, o.oc_s,
+               o.n_cycles, COALESCE(s.state, 'UNCLASSIFIED') AS state
+        FROM p3_oc_night o LEFT JOIN p3_state_night s
+          ON s.target_key = o.target_key AND s.night = o.night
+         AND s.series_key = o.series_key
+        WHERE o.target_key='stlmi' AND lower(o.filter) IN ('g','r','i')
+        ORDER BY o.cycle_mean""")
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(COL_DOUBLE, 2.9),
+                                  gridspec_kw={"width_ratios": [2.6, 1.0]},
+                                  sharey=True)
+    nights = sorted({r["night"] for r in ep})
+    xi = {n: k for k, n in enumerate(nights)}
+    # Residual about the per-band constant and the fitted linear term of
+    # the per-band-constant fit; the quadratic is NOT removed.
+    e0 = float(np.mean([r["cycle_mean"] for r in ep]))
+    for r in ep:
+        b = r["filter"].lower()
+        c = fit[f"const_{b}_s"] if fit is not None else 0.0
+        beta = fit["beta_s_per_cycle"] if fit is not None else 0.0
+        res = r["oc_s"] - (c or 0.0) - (beta or 0.0) * (r["cycle_mean"] - e0)
+        deg = 360.0 * res / period_s
+        st = r["state"].lower()
+        ax.plot([xi[r["night"]] + {"g": -0.2, "r": 0.0, "i": 0.2}[b]],
+                [deg], **ps.measurement_kw(
+                    STATE_COLOR.get(st, OKABE_ITO["grey"]), BAND_MARKER[b],
+                    size=4.0))
+    ax.axhline(0.0, **ps.reference_kw())
+    rms = _rv(cv, "rv long rms deg")
+    if rms is not None:
+        ax.axhspan(-rms, rms, color=ps.WISP, alpha=0.5, lw=0)
+    ax.set_xticks(range(len(nights)))
+    ax.set_xticklabels([n[2:] for n in nights], rotation=70, fontsize=5.4)
+    # Headroom for the legend, so it never sits on an epoch.
+    lo_y, hi_y = ax.get_ylim()
+    ax.set_ylim(lo_y, hi_y + 0.38 * (hi_y - lo_y))
+    ax.set_ylabel("spot longitude residual (deg)")
+    ax.set_xlabel("night (yy-mm-dd)")
+    ax.grid(color=ps.GRID)
+    handles = [Line2D([], [], label=s.lower(), **ps.measurement_kw(
+        STATE_COLOR[s.lower()], "o", size=4.0))
+        for s in ("HIGH", "INTERMEDIATE", "LOW", "UNCLASSIFIED")]
+    handles += [Line2D([], [], label=b, **ps.measurement_kw(
+        ps.MUTED, BAND_MARKER[b], size=4.0)) for b in _REV_BANDS]
+    ax.legend(handles=handles, fontsize=5.4, ncol=4, loc="upper left",
+              frameon=False)
+    rows = read_rows(cv, "SELECT grp, n_epochs, mean_deg, se_deg FROM "
+                         "rv_longitude WHERE scope='state'")
+    order = ["HIGH", "INTERMEDIATE", "LOW", "UNCLASSIFIED"]
+    for k, st in enumerate(order):
+        r = next((x for x in rows if x["grp"] == st), None)
+        if r is None:
+            continue
+        ax2.errorbar([k], [r["mean_deg"]],
+                     yerr=[r["se_deg"]] if r["se_deg"] else None, lw=0.9,
+                     capsize=1.6, ms=4.2,
+                     ecolor=STATE_COLOR[st.lower()],
+                     **ps.measurement_kw(STATE_COLOR[st.lower()], "o"))
+        ax2.text(k, 0.03, f"n={r['n_epochs']}", fontsize=5.4, ha="center",
+                 transform=ax2.get_xaxis_transform())
+    ax2.axhline(0.0, **ps.reference_kw())
+    ax2.set_xticks(range(len(order)))
+    ax2.set_xticklabels(["high", "interm.", "low", "unclass."],
+                        fontsize=5.8)
+    ax2.set_xlim(-0.6, len(order) - 0.4)
+    ax2.set_title("mean per state", fontsize=7, loc="left")
+    ax2.grid(color=ps.GRID)
+    fig.tight_layout()
+
+    def num(key, nd=1):
+        v = _rv(cv, key)
+        return "?" if v is None else f"{v:.{nd}f}"
+    spec = FigureSpec(
+        fig_id="figR4", label="fig:longitude",
+        title="Accretion-spot longitude by night and by accretion state",
+        caption=(
+            "The edge-time residuals of ST LMi expressed as accretion-spot "
+            "longitude, $360^\\circ\\,\\Delta t/P$, about per-band "
+            "constants and a linear ephemeris. Left: every per-night, "
+            "per-band epoch, coloured by the accretion state that band's "
+            "own series assigned to the night and shaped by band; the grey "
+            f"band is the rms, {num('rv long rms deg')}$^\\circ$. Right: "
+            "the mean per state with its scatter-based standard error. "
+            "High minus low is "
+            f"{num('rv long high minus low deg')} $\\pm$ "
+            f"{num('rv long high minus low err deg')}$^\\circ$; a shift "
+            f"of {num('rv long state detectable deg')}$^\\circ$ would have "
+            "been seen at $3\\sigma$."),
+        tables=("p3_oc_night", "p3_state_night", "rv_oc_fit",
+                "rv_longitude", "rv_result"),
+        width_in=COL_DOUBLE, note="CV-R5 (PH.P2, RF.M3)")
+    return fig, spec
+
+
+def figR5_colour_curves(cv):
+    """R6 -- the colour curves, three estimators, two eras."""
+    colours = ("g-r", "r-i", "g-i")
+    eras = (7, 76)
+    methods = (("pair600", "nearest within 600 s", OKABE_ITO["grey"], "o"),
+               ("pair120", "nearest within 120 s", OKABE_ITO["orange"],
+                "s"),
+               ("interp", "interpolated", OKABE_ITO["blue"], "D"))
+    fig, axes = plt.subplots(len(colours), len(eras),
+                             figsize=(COL_DOUBLE, 5.6), sharex=True,
+                             squeeze=False)
+    edge = cv.execute("SELECT avg(phase) FROM p3_edge WHERE "
+                      "target_key='stlmi' AND accepted=1").fetchone()[0]
+    for r_, colour in enumerate(colours):
+        for c_, era in enumerate(eras):
+            ax = axes[r_][c_]
+            text = []
+            for method, lab, col, mk in methods:
+                rows = read_rows(cv, """
+                    SELECT phase, median_mag, err_mag FROM rv_colour_curve
+                    WHERE era_id=? AND colour=? AND method=? AND
+                    median_mag IS NOT NULL ORDER BY phase""",
+                                 (era, colour, method))
+                if not rows:
+                    continue
+                x = np.array([r["phase"] for r in rows])
+                y = np.array([r["median_mag"] for r in rows])
+                e = np.array([r["err_mag"] if r["err_mag"] is not None
+                              else np.nan for r in rows])
+                off = {"pair600": -0.008, "pair120": 0.0,
+                       "interp": 0.008}[method]
+                ax.errorbar(np.concatenate([x, x + 1]) + off,
+                            np.concatenate([y, y]),
+                            yerr=np.concatenate([e, e]), lw=0.6, capsize=0,
+                            ms=2.6, ecolor=col,
+                            **ps.measurement_kw(col, mk))
+                s = cv.execute("""SELECT amplitude_mag, amplitude_err_mag,
+                    n_pairs FROM rv_colour_summary WHERE era_id=? AND
+                    colour=? AND method=?""", (era, colour, method)
+                               ).fetchone()
+                if s is not None and s["amplitude_mag"] is not None:
+                    err = (f" $\\pm$ {s['amplitude_err_mag']:.2f}"
+                           if s["amplitude_err_mag"] else "")
+                    text.append(f"{lab}: {s['amplitude_mag']:.2f}{err} mag"
+                                f" ({s['n_pairs']})")
+            if edge is not None:
+                for k in (0, 1):
+                    ax.axvline(edge + k, color=ps.MUTED, lw=0.7, ls=":")
+            # Between the two bright phases, above the faint-phase
+            # plateau: the one region of every panel that holds no data.
+            ax.text(0.5, 0.97, "\n".join(text), transform=ax.transAxes,
+                    ha="center", va="top", fontsize=5.2, color=ps.INK)
+            ax.set_xlim(0, 2)
+            ax.grid(color=ps.GRID)
+            if c_ == 0:
+                a, b = colour.split("-")
+                ax.set_ylabel(f"${a}-{b}$ (mag)")
+            if r_ == 0:
+                ax.set_title(f"{ERA_LABEL.get(era, era)} "
+                             f"({'2024' if era == 7 else '2025-26'})",
+                             fontsize=7.5, loc="left")
+    for ax in axes[-1]:
+        ax.set_xlabel("orbital phase (cycles, repeated)")
+    fig.legend(handles=[ps.measurement_handle(lab, col, mk)
+                        for _, lab, col, mk in methods],
+               fontsize=6, loc="upper center", ncol=3, frameon=False)
+    fig.tight_layout(rect=(0, 0, 1, 0.965))
+    spec = FigureSpec(
+        fig_id="figR5", label="fig:colourcurves",
+        title="ST LMi colour curves under three pairing rules, two eras",
+        caption=(
+            "Median colour of ST LMi in twenty orbital-phase bins, in the "
+            "two instrument eras, built three ways: the first draft's "
+            "nearest-exposure pairing within 600 s, the same within "
+            "120 s, and with the bluer band linearly interpolated to the "
+            "redder band's exposure times, which removes the first-order "
+            "effect of non-simultaneity altogether. Error bars are from a "
+            "bootstrap over nights. The amplitude printed in each panel is "
+            "the mean of the three reddest bins minus the mean of the "
+            "three bluest, with its night-bootstrap error and the number "
+            "of colour points. The dotted line is the mean phase of the "
+            "bright-phase falling edge. The star is reddest through the "
+            "bright phase and turns blue as the accretion region leaves "
+            "view; the swing has the same amplitude and phase in both "
+            "eras and under all three pairing rules."),
+        tables=("rv_colour_curve", "rv_colour_summary", "p3_edge"),
+        width_in=COL_DOUBLE, note="CV-R6 (RF.M1, ED.E2, PH.P6)")
+    return fig, spec
+
+
+def figR6_edge_fits(cv):
+    """R7 -- the chi-squared nobody printed, and three fits to judge by."""
+    fig = plt.figure(figsize=(COL_DOUBLE, 4.6))
+    gs = fig.add_gridspec(2, 3, height_ratios=[0.85, 1.0], hspace=0.5,
+                          wspace=0.28)
+    ax_h = fig.add_subplot(gs[0, :])
+    bins = np.logspace(-0.3, 3.4, 30)
+    bottom = np.zeros(bins.size - 1)
+    for b in _REV_BANDS:
+        v = [r[0] for r in cv.execute(
+            "SELECT chi2nu FROM rv_edge WHERE estimator='v1' AND band=? "
+            "AND chi2nu IS NOT NULL", (b,))]
+        h = np.histogram(v, bins=bins)[0]
+        ax_h.bar(bins[:-1], h, width=np.diff(bins), align="edge",
+                 bottom=bottom, color=BAND_COLOR[b], edgecolor=ps.INK,
+                 linewidth=0.3, label=f"{b} ({len(v)})",
+                 hatch={"g": "", "r": "///", "i": "..."}[b])
+        bottom += h
+    ax_h.axvline(1.0, **ps.reference_kw())
+    ax_h.set_xscale("log")
+    ax_h.set_xlabel(r"reduced $\chi^2$ of the published edge fit "
+                    "(2 to 13 degrees of freedom)")
+    ax_h.set_ylabel("accepted edges")
+    ax_h.legend(fontsize=6, frameon=False, title="band (edges)",
+                title_fontsize=6)
+    ax_h.grid(color=ps.GRID, axis="y")
+    med = _rv(cv, "rv fit v1 chinu median")
+    if med is not None:
+        ax_h.axvline(med, color=ps.WARN, lw=1.0)
+        ax_h.text(med, 0.97, f" median {med:.0f}", fontsize=6,
+                  color=ps.WARN, va="top",
+                  transform=ax_h.get_xaxis_transform())
+    for k, label in enumerate(("best", "median", "worst")):
+        ax = fig.add_subplot(gs[1, k])
+        rows = read_rows(cv, "SELECT * FROM rv_edge_example WHERE label=? "
+                             "ORDER BY k", (label,))
+        if not rows:
+            _empty_panel(ax, f"no '{label}' example stored")
+            continue
+        r0 = rows[0]
+        b = r0["band"]
+        x = np.array([r["dt_s"] for r in rows])
+        y = np.array([r["mag"] for r in rows])
+        e = np.array([r["err"] for r in rows])
+        ax.errorbar(x, y, yerr=e, lw=0.7, capsize=0, ms=3.4,
+                    ecolor=BAND_COLOR[b],
+                    **ps.measurement_kw(BAND_COLOR[b], BAND_MARKER[b]))
+        xx = np.linspace(x.min() - 60, x.max() + 60, 400)
+        ramp = np.clip(xx / max(r0["width_s"], 1e-9) + 0.5, 0.0, 1.0)
+        ax.plot(xx, r0["level_bright"] + r0["step"] * ramp, color=ps.INK,
+                lw=0.9)
+        ax.axvline(0.0, **ps.reference_kw())
+        ax.invert_yaxis()
+        ax.set_title(f"{label}: $\\chi^2_\\nu$ = {r0['chi2nu']:.3g} "
+                     f"({r0['dof']} dof)\n{b}, {r0['night']}, ramp "
+                     f"{r0['width_s']:.0f} s", fontsize=6.4, loc="left")
+        ax.set_xlabel("time from fitted edge (s)")
+        if k == 0:
+            ax.set_ylabel("magnitude")
+        ax.grid(color=ps.GRID)
+    n_hi = _rv(cv, "rv fit v1 above ten")
+    n_all = _rv(cv, "rv fit v1 n")
+    spec = FigureSpec(
+        fig_id="figR6", label="fig:edgefits",
+        title="Edge-fit quality: the chi-squared distribution and three "
+              "fits",
+        caption=(
+            "Top: the reduced $\\chi^2$ of every accepted ST LMi edge fit "
+            "under the inflated photometric errors, stacked by band. The "
+            "four-parameter ramp is fitted to 6--17 points, so each fit "
+            f"has 2--13 degrees of freedom; {n_hi:.0f} of {n_all:.0f} "
+            "exceed 10, because a ramp does not describe flickering. This "
+            "is why no formal per-edge error is published and why every "
+            "timing error in this paper is derived from scatter. Bottom: "
+            "the fits of lowest, median and highest $\\chi^2_\\nu$, chosen "
+            "by rank; points are catalogue-tied magnitudes with inflated "
+            "errors, the line is the fitted ramp, the dashed line the "
+            "fitted edge epoch."
+            if n_hi is not None and n_all is not None else
+            "Reduced chi-squared of the edge fits and three example fits."),
+        tables=("rv_edge", "rv_edge_example", "rv_result"),
+        width_in=COL_DOUBLE, note="CV-R7 (RF.M2, DS.F3)")
+    return fig, spec
+
+
+def figR7_superhump(cv):
+    """R4 -- what the YZ Cnc contours exclude, and what they do not."""
+    rows = read_rows(cv, """SELECT night, filter, amp90_blind,
+        amp90_blind_lo, amp90_blind_hi, superhump_floor FROM p4_outburst
+        ORDER BY night, filter""")
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(COL_DOUBLE, 2.9),
+                                  gridspec_kw={"width_ratios": [2.4, 1.0]})
+    nights = sorted({r["night"] for r in rows})
+    floor = next((r["superhump_floor"] for r in rows
+                  if r["superhump_floor"] is not None), None)
+    ymax = 1000 * max([r["amp90_blind_hi"] or r["amp90_blind"] or 0.0
+                       for r in rows] + [0.26])
+    for r in rows:
+        x = nights.index(r["night"]) + {"G": -0.25, "R": 0.0,
+                                        "I": 0.25}.get(r["filter"], 0.0)
+        col = BAND_COLOR.get(r["filter"], "k")
+        if r["amp90_blind"] is None:
+            ax.plot([x], [ymax * 1.02], marker="x", ms=4, color=col,
+                    ls="none", mew=0.9)
+            continue
+        a = 1000 * r["amp90_blind"]
+        # Everything ABOVE the contour is excluded; everything below is not.
+        ax.plot([x, x], [a, ymax * 1.08], color=col, lw=3.0, alpha=0.35,
+                solid_capstyle="butt")
+        lo = 1000 * (r["amp90_blind_lo"] or r["amp90_blind"])
+        hi = 1000 * (r["amp90_blind_hi"] or r["amp90_blind"])
+        ax.errorbar([x], [a], yerr=[[a - lo], [hi - a]], lw=0.8,
+                    capsize=1.5, ms=4.0, ecolor=col,
+                    **ps.measurement_kw(col, BAND_MARKER.get(r["filter"],
+                                                             "o")))
+    if floor is not None:
+        ax.axhline(1000 * floor, color=ps.WARN, lw=1.0, ls="--")
+        ax.text(len(nights) - 0.55, 1000 * floor + 3,
+                "smallest published superhump semi-amplitude",
+                fontsize=5.6, color=ps.WARN, ha="right", va="bottom")
+    ax.set_xticks(range(len(nights)))
+    ax.set_xticklabels(nights, rotation=25, fontsize=6)
+    ax.set_xlim(-0.6, len(nights) - 0.4)
+    ax.set_ylim(0, ymax * 1.1)
+    ax.set_ylabel("semi-amplitude (mmag)")
+    ax.set_title("(a) 90% blind-recovery contour per run-filter; shaded = "
+                 "excluded;  x = no contour", fontsize=6.6, loc="left")
+    ax.grid(color=ps.GRID, axis="y")
+    ax.legend(handles=[ps.measurement_handle(f, BAND_COLOR[f],
+                                             BAND_MARKER[f])
+                       for f in ("G", "R", "I")], fontsize=6,
+              loc="center left", frameon=False)
+    ex = read_rows(cv, "SELECT threshold_mag, n_excluding, n_run_filters, "
+                       "n_with_contour FROM rv_superhump ORDER BY 1")
+    if ex:
+        ax2.step([1000 * r["threshold_mag"] for r in ex],
+                 [r["n_excluding"] for r in ex], where="mid",
+                 color=ps.ACCENT, lw=1.2)
+        ax2.plot([1000 * r["threshold_mag"] for r in ex],
+                 [r["n_excluding"] for r in ex],
+                 **ps.measurement_kw(ps.ACCENT, "o", size=4.0))
+        ax2.axhline(ex[0]["n_run_filters"], **ps.reference_kw())
+        ax2.text(1000 * ex[0]["threshold_mag"], ex[0]["n_run_filters"],
+                 f" all {ex[0]['n_run_filters']} run-filters", fontsize=5.6,
+                 va="bottom", color=ps.MUTED)
+        ax2.set_ylim(-0.5, ex[0]["n_run_filters"] + 2)
+    ax2.set_xlabel("semi-amplitude (mmag)")
+    ax2.set_ylabel("run-filters excluding it")
+    ax2.set_title("(b) how many runs exclude a signal", fontsize=6.6,
+                  loc="left")
+    ax2.grid(color=ps.GRID)
+    fig.tight_layout()
+
+    def num(key, nd=0):
+        v = _rv(cv, key)
+        return "?" if v is None else f"{v:.{nd}f}"
+    spec = FigureSpec(
+        fig_id="figR7", label="fig:superhumplimits",
+        title="YZ Cnc: which superhump amplitudes the runs exclude",
+        caption=(
+            "(a) The 90 per cent blind-recovery semi-amplitude of a "
+            "periodic signal in each YZ Cnc dense run and filter. A "
+            "contour is the SMALLEST amplitude the search recovers, so the "
+            "shaded range above each point is what a non-detection "
+            "excludes in that run-filter and everything below it is not "
+            "excluded. Crosses mark run-filters with no contour, which "
+            "carry no sensitivity statement. The dashed line is the "
+            "smallest published superhump semi-amplitude. (b) The number "
+            "of run-filters, of "
+            f"{num('rv sh run filters')}, that exclude a signal of a given "
+            f"semi-amplitude: {num('rv sh excluding 50 mmag')} at 50 mmag, "
+            f"{num('rv sh excluding 250 mmag')} at 250 mmag. The runs lie "
+            "in normal outbursts, where no superhump is expected; the "
+            "search was sensitive only to large ones."),
+        tables=("p4_outburst", "rv_superhump", "rv_result"),
+        width_in=COL_DOUBLE, note="CV-R4 (PH.P1, RF.B4)")
+    return fig, spec
+
+
+#: The revision figures' registry.  Separate from ``BUILDERS`` on purpose:
+#: see the banner above.
+REVISION_BUILDERS: dict[str, dict] = {
+    "figR1": {"fn": figR1_band_offset, "needs": ("cv",)},
+    "figR2": {"fn": figR2_injection_bias, "needs": ("cv",)},
+    "figR3": {"fn": figR3_oc_refit, "needs": ("cv",)},
+    "figR4": {"fn": figR4_longitude, "needs": ("cv",)},
+    "figR5": {"fn": figR5_colour_curves, "needs": ("cv",)},
+    "figR6": {"fn": figR6_edge_fits, "needs": ("cv",)},
+    "figR7": {"fn": figR7_superhump, "needs": ("cv",)},
+}
+
+REVISION_FIGURE_IDS: tuple[str, ...] = tuple(sorted(REVISION_BUILDERS))

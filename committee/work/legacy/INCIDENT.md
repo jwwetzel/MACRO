@@ -27,3 +27,6 @@ my scan's orphaned pool workers. That pattern is not specific to my job: on macO
   resumable under the house standard).
 
 No file, database or git state was modified by the kill itself.
+
+**Update 05:35 CDT.** The chair restarted `legacy_dedupe.py` at 05:32 (log `legacy_dedupe_run2.log`).
+The `clock` and `grism` runs in flight at 02:08:28 remain to be confirmed by their owners.

@@ -1038,7 +1038,7 @@ class TestExternalConstantsAreSeparableWithOneQuery:
         describes something we did not measure, and such a value may not
         carry a products table as its source."""
         outside = re.compile(
-            r"set in advance|set by CV-S\d|published VSX|"
+            r"set in advance|set by CV-S\d|set by CV-R\b|published VSX|"
             r"published superhump|taken from the literature", re.I)
         bad = [r["macro"] for r in macro_rows
                if r["kind"] == "measured" and outside.search(r["note"] or "")]
@@ -1050,8 +1050,8 @@ class TestExternalConstantsAreSeparableWithOneQuery:
                                                              macro_rows):
         """The inverse: a flag with no explanation is not provenance."""
         origin = re.compile(
-            r"set in advance|set by CV-S\d|published|literature|catalogue",
-            re.I)
+            r"set in advance|set by CV-S\d|set by CV-R\b|published|"
+            r"literature|catalogue", re.I)
         silent = [r["macro"] for r in macro_rows if r["kind"] == "external"
                   and not origin.search(r["note"] or "")]
         assert not silent, (

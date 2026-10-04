@@ -327,3 +327,312 @@ def test_scanner_geometry_comes_from_the_resolver():
     merged["ZNAXIS1"] = 4800
     merged["ZNAXIS2"] = 3211
     assert fg.resolve_geometry(merged) == (4800, 3211)
+
+
+# ===========================================================================
+# Hardware-state cards (finding F-2, plan review 2026-10-03)
+# ===========================================================================
+# Same discipline as above: every header is a synthetic card block, built
+# byte for byte from the dialects the real archive contains.
+
+def raw_card(text: str) -> str:
+    """One card image from literal text, padded to exactly 80 characters —
+    for the malformed cards the tidy ``card()`` helper cannot spell."""
+    assert len(text) <= 80, text
+    return f"{text:<80}"
+
+
+def pad_block(cards: str) -> bytes:
+    """Pad a card string to a whole number of 2880-byte FITS blocks."""
+    n = -(-len(cards) // fg.BLOCK_LEN) * fg.BLOCK_LEN
+    return f"{cards:<{n}}".encode("ascii")
+
+
+#: MaxIm/ASI header (2024-12): standard long-string wheel map, doubled quotes.
+ASI_HEADER = block(
+    raw_card("XTENSION= 'BINTABLE'           / binary table extension"),
+    raw_card("SET-TEMP=  -10.000000000000000 /CCD temperature setpoint in C"),
+    raw_card("CCD-TEMP=  -10.000000000000000 /CCD temperature at start"),
+    raw_card("XPIXSZ  =   7.5199999999999996 /Pixel Width in microns"),
+    raw_card("GAIN    =                  100"),
+    raw_card("OFFSET  =                   30"),
+    raw_card("SWCREATE= 'MaxIm DL Version 6.40 231201 0HTQT' /Name of software"),
+    raw_card("FOCUSPOS=                 9980 /Focuser position in steps"),
+    raw_card("INSTRUME= 'ASI Camera (1)'"),
+    raw_card("FLIPSTAT= 'Flip/Mirror'"),
+    raw_card("COOLPOWR=                   28 / Cooler power in percent"),
+    raw_card("CAMNAME = 'ASCOM   '           / Name of camera"),
+    raw_card("TELPIER = 'pierEast'           / Telescope pier side"),
+    raw_card("FWPOS   =                    0 / Filter wheel position"),
+    raw_card("FWNAME  = 'Dual Wheels'        / Filter wheel name"),
+    raw_card("FWALLNAM= '(''g'', ''OGGrism'', ''r'', ''i'', ''HaGrism'', &'"),
+    raw_card("CONTINUE  '''z'', ''ha'')&'"),
+    raw_card("CONTINUE  '' / Filter wheel names"),
+    raw_card("FOCPOS  =     9980.31127732742 / Focuser position"),
+)
+
+#: pyscope-native header (2026-06-29): the wheel map is written with RAW
+#: embedded quotes — an illegal card that astropy reads as the string '('.
+PYSCOPE_HEADER = block(
+    raw_card("SWCREATE= 'pyscope'            / Software used to create file"),
+    raw_card("GAIN    =                   56 / Electronic gain"),
+    raw_card("OFFSET  = ''                   / Image offset"),
+    raw_card("COOLPOWR=   7.8431372549019605 / Cooler power in percent"),
+    raw_card("SET-TEMP=                 -0.0 / Camera temperature setpoint [C]"),
+    raw_card("CAMNAME = 'QHY600MPCIE-ec89ab488ac5aca73' / Name of camera"),
+    raw_card("FWALLNAM= '('g', 'lrg', 'r', 'i', 'ha', 'hrg', 'empty')' / Filter"),
+    raw_card("FOCPOS  =     8127.22652775466 / Focuser position"),
+)
+
+
+class TestParseHardwareCards:
+    def test_standard_header_values_come_back_as_written(self):
+        got = fg.parse_hardware_cards(ASI_HEADER)
+        assert got["INSTRUME"] == "ASI Camera (1)"
+        assert got["GAIN"] == "100" and got["OFFSET"] == "30"
+        assert got["SET-TEMP"] == "-10.000000000000000"
+        assert got["FLIPSTAT"] == "Flip/Mirror"
+        assert got["TELPIER"] == "pierEast" and got["FWPOS"] == "0"
+        assert got["FOCPOS"] == "9980.31127732742"
+        assert got["FOCUSPOS"] == "9980"
+
+    def test_the_wheel_map_is_followed_through_its_continue_cards(self):
+        # The card astropy cannot parse is the one that records the wheel.
+        got = fg.parse_hardware_cards(ASI_HEADER)
+        assert got["FWALLNAM"] == \
+            "('g', 'OGGrism', 'r', 'i', 'HaGrism', 'z', 'ha')"
+
+    def test_pyscope_raw_quote_dialect(self):
+        got = fg.parse_hardware_cards(PYSCOPE_HEADER)
+        assert got["FWALLNAM"] == \
+            "('g', 'lrg', 'r', 'i', 'ha', 'hrg', 'empty')"
+        assert got["CAMNAME"] == "QHY600MPCIE-ec89ab488ac5aca73"
+        assert got["SWCREATE"] == "pyscope"
+
+    def test_blank_card_is_empty_string_absent_card_is_absent(self):
+        """The distinction the acceptance test turns on."""
+        blanks = block(
+            raw_card("OFFSET  =  / Image offset"),
+            raw_card("FLIPSTAT= '        '"),
+            raw_card("GAIN    = '4x      '"),
+        )
+        got = fg.parse_hardware_cards(blanks)
+        assert got["OFFSET"] == ""          # present, no value
+        assert got["FLIPSTAT"] == ""        # present, blank — a measurement
+        assert got["GAIN"] == "4x"          # the iKon's preamp setting
+        assert "TELPIER" not in got         # absent
+        assert "OFFSET" in fg.parse_hardware_cards(PYSCOPE_HEADER)
+        assert fg.parse_hardware_cards(PYSCOPE_HEADER)["OFFSET"] == ""
+
+    def test_first_occurrence_wins_and_unwanted_cards_are_ignored(self):
+        twice = block(raw_card("GAIN    =                  100"),
+                      raw_card("GAIN    =                   56"),
+                      raw_card("OBJECT  = 'T CrB'"))
+        assert fg.parse_hardware_cards(twice) == {"GAIN": "100"}
+
+    def test_a_continue_with_no_open_string_is_harmless(self):
+        stray = block(raw_card("GAIN    =                  100"),
+                      raw_card("CONTINUE  'orphan' / nothing to continue"))
+        assert fg.parse_hardware_cards(stray) == {"GAIN": "100"}
+
+    def test_not_card_structured_raises(self):
+        with pytest.raises(fg.GeometryError):
+            fg.parse_hardware_cards("GAIN = 100")
+        with pytest.raises(fg.GeometryError):
+            fg.parse_hardware_cards("")
+
+
+class TestReadHardwareCards:
+    def _fpack_like(self, tmp_path, ext_header):
+        """A file laid out like an fpack output: a dataless primary HDU,
+        then the extension that carries the real header."""
+        primary = block(card("SIMPLE", "T"), card("BITPIX", "16"),
+                        card("NAXIS", "0"), card("EXTEND", "T"))
+        path = tmp_path / "f.fts.fz"
+        path.write_bytes(pad_block(primary) + pad_block(ext_header)
+                         + b"\0" * 2880)
+        return str(path)
+
+    def test_reads_the_extension_of_a_dataless_primary(self, tmp_path):
+        got = fg.read_hardware_cards(self._fpack_like(tmp_path, ASI_HEADER))
+        assert got["INSTRUME"] == "ASI Camera (1)"
+        assert got["FWALLNAM"].startswith("('g', 'OGGrism'")
+
+    def test_plain_file_is_read_from_its_primary(self, tmp_path):
+        primary = block(card("SIMPLE", "T"), card("BITPIX", "16"),
+                        card("NAXIS", "2"), card("NAXIS1", "4"),
+                        card("NAXIS2", "4"),
+                        raw_card("INSTRUME= 'Andor CCD/EMCCD (SDK2)'"),
+                        raw_card("GAIN    = '4x      '"))
+        path = tmp_path / "m.fts"
+        path.write_bytes(pad_block(primary) + b"\0" * 2880)
+        got = fg.read_hardware_cards(str(path))
+        assert got == {"INSTRUME": "Andor CCD/EMCCD (SDK2)", "GAIN": "4x"}
+
+    def test_a_header_spanning_several_blocks(self, tmp_path):
+        # 40 filler cards push the wanted card into the second block.
+        filler = "".join(raw_card(f"FILL{i:04d}=                    1")
+                         for i in range(40))
+        ext = filler + block(raw_card("TELPIER = 'pierWest'"))
+        got = fg.read_hardware_cards(self._fpack_like(tmp_path, ext))
+        assert got["TELPIER"] == "pierWest"
+
+    def test_gzip_files_are_read_through_gzip(self, tmp_path):
+        import gzip
+        primary = block(card("SIMPLE", "T"), card("NAXIS", "2"),
+                        raw_card("FLIPSTAT= 'Flip/Mirror'"))
+        path = tmp_path / "g.fts.gz"
+        with gzip.open(path, "wb") as fh:
+            fh.write(pad_block(primary))
+        assert fg.read_hardware_cards(str(path)) == \
+            {"FLIPSTAT": "Flip/Mirror"}
+
+    def test_truncated_and_empty_files_fail_loudly(self, tmp_path):
+        empty = tmp_path / "e.fts"
+        empty.write_bytes(b"")
+        with pytest.raises(fg.GeometryError):
+            fg.read_hardware_cards(str(empty))
+        cut = tmp_path / "c.fts"
+        cut.write_bytes(b"SIMPLE  =                    T" + b" " * 100)
+        with pytest.raises(fg.GeometryError):
+            fg.read_hardware_cards(str(cut))
+
+    def test_a_header_with_no_end_card_is_refused_not_read_forever(
+            self, tmp_path, monkeypatch):
+        monkeypatch.setattr(fg, "MAX_HEADER_BLOCKS", 3)
+        path = tmp_path / "n.fts"
+        path.write_bytes(pad_block(card("SIMPLE", "T")) * 5)
+        with pytest.raises(fg.GeometryError, match="no END card"):
+            fg.read_hardware_cards(str(path))
+
+
+# ---------------------------------------------------------------------------
+# The re-scrape driver (rescan_geometry.py hdr-*) on a hand-built catalog
+# ---------------------------------------------------------------------------
+import sqlite3                                               # noqa: E402
+import sys                                                   # noqa: E402
+from pathlib import Path                                     # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+import rescan_geometry as rg                                 # noqa: E402
+
+
+@pytest.fixture
+def toy_archive(tmp_path, monkeypatch):
+    """A three-file archive and its catalog, with the script pointed at it.
+
+    ``a`` is a healthy ASI frame the original scan read fully; ``b`` is one
+    whose INSTRUME/SWCREATE the original scan LOST (NULL in ``obs``) though
+    the cards are in the file; ``c`` does not exist on disk and was already
+    an error row in the original scan.
+    """
+    root = tmp_path / "archive"
+    (root / "rawimage").mkdir(parents=True)
+    primary = block(card("SIMPLE", "T"), card("BITPIX", "16"),
+                    card("NAXIS", "0"), card("EXTEND", "T"))
+    for name in ("a", "b"):
+        (root / "rawimage" / f"{name}.fts.fz").write_bytes(
+            pad_block(primary) + pad_block(ASI_HEADER))
+    db = tmp_path / "catalog.sqlite"
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE obs (path TEXT PRIMARY KEY, tree TEXT, "
+                "error TEXT, instrume TEXT, swcreate TEXT, ccd_temp REAL, "
+                "focuspos REAL)")
+    con.executemany("INSERT INTO obs VALUES (?,?,?,?,?,?,?)", [
+        ("rawimage/a.fts.fz", "rawimage", None, "ASI Camera (1)",
+         "MaxIm DL Version 6.40 231201 0HTQT", -10.0, 9980.0),
+        ("rawimage/b.fts.fz", "rawimage", None, None, None, None, None),
+        ("reduced/c.fts.fz", "reduced", "OSError: Empty or corrupt FITS file",
+         None, None, None, None),
+    ])
+    con.commit()
+    con.close()
+    monkeypatch.setattr(rg, "ROOT", str(root))
+    monkeypatch.setattr(rg, "DB", str(db))
+    return db
+
+
+class _Args:
+    workers, limit, retry_errors = 2, None, False
+
+
+class TestHeaderRescrapeDriver:
+    def test_column_names_avoid_the_sql_keyword(self):
+        assert rg.hdr_column("OFFSET") == "h_offset"
+        assert rg.hdr_column("SET-TEMP") == "h_set_temp"
+        assert len(rg.HDR_COLUMNS) == len(fg.HARDWARE_CARDS)
+
+    def test_run_is_additive_resumable_and_never_touches_obs(
+            self, toy_archive):
+        con = sqlite3.connect(toy_archive)
+        before = con.execute("SELECT * FROM obs ORDER BY path").fetchall()
+        con.close()
+        assert rg.cmd_hdr_run(_Args()) == 0
+        con = sqlite3.connect(toy_archive)
+        assert con.execute("SELECT * FROM obs ORDER BY path").fetchall() \
+            == before, "the re-scrape must not write one byte of obs"
+        rows = dict(con.execute(
+            "SELECT path, error IS NULL FROM hdr_rescrape"))
+        assert rows == {"rawimage/a.fts.fz": 1, "rawimage/b.fts.fz": 1,
+                        "reduced/c.fts.fz": 0}
+        got = con.execute(
+            "SELECT h_gain, h_offset, h_set_temp, h_flipstat, h_fwallnam, "
+            "n_cards FROM hdr_rescrape WHERE path = 'rawimage/b.fts.fz'"
+        ).fetchone()
+        assert got[:4] == ("100", "30", "-10.000000000000000", "Flip/Mirror")
+        assert got[4].startswith("('g', 'OGGrism'")
+        assert got[5] == 16                    # every wanted card was there
+        # Resumable: a second run finds nothing left to read.
+        assert rg.hdr_todo(con) == []
+        # ... unless asked to retry the unreadable file.
+        assert rg.hdr_todo(con, retry_errors=True) == ["reduced/c.fts.fz"]
+        con.close()
+
+    def test_read_order_is_rawimage_first_reduced_last(self, toy_archive):
+        con = sqlite3.connect(toy_archive)
+        con.execute("INSERT INTO obs (path, tree) VALUES "
+                    "('iKon/z.fts.fz', 'iKon')")
+        rg.ensure_hdr_table(con)
+        assert rg.hdr_todo(con) == [
+            "rawimage/a.fts.fz", "rawimage/b.fts.fz", "iKon/z.fts.fz",
+            "reduced/c.fts.fz"]
+        con.close()
+
+    def test_verify_counts_the_control_group_and_the_recovered_nulls(
+            self, toy_archive):
+        rg.cmd_hdr_run(_Args())
+        con = sqlite3.connect(toy_archive)
+        c = rg.hdr_verify_counts(con)
+        con.close()
+        assert (c["n_obs"], c["n_scanned"], c["n_unreadable"]) == (3, 3, 1)
+        # The unreadable file was unreadable to the original scan too.
+        assert c["n_unreadable_new"] == 0
+        # Control group: file 'a', the four cards both scans read, agree.
+        assert c["control"]["h_instrume"] == (1, 0)
+        assert c["control"]["h_ccd_temp"] == (1, 0)
+        assert c["control"]["h_focuspos"] == (1, 0)
+        # F-2 acceptance, measured: file 'b' had NULLs where cards exist.
+        assert c["recovered"]["h_instrume"] == 1
+        assert c["recovered"]["h_swcreate"] == 1
+        assert c["recovered"]["h_ccd_temp"] == 1
+        # value / blank / absent over the two readable rows.
+        assert c["cards"]["h_gain"] == (2, 0, 0)
+        assert rg.cmd_hdr_verify(_Args()) == 0
+
+    def test_verify_fails_when_the_two_scans_disagree(self, toy_archive):
+        rg.cmd_hdr_run(_Args())
+        con = sqlite3.connect(toy_archive)
+        con.execute("UPDATE obs SET instrume = 'Some Other Camera' "
+                    "WHERE path = 'rawimage/a.fts.fz'")
+        con.commit()
+        assert rg.hdr_verify_counts(con)["control"]["h_instrume"] == (1, 1)
+        con.close()
+        assert rg.cmd_hdr_verify(_Args()) == 1
+
+    def test_verify_fails_when_rows_are_missing(self, toy_archive):
+        _Args.limit = 1
+        try:
+            rg.cmd_hdr_run(_Args())
+        finally:
+            _Args.limit = None
+        assert rg.cmd_hdr_verify(_Args()) == 1

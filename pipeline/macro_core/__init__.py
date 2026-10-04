@@ -32,13 +32,24 @@ The build entry points live in ``pipeline/scripts/build_s0_manifest.py``,
 # The version note recorded into the manifest's build_meta table.  Bump the
 # string whenever the S0 logic changes in a way that alters manifest content,
 # so downstream stages can tell which rules produced the file they read.
-S0_CODE_VERSION = "S0 v1.0 (2026-08-17)"
+# v1.1 (plan review 2026-10-03): dedup on the EXPOSURE ROOT so reduced and
+# re-packaged copies fold into their raw parent (F-1); typed hardware-state
+# columns from the header re-scrape (F-2); era alias columns; the S0 tables
+# are swapped into the live manifest in one transaction, not by file replace.
+S0_CODE_VERSION = "S0 v1.1 (2026-10-03)"
 
 # Same contract for the S0b inventory tables (recorded in s0b_build_meta).
 # v1.1: header-glitch FILTER strings (calibration-vocabulary collisions)
 # excluded from the shopping list; re-opening-configuration eras surfaced.
-S0B_CODE_VERSION = "S0b v1.1 (2026-08-17)"
+# v1.2 (plan review 2026-10-03): the mechanical-epoch layer beneath the eras
+# (mech_epoch, night_mech_epoch, frame_mech_epoch) with its null and
+# injection tests; coverage re-counted per mechanical epoch under the
+# boundary rule and the gain/offset/set-point key (F-3, DE.F5).
+S0B_CODE_VERSION = "S0b v1.2 (2026-10-03)"
 
 # Same contract for the S0c staging manifests (recorded in s0c_build_meta and
 # in every stage row's stage_build_id).
-S0C_CODE_VERSION = "S0c v1.0 (2026-08-18)"
+# v1.1 (plan review 2026-10-03): calibration rows are staged only where the
+# mechanical-epoch rule lets them serve the project's science; every stage
+# row carries mech_epoch / detector_epoch / epoch_certain (F-3).
+S0C_CODE_VERSION = "S0c v1.1 (2026-10-03)"

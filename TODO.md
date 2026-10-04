@@ -1,6 +1,6 @@
 # MACRO — working to-do list
 
-Maintained by Claude as work proceeds; edit freely. Last updated **2026-10-04** (after wave-1 restart).
+Maintained by Claude as work proceeds; edit freely. Last updated **2026-10-04** — committee reviews BENCHED by James (token budget); work is now: refresh every stale stage and republish the site.
 Goal: all six projects complete — every in-scope task done or dropped by committee ruling, and every
 committee seat satisfied. Detail behind each line: [`committee/reviews/2026-10-03/SYNTHESIS.md`](committee/reviews/2026-10-03/SYNTHESIS.md)
 and the reports in `committee/work/<package>/REPORT.md`. Task-level status lives in the plan ledger
@@ -23,13 +23,9 @@ and the reports in `committee/work/<package>/REPORT.md`. Task-level status lives
 
 ## 2. In progress (running now)
 
-- [ ] **foundation-s0** — QHY twin dedup, header re-scrape, mechanical-epoch table, staleness that means something, product snapshot, S0→S0c rebuild
-- [ ] **detector** — measured gain / read noise / linearity / saturation per camera; bad-pixel masks
-- [ ] **grism** — settle hrg dispersion (0.47 vs 1.59 Å/px), fixed dispersion per grism+epoch, pixel-based identity gate, background template, LSF table
-- [ ] **cv-stats** — band-offset test, per-band injection bias, O−C refit, colour-curve quantification, superhump wording
-- [ ] **legacy** — pre-registered go/no-go, header + camera census, overlap with RLMT targets
-- [ ] **clock** — absolute clock check per camera era from archived transits
-- [ ] Legacy archive dedupe (≈180k verified-duplicate frames left to delete, then compress the unpaired remainder)
+- [ ] **Unattended refresh of every stale pipeline stage** (`pipeline/scripts/refresh_stale.py`, log `products/refresh_stale.log`), gated on the tests of the code the stopped packages left half-edited. Then site rebuild + push.
+- Stopped mid-work, resumable later from their transcripts (partial code edits are in the working tree, uncommitted): grism library, detector, legacy census, CV statistics, clock check, foundation (S0 rebuilt: 169,107 canonical frames; S0b/S0c being refreshed by the driver).
+- [x] Legacy dedupe finished: ~202.5k verified duplicates removed (~2.1 TB freed). 830 frames remain uncompressed — 828 fail fpack (truncated downloads, need re-fetch), 461 failed twin verification.
 
 ## 3. Next, in order
 
@@ -42,7 +38,7 @@ and the reports in `committee/work/<package>/REPORT.md`. Task-level status lives
 - [ ] **Be stars** — re-drawn sample; injection–recovery per star; EW series on corrected library
 - [ ] **Dwarf / NGC 5548** — reduced scope: Hα detections/limits for the informative fields + NGC 5238; one-night broad-Hα triage for NGC 5548
 - [ ] **Legacy** — apply the pre-registered go/no-go; write up outcome
-- [ ] Committee result review per project → fix → re-review, until every seat records *satisfied*
+- [ ] ~~Committee result review per project~~ — BENCHED until James says otherwise
 
 ## 4. Done
 

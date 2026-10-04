@@ -97,12 +97,24 @@ SF_MIN_PAIRS = 20
 #: own sampling error -- see :func:`excess_significance`.
 FLICKER_SIGMA_BAR = 3.0
 
-#: A superhump semi-amplitude, in magnitudes, at the low end of what the
-#: literature reports for SU UMa stars (common superhumps run ~0.05-0.15 mag
-#: peak-to-peak in the optical).  Used ONLY to state what an outburst run's
-#: blind-period contour would have had to reach to measure a superhump
-#: period; never as a detection or a claim about YZ Cnc.
+#: A superhump semi-amplitude, in magnitudes, that the first draft called
+#: "the low end of what the literature reports for SU UMa stars".  The
+#: literature search of 2026-10-03 (committee/work/cv-literature, L12)
+#: found NO published source for 50 mmag, and the committee found the use
+#: made of it logically inverted: a recovery contour ABOVE this value means
+#: such a superhump would NOT have been seen.  It is kept only because
+#: ``p4_outburst.superhump_floor`` and one first-draft macro still carry
+#: it; the revised paper states its sensitivity against
+#: :data:`SUPERHUMP_SEMI_AMP_PEAK` instead.
 SUPERHUMP_SEMI_AMP_FLOOR = 0.050
+
+#: The PUBLISHED peak superhump semi-amplitude, in magnitudes: half of the
+#: 0.25 mag full amplitude that is the maximum at low inclination (Smak
+#: 2010, abstract) and the sample mean of maximum amplitudes (Kato et al.
+#: 2012, Sect. 4.7).  YZ Cnc's own in TESS is 0.3 mag full (Dai et al.
+#: 2026).  This is the amplitude a superhump search has to reach before a
+#: non-detection says anything about a fully developed superhump.
+SUPERHUMP_SEMI_AMP_PEAK = 0.125
 
 #: Accumulated phase uncertainty, in cycles, above which two runs may not be
 #: put on a common absolute phase axis.  0.1 cycle is the strategy
@@ -203,8 +215,9 @@ def weighted_lstsq(design, y, sigma) -> tuple[np.ndarray, np.ndarray, float]:
     this pipeline means the per-point error bar already multiplied by the
     series' MEASURED chi-square inflation.  Returning chi2/dof alongside the
     covariance is not decoration: the covariance is only an error bar if the
-    model fits, and every caller here rescales by ``sqrt(chi2/dof)`` when it
-    exceeds 1 rather than quoting a formal bar the residuals contradict.
+    model fits, and every caller here rescales by ``sqrt(chi2/dof)`` -- in
+    either direction -- rather than quoting a formal bar the residuals
+    contradict.
     """
     X = np.asarray(design, dtype=float)
     y = np.asarray(y, dtype=float)
@@ -272,8 +285,8 @@ def fold_fit(times_d, mags, sigma, period_d: float, epoch_bjd: float,
     Returns a dict with
 
     ``amp``          fundamental SEMI-amplitude, magnitudes;
-    ``amp_sigma``    its propagated error, rescaled by sqrt(chi2/dof) when
-                     the fit is worse than the error bars predict;
+    ``amp_sigma``    its propagated error, rescaled by sqrt(chi2/dof) in
+                     whichever direction the residuals demand;
     ``phase_max``    phase at which the star is BRIGHTEST (the hump peak);
     ``amp_harm``     second-harmonic semi-amplitude -- how non-sinusoidal;
     ``chi2nu``       goodness of fit;
@@ -308,11 +321,17 @@ def fold_fit(times_d, mags, sigma, period_d: float, epoch_bjd: float,
     i1 = n_const
     a1, b1 = float(coef[i1]), float(coef[i1 + 1])
     amp, ph_max_mag = amplitude_and_phase(a1, b1)
-    # Rescaling the covariance by chi2/dof when chi2/dof > 1 is the standard
-    # "the model does not fit, so widen the bar" convention.  It is applied
-    # in ONE direction only: a chi2/dof below 1 does not license shrinking an
-    # error bar, it means the input errors were generous.
-    scale = math.sqrt(max(chi2nu, 1.0)) if np.isfinite(chi2nu) else 1.0
+    # Rescaling the covariance by chi2/dof is the standard "the scatter,
+    # not the quoted errors, sets the bar" convention, and since the
+    # committee review of 2026-10-03 it is applied in BOTH directions
+    # (standing rule 1: no max(chi2nu, 1)).  A chi2/dof below one means the
+    # input errors were too generous; clipping the scale at one would carry
+    # that generosity into the amplitude error and from there into a
+    # non-detection.  Every fold stored so far has chi2/dof above 2, so no
+    # published value moves.  ``chi2nu`` is returned beside the error so
+    # the direction of the correction is on record.
+    scale = (math.sqrt(chi2nu) if np.isfinite(chi2nu) and chi2nu > 0
+             else 1.0)
     amp_sig = amplitude_sigma(a1, b1, cov[i1, i1], cov[i1 + 1, i1 + 1],
                               cov[i1, i1 + 1]) * scale
     amp_h = (float(math.hypot(coef[i1 + 2], coef[i1 + 3]))

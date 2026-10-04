@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import shutil
 import json
 import os
 import sys
@@ -100,6 +101,10 @@ def run_calibrate(con, archive: Path, scratch: Path) -> None:
     cds = []
     for path, night, ra, dec in frames:
         work = scratch / f"solve_{Path(path).stem}"
+        # A work directory left by an earlier calibration still holds that
+        # run's unpacked FITS; funpack refuses to overwrite it and the solve
+        # comes back "error".  Start every solve from an empty directory.
+        shutil.rmtree(work, ignore_errors=True)
         res = solve_one_frame(str(archive / path), str(work),
                               str(ASTROMETRY_CFG), "Mode0", 2, ra, dec)
         cd = [None] * 4

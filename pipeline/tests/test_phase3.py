@@ -141,6 +141,30 @@ def test_linear_ephemeris_inflates_error_when_scatter_exceeds_errors():
     assert sP > 5 * naive
 
 
+def test_linear_ephemeris_deflates_error_when_errors_are_overstated():
+    """Committee standing rule 1 (2026-10-03): no ``max(chi2nu, 1)``.
+
+    Claimed errors ten times the true scatter give chi2nu ~ 0.01, and the
+    returned period error must be the SCATTER-BASED one — about a tenth of
+    the formal bar — not the formal bar itself.  The one-sided clip this
+    replaces is what kept a four-sigma band offset at 1.9 sigma."""
+    cyc = np.arange(40)
+    rng = np.random.default_rng(5)
+    truth = 5.0 / 86400.0
+    claimed = 50.0 / 86400.0                     # 10x the real scatter
+    t = cyc * PERIOD_D + rng.normal(0.0, truth, cyc.size)
+    _E, _sE, _P, sP, chi2nu = p3.fit_linear_ephemeris(
+        cyc, t, np.full(cyc.size, claimed))
+    assert chi2nu < 0.05
+    formal = claimed / math.sqrt(np.var(cyc) * cyc.size)
+    assert sP == pytest.approx(formal * math.sqrt(chi2nu), rel=1e-6)
+    assert sP < 0.25 * formal
+    # ... and it is the same error a fit with the TRUE errors would quote.
+    _E, _sE, _P, sP_true, _c = p3.fit_linear_ephemeris(
+        cyc, t, np.full(cyc.size, truth))
+    assert sP == pytest.approx(sP_true, rel=1e-6)
+
+
 def test_linear_ephemeris_refuses_degenerate_input():
     out = p3.fit_linear_ephemeris([1, 1, 1], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0])
     assert all(math.isnan(v) for v in out)
@@ -417,6 +441,26 @@ def test_fit_edge_error_bar_grows_when_the_model_misfits():
     assert b.sigma_t_s > a.sigma_t_s
 
 
+def test_fit_edge_error_bar_shrinks_when_errors_are_overstated():
+    """The rescaling is symmetric (no ``max(chi2nu, 1)``): the same edge
+    with the same noise must report a SMALLER formal bar when it is handed
+    error bars ten times too large than when it is handed the right ones
+    — in fact the same bar, because the threshold scales with chi2nu."""
+    t = np.arange(0.0, 0.04, 100.0 / 86400.0)
+    width = 600.0 / 86400.0
+    rng = np.random.default_rng(21)
+    y = 15.0 + 1.5 * p3.ramp(t, 0.020, width) + rng.normal(0.0, 0.01, t.size)
+    grid = p3.edge_time_grid(0.020, 0.004, 801)
+    right = p3.fit_edge(t, y, np.full(t.size, 0.01), grid,
+                        np.array([width]), 100.0)
+    wide = p3.fit_edge(t, y, np.full(t.size, 0.10), grid,
+                       np.array([width]), 100.0)
+    assert wide.chi2nu == pytest.approx(right.chi2nu / 100.0, rel=1e-6)
+    assert wide.chi2nu < 0.1
+    assert wide.t_edge_d == right.t_edge_d
+    assert wide.sigma_t_s == pytest.approx(right.sigma_t_s, rel=1e-6)
+
+
 def test_fit_edge_fixed_depth_uses_one_free_level():
     t = np.arange(0.0, 0.02, 219.0 / 86400.0)
     width = 120.0 / 86400.0
@@ -445,12 +489,47 @@ def test_band_difference_recovers_a_known_offset():
     assert s == pytest.approx(math.hypot(10.0, 10.0) / 2.0, rel=0.01)
 
 
-def test_band_difference_inflates_when_the_offset_is_not_constant():
+def test_band_difference_reports_a_misfit_instead_of_hiding_it():
+    """A non-constant offset shows up in chi2nu; sigma stays the PROPAGATED
+    error.  It used to be inflated by sqrt(max(chi2nu, 1)), which hid the
+    misfit inside a wider bar and — in the other direction — could never
+    shrink a bar that was too wide."""
     t = np.array([1.0, 2.0, 3.0, 4.0])
     wobble = np.array([0.0, 200.0, -200.0, 0.0]) / 86400.0
     d, s, chi2nu = p3.band_difference(t + wobble, [10.0] * 4, t, [10.0] * 4)
     assert chi2nu > 10.0
-    assert s > math.hypot(10.0, 10.0) / 2.0
+    assert s == pytest.approx(math.hypot(10.0, 10.0) / 2.0, rel=1e-9)
+    # The scatter-based companion is the one that grows.
+    _m, se, n = p3.band_difference_scatter(t + wobble, t)
+    assert n == 4 and se > 5 * s
+
+
+def test_band_difference_does_not_clip_overstated_errors():
+    """The ST LMi case in miniature: twelve pairs offset by -100 s with
+    25 s of real scatter, carrying assigned errors of 125 s each.  The
+    budget-propagated bar is +/-51 s ("1.9 sigma"); the differences
+    themselves put the offset 14 standard errors from zero.  Both numbers
+    must be available and chi2nu must say which to believe."""
+    rng = np.random.default_rng(12)
+    t = np.arange(12, dtype=float)
+    offs = (-100.0 + rng.normal(0.0, 25.0, 12)) / 86400.0
+    d, s, chi2nu = p3.band_difference(t + offs, [125.0] * 12, t, [125.0] * 12)
+    assert s == pytest.approx(math.hypot(125.0, 125.0) / math.sqrt(12),
+                              rel=1e-9)
+    assert abs(d) / s < 2.5                       # the first draft's "null"
+    assert chi2nu < 0.1                           # ... and why it was one
+    m, se, n = p3.band_difference_scatter(t + offs, t)
+    assert n == 12
+    assert m == pytest.approx(d, abs=1e-6)        # equal weights: same mean
+    assert abs(m) / se > 8.0
+    assert se == pytest.approx(s * math.sqrt(chi2nu), rel=1e-6)
+
+
+def test_band_difference_scatter_needs_two_pairs_for_an_error():
+    m, se, n = p3.band_difference_scatter([1.0], [1.0 - 60.0 / 86400.0])
+    assert n == 1 and m == pytest.approx(60.0, abs=1e-6) and math.isnan(se)
+    m, se, n = p3.band_difference_scatter([], [])
+    assert n == 0 and math.isnan(m) and math.isnan(se)
 
 
 def test_band_difference_returns_nan_with_no_pairs():

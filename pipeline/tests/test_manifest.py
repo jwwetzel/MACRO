@@ -857,7 +857,12 @@ class TestStaleWalRemovedOnSwap:
     """Regression (2026-08-19): the atomic swap left the previous database's
     write-ahead log beside the new file, and SQLite replayed that log against
     the new database — reporting 'malformed database schema' on a manifest
-    that was internally perfect.  Rebuilding must clear the sidecars."""
+    that was internally perfect.  Rebuilding must clear the sidecars.
+
+    Since 2026-10-03 the default rebuild is an in-place transaction, which
+    cannot leave a stale log at all (the log belongs to the same file); the
+    scenario is kept as a test because it is the one that actually happened,
+    and because the ``--fresh-file`` path still replaces the file."""
 
     def _write(self, out):
         frames, eras = build.build_frames(
@@ -902,3 +907,464 @@ class TestStaleWalRemovedOnSwap:
             # And the rebuild's own content is readable, which is the symptom
             # that was lost: the old failure raised on the first real query.
             assert con.execute("SELECT count(*) FROM frames").fetchone()[0] == 1
+
+
+# ---------------------------------------------------------------------------
+# F-1: one exposure, many filenames (plan review 2026-10-03, TE.F6)
+# ---------------------------------------------------------------------------
+class TestExposureName:
+    """Every name here is a pattern taken from the real catalog."""
+
+    def test_a_raw_name_is_its_own_base(self):
+        n = m.exposure_name("knh_Berkeley_39_g_120s_2026-03-22T03-50-31.fts.fz")
+        assert n.stem == "knh_Berkeley_39_g_120s_2026-03-22T03-50-31"
+        assert n.base == n.stem
+        assert n.base_no_counter is None
+        assert n.n_processing == 0
+
+    def test_calibrated_suffix_points_at_the_raw_name(self):
+        n = m.exposure_name(
+            "knh_Berkeley_39_g_120s_2026-03-22T03-50-31_calibrated.fts.fz")
+        assert n.base == "knh_Berkeley_39_g_120s_2026-03-22T03-50-31"
+        assert n.n_processing == 1
+
+    def test_stacked_suffixes_count_their_depth(self):
+        n = m.exposure_name("mel_M11_g_10s_2026-06-29T09-26-37_wcs_calibrated.fts.fz")
+        assert n.base == "mel_M11_g_10s_2026-06-29T09-26-37"
+        assert n.n_processing == 2
+
+    def test_packaging_does_not_change_the_stem(self):
+        assert m.exposure_name("master_flat_g.fts").stem == \
+            m.exposure_name("master_flat_g.fts.fz").stem == "master_flat_g"
+        assert m.frame_stem("x.fits.fz") == m.frame_stem("x.fit") == "x"
+
+    def test_counter_before_the_suffix_is_offered_not_assumed(self):
+        n = m.exposure_name(
+            "mpg_M87_g_90s_2026-06-29T05-16-00_1_wcs_calibrated.fts.fz")
+        assert n.base == "mpg_M87_g_90s_2026-06-29T05-16-00_1"
+        assert n.base_no_counter == "mpg_M87_g_90s_2026-06-29T05-16-00"
+
+    def test_trailing_text_after_the_suffix_is_dropped_with_it(self):
+        # 'BeStars_…_r_0_wcs_2024-05-10T08-06-32' is a solved copy of
+        # 'BeStars_…_r_0'; 'ias_…_cal_Nov19' a class's calibrated copy.
+        assert m.exposure_name(
+            "BeStars_HD138749_0p08s_r_0_wcs_2024-05-10T08-06-32.fts.fz"
+        ).base == "BeStars_HD138749_0p08s_r_0"
+        assert m.exposure_name(
+            "ias_M16_blue_60s_2024-11-15T01-11-05_cal_Nov19.fts.fz"
+        ).base == "ias_M16_blue_60s_2024-11-15T01-11-05"
+
+    def test_a_leading_token_is_never_a_suffix(self):
+        # An observer code can be any three letters, 'cal' included.
+        n = m.exposure_name("cal_M13_g_10s_2024-05-01T03-00-00.fts.fz")
+        assert n.n_processing == 0
+
+    def test_red_is_a_filter_not_a_reduction_suffix(self):
+        n = m.exposure_name("knh_knh001_ngc3169_red_60s_2024-04-30T03-16-15.fts")
+        assert n.n_processing == 0
+
+    def test_longer_words_containing_a_token_are_untouched(self):
+        n = m.exposure_name("grismCalibration_BD-00_3227_180s_hrg_0.fts.fz")
+        assert n.n_processing == 0
+
+
+class TestExposureRoot:
+    RAW = "x_g_10s_2026-06-29T05-16-00"
+
+    def test_a_raw_frame_is_its_own_root(self):
+        name = m.exposure_name(self.RAW + ".fts.fz")
+        assert m.exposure_root(name, lambda s: False) == \
+            (self.RAW, m.ROOT_IS_SELF)
+
+    def test_a_twin_roots_at_its_raw_parent(self):
+        name = m.exposure_name(self.RAW + "_calibrated.fts.fz")
+        assert m.exposure_root(name, lambda s: s == self.RAW) == \
+            (self.RAW, m.ROOT_BY_SUFFIX)
+
+    def test_the_counter_is_dropped_only_when_that_parent_exists(self):
+        name = m.exposure_name(self.RAW + "_1_wcs.fts.fz")
+        # The parent WITH the counter exists: it is a frame index.
+        assert m.exposure_root(name, lambda s: s == self.RAW + "_1") == \
+            (self.RAW + "_1", m.ROOT_BY_SUFFIX)
+        # Only the parent WITHOUT it exists: it was a copy counter.
+        assert m.exposure_root(name, lambda s: s == self.RAW) == \
+            (self.RAW, m.ROOT_BY_COUNTER)
+
+    def test_an_orphan_derivative_roots_at_its_own_base(self):
+        # 2,054 '_wcs' frames of 2024-04/05 are the ONLY copy: pyscope
+        # wrote the solved file and nothing else.  They stay canonical.
+        name = m.exposure_name(self.RAW + "_wcs.fts.fz")
+        assert m.exposure_root(name, lambda s: False) == \
+            (self.RAW, m.ROOT_ORPHAN)
+
+    def test_two_derivatives_of_one_missing_parent_share_a_root(self):
+        a = m.exposure_root(m.exposure_name(self.RAW + "_wcs.fts.fz"),
+                            lambda s: False)[0]
+        b = m.exposure_root(m.exposure_name(self.RAW + "_wcs_cal.fts.fz"),
+                            lambda s: False)[0]
+        assert a == b == self.RAW
+
+
+class TestDupBasis:
+    def test_every_kind_of_duplicate_is_named(self):
+        raw = "a_g_10s_T.fts.fz"
+        assert m.dup_basis(raw, raw, True) == m.DUP_CANONICAL
+        assert m.dup_basis(raw, raw, False) == m.DUP_SAME_BASENAME
+        assert m.dup_basis("a_g_10s_T.fts", raw, False) == m.DUP_PACKAGING
+        assert m.dup_basis("a_g_10s_T_calibrated.fts.fz", raw, False,
+                           m.ROOT_BY_SUFFIX) == m.DUP_PROCESSING
+        assert m.dup_basis("a_g_10s_T_1_wcs.fts.fz", raw, False,
+                           m.ROOT_BY_COUNTER) == m.DUP_PROCESSING_COUNTER
+
+
+class TestCanonicalPrefersTheLeastProcessed:
+    def test_raw_beats_its_calibrated_twin_in_the_same_tree(self):
+        # 138 '_calibrated' files live inside rawimage itself.
+        members = [("rawimage", "rawimage/n/a_calibrated.fts.fz"),
+                   ("rawimage", "rawimage/n/a.fts.fz")]
+        assert m.choose_canonical(members) == 1
+
+    def test_processing_depth_outranks_tree_priority(self):
+        # An unprocessed copy in the last-resort tree still beats a
+        # processed copy in the best one: untouched pixels come first.
+        members = [("rawimage", "rawimage/n/a_calibrated.fts.fz"),
+                   ("reduced", "reduced/n/a.fts")]
+        assert m.choose_canonical(members) == 1
+
+    def test_among_derivatives_the_shallowest_wins(self):
+        members = [("rawimage", "rawimage/n/a_wcs_cal.fts.fz"),
+                   ("rawimage", "rawimage/n/a_wcs.fts.fz")]
+        assert m.choose_canonical(members) == 1
+
+
+class TestBuildFramesTwinDedup:
+    """F-1 at the wiring: the vectorized build must group twins, pick the
+    raw member, and label every duplicate with its evidence."""
+
+    T = "x_g_120s_2026-03-22T03-50-31"
+
+    def _fixture(self):
+        t, qhy = self.T, dict(readoutm="Fast", xbinning=2.0, egain=1.0)
+        rows = [
+            # The raw QHY frame (4800x3211, era 'raw') ...
+            frame_row(obs_rowid=1, path=f"rawimage/2026-03-22/{t}.fts.fz",
+                      jd=2461121.66, naxis1=4800.0, naxis2=3211.0, **qhy),
+            # ... its reduced twin: overscan trimmed, so a DIFFERENT era.
+            frame_row(obs_rowid=2, tree="reduced",
+                      path=f"reduced/2026-03-22/{t}_calibrated.fts.fz",
+                      jd=2461121.66, naxis1=4787.0, naxis2=3193.0, **qhy),
+            # ... and an exact copy of the raw frame in another tree.
+            frame_row(obs_rowid=3, tree="macalester",
+                      path=f"macalester/x/{t}.fts.fz",
+                      jd=2461121.66, naxis1=4800.0, naxis2=3211.0, **qhy),
+            # A second exposure with the SAME name pattern, different JD:
+            # its twin must not attach to the first frame.
+            frame_row(obs_rowid=4, path="rawimage/2026-03-22/y.fts.fz",
+                      jd=2461121.70, naxis1=4800.0, naxis2=3211.0, **qhy),
+            frame_row(obs_rowid=5, tree="reduced",
+                      path="reduced/2026-03-22/y_calibrated.fts.fz",
+                      jd=2461121.70, naxis1=4787.0, naxis2=3193.0, **qhy),
+            # A twin whose JD was REWRITTEN in reduction: not provably the
+            # same exposure, stays its own group (S0b's ladder links it).
+            frame_row(obs_rowid=6, tree="reduced",
+                      path="reduced/2026-03-22/y_calibrated_drift.fts",
+                      jd=2461121.7004, naxis1=4787.0, naxis2=3193.0, **qhy),
+            # A solved-only frame with no raw parent: canonical on its own.
+            frame_row(obs_rowid=7, path="rawimage/2024-04-29/z_wcs.fts.fz",
+                      jd=2460429.68),
+            # Packaging twin: same stem, compressed and not.
+            frame_row(obs_rowid=8, tree="calib", path="calib/m/mf.fts.fz",
+                      jd=2460600.5),
+            frame_row(obs_rowid=9, tree="Calibrations",
+                      path="Calibrations/m/mf.fts", jd=2460600.5),
+        ]
+        return pd.DataFrame(rows)
+
+    def _build(self):
+        return build.build_frames(self._fixture(), {"T CrB": "tcrb"},
+                                  {"tcrb": "T CrB"})
+
+    def test_twins_join_their_raw_parent_and_the_raw_frame_wins(self):
+        frames, _ = self._build()
+        f = frames.set_index("obs_rowid")
+        assert f.loc[1, "dup_group"] == f.loc[2, "dup_group"] \
+            == f.loc[3, "dup_group"]
+        assert list(f.loc[[1, 2, 3], "is_canonical"]) == [1, 0, 0]
+        assert f.loc[2, "dup_basis"] == m.DUP_PROCESSING
+        assert f.loc[3, "dup_basis"] == m.DUP_SAME_BASENAME
+        assert f.loc[1, "dup_basis"] == m.DUP_CANONICAL
+
+    def test_a_different_jd_never_merges(self):
+        f = self._build()[0].set_index("obs_rowid")
+        assert f.loc[4, "dup_group"] == f.loc[5, "dup_group"]
+        assert f.loc[4, "dup_group"] != f.loc[1, "dup_group"]
+        # The JD-drifted twin is NOT merged: identity needs the same JD.
+        assert f.loc[6, "dup_group"] != f.loc[4, "dup_group"]
+        assert f.loc[6, "is_canonical"] == 1
+
+    def test_a_derivative_with_no_parent_stays_canonical(self):
+        f = self._build()[0].set_index("obs_rowid")
+        assert f.loc[7, "is_canonical"] == 1
+        assert f.loc[7, "dup_basis"] == m.DUP_CANONICAL
+
+    def test_packaging_twins_merge(self):
+        f = self._build()[0].set_index("obs_rowid")
+        assert f.loc[8, "dup_group"] == f.loc[9, "dup_group"]
+        assert f.loc[8, "is_canonical"] == 1          # 'calib' is listed
+        assert f.loc[9, "dup_basis"] == m.DUP_PACKAGING
+
+    def test_exactly_one_canonical_row_per_group(self):
+        frames, _ = self._build()
+        assert (frames.groupby("dup_group")["is_canonical"].sum() == 1).all()
+
+    def test_vectorized_choice_still_equals_the_pure_function(self):
+        frames, _ = self._build()
+        for _, grp in frames.groupby("dup_group"):
+            members = list(zip(grp["tree"], grp["path"]))
+            want = grp.index[m.choose_canonical(
+                members, target_key=grp["target_key"].iloc[0])]
+            assert grp.index[grp["is_canonical"] == 1][0] == want
+
+    def test_the_reduced_era_becomes_an_alias_of_the_raw_era(self):
+        """Acceptance line of F-1: 'eras 79/82 become reduced aliases'.
+
+        The trimmed-geometry era holds rows 2, 5 and 6.  Rows 2 and 5 are
+        copies of raw-era frames; row 6 (JD drift) is not — so with the
+        test's 2-of-3 the era is NOT an alias at the 95% threshold, and
+        becomes one when the drifted row is removed."""
+        _, eras = self._build()
+        trimmed = eras[eras["naxis1"] == 4787].iloc[0]
+        assert trimmed["n_rows"] == 3 and trimmed["n_canonical"] == 1
+        assert pd.isna(trimmed["alias_of_era"])
+
+        df = self._fixture()
+        frames, eras = build.build_frames(df[df["obs_rowid"] != 6],
+                                          {"T CrB": "tcrb"},
+                                          {"tcrb": "T CrB"})
+        trimmed = eras[eras["naxis1"] == 4787].iloc[0]
+        raw = eras[eras["naxis1"] == 4800].iloc[0]
+        assert trimmed["n_canonical"] == 0
+        assert trimmed["alias_of_era"] == raw["era_id"]
+        assert trimmed["alias_fraction"] == 1.0
+        # An era of real exposures is nobody's alias.
+        assert pd.isna(raw["alias_of_era"])
+        # And the alias keeps its registry id: pinned, never reused.
+        assert trimmed["era_id"] != raw["era_id"]
+
+
+# ---------------------------------------------------------------------------
+# F-2: typed hardware-state columns from the header re-scrape
+# ---------------------------------------------------------------------------
+class TestHardwareColumns:
+    def test_camera_identity_from_the_driver_string(self):
+        assert m.camera_id("DL Imaging", None) == "AC4040"
+        assert m.camera_id("Andor CCD/EMCCD (SDK2)", "ASCOM") == "iKon"
+        assert m.camera_id("ASI Camera (1)", "ASCOM") == "ASI"
+        # Three driver strings, one camera.
+        assert m.camera_id("QHYCCD-Cameras-Capture", "ASCOM") == "QHY600"
+        assert m.camera_id("QHY600Pro", None) == "QHY600"
+
+    def test_camname_identifies_the_frames_with_no_instrume(self):
+        # 854 pyscope-native frames of 2026-06-28/29 have no INSTRUME card.
+        assert m.camera_id(None, "QHY600MPCIE-ec89ab488ac5aca73") == "QHY600"
+
+    def test_an_unknown_camera_is_none_not_a_guess(self):
+        assert m.camera_id("Some New Driver", "ASCOM") is None
+        assert m.camera_id(None, None) is None
+
+    def test_card_float_keeps_zero_and_refuses_non_numbers(self):
+        assert m.card_float("-0.0") == 0.0          # a real set-point
+        assert m.card_float("  -10.000000000000000 ") == -10.0
+        assert m.card_float("4x") is None           # the iKon's preamp GAIN
+        assert m.card_float("") is None and m.card_float(None) is None
+
+    def test_wheel_map_from_both_header_dialects(self):
+        maxim = "('g', 'OGGrism', 'r')"
+        pyscope = "['g', 'lrg', 'r']"
+        assert m.wheel_slots(maxim) == ("g", "OGGrism", "r")
+        assert m.wheel_map_key(pyscope) == "g|lrg|r"
+        # Case is preserved: a rename is evidence, not noise to fold away.
+        assert m.wheel_map_key("('Lum',)") == "Lum"
+        assert m.wheel_map_key(None) is None and m.wheel_map_key("") is None
+
+    def test_typed_row_keeps_blank_apart_from_absent(self):
+        row = m.hardware_columns({
+            "h_instrume": "ASI Camera (1)", "h_camname": "ASCOM",
+            "h_gain": "100", "h_offset": "30", "h_set_temp": "-10.0",
+            "h_coolpowr": "28", "h_focpos": "9980.31", "h_flipstat": "",
+            "h_fwpos": "0", "h_fwallnam": "('g', 'r')", "h_scanned": 1})
+        assert row["camera"] == "ASI"
+        assert row["hdr_gain"] == "100" and row["hdr_gain_num"] == 100.0
+        assert row["hdr_offset"] == 30.0 and row["set_temp"] == -10.0
+        assert row["flipstat"] == ""        # card present, blank
+        assert row["telpier"] is None       # card absent
+        assert row["fwpos"] == 0 and row["fwallnam"] == "g|r"
+        assert row["hdr_scanned"] == 1
+
+    def test_an_unscanned_row_is_all_null_and_says_so(self):
+        row = m.hardware_columns({})
+        assert row["hdr_scanned"] == 0
+        assert all(v is None for k, v in row.items() if k != "hdr_scanned")
+        assert set(row) == {c for c, _ in m.HARDWARE_FRAME_COLUMNS}
+
+
+class TestAttachHardwareColumns:
+    def _frames(self, **hdr):
+        rows = [
+            frame_row(obs_rowid=1, path="rawimage/n/a.fts.fz", jd=2460310.6,
+                      instrume=None, swcreate=None, ccd_temp=None, **hdr),
+            # an exact copy that was NOT re-scraped
+            frame_row(obs_rowid=2, tree="macalester",
+                      path="macalester/x/a.fts.fz", jd=2460310.6,
+                      instrume=None, swcreate=None, ccd_temp=None),
+            # a reduced derivative that was NOT re-scraped
+            frame_row(obs_rowid=3, tree="reduced",
+                      path="reduced/n/a_calibrated.fts.fz", jd=2460310.6,
+                      instrume=None, swcreate=None, ccd_temp=None),
+        ]
+        return pd.DataFrame(rows)
+
+    HDR = dict(h_instrume="ASI Camera (1)", h_swcreate="MaxIm DL 6.40",
+               h_ccd_temp="-9.9", h_set_temp="-10", h_gain="100",
+               h_flipstat="Flip/Mirror", h_scanned=1)
+
+    def test_nulls_are_filled_where_the_card_exists(self):
+        frames, _ = build.build_frames(self._frames(**self.HDR),
+                                       {"T CrB": "tcrb"}, {"tcrb": "T CrB"})
+        f = frames.set_index("obs_rowid")
+        assert f.loc[1, "instrume"] == "ASI Camera (1)"
+        assert f.loc[1, "swcreate"] == "MaxIm DL 6.40"
+        assert f.loc[1, "ccd_temp"] == -9.9
+        assert f.loc[1, "camera"] == "ASI" and f.loc[1, "set_temp"] == -10.0
+        assert f.loc[1, "hdr_scanned"] == build.HDR_SCANNED
+        # The raw h_* columns do not leak into frames.
+        assert not [c for c in frames.columns if c.startswith("h_")]
+
+    def test_an_exact_copy_inherits_and_a_derivative_does_not(self):
+        frames, _ = build.build_frames(self._frames(**self.HDR),
+                                       {"T CrB": "tcrb"}, {"tcrb": "T CrB"})
+        f = frames.set_index("obs_rowid")
+        # Same bytes, same header: inherited, and labelled as inherited.
+        assert f.loc[2, "hdr_scanned"] == build.HDR_INHERITED
+        assert f.loc[2, "camera"] == "ASI" and f.loc[2, "set_temp"] == -10.0
+        # A calibrated derivative has its own header: never inherited.
+        assert f.loc[3, "hdr_scanned"] == build.HDR_NOT_SCANNED
+        assert pd.isna(f.loc[3, "set_temp"])
+
+    def test_a_catalog_value_is_never_overwritten(self):
+        df = self._frames(**self.HDR)
+        df.loc[0, "instrume"] = "DL Imaging"        # the original scan's
+        frames, _ = build.build_frames(df, {"T CrB": "tcrb"},
+                                       {"tcrb": "T CrB"})
+        assert frames.set_index("obs_rowid").loc[1, "instrume"] == \
+            "DL Imaging"
+
+    def test_without_a_rescrape_the_columns_exist_and_are_null(self):
+        frames, _ = build.build_frames(self._frames(), {"T CrB": "tcrb"},
+                                       {"tcrb": "T CrB"})
+        assert set(frames["hdr_scanned"]) == {build.HDR_NOT_SCANNED}
+        assert frames["camera"].isna().all()
+
+
+# ---------------------------------------------------------------------------
+# The in-place swap (2026-10-03): siblings untouched, writers not lost
+# ---------------------------------------------------------------------------
+class TestInPlaceSwap:
+    def _tables(self, n=1):
+        frames, eras = build.build_frames(
+            pd.DataFrame([frame_row(obs_rowid=i,
+                                    path=f"rawimage/2024-01-01/a{i}.fts",
+                                    jd=2460310.6 + i) for i in range(n)]),
+            {"T CrB": "tcrb"}, {"tcrb": "T CrB"})
+        aliases = pd.DataFrame([{"raw_name": "T CrB", "target_key": "tcrb"}])
+        counts = pd.DataFrame([{"project": "T", "target_key": "tcrb"}])
+        return frames, aliases, eras, counts
+
+    def _write(self, out, n=1, **kw):
+        frames, aliases, eras, counts = self._tables(n)
+        build.write_manifest(out, frames, aliases, eras, counts,
+                             Path("cat.db"), **kw)
+
+    def _meta(self, out):
+        with closing(sqlite3.connect(out)) as con:
+            return dict(con.execute("SELECT key, value FROM build_meta"))
+
+    def test_first_build_writes_a_file_and_rebuild_swaps_in_place(
+            self, tmp_path):
+        out = tmp_path / "m.sqlite"
+        self._write(out)
+        assert self._meta(out)["swap"] == "fresh_file_replace"
+        inode = out.stat().st_ino
+        self._write(out, n=3)
+        assert self._meta(out)["swap"] == "in_place_transaction"
+        # THE POINT: the file is the same file.  A process that had it open
+        # is still attached to the live manifest, not to an orphaned inode.
+        assert out.stat().st_ino == inode
+        with closing(sqlite3.connect(out)) as con:
+            assert con.execute("SELECT count(*) FROM frames").fetchone()[0] == 3
+            idx = {r[0] for r in con.execute(
+                "SELECT name FROM sqlite_master WHERE type='index'")}
+            left = [r[0] for r in con.execute(
+                "SELECT name FROM sqlite_master WHERE name LIKE '%_s0_tmp'")]
+        assert {"ix_frames_dup", "ix_frames_era", "ix_frames_rowid"} <= idx
+        assert left == [], "temporary tables survived the swap"
+
+    def test_a_sibling_writer_holding_the_file_open_loses_nothing(
+            self, tmp_path):
+        """The defect the file replace still had: a stage that kept the
+        manifest open across an S0 rebuild went on writing to an inode
+        with no name.  With the transaction swap its later write lands in
+        the live manifest."""
+        out = tmp_path / "m.sqlite"
+        self._write(out)
+        sibling = sqlite3.connect(out)
+        sibling.execute("PRAGMA journal_mode=WAL")
+        sibling.execute("CREATE TABLE detector_params (k TEXT, v REAL)")
+        sibling.execute("INSERT INTO detector_params VALUES ('gain', 1.0)")
+        sibling.commit()
+        try:
+            self._write(out, n=2)                 # S0 rebuilds underneath
+            # The sibling writes AFTER the rebuild, on its old connection.
+            sibling.execute("INSERT INTO detector_params VALUES ('rn', 3.5)")
+            sibling.commit()
+        finally:
+            sibling.close()
+        with closing(sqlite3.connect(out)) as con:
+            assert con.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+            got = dict(con.execute("SELECT k, v FROM detector_params"))
+            n = con.execute("SELECT count(*) FROM frames").fetchone()[0]
+        assert got == {"gain": 1.0, "rn": 3.5}
+        assert n == 2
+
+    def test_a_reader_mid_rebuild_sees_a_whole_manifest(self, tmp_path):
+        out = tmp_path / "m.sqlite"
+        self._write(out)
+        with closing(sqlite3.connect(out)) as con:
+            con.execute("PRAGMA journal_mode=WAL")
+        reader = sqlite3.connect(f"file:{out}?mode=ro", uri=True)
+        try:
+            reader.execute("BEGIN")
+            before = reader.execute("SELECT count(*) FROM frames").fetchone()[0]
+            self._write(out, n=5)
+            # Same snapshot: still the old manifest, complete.
+            assert reader.execute(
+                "SELECT count(*) FROM frames").fetchone()[0] == before == 1
+            reader.execute("COMMIT")
+            assert reader.execute(
+                "SELECT count(*) FROM frames").fetchone()[0] == 5
+        finally:
+            reader.close()
+
+    def test_fresh_file_still_carries_siblings(self, tmp_path):
+        out = tmp_path / "m.sqlite"
+        self._write(out)
+        with closing(sqlite3.connect(out)) as con:
+            con.execute("CREATE TABLE s1_batch (obs_rowid INTEGER)")
+            con.execute("INSERT INTO s1_batch VALUES (7)")
+            con.commit()
+        self._write(out, n=2, fresh_file=True)
+        meta = self._meta(out)
+        assert meta["swap"] == "fresh_file_replace"
+        assert "s1_batch" in meta["carried_tables"]
+        with closing(sqlite3.connect(out)) as con:
+            assert con.execute("SELECT * FROM s1_batch").fetchall() == [(7,)]

@@ -142,7 +142,9 @@ CACHE_DIR = REPO_ROOT / "products" / "external" / "vsx"
 
 #: Stamped into ``p3_meta`` and read by the provenance graph.  Bump it when
 #: the arithmetic changes, not when a comment does.
-PHASE3_CODE_VERSION = "CV-S9 v1.0 (2026-08-20, Phase-3 time series)"
+PHASE3_CODE_VERSION = ("CV-S9 v1.1 (2026-10-03, Phase-3 time series; no "
+                       "one-sided error rescaling; scatter-based band "
+                       "pairs)")
 
 #: Hard cap on worker processes.  This machine is also running an S1
 #: astrometry batch and a catalogue-tie re-run; a stage that saturates the
@@ -436,6 +438,15 @@ def ensure_tables(con: sqlite3.Connection) -> None:
                       ("pdot_limit3", "REAL")):
         if col not in have:
             con.execute(f"ALTER TABLE p3_cycle_count ADD COLUMN {col} {decl}")
+    # Added 2026-10-03 (committee review, CV-R1): the scatter-based mean and
+    # standard error of each band pair and the degrees of freedom its
+    # chi2nu stands on.  ``sigma_s`` is the budget-propagated error and is
+    # no longer rescaled by chi2nu in either direction.
+    have_b = {r[1] for r in con.execute("PRAGMA table_info(p3_band_pair)")}
+    for col, decl in (("mean_scatter_s", "REAL"), ("se_scatter_s", "REAL"),
+                      ("dof", "INTEGER")):
+        if col not in have_b:
+            con.execute(f"ALTER TABLE p3_band_pair ADD COLUMN {col} {decl}")
     have_n = {r[1] for r in con.execute("PRAGMA table_info(p3_oc_night)")}
     for col, decl in (("oc_sigma_edge_s", "REAL"),
                       ("budget_band", "TEXT")):
@@ -534,16 +545,22 @@ def inflation_for(con: sqlite3.Connection, series_key: str) -> float:
     """The measured chi2 inflation, or 1.0 when the series has none.
 
     Every error bar this script uses is multiplied by it.  The
-    characterization measured 0.92-3.02 across the sample, and an inflation
-    below 1 is NOT applied — an error model that turns out to be slightly
-    pessimistic does not license shrinking the bars, because the same
-    measurement that says 0.92 has an uncertainty of its own.
+    characterization measured 0.92-3.02 across the sample, and the measured
+    value is applied AS MEASURED, including when it is below one.
+
+    Until the committee review of 2026-10-03 this returned
+    ``max(1.0, inflation)``.  That is the same one-sided clip as
+    ``max(chi2nu, 1)`` and the review banned it for the same reason
+    (SYNTHESIS, standing rule 1): an error bar that may only ever grow
+    turns over-stated errors into silently weaker results.  Two series are
+    affected, EU UMa Mode0 r (0.92) and i (0.99); neither contributes an
+    accepted edge, so no published epoch moves.
     """
     row = con.execute("SELECT inflation FROM cv_error_model WHERE "
                       "series_key = ?", (series_key,)).fetchone()
-    if not row or row[0] is None or not np.isfinite(row[0]):
+    if not row or row[0] is None or not np.isfinite(row[0]) or row[0] <= 0:
         return 1.0
-    return float(max(1.0, row[0]))
+    return float(row[0])
 
 
 # ===========================================================================
@@ -1215,6 +1232,41 @@ def cmd_sigmat(args) -> None:
 #: measured differences and carries no inference at all.
 BAND_PAIR_SIGMA_BAR = 3.0
 
+#: Fewest paired cycles before a SCATTER-BASED significance is computed at
+#: all.  The standard error of n differences is sd/sqrt(n), and with fewer
+#: than five the sd is itself uncertain by a factor of two; a per-night row
+#: with one to three paired cycles therefore carries ``significant = 0``
+#: by construction and says so in its note.  Added 2026-10-03.
+BAND_PAIR_MIN_PAIRS = 5
+
+
+def _band_pair_row(arr, sa, sb) -> tuple:
+    """``(delta, sigma_budget, chi2nu, dof, mean_scatter, se_scatter,
+    significant)`` for one set of paired edges.
+
+    ``significant`` is decided on the SCATTER-BASED statistic — the plain
+    mean of the paired differences against its own standard error — and
+    only when at least :data:`BAND_PAIR_MIN_PAIRS` pairs stand behind it.
+    The first draft decided it on the budget-propagated error inflated by
+    ``max(chi2nu, 1)``; the committee review of 2026-10-03 found that rule
+    had turned a four-sigma offset into "1.9 sigma", because the budget
+    errors are about twice the scatter the pairs actually show (chi2nu
+    0.2-0.3) and the clip stopped that from ever being corrected.  The
+    budget-based numbers are still stored, unrescaled, with chi2nu and its
+    degrees of freedom beside them, so the over-statement stays visible.
+
+    This flag is a summary for the report page.  The paper's inference
+    about a band offset is the paired-test table ``rv_band_offset`` written
+    by ``run_cv_revision.py``, which adds the distribution-free tests, the
+    night clustering and the trials factor this stage does not have.
+    """
+    d, s, chi2nu = p3.band_difference(arr[:, 0], sa, arr[:, 2], sb)
+    ms, se, n = p3.band_difference_scatter(arr[:, 0], arr[:, 2])
+    sig = int(n >= BAND_PAIR_MIN_PAIRS and np.isfinite(se) and se > 0
+              and abs(ms) > BAND_PAIR_SIGMA_BAR * se)
+    return (d, s, chi2nu, (n - 1) if n > 1 else None, ms,
+            se if np.isfinite(se) else None, sig)
+
 
 def cmd_edges(args) -> None:
     """Bright-phase edge epochs, per cycle, per band, for the polars."""
@@ -1332,19 +1384,21 @@ def cmd_edges(args) -> None:
         mc_b = rows[0][5]
         sa = np.maximum(arr[:, 1], mc_a if mc_a else 0.0)
         sb = np.maximum(arr[:, 3], mc_b if mc_b else 0.0)
-        d, s, chi2nu = p3.band_difference(arr[:, 0], sa, arr[:, 2], sb)
+        d, s, chi2nu, dof, ms, se, sig = _band_pair_row(arr, sa, sb)
         con.execute("""
             INSERT OR REPLACE INTO p3_band_pair
             (target_key, era_id, night, band_a, band_b, n_cycles, delta_s,
-             sigma_s, chi2nu, significant, note)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (
-            tk, era, night, fa, fb, len(rows), d, s, chi2nu,
-            int(np.isfinite(d) and np.isfinite(s) and s > 0
-                and abs(d) > BAND_PAIR_SIGMA_BAR * s),
-            ("per-cycle paired difference; the error bar is the larger of "
-             "the rescaled formal bar and the injection Monte Carlo's "
-             "sigma_t, inflated further when the offset is not constant "
-             "from cycle to cycle")))
+             sigma_s, chi2nu, significant, note, mean_scatter_s,
+             se_scatter_s, dof)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+            tk, era, night, fa, fb, len(rows), d, s, chi2nu, sig,
+            ("per-cycle paired difference on one night; sigma_s is "
+             "propagated from the per-edge errors (the larger of the "
+             "formal bar and the injection sigma_t) and is NOT rescaled by "
+             "chi2nu; mean_scatter_s +/- se_scatter_s is the unweighted "
+             "mean and its scatter-based standard error; significant is "
+             f"scatter-based and needs {BAND_PAIR_MIN_PAIRS} pairs, which "
+             "a single night does not have"), ms, se, dof))
     # --- POOLED across every night: the actual cyclotron measurement ---
     # Most individual nights contribute a single paired cycle, and a single
     # cycle at the sigma_t this cadence supports is a +/-300 s bound that
@@ -1373,21 +1427,22 @@ def cmd_edges(args) -> None:
         arr = np.array([[r[0], r[1], r[2], r[3]] for r in rows], dtype=float)
         mc_a = rows[0][4] or 0.0
         mc_b = rows[0][5] or 0.0
-        d, s, chi2nu = p3.band_difference(arr[:, 0],
-                                          np.maximum(arr[:, 1], mc_a),
-                                          arr[:, 2],
-                                          np.maximum(arr[:, 3], mc_b))
+        d, s, chi2nu, dof, ms, se, sig = _band_pair_row(
+            arr, np.maximum(arr[:, 1], mc_a), np.maximum(arr[:, 3], mc_b))
         con.execute("""
             INSERT OR REPLACE INTO p3_band_pair
             (target_key, era_id, night, band_a, band_b, n_cycles, delta_s,
-             sigma_s, chi2nu, significant, note)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (
-            tk, era, "(pooled)", fa, fb, len(rows), d, s, chi2nu,
-            int(np.isfinite(d) and np.isfinite(s) and s > 0
-                and abs(d) > BAND_PAIR_SIGMA_BAR * s),
-            ("every paired cycle in this era, pooled; this is the "
-             "publishable inter-band number, and the per-night rows above "
-             "are its components rather than independent results")))
+             sigma_s, chi2nu, significant, note, mean_scatter_s,
+             se_scatter_s, dof)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+            tk, era, "(pooled)", fa, fb, len(rows), d, s, chi2nu, sig,
+            ("every paired cycle in this era, pooled; the per-night rows "
+             "above are its components rather than independent results.  "
+             "sigma_s is the budget-propagated error, unrescaled; "
+             "mean_scatter_s +/- se_scatter_s is the scatter-based "
+             "estimate and the one significant is taken on; the paper's "
+             "inference is the paired-test table rv_band_offset"),
+            ms, se, dof))
     con.commit()
     stamp(con, "edges")
     n_pairs = con.execute("SELECT count(*) FROM p3_band_pair").fetchone()[0]
@@ -1399,24 +1454,40 @@ def cmd_edges(args) -> None:
     # existence of non-zero differences.  The strongest pooled pair and its
     # significance are therefore stored beside the count, so the null is
     # quotable and cannot be turned into a result by paraphrase.
+    # THE VERDICT IS THE STRONGEST POOLED PAIR, STATED WITH ITS SCATTER.
+    # It is no longer a count of rows over a bar: "k of N significant" was
+    # banned by the 2026-10-03 review (standing rule 2), because 27 of the
+    # 32 rows here are single nights with one to three paired cycles that
+    # could never have reached any bar, and counting them made a null out
+    # of rows with no power.
     top = con.execute("""
-        SELECT target_key, era_id, band_a, band_b, n_cycles, delta_s, sigma_s
-        FROM p3_band_pair WHERE night='(pooled)' AND sigma_s > 0
-        ORDER BY abs(delta_s) / sigma_s DESC LIMIT 1""").fetchone()
+        SELECT target_key, era_id, band_a, band_b, n_cycles, delta_s,
+               sigma_s, chi2nu, dof, mean_scatter_s, se_scatter_s
+        FROM p3_band_pair WHERE night='(pooled)' AND se_scatter_s > 0
+          AND n_cycles >= ?
+        ORDER BY abs(mean_scatter_s) / se_scatter_s DESC LIMIT 1""",
+                      (BAND_PAIR_MIN_PAIRS,)).fetchone()
     set_meta(con, {"n_edges_fitted": n_fit, "n_edges_accepted": n_acc,
                    "n_band_pairs": n_pairs, "n_band_pairs_significant": n_sig,
                    "band_pair_sigma_bar": BAND_PAIR_SIGMA_BAR,
+                   "band_pair_min_pairs": BAND_PAIR_MIN_PAIRS,
                    "band_pair_verdict": (
-                       f"{n_sig} of {n_pairs} band pairs significant at "
-                       f"{BAND_PAIR_SIGMA_BAR:.0f} sigma"
-                       + (f"; strongest pooled pair {top[2]}-{top[3]} "
-                          f"(era {top[1]}, {top[4]} paired cycles) "
-                          f"{top[5]:+.1f} +/- {top[6]:.1f} s = "
-                          f"{abs(top[5]) / top[6]:.1f} sigma"
-                          if top else ""))})
+                       (f"strongest pooled pair {top[2]}-{top[3]} "
+                        f"(era {top[1]}, {top[4]} paired cycles): "
+                        f"{top[9]:+.1f} +/- {top[10]:.1f} s scatter-based "
+                        f"= {abs(top[9]) / top[10]:.1f} sigma; the "
+                        f"budget-propagated error is {top[6]:.1f} s with "
+                        f"chi2nu = {top[7]:.2f} on {top[8]} dof, i.e. "
+                        f"over-stated by {1.0 / math.sqrt(top[7]):.1f}x"
+                        if top and top[7] else
+                        "no pooled pair has enough paired cycles for a "
+                        "scatter-based estimate")
+                       + "; the inference is rv_band_offset's paired tests")})
     con.close()
-    print(f"  {n_acc}/{n_fit} edges accepted; {n_sig}/{n_pairs} inter-band "
-          f"differences significant at 3 sigma")
+    print(f"  {n_acc}/{n_fit} edges accepted; "
+          + (f"strongest pooled pair {top[2]}-{top[3]} "
+             f"{top[9]:+.1f} +/- {top[10]:.1f} s (scatter-based)"
+             if top else "no pooled pair with a scatter-based estimate"))
 
 
 # ===========================================================================
@@ -1913,17 +1984,19 @@ def cmd_oc(args) -> None:
                        "(+) bias rather than any per-cycle error bar of its "
                        "own; n may be 1, and where it is, the epoch is that "
                        "cycle with the budget attached.  Bands are averaged "
-                       "separately as a CONSERVATIVE choice: a "
-                       "wavelength-dependent edge phase is expected if the "
-                       "cyclotron beaming is wavelength dependent, but "
-                       "p3_band_pair does not detect one (0 of 32 pairs "
-                       "significant at 3 sigma, largest 1.9 sigma), so "
-                       "pooling is guarded against an effect these data "
-                       "could not have measured, not against a measured "
-                       "one.  The budget itself is measured on a single "
-                       "night of a single target and applied by band slot "
-                       "across both instrument eras; "
-                       "oc_night_chi2nu_edge is the check on that")})
+                       "separately, and since the 2026-10-03 review that "
+                       "is no longer a merely conservative choice: the "
+                       "paired tests in rv_band_offset find the g edge "
+                       "ahead of the i edge, so an O-C that pools bands "
+                       "without a constant per band mixes a band offset "
+                       "into its scatter and, because the band mix changes "
+                       "with time, into its period and quadratic terms.  "
+                       "rv_oc_fit is the O-C with per-band constants.  The "
+                       "budget attached here is measured on a single night "
+                       "of a single target and applied by band slot across "
+                       "both instrument eras; rv_oc_chi2 shows it is "
+                       "over-stated in r and i, and the revision's "
+                       "scatter-based errors replace it")})
     con.close()
 
 

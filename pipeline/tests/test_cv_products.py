@@ -538,49 +538,131 @@ class TestCatalogueTie:
 # survived a re-run of the numbers underneath it.  These pin the products
 # so the same paraphrase cannot come back.
 # ---------------------------------------------------------------------------
-class TestTheInterBandOffsetIsANonDetection:
-    """Blocker 1.  The abstract and Conclusion 5 of the previous revision
-    asserted that a bright-phase edge epoch is band dependent.  Every row of
-    ``p3_band_pair`` carries ``significant=0`` and no pooled pair reaches
-    even 2 sigma.  "Not uniformly zero" is true of any set of measured
-    differences; it is not a detection."""
+class TestTheInterBandOffsetIsTestedByPairsNotByVotes:
+    """Blocker 1 of the FIRST review said the paper asserted a band
+    dependence it had not tested, and this class then pinned "no band pair
+    is significant".  The committee review of 2026-10-03 (DS.F1, RF.B1)
+    found that pin was itself wrong: the "null" was a 3-sigma vote count on
+    budget error bars twice the size of the pairs' own scatter, clipped by
+    ``max(chi2nu, 1)`` so they could never shrink.  The same twelve pairs
+    put the g edge ahead of the i edge at four standard errors.
+
+    What is pinned now is the TEST, not a verdict about it: the paired
+    statistics exist, they say what the paper has to say, and the budget
+    errors' over-statement is on record rather than hidden.  Each test
+    names what must be rewritten if it stops holding."""
 
     def _skip(self, phot):
         if not _has(phot, "p3_band_pair"):
             pytest.skip("phase 3 not built in this checkout")
+        if not _has(phot, "rv_band_offset"):
+            pytest.skip("revision stage not built in this checkout")
 
-    def test_no_band_pair_is_significant(self, phot):
-        self._skip(phot)
-        rows = phot.execute("SELECT count(*), sum(significant) "
-                            "FROM p3_band_pair").fetchone()
-        assert rows[0] > 0
-        assert (rows[1] or 0) == 0, (
-            "a band pair became significant: the paper publishes this as a "
-            "NON-DETECTION and its abstract, Section 5.1, Conclusion 5 and "
-            "Figure 9's caption all have to be rewritten if it is one")
+    def _row(self, phot, est, level="cycle", era="all", a="g", b="i"):
+        cur = phot.execute(
+            "SELECT * FROM rv_band_offset WHERE estimator=? AND level=? AND "
+            "era=? AND band_a=? AND band_b=?", (est, level, era, a, b))
+        cols = [d[0] for d in cur.description]
+        r = cur.fetchone()
+        assert r is not None, f"no rv_band_offset row for {est} {a}-{b}"
+        return dict(zip(cols, r))
 
-    def test_no_pooled_pair_reaches_two_sigma(self, phot):
-        """The bound the paper publishes is 2 sigma, so the null has to hold
-        at 2 sigma and not only at the 3 sigma acceptance bar."""
+    def test_the_budget_errors_are_recorded_as_overstated(self, phot):
+        """The defect that made the null: chi2nu far below one, unclipped.
+        Standing rule 1 treats chi2nu < 0.5 as a defect equal to > 2."""
         self._skip(phot)
         for r in phot.execute(
-                "SELECT band_a, band_b, era_id, delta_s, sigma_s FROM "
-                "p3_band_pair WHERE night='(pooled)' AND sigma_s > 0"):
-            assert abs(r[3]) / r[4] < 2.0, (
-                f"{r[0]}-{r[1]} in era {r[2]} reaches "
-                f"{abs(r[3]) / r[4]:.1f} sigma")
+                "SELECT band_a, band_b, n_cycles, chi2nu FROM p3_band_pair "
+                "WHERE target_key='stlmi' AND night='(pooled)' AND "
+                "n_cycles >= 10"):
+            assert r[3] < 0.5, (
+                f"pooled {r[0]}-{r[1]} now has chi2nu {r[3]:.2f}: the "
+                f"budget errors are no longer over-stated, and the report's "
+                f"account of why the first draft found a null is stale")
+        v1 = self._row(phot, "v1")
+        assert v1["chi2nu_pub"] is not None and v1["dof_pub"] == v1["n"] - 1
+        assert v1["chi2nu_pub"] < 0.5
 
-    def test_the_epoch_rule_does_not_call_the_offset_measured(self, phot):
-        """``p3_meta.oc_epoch_rule`` is released text and justified averaging
-        within a band by "a band-dependent edge epoch" it had not measured."""
+    def test_the_scatter_based_error_is_the_scatter(self, phot):
+        """``se_s`` must be sd/sqrt(n) of the differences themselves and
+        nothing else — no budget, no clip."""
         self._skip(phot)
+        d = [r[0] for r in phot.execute("""
+            SELECT (a.t_edge_bjd - b.t_edge_bjd) * 86400.0
+            FROM p3_edge a JOIN p3_edge b ON a.cycle = b.cycle
+            WHERE a.target_key='stlmi' AND b.target_key='stlmi'
+              AND lower(a.filter)='g' AND lower(b.filter)='i'
+              AND a.accepted=1 AND b.accepted=1""")]
+        v1 = self._row(phot, "v1")
+        assert v1["n"] == len(d)
+        mean = sum(d) / len(d)
+        sd = math.sqrt(sum((x - mean) ** 2 for x in d) / (len(d) - 1))
+        assert abs(v1["mean_s"] - mean) < 1e-6
+        assert abs(v1["se_s"] - sd / math.sqrt(len(d))) < 1e-6
+        assert v1["n_negative"] == sum(1 for x in d if x < 0)
+
+    def test_the_g_minus_i_offset_is_what_the_paper_must_say(self, phot):
+        """The result the abstract now has to carry.  If this fails the
+        offset has gone away and the sentence must go with it — in either
+        direction the paper follows the test (SYNTHESIS, D3)."""
+        self._skip(phot)
+        v1 = self._row(phot, "v1")
+        assert v1["mean_s"] < 0 and abs(v1["mean_s"]) > 3.0 * v1["se_s"], (
+            "the same-cycle g-i offset is no longer three standard errors "
+            "from zero under the published estimator")
+        assert v1["p_perm_cluster_bonf"] < 0.05, (
+            "the night-clustered, trials-corrected permutation p-value is "
+            "no longer below 0.05: the offset may not be called detected")
+        assert v1["n_negative"] >= v1["n"] - 2
+
+    def test_changing_the_estimator_does_not_remove_it(self, phot):
+        """D3.  An offset made by the magnitude-space, per-band-width
+        estimator would vanish on a common width grid or in flux.  It does
+        not: the same sign and at least three standard errors in both."""
+        self._skip(phot)
+        for est in ("magc", "v2"):
+            r = self._row(phot, est)
+            assert r["mean_s"] < 0 and abs(r["mean_s"]) > 3.0 * r["se_s"], (
+                f"under the {est} estimator the g-i offset is "
+                f"{r['mean_s']:.0f} +/- {r['se_s']:.0f} s: the paper's "
+                f"statement that no estimator removes it is now false")
+
+    def test_the_other_pairs_are_not_claimed(self, phot):
+        """Only g-i is detected.  g-r and r-i must stay below the bar the
+        paper holds g-i to, or the text needs a second and third claim."""
+        self._skip(phot)
+        for a, b in (("g", "r"), ("r", "i")):
+            r = self._row(phot, "v1", a=a, b=b)
+            assert r["p_perm_cluster_bonf"] > 0.05, (
+                f"{a}-{b} is now significant after the trials factor")
+
+    def test_no_vote_count_is_published_by_the_revision(self, phot):
+        """Standing rule 2 bans "k of N significant".  The revision's
+        scalars must not contain one."""
+        self._skip(phot)
+        bad = [r[0] for r in phot.execute(
+            "SELECT key FROM rv_result WHERE lower(note) LIKE "
+            "'% of % significant%'")]
+        assert not bad, f"vote-count phrasing in rv_result notes: {bad}"
+
+    def test_the_epoch_rule_says_why_bands_are_kept_apart(self, phot):
+        """``p3_meta.oc_epoch_rule`` is released text.  Built by the first
+        draft's code it says the offset was not detected and the separation
+        is conservative; built by the revised code it must name the paired
+        tests as the authority.  It may never assert a detection of its
+        own, because this stage does not test for one."""
+        if not _has(phot, "p3_band_pair"):
+            pytest.skip("phase 3 not built in this checkout")
         rule = phot.execute("SELECT value FROM p3_meta WHERE "
                             "key='oc_epoch_rule'").fetchone()
         if rule is None:
             pytest.skip("oc stage predates the epoch-rule note")
         low = str(rule[0]).lower()
-        assert "does not detect" in low or "not detect" in low
-        assert "conservative" in low
+        assert "separately" in low
+        if "rv_band_offset" in low:
+            assert "paired tests" in low
+        else:
+            assert "not detect" in low and "conservative" in low
 
 
 class TestPublishedEpochsAndTheirSpan:
