@@ -3,7 +3,7 @@
 <title>S0c — Per-Project Staging Manifests</title>
 <link rel="stylesheet" href="../assets/macro.css">
 </head><body>
-<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">0/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">2/34 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series"><span class="n">CV Time Series</span><span class="m">34/34 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf Early Light Curve"><span class="n">SN 2023ixf</span><span class="m">5/20 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/24 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf Galaxies + NGC 5548"><span class="n">Dwarf Galaxies</span><span class="m">1/31 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Rigel-Era Legacy Archive (candidate)"><span class="n">Legacy Rigel</span><span class="m">0/11 done</span></a></nav></div>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">9/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">34/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">7/26 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
 <div class="tabbar"><nav class="tabbar-inner" aria-label="Data &amp; Instrument Characterization views"><a class="tab" href="../pipeline/index.html">The Case</a><a class="tab" href="../pipeline/figures.html">Figures</a><a class="tab" href="../pipeline/pipeline_status.html">Freshness &amp; DAG</a><a class="tab" aria-current="page" href="../pipeline/evidence.html">Evidence Detail</a></nav></div>
 <div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../pipeline/index.html">Data &amp; Instrument Characterization</a></li><li><a href="../pipeline/evidence.html">Evidence Detail</a></li><li aria-current="page">S0c — Per-Project Staging Manifests</li></ol></nav></div>
 <div class="layout">
@@ -13,12 +13,12 @@
 
 <header>
   <h1>S0c — Per-Project Staging Manifests</h1>
-  <p>5 projects staged &middot; 15,971 science rows
-  &middot; 3 cone candidates
-  &middot; 7,890 calibration rows &middot; zero frames copied
-  &middot; built 2026-08-19T01:05Z
-  (S0c v1.0 (2026-08-18),
-  commit <code>d97c6d8-dirty</code>)
+  <p>5 projects staged &middot; 15,851 science rows
+  &middot; 2 cone candidates
+  &middot; 7,705 calibration rows &middot; zero frames copied
+  &middot; built 2026-10-03T23:54Z
+  (S0c v1.1 (2026-10-03),
+  commit <code>916243b-dirty</code>)
   &middot; <a href="../index.html">the front page</a></p>
 </header>
 
@@ -42,18 +42,18 @@ files into per-project <code>data/</code> directories?</p>
 
 <h3>Evidence</h3>
 <p class="sub">The archive already answered.  Of 330,865 catalog
-rows, only 198,294 are canonical frames — <b>132,571 rows
-(40%) are duplicate copies</b> of frames that already existed
+rows, only 169,107 are canonical frames — <b>161,758 rows
+(49%) are duplicate copies</b> of frames that already existed
 elsewhere: wholesale re-copied night directories, consortium mirrors,
-renamed reduced-tree files.  124,235 exposures exist in more than
+renamed reduced-tree files.  151,489 exposures exist in more than
 one place; the worst multiplicities:</p>
 <table class="data">
 <tr><th>copies of one exposure</th><th>duplicate groups</th></tr>
-<tr><td>6</td><td>92</td></tr>
-<tr><td>5</td><td>321</td></tr>
-<tr><td>4</td><td>1,879</td></tr>
-<tr><td>3</td><td>3,247</td></tr>
-<tr><td>2</td><td>118,696</td></tr>
+<tr><td>10</td><td>1</td></tr>
+<tr><td>7</td><td>93</td></tr>
+<tr><td>6</td><td>94</td></tr>
+<tr><td>5</td><td>404</td></tr>
+<tr><td>4</td><td>1,911</td></tr>
 </table>
 <p class="sub">Every one of those copies was made by someone who, quite
 reasonably, wanted a local working set.  S0 spent an entire pipeline stage
@@ -86,10 +86,10 @@ and where is the claim written down so a reviewer can diff it?</p>
 <div class="grid"><figure><a href="figures/s0c/s0c_roles.png"><img src="figures/s0c/s0c_roles.png" alt=""></a><figcaption>Every staged row, by role.  Science rows are the project's published selection; calibration rows are the era-matched families that ride along.</figcaption></figure></div>
 <table class="data">
 <tr><th>project</th><th>science</th><th>cone candidates</th><th>targets</th><th>nights</th><th>span</th><th>eras</th><th>calib rows</th><th>working artifact</th></tr>
-<tr><td>BeStar_Grism</td><td>3,883</td><td>3</td><td>11</td><td>167</td><td>2024-05-19 &rarr; 2026-07-02</td><td>5</td><td>983</td><td><code>BeStar_Grism/data/stage_manifest.csv</code></td></tr>
-<tr><td>CV_TimeSeries</td><td>8,716</td><td>0</td><td>5</td><td>108</td><td>2024-01-26 &rarr; 2026-06-02</td><td>7</td><td>4,768</td><td><code>CV_TimeSeries/data/stage_manifest.csv</code></td></tr>
-<tr><td>DwarfGalaxy_AGN_Survey</td><td>1,196</td><td>0</td><td>21</td><td>54</td><td>2023-02-23 &rarr; 2024-06-04</td><td>3</td><td>171</td><td><code>DwarfGalaxy_AGN_Survey/data/stage_manifest.csv</code></td></tr>
-<tr><td>SN2023ixf_LightCurve</td><td>1,356</td><td>0</td><td>2</td><td>42</td><td>2023-05-04 &rarr; 2026-04-01</td><td>5</td><td>496</td><td><code>SN2023ixf_LightCurve/data/stage_manifest.csv</code></td></tr>
+<tr><td>BeStar_Grism</td><td>3,845</td><td>2</td><td>11</td><td>167</td><td>2024-05-19 &rarr; 2026-07-02</td><td>4</td><td>959</td><td><code>BeStar_Grism/data/stage_manifest.csv</code></td></tr>
+<tr><td>CV_TimeSeries</td><td>8,641</td><td>0</td><td>5</td><td>108</td><td>2024-01-26 &rarr; 2026-06-02</td><td>6</td><td>4,665</td><td><code>CV_TimeSeries/data/stage_manifest.csv</code></td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>1,196</td><td>0</td><td>21</td><td>54</td><td>2023-02-23 &rarr; 2024-06-04</td><td>3</td><td>137</td><td><code>DwarfGalaxy_AGN_Survey/data/stage_manifest.csv</code></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>1,349</td><td>0</td><td>2</td><td>42</td><td>2023-05-04 &rarr; 2026-04-01</td><td>4</td><td>472</td><td><code>SN2023ixf_LightCurve/data/stage_manifest.csv</code></td></tr>
 <tr><td>TCrB_Monitoring</td><td>820</td><td>0</td><td>2</td><td>112</td><td>2023-05-09 &rarr; 2026-06-30</td><td>8</td><td>1,472</td><td><code>TCrB_Monitoring/data/stage_manifest.csv</code></td></tr>
 </table>
 <p class="sub">Each selection rule, verbatim from the data table the build
@@ -123,26 +123,26 @@ disqualification rules with the evidence in hand.</p>
 </div></section>
 <section id="calib">
 <div class="bhead"><h2>3 &middot; Calibration attachment</h2>
-<span class="tag">match_basis: era_exact</span></div>
+<span class="tag">match_basis: era_epoch_exact</span></div>
 
 <div class="stage"><h3>Question</h3>
 <p class="sub">Which calibration frames belong in a project's working set,
 and on what evidence is each one attached?</p>
 
 <h3>Evidence</h3>
-<p class="sub">7,890 calibration rows across the five
+<p class="sub">7,705 calibration rows across the five
 manifests.  The rule is deliberately coarse: for every camera era a
 project's science touches, ALL of that era's frames from the S0b census
 are staged — raw bias/dark/flat and the recovered master products alike —
-each row stamped <code>match_basis = 'era_exact'</code>
+each row stamped <code>match_basis = 'era_epoch_exact'</code>
 (masters distinguished by their <code>master_*</code> role, never by a
 different basis).</p>
 <table class="data">
 <tr><th>project</th><th>bias (raw)</th><th>dark (raw)</th><th>flat (raw)</th><th>master products</th></tr>
-<tr><td>BeStar_Grism</td><td>98</td><td>683</td><td>43</td><td>159</td></tr>
-<tr><td>CV_TimeSeries</td><td>3,256</td><td>843</td><td>355</td><td>314</td></tr>
-<tr><td>DwarfGalaxy_AGN_Survey</td><td>0</td><td>90</td><td>0</td><td>81</td></tr>
-<tr><td>SN2023ixf_LightCurve</td><td>0</td><td>145</td><td>238</td><td>113</td></tr>
+<tr><td>BeStar_Grism</td><td>98</td><td>683</td><td>43</td><td>135</td></tr>
+<tr><td>CV_TimeSeries</td><td>3,256</td><td>843</td><td>342</td><td>224</td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>0</td><td>90</td><td>0</td><td>47</td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>0</td><td>145</td><td>238</td><td>89</td></tr>
 <tr><td>TCrB_Monitoring</td><td>98</td><td>848</td><td>281</td><td>245</td></tr>
 </table>
 <p class="sub">Cross-check against the S0b recovery: the Mode0 grism era
@@ -151,8 +151,8 @@ different basis).</p>
 era-76 science must carry them:</p>
 <table class="data">
 <tr><th>project with era-76 (Mode0) science</th><th>era-76 science rows</th><th>era-76 master products staged</th><th>check</th></tr>
-<tr><td>BeStar_Grism</td><td>2,728</td><td>123</td><td>ok</td></tr>
-<tr><td>CV_TimeSeries</td><td>4,688</td><td>123</td><td>ok</td></tr>
+<tr><td>BeStar_Grism</td><td>2,700</td><td>123</td><td>ok</td></tr>
+<tr><td>CV_TimeSeries</td><td>4,614</td><td>123</td><td>ok</td></tr>
 <tr><td>TCrB_Monitoring</td><td>605</td><td>123</td><td>ok</td></tr>
 </table>
 
@@ -173,7 +173,7 @@ recovery is documented in the S0b report.</p>
 </div></section>
 <section id="reconcile">
 <div class="bhead"><h2>4 &middot; Documents vs the working set</h2>
-<span class="tag">25 of 25 published numbers reconcile</span></div>
+<span class="tag">20 of 25 published numbers reconcile</span></div>
 
 <div class="stage"><h3>Question</h3>
 <p class="sub">A manuscript quotes "30 frames/band", "20 frames",
@@ -191,8 +191,8 @@ count calibration or cone-candidate rows):</p>
 <tr><th>project</th><th>published inventory claim</th><th>doc frames</th><th>staged frames</th><th>&Delta;</th><th>doc nights</th><th>staged nights</th><th>&Delta;</th><th>source</th></tr>
 <tr><td>CV_TimeSeries</td><td>ST LMi — rawimage photometric light frames</td><td>3,150</td><td>3,150</td><td>&mdash;</td><td>39</td><td>39</td><td>&mdash;</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1</td></tr>
 <tr><td>CV_TimeSeries</td><td>YZ Cnc — rawimage photometric light frames</td><td>1,915</td><td>1,915</td><td>&mdash;</td><td>26</td><td>26</td><td>&mdash;</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1</td></tr>
-<tr><td>CV_TimeSeries</td><td>VV Pup — rawimage photometric light frames</td><td>1,277</td><td>1,277</td><td>&mdash;</td><td>28</td><td>28</td><td>&mdash;</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1</td></tr>
-<tr><td>CV_TimeSeries</td><td>EU UMa — rawimage photometric light frames</td><td>993</td><td>993</td><td>&mdash;</td><td>32</td><td>32</td><td>&mdash;</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1</td></tr>
+<tr class="warn"><td>CV_TimeSeries</td><td>VV Pup — rawimage photometric light frames</td><td>1,277</td><td>1,203</td><td><b>-74</b></td><td>28</td><td>28</td><td>&mdash;</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1</td></tr>
+<tr class="warn"><td>CV_TimeSeries</td><td>EU UMa — rawimage photometric light frames</td><td>993</td><td>992</td><td><b>-1</b></td><td>32</td><td>32</td><td>&mdash;</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1</td></tr>
 <tr><td>CV_TimeSeries</td><td>AN UMa — rawimage photometric light frames</td><td>1,279</td><td>1,279</td><td>&mdash;</td><td>14</td><td>14</td><td>&mdash;</td><td>CV_TimeSeries/ANALYSIS_STRATEGY.md §3.1</td></tr>
 <tr><td>TCrB_Monitoring</td><td>T CrB grism series (the paper's spine)</td><td>247</td><td>247</td><td>&mdash;</td><td>60</td><td>60</td><td>&mdash;</td><td>TCrB_Monitoring/ANALYSIS_STRATEGY.md §1/§3</td></tr>
 <tr><td>TCrB_Monitoring</td><td>θ CrB grism calibrator series</td><td>412</td><td>412</td><td>&mdash;</td><td>42</td><td>42</td><td>&mdash;</td><td>TCrB_Monitoring/ANALYSIS_STRATEGY.md §3</td></tr>
@@ -206,10 +206,10 @@ count calibration or cone-candidate rows):</p>
 <tr><td>BeStar_Grism</td><td>HR 4963 (θ Vir)</td><td>368</td><td>368</td><td>&mdash;</td><td>33</td><td>33</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
 <tr><td>BeStar_Grism</td><td>Phecda</td><td>333</td><td>333</td><td>&mdash;</td><td>40</td><td>40</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
 <tr><td>BeStar_Grism</td><td>53 Boo</td><td>330</td><td>330</td><td>&mdash;</td><td>23</td><td>23</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
-<tr><td>BeStar_Grism</td><td>69 Ori</td><td>288</td><td>288</td><td>&mdash;</td><td>51</td><td>51</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr class="warn"><td>BeStar_Grism</td><td>69 Ori</td><td>288</td><td>269</td><td><b>-19</b></td><td>51</td><td>51</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
 <tr><td>BeStar_Grism</td><td>φ Leo</td><td>261</td><td>261</td><td>&mdash;</td><td>39</td><td>39</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
-<tr><td>BeStar_Grism</td><td>λ Eri</td><td>252</td><td>252</td><td>&mdash;</td><td>47</td><td>47</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
-<tr><td>BeStar_Grism</td><td>5 Cnc</td><td>194</td><td>194</td><td>&mdash;</td><td>45</td><td>45</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr class="warn"><td>BeStar_Grism</td><td>λ Eri</td><td>252</td><td>236</td><td><b>-16</b></td><td>47</td><td>47</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
+<tr class="warn"><td>BeStar_Grism</td><td>5 Cnc</td><td>194</td><td>191</td><td><b>-3</b></td><td>45</td><td>45</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
 <tr><td>BeStar_Grism</td><td>HD 70340</td><td>181</td><td>181</td><td>&mdash;</td><td>30</td><td>30</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
 <tr><td>BeStar_Grism</td><td>Vega — era-A exposure ladder (2024-05-20)</td><td>80</td><td>80</td><td>&mdash;</td><td>1</td><td>1</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
 <tr><td>BeStar_Grism</td><td>Vega — era-C standard series</td><td>367</td><td>367</td><td>&mdash;</td><td>18</td><td>18</td><td>&mdash;</td><td>BeStar_Grism/ANALYSIS_STRATEGY.md §3.2</td></tr>
@@ -247,22 +247,22 @@ archive — and where can each link be audited?</p>
 <table class="data">
 <tr><th>link</th><th>artifact</th><th>population</th><th>custody rule</th></tr>
 <tr><td>1</td><td><code>rlmt-archive/</code> (3.3&nbsp;TiB)</td><td>330,865 cataloged files</td><td><b>immutable</b> — read-only to every stage, forever</td></tr>
-<tr><td>2</td><td>S0 manifest <code>frames</code></td><td>330,865 rows &rarr; 198,294 canonical</td><td>global dedup, eras, aliases, QC — the provenance layer</td></tr>
-<tr><td>3</td><td>S0b <code>calib_frames</code></td><td>4,976 calibration frames incl. recovered masters</td><td>kind-normalized census, era-keyed</td></tr>
-<tr><td>4</td><td>S0c <code>stage_&lt;project&gt;</code> tables</td><td>23,864 rows across 5 projects</td><td>selection rules as data; atomic swap per build</td></tr>
+<tr><td>2</td><td>S0 manifest <code>frames</code></td><td>330,865 rows &rarr; 169,107 canonical</td><td>global dedup, eras, aliases, QC — the provenance layer</td></tr>
+<tr><td>3</td><td>S0b <code>calib_frames</code></td><td>4,919 calibration frames incl. recovered masters</td><td>kind-normalized census, era-keyed</td></tr>
+<tr><td>4</td><td>S0c <code>stage_&lt;project&gt;</code> tables</td><td>23,558 rows across 5 projects</td><td>selection rules as data; atomic swap per build</td></tr>
 <tr><td>5</td><td><code>&lt;Project&gt;/data/stage_manifest.csv</code></td><td>one CSV per project (same rows as link 4)</td><td>the working artifact — gitignored, regenerable, never a copy of pixels</td></tr>
 </table>
 <p class="sub">This build's outputs (build id
-<code>S0c v1.0 (2026-08-18) @ 2026-08-19T01:05Z</code>, commit
-<code>d97c6d8-dirty</code>,
+<code>S0c v1.1 (2026-10-03) @ 2026-10-03T23:54Z</code>, commit
+<code>916243b-dirty</code>,
 <code>staging.py</code> sha256
-<code>9b816f4cf384</code>):</p>
+<code>14a8dab252bd</code>):</p>
 <table class="data">
 <tr><th>project</th><th>DB table</th><th>science</th><th>cone</th><th>calib</th><th>rows</th><th>CSV (gitignored, regenerable)</th><th>farm links</th></tr>
-<tr><td>BeStar_Grism</td><td><code>stage_bestar_grism</code></td><td>3,883</td><td>3</td><td>983</td><td>4,869</td><td><code>BeStar_Grism/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
-<tr><td>CV_TimeSeries</td><td><code>stage_cv_timeseries</code></td><td>8,716</td><td>0</td><td>4,768</td><td>13,484</td><td><code>CV_TimeSeries/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
-<tr><td>DwarfGalaxy_AGN_Survey</td><td><code>stage_dwarfgalaxy_agn_survey</code></td><td>1,196</td><td>0</td><td>171</td><td>1,367</td><td><code>DwarfGalaxy_AGN_Survey/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
-<tr><td>SN2023ixf_LightCurve</td><td><code>stage_sn2023ixf_lightcurve</code></td><td>1,356</td><td>0</td><td>496</td><td>1,852</td><td><code>SN2023ixf_LightCurve/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
+<tr><td>BeStar_Grism</td><td><code>stage_bestar_grism</code></td><td>3,845</td><td>2</td><td>959</td><td>4,806</td><td><code>BeStar_Grism/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
+<tr><td>CV_TimeSeries</td><td><code>stage_cv_timeseries</code></td><td>8,641</td><td>0</td><td>4,665</td><td>13,306</td><td><code>CV_TimeSeries/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td><code>stage_dwarfgalaxy_agn_survey</code></td><td>1,196</td><td>0</td><td>137</td><td>1,333</td><td><code>DwarfGalaxy_AGN_Survey/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td><code>stage_sn2023ixf_lightcurve</code></td><td>1,349</td><td>0</td><td>472</td><td>1,821</td><td><code>SN2023ixf_LightCurve/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
 <tr><td>TCrB_Monitoring</td><td><code>stage_tcrb_monitoring</code></td><td>820</td><td>0</td><td>1,472</td><td>2,292</td><td><code>TCrB_Monitoring/data/stage_manifest.csv</code></td><td>&mdash;</td></tr>
 </table>
 <p class="sub">The commit field carries a <code>-dirty</code> suffix when the
@@ -297,7 +297,7 @@ page is the result of a SQL query; none is typed by hand.  Regenerate with
 path: S0 &rarr; S0b &rarr; S0c).</footer>
 <!--/MACRO-SITE:CONTENT-->
 <div class="prevnext"><a class="pv" href="../pipeline/s0b_calibration_inventory.html"><span class="dir">&larr; Previous</span>S0b — Calibration Inventory &amp; Raw↔Reduced Links</a><a class="nx" href="../pipeline/s2_detector.html"><span class="dir">Next &rarr;</span>S2 — Detector Truth</a></div>
-<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v1.0 (2026-08-18)), the provenance DAG (<code>macro_core.provenance</code>, P v1.0 (2026-08-18)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v2.0 (2026-10-03)), the provenance DAG (<code>macro_core.provenance</code>, P v1.1 (2026-10-03)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
 </div>
 </div>
 </body></html>

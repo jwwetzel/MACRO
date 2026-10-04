@@ -21,11 +21,13 @@ and the reports in `committee/work/<package>/REPORT.md`. Task-level status lives
 - [ ] Eruption block: observer email/code, who is called on an alert, pre-agreed eruption author list.
 - [ ] Confirm T CrB quiescent magnitudes assumed in rev. 3 (V 10.0; g/r/i 10.7/9.5/8.3); ask site about a B filter.
 
-## 2. In progress (running now)
+## 2. In progress
 
-- [ ] **Unattended refresh of every stale pipeline stage** (`pipeline/scripts/refresh_stale.py`, log `products/refresh_stale.log`), gated on the tests of the code the stopped packages left half-edited. Then site rebuild + push.
-- Stopped mid-work, resumable later from their transcripts (partial code edits are in the working tree, uncommitted): grism library, detector, legacy census, CV statistics, clock check, foundation (S0 rebuilt: 169,107 canonical frames; S0b/S0c being refreshed by the driver).
-- [x] Legacy dedupe finished: ~202.5k verified duplicates removed (~2.1 TB freed). 830 frames remain uncompressed — 828 fail fpack (truncated downloads, need re-fetch), 461 failed twin verification.
+- [x] **Every pipeline stage FRESH** (2026-10-04): 9/9 on the site, 0 stale in `check_pipeline_status.py plan`. SN Gate 0 re-run on current inputs — no verdict moved (438/632 usable broadband; grism NOT PROMOTED; AJ/PASP).
+- Stopped mid-work, resumable from their transcripts: grism library + detector (partial code parked as `committee/work/{grism,detector}/PARKED_partial_work.patch`), legacy census, CV statistics, clock check.
+- [ ] Legacy archive: 828 frames are truncated **at source on Google Drive** (827 end on a 4 KB boundary — interrupted 2015–16 writes, not compression). 243 have an intact copy elsewhere in the archive (verify same DATE-OBS, then adopt); ~585 lost unless the original observatory machine has them.
+- [ ] S1b queue: exclude frames S2c measured as dispersed (saves ~1.5 h per refresh — ~960 grism frames fail to solve every run).
+- [ ] SN Gate 0 verdict text: "371 + 68" sums to 439, not 438 — fix the label (committee DS.F9).
 
 ## 3. Next, in order
 

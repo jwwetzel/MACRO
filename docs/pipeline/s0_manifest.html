@@ -3,7 +3,7 @@
 <title>S0 — Manifest &amp; Curation</title>
 <link rel="stylesheet" href="../assets/macro.css">
 </head><body>
-<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">0/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">2/34 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series"><span class="n">CV Time Series</span><span class="m">34/34 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf Early Light Curve"><span class="n">SN 2023ixf</span><span class="m">5/20 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/24 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf Galaxies + NGC 5548"><span class="n">Dwarf Galaxies</span><span class="m">1/31 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Rigel-Era Legacy Archive (candidate)"><span class="n">Legacy Rigel</span><span class="m">0/11 done</span></a></nav></div>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">9/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">34/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">7/26 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
 <div class="tabbar"><nav class="tabbar-inner" aria-label="Data &amp; Instrument Characterization views"><a class="tab" href="../pipeline/index.html">The Case</a><a class="tab" href="../pipeline/figures.html">Figures</a><a class="tab" href="../pipeline/pipeline_status.html">Freshness &amp; DAG</a><a class="tab" aria-current="page" href="../pipeline/evidence.html">Evidence Detail</a></nav></div>
 <div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../pipeline/index.html">Data &amp; Instrument Characterization</a></li><li><a href="../pipeline/evidence.html">Evidence Detail</a></li><li aria-current="page">S0 — Manifest &amp; Curation</li></ol></nav></div>
 <div class="layout">
@@ -13,13 +13,13 @@
 
 <header>
   <h1>S0 — Manifest &amp; Curation</h1>
-  <p>330,865 catalog rows &rarr; 198,294 canonical frames
+  <p>330,865 catalog rows &rarr; 169,107 canonical frames
   &middot; 1,974 targets &middot; 84 camera eras
   &middot; 641 nights &middot;
-  built 2026-08-19T01:02Z from
+  built 2026-10-03T22:11Z from
   <code>rlmt-catalog.sqlite</code>
-  (S0 v1.0 (2026-08-17),
-  commit <code>d97c6d8</code>)
+  (S0 v1.1 (2026-10-03),
+  commit <code>916243b</code>)
   &middot; <a href="../index.html">the front page</a></p>
 </header>
 
@@ -43,32 +43,32 @@
 exposures is that, and which copy of each is the one the pipeline reads?</p>
 
 <h3>Evidence</h3>
-<div class="grid"><figure><a href="figures/s0/s0_dup_group_sizes.png"><img src="figures/s0/s0_dup_group_sizes.png" alt=""></a><figcaption>Duplicate-group size distribution: 198,294 groups from 330,865 rows; 132,571 rows are extra copies of an exposure that already exists.</figcaption></figure></div>
+<div class="grid"><figure><a href="figures/s0/s0_dup_group_sizes.png"><img src="figures/s0/s0_dup_group_sizes.png" alt=""></a><figcaption>Duplicate-group size distribution: 169,107 groups from 330,865 rows; 161,758 rows are extra copies of an exposure that already exists.</figcaption></figure></div>
 <table class="data">
 <tr><th>tree</th><th>catalog rows</th><th>canonical frames</th><th>duplicate copies</th><th>% duplicate</th></tr>
-<tr><td>rawimage</td><td>167,532</td><td>159,353</td><td>8,179</td><td>4.9%</td></tr>
-<tr><td>reduced</td><td>106,942</td><td>27,223</td><td>79,719</td><td>74.5%</td></tr>
-<tr><td>macalester</td><td>30,403</td><td>1,764</td><td>28,639</td><td>94.2%</td></tr>
-<tr><td>iKon</td><td>5,875</td><td>5,853</td><td>22</td><td>0.4%</td></tr>
+<tr><td>rawimage</td><td>167,532</td><td>157,671</td><td>9,861</td><td>5.9%</td></tr>
+<tr><td>reduced</td><td>106,942</td><td>52</td><td>106,890</td><td>100.0%</td></tr>
+<tr><td>macalester</td><td>30,403</td><td>1,762</td><td>28,641</td><td>94.2%</td></tr>
+<tr><td>iKon</td><td>5,875</td><td>5,852</td><td>23</td><td>0.4%</td></tr>
 <tr><td>other</td><td>5,323</td><td>306</td><td>5,017</td><td>94.3%</td></tr>
 <tr><td>external</td><td>4,572</td><td>148</td><td>4,424</td><td>96.8%</td></tr>
-<tr><td>coe</td><td>2,316</td><td>242</td><td>2,074</td><td>89.6%</td></tr>
+<tr><td>coe</td><td>2,316</td><td>241</td><td>2,075</td><td>89.6%</td></tr>
 <tr><td>knox</td><td>1,839</td><td>0</td><td>1,839</td><td>100.0%</td></tr>
-<tr><td>Calibrations</td><td>1,823</td><td>1,667</td><td>156</td><td>8.6%</td></tr>
+<tr><td>Calibrations</td><td>1,823</td><td>1,353</td><td>470</td><td>25.8%</td></tr>
 <tr><td>iowa</td><td>1,587</td><td>49</td><td>1,538</td><td>96.9%</td></tr>
 <tr><td>augustana</td><td>512</td><td>1</td><td>511</td><td>99.8%</td></tr>
-<tr><td>mjc</td><td>488</td><td>473</td><td>15</td><td>3.1%</td></tr>
+<tr><td>mjc</td><td>488</td><td>472</td><td>16</td><td>3.3%</td></tr>
 <tr><td>grism</td><td>477</td><td>418</td><td>59</td><td>12.4%</td></tr>
 <tr><td>calib</td><td>477</td><td>466</td><td>11</td><td>2.3%</td></tr>
 <tr><td>AASPrep</td><td>374</td><td>116</td><td>258</td><td>69.0%</td></tr>
 <tr><td>cmos_tests</td><td>118</td><td>118</td><td>0</td><td>0.0%</td></tr>
-<tr><td>ASTR1070</td><td>62</td><td>62</td><td>0</td><td>0.0%</td></tr>
-<tr><td>tmp_filter_quarantine</td><td>42</td><td>21</td><td>21</td><td>50.0%</td></tr>
+<tr><td>ASTR1070</td><td>62</td><td>52</td><td>10</td><td>16.1%</td></tr>
+<tr><td>tmp_filter_quarantine</td><td>42</td><td>17</td><td>25</td><td>59.5%</td></tr>
 <tr><td>failed</td><td>34</td><td>0</td><td>34</td><td>100.0%</td></tr>
 <tr><td>hagrism</td><td>30</td><td>1</td><td>29</td><td>96.7%</td></tr>
 <tr><td>latency</td><td>26</td><td>0</td><td>26</td><td>100.0%</td></tr>
 <tr><td>classes</td><td>6</td><td>6</td><td>0</td><td>0.0%</td></tr>
-<tr><td>daily</td><td>4</td><td>4</td><td>0</td><td>0.0%</td></tr>
+<tr><td>daily</td><td>4</td><td>3</td><td>1</td><td>25.0%</td></tr>
 <tr><td>forcolin</td><td>3</td><td>3</td><td>0</td><td>0.0%</td></tr>
 </table>
 <p class="sub">Tree-policy caveat: <b>31</b> of the
@@ -78,7 +78,7 @@ tree) — a project counting nothing but its primary tree misses those
 nights entirely (ST&nbsp;LMi&rsquo;s iKon surplus in section&nbsp;7 is the
 worked example).</p>
 <p class="sub">The SN 2023ixf lesson, confirmed archive-wide: duplication is
-not only cross-tree.  <b>8,063</b> rawimage rows are copies
+not only cross-tree.  <b>9,629</b> rawimage rows are copies
 of frames whose canonical row is <i>also</i> in rawimage — wholesale
 re-copied night directories:</p>
 <table class="data">
@@ -86,26 +86,26 @@ re-copied night directories:</p>
 <tr><td><code>rawimage/2023-07-08</code></td><td>3,122</td></tr>
 <tr><td><code>rawimage/2023-07-09</code></td><td>2,402</td></tr>
 <tr><td><code>rawimage/2023-07-07</code></td><td>1,369</td></tr>
+<tr><td><code>rawimage/2025-11-25</code></td><td>674</td></tr>
 <tr><td><code>rawimage/2023-03-01</code></td><td>436</td></tr>
 <tr><td><code>rawimage/2023-06-13</code></td><td>418</td></tr>
-<tr><td><code>rawimage/2023-10-05</code></td><td>189</td></tr>
-<tr><td><code>rawimage/2023-02-10</code></td><td>84</td></tr>
-<tr><td><code>rawimage/2023-02-09</code></td><td>18</td></tr>
+<tr><td><code>rawimage/2024-05-10</code></td><td>263</td></tr>
+<tr><td><code>rawimage/2025-12-01</code></td><td>206</td></tr>
 </table>
 <p class="sub">Limitation, quantified: (basename, JD) cannot see a RENAMED
-copy.  <b>29,787</b> (target, JD) pairs occur on more than one
+copy.  <b>1,771</b> (target, JD) pairs occur on more than one
 canonical frame — overwhelmingly <code>reduced/</code> files renamed during
-processing (e.g. every one of EU UMa&rsquo;s 257
+processing (e.g. every one of EU UMa&rsquo;s 0
 reduced-only &ldquo;unique&rdquo; frames shares its JD with a rawimage
 frame).  By tree:</p>
 <table class="data">
 <tr><th>tree</th><th>canonical frames whose (target, JD) also exists in rawimage</th></tr>
-<tr><td>reduced</td><td>27,075</td></tr>
-<tr><td>macalester</td><td>516</td></tr>
-<tr><td>mjc</td><td>395</td></tr>
-<tr><td>Calibrations</td><td>27</td></tr>
-<tr><td>ASTR1070</td><td>10</td></tr>
+<tr><td>macalester</td><td>514</td></tr>
+<tr><td>mjc</td><td>394</td></tr>
 <tr><td>external</td><td>9</td></tr>
+<tr><td>classes</td><td>6</td></tr>
+<tr><td>reduced</td><td>2</td></tr>
+<tr><td>iowa</td><td>1</td></tr>
 </table>
 
 <h3>Decision</h3>
@@ -120,7 +120,7 @@ does), and the (target,&nbsp;JD)-collision population above is handed to S1
 as a suspect list.</div>
 
 <h3>Consequence</h3>
-<p class="sub">Every count below this line uses the 198,294
+<p class="sub">Every count below this line uses the 169,107
 canonical frames.  A project quoting raw rows overstates its dataset by up
 to ~2.9&times; (SN 2023ixf: 3,020 rawimage
 rows &rarr; 1,054 frames).</p>
@@ -199,19 +199,19 @@ filter or date</span></div>
 archive, and when was each one live?</p>
 
 <h3>Evidence</h3>
-<div class="grid"><figure><a href="figures/s0/s0_era_timeline.png"><img src="figures/s0/s0_era_timeline.png" alt=""></a><figcaption>The 16 eras holding at least 100 canonical frames, on the calendar. Marker area scales with frames per night. Eras are numbered by first light.</figcaption></figure></div>
+<div class="grid"><figure><a href="figures/s0/s0_era_timeline.png"><img src="figures/s0/s0_era_timeline.png" alt=""></a><figcaption>The 14 eras holding at least 100 canonical frames, on the calendar. Marker area scales with frames per night. Eras are numbered by first light.</figcaption></figure></div>
 <p class="sub">All 84 discovered configurations
 (11 distinct READOUTM strings; full table also exported as
 <code>products/manifest/eras.csv</code>):</p>
 <table class="data">
 <tr><th>era</th><th>READOUTM</th><th>NAXIS1</th><th>NAXIS2</th><th>bin</th><th>EGAIN</th><th>canonical frames</th><th>first night</th><th>last night</th></tr>
-<tr><td>1</td><td>High Gain StackPro</td><td>4,096</td><td>4,096</td><td>1</td><td>1.054</td><td>12,948</td><td>2023-02-06</td><td>2023-07-06</td></tr>
+<tr><td>1</td><td>High Gain StackPro</td><td>4,096</td><td>4,096</td><td>1</td><td>1.054</td><td>12,945</td><td>2023-02-06</td><td>2023-07-06</td></tr>
 <tr><td>2</td><td>High Gain</td><td>4,096</td><td>4,096</td><td>1</td><td>1.054</td><td>3,621</td><td>2023-02-06</td><td>2023-07-06</td></tr>
 <tr><td>3</td><td>High Gain StackPro</td><td>2,048</td><td>2,048</td><td>2</td><td>1.054</td><td>30</td><td>2023-04-06</td><td>2023-04-06</td></tr>
 <tr><td>4</td><td>Low Gain</td><td>4,096</td><td>4,096</td><td>1</td><td>22.638</td><td>17</td><td>2023-04-17</td><td>2023-07-05</td></tr>
 <tr><td>5</td><td>HDR</td><td>4,096</td><td>8,192</td><td>1</td><td>&mdash;</td><td>16</td><td>2023-04-17</td><td>2023-11-22</td></tr>
 <tr><td>6</td><td>High Gain StackPro</td><td>4,096</td><td>4,096</td><td>1</td><td>1.057</td><td>7,451</td><td>2023-10-03</td><td>2024-03-19</td></tr>
-<tr><td>7</td><td>High Gain</td><td>4,096</td><td>4,096</td><td>1</td><td>1.057</td><td>22,438</td><td>2023-10-03</td><td>2024-03-26</td></tr>
+<tr><td>7</td><td>High Gain</td><td>4,096</td><td>4,096</td><td>1</td><td>1.057</td><td>22,436</td><td>2023-10-03</td><td>2024-03-26</td></tr>
 <tr><td>8</td><td>Low Gain</td><td>4,096</td><td>4,096</td><td>1</td><td>22.744</td><td>805</td><td>2023-10-12</td><td>2023-12-04</td></tr>
 <tr><td>9</td><td>High Gain</td><td>1,112</td><td>1,112</td><td>1</td><td>1.057</td><td>53</td><td>2023-12-20</td><td>2024-01-16</td></tr>
 <tr><td>10</td><td>High Gain</td><td>1,666</td><td>1,666</td><td>1</td><td>1.057</td><td>296</td><td>2023-12-20</td><td>2024-02-19</td></tr>
@@ -251,7 +251,7 @@ archive, and when was each one live?</p>
 <tr><td>44</td><td>High Gain</td><td>1,666</td><td>1,659</td><td>1</td><td>1.057</td><td>2</td><td>2024-01-09</td><td>2024-01-09</td></tr>
 <tr><td>45</td><td>3MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>&mdash;</td><td>1</td><td>2024-04-04</td><td>2024-04-04</td></tr>
 <tr><td>46</td><td>1MHz High Sensitivity 16-bit</td><td>1,024</td><td>1,024</td><td>2</td><td>&mdash;</td><td>2</td><td>2024-04-04</td><td>2024-04-04</td></tr>
-<tr><td>47</td><td>1MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>&mdash;</td><td>4,069</td><td>2024-04-04</td><td>2024-11-18</td></tr>
+<tr><td>47</td><td>1MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>&mdash;</td><td>4,027</td><td>2024-04-04</td><td>2024-11-18</td></tr>
 <tr><td>48</td><td>5MHz High Sensitivity 16-bit</td><td>512</td><td>512</td><td>4</td><td>&mdash;</td><td>3</td><td>2024-04-04</td><td>2024-04-04</td></tr>
 <tr><td>49</td><td>5MHz High Sensitivity 16-bit</td><td>1,024</td><td>1,024</td><td>2</td><td>&mdash;</td><td>93</td><td>2024-04-04</td><td>2024-04-04</td></tr>
 <tr><td>50</td><td>3MHz High Sensitivity 16-bit</td><td>1,024</td><td>1,024</td><td>2</td><td>&mdash;</td><td>46</td><td>2024-04-04</td><td>2024-04-04</td></tr>
@@ -276,17 +276,17 @@ archive, and when was each one live?</p>
 <tr><td>69</td><td>5MHz High Sensitivity 16-bit</td><td>119</td><td>103</td><td>1</td><td>&mdash;</td><td>8</td><td>2024-04-09</td><td>2024-04-09</td></tr>
 <tr><td>70</td><td>5MHz High Sensitivity 16-bit</td><td>45</td><td>34</td><td>1</td><td>&mdash;</td><td>5</td><td>2024-04-09</td><td>2024-04-09</td></tr>
 <tr><td>71</td><td>1MHz High Sensitivity 16-bit</td><td>1,515</td><td>256</td><td>1</td><td>&mdash;</td><td>1</td><td>2024-04-12</td><td>2024-04-12</td></tr>
-<tr><td>72</td><td>1MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>0.0</td><td>17,503</td><td>2024-04-15</td><td>2024-12-10</td></tr>
+<tr><td>72</td><td>1MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>0.0</td><td>17,050</td><td>2024-04-15</td><td>2024-12-10</td></tr>
 <tr><td>73</td><td>1MHz High Sensitivity 16-bit</td><td>173</td><td>38</td><td>1</td><td>&mdash;</td><td>2</td><td>2024-04-16</td><td>2024-04-16</td></tr>
 <tr><td>74</td><td>5MHz High Sensitivity 16-bit</td><td>2,048</td><td>2,048</td><td>1</td><td>0.0</td><td>245</td><td>2024-04-30</td><td>2024-12-02</td></tr>
 <tr><td>75</td><td>Mode0</td><td>9,576</td><td>6,388</td><td>1</td><td>0.247</td><td>61</td><td>2024-12-13</td><td>2025-11-01</td></tr>
-<tr><td>76</td><td>Mode0</td><td>4,788</td><td>3,194</td><td>2</td><td>0.247</td><td>70,603</td><td>2024-12-14</td><td>2026-03-16</td></tr>
-<tr><td>77</td><td>Mode0</td><td>4,788</td><td>3,194</td><td>2</td><td>0.78</td><td>56</td><td>2025-03-20</td><td>2025-11-30</td></tr>
-<tr><td>78</td><td>Fast</td><td>4,800</td><td>3,211</td><td>2</td><td>1.0</td><td>26,937</td><td>2026-03-21</td><td>2026-06-28</td></tr>
-<tr><td>79</td><td>Fast</td><td>4,787</td><td>3,193</td><td>2</td><td>1.0</td><td>25,579</td><td>2026-03-21</td><td>2026-06-28</td></tr>
+<tr><td>76</td><td>Mode0</td><td>4,788</td><td>3,194</td><td>2</td><td>0.247</td><td>69,455</td><td>2024-12-14</td><td>2026-03-16</td></tr>
+<tr><td>77</td><td>Mode0</td><td>4,788</td><td>3,194</td><td>2</td><td>0.78</td><td>39</td><td>2025-03-20</td><td>2025-11-30</td></tr>
+<tr><td>78</td><td>Fast</td><td>4,800</td><td>3,211</td><td>2</td><td>1.0</td><td>26,902</td><td>2026-03-21</td><td>2026-06-28</td></tr>
+<tr><td>79</td><td>Fast</td><td>4,787</td><td>3,193</td><td>2</td><td>1.0</td><td>0</td><td>2026-03-21</td><td>2026-06-28</td></tr>
 <tr><td>80</td><td>Fast</td><td>8</td><td>3,211</td><td>2</td><td>1.0</td><td>0</td><td>&mdash;</td><td>&mdash;</td></tr>
-<tr><td>81</td><td><i>(blank)</i></td><td>4,800</td><td>3,211</td><td>2</td><td>56.0</td><td>2,214</td><td>2026-06-28</td><td>2026-07-02</td></tr>
-<tr><td>82</td><td><i>(blank)</i></td><td>4,787</td><td>3,193</td><td>2</td><td>56.0</td><td>1,682</td><td>2026-06-28</td><td>2026-07-02</td></tr>
+<tr><td>81</td><td><i>(blank)</i></td><td>4,800</td><td>3,211</td><td>2</td><td>56.0</td><td>1,988</td><td>2026-06-28</td><td>2026-07-02</td></tr>
+<tr><td>82</td><td><i>(blank)</i></td><td>4,787</td><td>3,193</td><td>2</td><td>56.0</td><td>0</td><td>2026-06-28</td><td>2026-07-02</td></tr>
 <tr><td>83</td><td><i>(blank)</i></td><td>8</td><td>3,211</td><td>2</td><td>56.0</td><td>0</td><td>&mdash;</td><td>&mdash;</td></tr>
 <tr><td>84</td><td>None</td><td>4,788</td><td>3,194</td><td>2</td><td>0.247</td><td>16</td><td>2025-10-11</td><td>2025-10-11</td></tr>
 </table>
@@ -315,8 +315,8 @@ observing sequence is ever split across two labels?</p>
 
 <h3>Evidence</h3>
 <div class="grid">
-<figure><a href="figures/s0/s0_frames_per_night.png"><img src="figures/s0/s0_frames_per_night.png" alt=""></a><figcaption>641 distinct nights; median 198 canonical frames per night; the densest night (2026-05-31) holds 3,003.</figcaption></figure>
-<figure><a href="figures/s0/s0_night_boundary.png"><img src="figures/s0/s0_night_boundary.png" alt=""></a><figcaption>Left: all 3,003 frames of the densest night sit far inside the boundaries. Right: archive-wide, 1,557 canonical frames fall within one hour of a boundary, and only 127 of them is a Light frame — the rest are daytime bias/dark/flat frames. The boundary crosses no observing sequence.</figcaption></figure>
+<figure><a href="figures/s0/s0_frames_per_night.png"><img src="figures/s0/s0_frames_per_night.png" alt=""></a><figcaption>641 distinct nights; median 185 canonical frames per night; the densest night (2024-04-04) holds 1,805.</figcaption></figure>
+<figure><a href="figures/s0/s0_night_boundary.png"><img src="figures/s0/s0_night_boundary.png" alt=""></a><figcaption>Left: all 1,805 frames of the densest night sit far inside the boundaries. Right: archive-wide, 1,496 canonical frames fall within one hour of a boundary, and only 66 of them is a Light frame — the rest are daytime bias/dark/flat frames. The boundary crosses no observing sequence.</figcaption></figure>
 </div>
 
 <h3>Decision</h3>
@@ -341,14 +341,14 @@ up to one extra night per observing run (see the SN row in section 7).</p>
 claims?  (The T CrB panel proved header pointings lie.)</p>
 
 <h3>Evidence</h3>
-<div class="grid"><figure><a href="figures/s0/s0_pointing_offsets.png"><img src="figures/s0/s0_pointing_offsets.png" alt=""></a><figcaption>Offsets for 185,586 canonical frames across 1,412 targets with a reference position (median of plate-solved canonical frames when at least 3 exist, otherwise the median of the target's header coordinates). 11,691 frames sit beyond 1 deg; 1,657 exact-zero offsets are clipped into the lowest bin (a log axis cannot hold zero).</figcaption></figure>
+<div class="grid"><figure><a href="figures/s0/s0_pointing_offsets.png"><img src="figures/s0/s0_pointing_offsets.png" alt=""></a><figcaption>Offsets for 157,456 canonical frames across 1,411 targets with a reference position (median of plate-solved canonical frames when at least 3 exist, otherwise the median of the target's header coordinates). 11,650 frames sit beyond 1 deg; 2,468 exact-zero offsets are clipped into the lowest bin (a log axis cannot hold zero).</figcaption></figure>
 </div>
 <table class="data">
 <tr><th>target</th><th>frames &gt;1&deg;</th><th>frames with offsets</th><th>worst offset (deg)</th></tr>
 <tr><td>Focus</td><td>5,153</td><td>5,343</td><td>120.0</td></tr>
 <tr><td>1976 YX</td><td>831</td><td>1,311</td><td>1.8</td></tr>
 <tr><td>TestField</td><td>744</td><td>1,525</td><td>22.7</td></tr>
-<tr><td>M31</td><td>291</td><td>657</td><td>2.6</td></tr>
+<tr><td>M31</td><td>290</td><td>656</td><td>2.6</td></tr>
 <tr><td>TestField_25</td><td>283</td><td>283</td><td>8.5</td></tr>
 <tr><td>A891 TC</td><td>267</td><td>915</td><td>2.3</td></tr>
 <tr><td>Hat-P-20</td><td>265</td><td>713</td><td>104.6</td></tr>
@@ -359,7 +359,7 @@ claims?  (The T CrB panel proved header pointings lie.)</p>
 <tr><td>TestField_30</td><td>153</td><td>299</td><td>16.2</td></tr>
 </table>
 <p class="sub">Reading the offender list: 6,802 of the
-11,691 outliers belong to Focus/TestField pseudo-targets, and most of
+11,650 outliers belong to Focus/TestField pseudo-targets, and most of
 the rest are moving solar-system objects (asteroids, planets) for which a
 fixed reference position is wrong by construction.  The list still catches
 real science pathology: AN&nbsp;UMa carries 151 outliers among
@@ -372,7 +372,7 @@ frames contain <b>zero</b> plate solves, is why this stage has a fallback at
 all: under a solved-only rule it had no reference position, therefore no
 offsets, therefore no <code>pointing_gt1deg</code> flag could ever fire — on
 precisely the target whose strategy rules an entire night unusable.  The
-flagging machinery was alive across 11,691 frames archive-wide and
+flagging machinery was alive across 11,650 frames archive-wide and
 blind exactly where it was needed.  With the header-median fallback the
 tracking-failure night convicts itself:</p>
 <table class="data">
@@ -383,10 +383,10 @@ tracking-failure night convicts itself:</p>
 </table>
 <p class="sub">Every target's reference position records the evidence it rests on.  <code>plate_solved</code> is the primary rule; <code>header_median</code> is the fallback for targets with fewer than 3 solves, which is weaker evidence (it is where the mount believed it was pointing) but robust to a minority of mispointed frames — the failure mode being detected.  It is NOT robust when most of a target's frames are mispointed; the column is what makes that visible.</p><table class="data">
 <tr><th>reference basis</th><th>targets</th><th>canonical frames</th></tr>
-<tr><td><code>plate_solved</code></td><td>777</td><td>149,011</td></tr>
-<tr><td><code>header_median</code></td><td>635</td><td>37,847</td></tr>
-<tr><td><code>none</code></td><td>546</td><td>1,065</td></tr>
-<tr><td><code>header_unsupported</code></td><td>16</td><td>878</td></tr>
+<tr><td><code>plate_solved</code></td><td>546</td><td>118,383</td></tr>
+<tr><td><code>header_median</code></td><td>865</td><td>40,258</td></tr>
+<tr><td><code>none</code></td><td>547</td><td>1,059</td></tr>
+<tr><td><code>header_unsupported</code></td><td>16</td><td>764</td></tr>
 </table>
 
 <h3>Decision</h3>
@@ -452,10 +452,10 @@ documents (all rev. 2026-08-16) survive contact with a single, global,
 rule-based manifest?</p>
 
 <h3>Evidence</h3>
-<p class="sub">18 claims checked; <b>15</b>
+<p class="sub">18 claims checked; <b>12</b>
 reproduce exactly under like-for-like accounting (canonical frames from the
 target&rsquo;s primary tree — the rule every strategy itself used);
-<b>3</b> rows disagree, each with its cause identified.  The
+<b>6</b> rows disagree, each with its cause identified.  The
 &ldquo;global&rdquo; column counts canonical frames across ALL trees — its
 excess over the primary-tree column is renamed-copy contamination
 (section&nbsp;1) plus genuinely unique out-of-tree material (ST&nbsp;LMi's
@@ -465,18 +465,18 @@ iKon nights).</p>
 <tr><td>TCrB_Monitoring</td><td>T CrB</td><td><code>rows_all_trees</code></td><td>862 / 86</td><td>862 / 86</td><td>0</td><td>0</td><td>862</td><td>sec.3: '862 T CrB light-frame rows' across trees; 86 distinct nights</td></tr>
 <tr class="warn"><td>TCrB_Monitoring</td><td>T CrB</td><td><code>unique_light</code></td><td>471 / 86</td><td>402 / 86</td><td>-69</td><td>0</td><td>402</td><td>sec.3: '471 unique light frames = 414 T CrB + 57 t crb' — counted rawimage ROWS; global (basename, jd) dedup collapses 69 within-rawimage duplicate copies the panel's row count kept</td></tr>
 <tr><td>TCrB_Monitoring</td><td>T CrB</td><td><code>grism_light</code></td><td>247 / 60</td><td>247 / 60</td><td>0</td><td>0</td><td>247</td><td>sec.1: '247 grism spectra on 60 nights' (lrg 147 + hrg 100)</td></tr>
-<tr><td>TCrB_Monitoring</td><td>tet CrB</td><td><code>grism_light</code></td><td>403 / 40</td><td>403 / 40</td><td>0</td><td>0</td><td>458</td><td>sec.3: theta CrB calibrator grism series '403 unique rawimage frames, 40 nights' (hrg + lrg)</td></tr>
+<tr><td>TCrB_Monitoring</td><td>tet CrB</td><td><code>grism_light</code></td><td>403 / 40</td><td>403 / 40</td><td>0</td><td>0</td><td>403</td><td>sec.3: theta CrB calibrator grism series '403 unique rawimage frames, 40 nights' (hrg + lrg)</td></tr>
 <tr><td>CV_TimeSeries</td><td>ST LMi</td><td><code>unique_light</code></td><td>3,157 / 39</td><td>3,157 / 39</td><td>0</td><td>0</td><td>3,266</td><td>sec.3.1 table: ST LMi 3,157 raw light frames / 39 nights (the iKon tree holds a further 109 unique frames outside rawimage)</td></tr>
 <tr><td>CV_TimeSeries</td><td>YZ Cnc</td><td><code>unique_light</code></td><td>1,920 / 26</td><td>1,920 / 26</td><td>0</td><td>0</td><td>1,935</td><td>sec.3.1 table: YZ Cnc 1,920 frames / 26 nights</td></tr>
-<tr><td>CV_TimeSeries</td><td>VV Pup</td><td><code>unique_light</code></td><td>1,353 / 29</td><td>1,353 / 29</td><td>0</td><td>0</td><td>1,353</td><td>sec.3.1 table: VV Pup 1,353 frames / 29 nights</td></tr>
-<tr><td>CV_TimeSeries</td><td>EU UMa</td><td><code>unique_light</code></td><td>993 / 32</td><td>993 / 32</td><td>0</td><td>0</td><td>1,250</td><td>sec.3.1 table: EU UMa 993 frames / 32 nights (reduced/ holds 257 RENAMED copies whose JDs all collide with rawimage frames)</td></tr>
+<tr class="warn"><td>CV_TimeSeries</td><td>VV Pup</td><td><code>unique_light</code></td><td>1,353 / 29</td><td>1,279 / 29</td><td>-74</td><td>0</td><td>1,279</td><td>sec.3.1 table: VV Pup 1,353 frames / 29 nights</td></tr>
+<tr class="warn"><td>CV_TimeSeries</td><td>EU UMa</td><td><code>unique_light</code></td><td>993 / 32</td><td>992 / 32</td><td>-1</td><td>0</td><td>992</td><td>sec.3.1 table: EU UMa 993 frames / 32 nights (reduced/ holds 257 RENAMED copies whose JDs all collide with rawimage frames)</td></tr>
 <tr><td>CV_TimeSeries</td><td>AN UMa</td><td><code>unique_light</code></td><td>1,279 / 14</td><td>1,279 / 14</td><td>0</td><td>0</td><td>1,279</td><td>sec.2 Q5: AN UMa 1,279 raw light frames, 14 nights</td></tr>
 <tr class="warn"><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td><code>unique_light</code></td><td>1,052 / 35</td><td>1,054 / 34</td><td>2</td><td>-1</td><td>1,056</td><td>sec.3.1: 1,052 unique light frames (3,018 rawimage rows); the '35 nights' includes the two saturated first epochs labeled NGC5457 (May 20) and M101 (May 21), which carry other target names</td></tr>
-<tr><td>BeStar_Grism</td><td>Spica</td><td><code>grism4_light</code></td><td>728 / 29</td><td>728 / 29</td><td>0</td><td>0</td><td>768</td><td>sec.3.2 table: Spica 728 raw frames / 29 nights</td></tr>
+<tr><td>BeStar_Grism</td><td>Spica</td><td><code>grism4_light</code></td><td>728 / 29</td><td>728 / 29</td><td>0</td><td>0</td><td>728</td><td>sec.3.2 table: Spica 728 raw frames / 29 nights</td></tr>
 <tr><td>BeStar_Grism</td><td>PHECDA</td><td><code>grism4_light</code></td><td>333 / 40</td><td>333 / 40</td><td>0</td><td>0</td><td>333</td><td>sec.3.2 table: Phecda 333 / 40</td></tr>
 <tr><td>BeStar_Grism</td><td>phi Leo</td><td><code>grism4_light</code></td><td>261 / 39</td><td>261 / 39</td><td>0</td><td>0</td><td>261</td><td>sec.3.2 table: phi Leo 261 / 39</td></tr>
-<tr><td>BeStar_Grism</td><td>Lam Eri</td><td><code>grism4_light</code></td><td>252 / 47</td><td>252 / 47</td><td>0</td><td>0</td><td>260</td><td>sec.3.2 table: lambda Eri 252 / 47</td></tr>
-<tr><td>BeStar_Grism</td><td>Vega</td><td><code>grism4_light</code></td><td>447 / 19</td><td>447 / 19</td><td>0</td><td>0</td><td>814</td><td>sec.3.2 table: Vega era C 367/18 + era A ladder 80/1 (Alpha Lyr alias, cone-gated synonym merge)</td></tr>
+<tr class="warn"><td>BeStar_Grism</td><td>Lam Eri</td><td><code>grism4_light</code></td><td>252 / 47</td><td>236 / 47</td><td>-16</td><td>0</td><td>236</td><td>sec.3.2 table: lambda Eri 252 / 47</td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td><code>grism4_light</code></td><td>447 / 19</td><td>447 / 19</td><td>0</td><td>0</td><td>447</td><td>sec.3.2 table: Vega era C 367/18 + era A ladder 80/1 (Alpha Lyr alias, cone-gated synonym merge)</td></tr>
 <tr class="warn"><td>DwarfGalaxy_AGN_Survey</td><td>NGC 5548</td><td><code>unique_light</code></td><td>133 / 15</td><td>143 / 16</td><td>10</td><td>1</td><td>153</td><td>sec.3: 133 unique on-target frames / 15 nights AFTER excluding the 10-frame mispointed night 2023-03-25; the manifest keeps all 143 unique frames / 16 nights (mispointing is a pointing flag, not a dedup fact; primary tree macalester per the documented exception)</td></tr>
 <tr><td>DwarfGalaxy_AGN_Survey</td><td>NGC5238</td><td><code>unique_light</code></td><td>528 / 21</td><td>528 / 21</td><td>0</td><td>0</td><td>544</td><td>sec.3: NGC 5238 ~528 unique frames, 21 nights</td></tr>
 <tr><td>DwarfGalaxy_AGN_Survey</td><td>Dw survey (19 fields)</td><td><code>unique_light</code></td><td>499 / &mdash;</td><td>499 / 16</td><td>0</td><td>&mdash;</td><td>499</td><td>sec.3: Dw survey unique totals L 323 + Halpha 89 + R 87 = 499 (19 Dw* fields combined)</td></tr>
@@ -508,7 +508,7 @@ page is the result of a SQL query; none is typed by hand.  Regenerate with
 <code>pipeline/scripts/build_s0_manifest.py</code>.</footer>
 <!--/MACRO-SITE:CONTENT-->
 <div class="prevnext"><a class="pv" href="../pipeline/s0e_geometry_fix.html"><span class="dir">&larr; Previous</span>S0e — The Geometry Artifact</a><a class="nx" href="../pipeline/s0b_calibration_inventory.html"><span class="dir">Next &rarr;</span>S0b — Calibration Inventory &amp; Raw↔Reduced Links</a></div>
-<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v1.0 (2026-08-18)), the provenance DAG (<code>macro_core.provenance</code>, P v1.0 (2026-08-18)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v2.0 (2026-10-03)), the provenance DAG (<code>macro_core.provenance</code>, P v1.1 (2026-10-03)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
 </div>
 </div>
 </body></html>

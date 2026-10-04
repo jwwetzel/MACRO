@@ -1,0 +1,414 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S3b &mdash; The Absolute Clock, from archived transits</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">9/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">34/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">7/26 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
+<div class="tabbar"><nav class="tabbar-inner" aria-label="Data &amp; Instrument Characterization views"><a class="tab" href="../pipeline/index.html">The Case</a><a class="tab" href="../pipeline/figures.html">Figures</a><a class="tab" href="../pipeline/pipeline_status.html">Freshness &amp; DAG</a><a class="tab" aria-current="page" href="../pipeline/evidence.html">Evidence Detail</a></nav></div>
+<div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../pipeline/index.html">Data &amp; Instrument Characterization</a></li><li><a href="../pipeline/evidence.html">Evidence Detail</a></li><li aria-current="page">S3b — The Absolute Clock</li></ol></nav></div>
+<div class="layout">
+<aside class="rail" aria-label="Questions in this view"><a class="railback" href="../pipeline/index.html">&larr; Back to the case</a><h2>The questions</h2><p class="railnote">The questions this page answers, in order.</p><ol><li><a href="#question"><span class="qn">1</span> Is the observatory clock right?</a></li><li><a href="#census"><span class="qn">2</span> What the archive offers</a></li><li><a href="#events"><span class="qn">3</span> Every timed event</a></li><li><a href="#eras"><span class="qn">4</span> The verdict per clock era</a></li><li><a href="#aglmi"><span class="qn">5</span> S3’s AG LMi residual, printed and explained</a></li><li><a href="#cv"><span class="qn">6</span> What this means for the shared ~1,065 s CV offset</a></li><li><a href="#tests"><span class="qn">7</span> Would a clock error have been seen, and can the analysis move the answer?</a></li><li><a href="#bounds"><span class="qn">8</span> Timing terms no event here can measure: stated bounds</a></li><li><a href="#limits"><span class="qn">9</span> What this does not show</a></li></ol></aside>
+<div class="pane">
+<!--MACRO-SITE:CONTENT-->
+
+<header>
+  <h1>S3b &mdash; The Absolute Clock</h1>
+  <p>16 independent series (38 with twins) timed
+  on literature standards across 5 clock eras &middot; 2 of 5 measured clock eras pass |O&minus;C| &lt; 120 s at 2&sigma;; the largest |O&minus;C| + 2&sigma; of any measured era is 325 s
+  &middot; built 2026-10-03T12:21Z
+  (S3b v1.0 (2026-10-03), commit
+  <code>916243b</code>)
+  &middot; <a href="s3_timing.html">S3, the time axis this checks</a></p>
+</header>
+
+<nav>
+  <a href="#question">1 Question</a> &middot;
+  <a href="#census">2 Census</a> &middot;
+  <a href="#events">3 Events</a> &middot;
+  <a href="#eras">4 Per-era verdict</a> &middot;
+  <a href="#aglmi">5 AG LMi</a> &middot;
+  <a href="#cv">6 The 1,065 s offset</a> &middot;
+  <a href="#tests">7 Bias tests</a> &middot;
+  <a href="#bounds">8 Stated bounds</a> &middot;
+  <a href="#limits">9 Limits</a>
+</nav>
+
+<section id="question"><h2>1 &middot; Is the observatory clock right?</h2>
+<div class="q">
+<p class="sub">S3 proved what a header stamp <i>means</i>.  It could not
+prove the stamp is <i>true</i>: both header clock cards come from the same
+PC, and its one astrophysical check carried a
+&plusmn;4,121&nbsp;s ephemeris
+envelope.  The plan review (OA.E6, DS.F10, RF.M4) noted that two polars
+show the same ~1,065&nbsp;s offset from their catalogue
+ephemerides &mdash; exactly what a clock error would do.</p>
+<p class="sub"><b>Method.</b>  The archive holds transits of well-timed
+exoplanets and eclipses of post-common-envelope binaries.  For each fully
+covered event: differential aperture photometry on the raw frames;
+mid-exposure BJD_TDB recomputed at the star&rsquo;s own coordinates; a
+limb-darkened occultation model located by a <i>blind</i> grid over the
+whole run (the prediction never tells the fit where to look) and refined by
+least squares; a 300-draw moving-block residual
+bootstrap (10.0&nbsp;min blocks) and a prayer-bead
+permutation, the larger of which is adopted; then O&minus;C against the
+literature ephemeris propagated with its own uncertainty.
+O&minus;C&nbsp;&gt;&nbsp;0 means our stamps are late.</p>
+<div class="grid"><figure><a href="figures/s3b/s3b_oc_timeline.png"><img src="figures/s3b/s3b_oc_timeline.png" alt=""></a><figcaption>Every timed event.  The green band is the acceptance window of +-120 s; the dashed red line is where a clock error equal to the shared CV offset would put the points.  The axis is linear inside +-150 s and logarithmic outside.  Black bars are the per-era means with their adopted 1-sigma errors; letters name the clock eras of section 4.</figcaption></figure></div>
+</div></section>
+
+<section id="census"><h2>2 &middot; What the archive offers</h2>
+<div class="q">
+<p class="sub">Every canonical science series of at least
+20 frames and 0.5&nbsp;h whose
+field centre lies within 12&prime; of a clock
+standard was examined: 74 series, 75 predicted
+events.  An event is admitted when the prediction puts it inside the
+run with 0.15&nbsp;h to spare on each side
+(0.05&nbsp;h for the deep, sharp binary eclipses)
+<i>or misses that by no more than 2130&nbsp;s</i>
+&mdash; the selection must not assume the clock it is testing, so
+borderline events are measured and the two-sided-coverage decision is
+taken after the blind fit &mdash; and its ephemeris predicts
+it to better than 60&nbsp;s:
+54 events in 53 series.  Refusals:
+ephemeris prediction looser than 60 s: 1; event outside the run even allowing a clock error: 20.</p>
+<p class="sub">Of the admitted events:
+<b>ok</b>: 33; <b>one_sided_coverage</b>: 7; <b>ok_anchored_shape</b>: 5; <b>photometry refused: reference frame has no WCS</b>: 3; <b>photometry refused: no detection within 20" of the target position</b>: 2; <b>depth_inconsistent</b>: 2; <b>target_saturated</b>: 1; <b>no_comparison_stars</b>: 1.
+9,187 of 9,308 frames were registered and measured.
+A status other than <code>ok</code> is a refusal by a rule fixed before any
+O&minus;C was computed (one-sided coverage after the fit, a depth outside
+0.4&ndash;2.5&times; the catalogue
+depth, the target over the native-pixel saturation veto on most frames, or
+no stable comparison stars).</p>
+<h3>How the frames were reduced</h3>
+<p class="sub">Raw frames are calibrated with the archive&rsquo;s own master
+dark (same readout mode, same exposure time, never scaled) and master flat
+(same mode, same filter), the nearest in time of each &mdash; the same rule
+the CV campaign uses.  The telescope was not guided for most of these
+runs: stars walk tens of pixels and are re-centred in jumps, and without a
+flat every jump is a step in the light curve as large as a transit.  The
+flats are months old in places (ages below); what they fail to remove is
+handled in the fit, where every re-pointing found in the target&rsquo;s
+centroid track (a jump of more than 5&nbsp;px between
+consecutive frames) gets its own offset.  Saturation is judged on the raw
+pixels.  Series refused at this step: no detection within 20" of the target position (2); reference frame has no WCS (3).</p>
+<table class="data">
+<tr><th>era</th><th>reduction applied</th><th>series</th><th>flat age (d)</th><th>dark age (d)</th></tr>
+<tr><td>A</td><td>dark+flat</td><td>10</td><td>183&ndash;234</td><td>14&ndash;55</td></tr>
+<tr><td>B</td><td>dark+flat</td><td>15</td><td>3&ndash;138</td><td>1&ndash;137</td></tr>
+<tr><td>C</td><td>flat_only</td><td>1</td><td>10&ndash;10</td><td>&mdash;</td></tr>
+<tr><td>E</td><td>dark+flat</td><td>17</td><td>2&ndash;54</td><td>2&ndash;54</td></tr>
+<tr><td>E</td><td>flat_only</td><td>2</td><td>1&ndash;3</td><td>&mdash;</td></tr>
+<tr><td>F</td><td>none</td><td>1</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>F</td><td>server_reduced</td><td>2</td><td>&mdash;</td><td>&mdash;</td></tr>
+</table>
+<h3>The standards and their ephemerides</h3>
+<table class="data">
+<tr><th>standard</th><th>role</th><th>T0 (BJD_TDB)</th><th>&plusmn; (d)</th><th>P (d)</th><th>&plusmn; (d)</th><th>reference</th></tr>
+<tr><td>GK Vir</td><td>primary</td><td>2442543.837450</td><td>3.0e-05</td><td>0.344330847</td><td>8.0e-10</td><td>Yates et al. 2026, MNRAS 547, stag358 (arXiv:2602.17800), Table 1 — best-fit linear ephemeris of the long-term timing programme</td></tr>
+<tr><td>GK Vir</td><td>alt</td><td>2442543.837714</td><td>3.0e-06</td><td>0.344330839</td><td>9.2e-11</td><td>Parsons et al. 2010, MNRAS 407, 2362 (arXiv:1005.3958)</td></tr>
+<tr><td>HAT-P-20b</td><td>primary</td><td>2458304.158616</td><td>4.8e-05</td><td>2.875317895</td><td>8.6e-08</td><td>ExoClock database (Kokori et al. 2023, ApJS 265, 4), ephemeris ref OSF.IO, retrieved 2026-10-03</td></tr>
+<tr><td>HAT-P-20b</td><td>alt</td><td>2455598.484820</td><td>3.2e-04</td><td>2.875318600</td><td>2.0e-07</td><td>Bonomo et al. 2017 (NASA Exoplanet Archive)</td></tr>
+<tr><td>HAT-P-28b</td><td>primary</td><td>2458971.218370</td><td>2.0e-04</td><td>3.257212690</td><td>5.0e-07</td><td>ExoClock database (Kokori et al. 2023, ApJS 265, 4), ephemeris ref OSF.IO, retrieved 2026-10-03</td></tr>
+<tr><td>HAT-P-28b</td><td>alt</td><td>2455417.599080</td><td>5.3e-04</td><td>3.257215000</td><td>7.0e-06</td><td>Bonomo et al. 2017 (NASA Exoplanet Archive)</td></tr>
+<tr><td>HAT-P-36b</td><td>primary</td><td>2458442.869734</td><td>7.4e-05</td><td>1.327346889</td><td>6.9e-08</td><td>ExoClock database (Kokori et al. 2023, ApJS 265, 4), ephemeris ref OSF.IO, retrieved 2026-10-03</td></tr>
+<tr><td>HAT-P-36b</td><td>alt</td><td>2457138.087590</td><td>1.2e-04</td><td>1.327346860</td><td>1.3e-07</td><td>Ivshina &amp;amp; Winn 2022 (NASA Exoplanet Archive)</td></tr>
+<tr><td>K2-295b</td><td>primary</td><td>2457777.778330</td><td>1.2e-04</td><td>4.024890270</td><td>5.5e-07</td><td>ExoClock database (Kokori et al. 2023, ApJS 265, 4), ephemeris ref OSF.IO, retrieved 2026-10-03</td></tr>
+<tr><td>K2-295b</td><td>alt</td><td>2457395.414050</td><td>1.2e-06</td><td>4.024867000</td><td>1.5e-05</td><td>Smith et al. 2019 (NASA Exoplanet Archive)</td></tr>
+<tr><td>NSVS 07826147</td><td>primary</td><td>2455611.926571</td><td>1.7e-06</td><td>0.161770446</td><td>5.0e-11</td><td>Basturk et al. 2026, MNRAS (accepted), arXiv:2602.09925 — linear ephemeris from 618 primary minima through 2025</td></tr>
+<tr><td>NSVS 07826147</td><td>alt</td><td>2455611.926576</td><td>5.0e-06</td><td>0.161770447</td><td>1.0e-09</td><td>Pulley et al. 2025, MNRAS 544, 24 (arXiv:2507.06748) — quadratic ephemeris, data through June 2025</td></tr>
+<tr><td>Qatar-7b</td><td>primary</td><td>2458650.895810</td><td>1.5e-04</td><td>2.032023550</td><td>3.6e-07</td><td>ExoClock database (Kokori et al. 2023, ApJS 265, 4), ephemeris ref OSF.IO, retrieved 2026-10-03</td></tr>
+<tr><td>Qatar-7b</td><td>alt</td><td>2458063.641450</td><td>1.8e-04</td><td>2.032069000</td><td>1.8e-05</td><td>Ivshina &amp;amp; Winn 2022 (NASA Exoplanet Archive)</td></tr>
+<tr><td>TrES-3b</td><td>primary</td><td>2457657.754796</td><td>2.3e-05</td><td>1.306186314</td><td>3.3e-08</td><td>ExoClock database (Kokori et al. 2023, ApJS 265, 4), ephemeris ref OSF.IO, retrieved 2026-10-03</td></tr>
+<tr><td>TrES-3b</td><td>alt</td><td>2454185.911149</td><td>5.3e-05</td><td>1.306186280</td><td>2.0e-08</td><td>Mannaday et al. 2022 (NASA Exoplanet Archive)</td></tr>
+<tr><td>WASP-104b</td><td>primary</td><td>2457950.868907</td><td>1.7e-05</td><td>1.755405770</td><td>1.2e-07</td><td>ExoClock database (Kokori et al. 2023, ApJS 265, 4), ephemeris ref OSF.IO, retrieved 2026-10-03</td></tr>
+<tr><td>WASP-104b</td><td>alt</td><td>2457935.070228</td><td>1.1e-05</td><td>1.755405630</td><td>1.1e-07</td><td>Chen et al. 2021 (NASA Exoplanet Archive)</td></tr>
+<tr><td>WASP-183b</td><td>primary</td><td>2459732.825600</td><td>2.3e-04</td><td>4.111766900</td><td>2.9e-06</td><td>ExoClock database (Kokori et al. 2023, ApJS 265, 4), ephemeris ref OSF.IO, retrieved 2026-10-03</td></tr>
+<tr><td>WASP-183b</td><td>alt</td><td>2459259.972780</td><td>4.5e-04</td><td>4.111764800</td><td>6.8e-06</td><td>Ivshina &amp;amp; Winn 2022 (NASA Exoplanet Archive)</td></tr>
+<tr><td>WASP-39b</td><td>primary</td><td>2459661.843065</td><td>2.2e-05</td><td>4.055280280</td><td>1.4e-07</td><td>ExoClock database (Kokori et al. 2023, ApJS 265, 4), ephemeris ref OSF.IO, retrieved 2026-10-03</td></tr>
+<tr><td>WASP-39b</td><td>alt</td><td>2455342.969600</td><td>1.4e-04</td><td>4.055279990</td><td>7.0e-07</td><td>Fischer et al. 2016 (NASA Exoplanet Archive)</td></tr>
+<tr><td>WASP-43b</td><td>primary</td><td>2457650.409087</td><td>2.7e-05</td><td>0.813474057</td><td>1.4e-08</td><td>ExoClock database (Kokori et al. 2023, ApJS 265, 4), ephemeris ref OSF.IO, retrieved 2026-10-03</td></tr>
+<tr><td>WASP-43b</td><td>alt</td><td>2456897.132010</td><td>4.0e-05</td><td>0.813474070</td><td>2.0e-08</td><td>Murphy et al. 2023 (NASA Exoplanet Archive)</td></tr>
+<tr><td>WASP-52b</td><td>primary</td><td>2457058.773584</td><td>5.5e-05</td><td>1.749781004</td><td>8.5e-08</td><td>ExoClock database (Kokori et al. 2023, ApJS 265, 4), ephemeris ref OSF.IO, retrieved 2026-10-03</td></tr>
+<tr><td>WASP-52b</td><td>alt</td><td>2457399.980720</td><td>1.7e-04</td><td>1.749780820</td><td>3.9e-07</td><td>Ivshina &amp;amp; Winn 2022 (NASA Exoplanet Archive)</td></tr>
+<tr><td>WASP-85Ab</td><td>primary</td><td>2456969.633888</td><td>1.6e-05</td><td>2.655674329</td><td>7.3e-08</td><td>ExoClock database (Kokori et al. 2023, ApJS 265, 4), ephemeris ref OSF.IO, retrieved 2026-10-03</td></tr>
+</table>
+<h3>Candidates refused before any photometry</h3>
+<table class="data">
+<tr><th>candidate</th><th>what</th><th>why it is not a clock</th></tr>
+<tr><td>V2301 Oph</td><td>eclipsing polar; 2025-04/05 (clock era D)</td><td>published ephemerides disagree by minutes at 2025: the quadratic term of Ramsay &amp; Cropper 2007 (MNRAS 379, 1209), 3.18(62)e-13 d per cycle^2, alone is uncertain by ~140 s after 162,000 cycles; frames are 240 s exposures across a ~5 min eclipse</td></tr>
+<tr><td>NN Ser</td><td>WD + dM; 2026-04-01 (clock era F)</td><td>two recent linear ephemerides (Ozdonmez et al. 2023; Yates et al. 2026) differ by ~270 s at 2026 — the star's own period variation exceeds the 120 s criterion; frames are 180 s exposures</td></tr>
+<tr><td>QS Vir</td><td>WD + dM; 2023-04, 2026-04/05</td><td>eclipse-timing variations of order +-100 s about any linear ephemeris (Parsons et al. 2010): not a clock at 120 s</td></tr>
+<tr><td>DE CVn</td><td>WD + dM; 2026-03/04 (clock era F)</td><td>only one long-baseline ephemeris found (Yates et al. 2026) and that paper states the systems deviate significantly from linear; no second ephemeris to measure the disagreement</td></tr>
+<tr><td>HAT-P-18 b (2024-05-28), WASP-80 b (2025-06-22)</td><td>transits</td><td>no predicted transit falls inside the observed window (the census table records the nearest event and its margins)</td></tr>
+</table>
+</div></section>
+
+<section id="events"><h2>3 &middot; Every timed event</h2><div class="q">
+<div class="grid"><figure><a href="figures/s3b/s3b_gallery_A.png"><img src="figures/s3b/s3b_gallery_A.png" alt=""></a><figcaption>Clock era A: every timed event.  Flux is divided by the fitted baseline; crosses are clipped points; the green band is the literature prediction with its 1-sigma width, the dashed orange line the fitted mid-time.</figcaption></figure></div><div class="grid"><figure><a href="figures/s3b/s3b_gallery_B.png"><img src="figures/s3b/s3b_gallery_B.png" alt=""></a><figcaption>Clock era B: every timed event.  Flux is divided by the fitted baseline; crosses are clipped points; the green band is the literature prediction with its 1-sigma width, the dashed orange line the fitted mid-time.</figcaption></figure></div><div class="grid"><figure><a href="figures/s3b/s3b_gallery_C.png"><img src="figures/s3b/s3b_gallery_C.png" alt=""></a><figcaption>Clock era C: every timed event.  Flux is divided by the fitted baseline; crosses are clipped points; the green band is the literature prediction with its 1-sigma width, the dashed orange line the fitted mid-time.</figcaption></figure></div><div class="grid"><figure><a href="figures/s3b/s3b_gallery_E.png"><img src="figures/s3b/s3b_gallery_E.png" alt=""></a><figcaption>Clock era E: every timed event.  Flux is divided by the fitted baseline; crosses are clipped points; the green band is the literature prediction with its 1-sigma width, the dashed orange line the fitted mid-time.</figcaption></figure></div><div class="grid"><figure><a href="figures/s3b/s3b_gallery_F.png"><img src="figures/s3b/s3b_gallery_F.png" alt=""></a><figcaption>Clock era F: every timed event.  Flux is divided by the fitted baseline; crosses are clipped points; the green band is the literature prediction with its 1-sigma width, the dashed orange line the fitted mid-time.</figcaption></figure></div>
+<table class="data">
+<tr><th>era</th><th>standard</th><th>night</th><th>filter</th><th>mode</th><th>tree</th><th>cycle</th><th>O&minus;C (s)</th><th>bootstrap</th><th>prayer bead</th><th>formal</th><th>model</th><th>ephem.</th><th>total &plusmn;</th><th>&chi;&sup2;/dof</th><th>depth / expected</th><th>points (clipped)</th><th>re-pointing offsets</th><th>target frames over veto</th><th>2nd ephemeris &minus; 1st (s)</th><th>in mean</th></tr>
+<tr class="warn"><td>A</td><td>WASP-104b</td><td>2023-02-26</td><td>R</td><td>High Gain StackPro</td><td>rawimage</td><td>1,169</td><td>+274.6</td><td>140.4</td><td>174.9</td><td>28.7</td><td>106.6</td><td>12.2</td><td>205.1</td><td>1253.8/330 = 3.80 &#9888;</td><td>0.0248 / 0.0151</td><td>334 (0)</td><td>0</td><td>0</td><td>-16.6</td><td>low precision</td></tr>
+<tr class="warn"><td>A</td><td>HAT-P-36b</td><td>2023-02-27</td><td>R</td><td>High Gain StackPro</td><td>rawimage</td><td>1,176</td><td>+203.8</td><td>182.1</td><td>235.8</td><td>39.5</td><td>457.9</td><td>9.5</td><td>515.1</td><td>1316.4/350 = 3.76 &#9888;</td><td>0.0197 / 0.0189</td><td>356 (0)</td><td>2</td><td>0</td><td>-18.6</td><td>low precision</td></tr>
+<tr class="warn"><td>A</td><td>WASP-85Ab</td><td>2023-03-03</td><td>R</td><td>High Gain StackPro</td><td>rawimage</td><td>1,144</td><td>+1987.9</td><td>633.1</td><td>568.0</td><td>164.8</td><td>142.0</td><td>7.3</td><td>648.9</td><td>962.5/232 = 4.15 &#9888;</td><td>0.0261 / 0.0231</td><td>245 (3)</td><td>6</td><td>0</td><td>&mdash;</td><td>low precision</td></tr>
+<tr class="warn"><td>A</td><td>WASP-43b</td><td>2023-03-08</td><td>R</td><td>High Gain StackPro</td><td>rawimage</td><td>2,904</td><td>+89.5</td><td>125.3</td><td>162.2</td><td>35.3</td><td>99.6</td><td>4.2</td><td>190.4</td><td>318.8/119 = 2.68 &#9888;</td><td>0.0291 / 0.0270</td><td>125 (2)</td><td>0</td><td>0</td><td>-4.4</td><td>low precision</td></tr>
+<tr><td>A</td><td>WASP-43b</td><td>2023-03-12</td><td>R</td><td>High Gain StackPro</td><td>rawimage</td><td>2,909</td><td>+40.1</td><td>63.7</td><td>57.8</td><td>52.4</td><td>95.2</td><td>4.2</td><td>114.6</td><td>133.9/95 = 1.41</td><td>0.0299 / 0.0270</td><td>99 (0)</td><td>0</td><td>0</td><td>-4.4</td><td>yes</td></tr>
+<tr class="warn"><td>A</td><td>HAT-P-36b</td><td>2023-03-23</td><td>R</td><td>High Gain StackPro</td><td>rawimage</td><td>1,194</td><td>+47.0</td><td>490.8</td><td>750.2</td><td>381.6</td><td>95.9</td><td>9.6</td><td>756.4</td><td>49.8/36 = 1.38</td><td>0.0120 / 0.0189</td><td>41 (0)</td><td>1</td><td>1</td><td>-18.6</td><td>low precision</td></tr>
+<tr class="warn"><td>A</td><td>WASP-39b</td><td>2023-03-26</td><td>R</td><td>High Gain StackPro</td><td>rawimage</td><td>91</td><td>+269.3</td><td>211.5</td><td>366.6</td><td>76.4</td><td>114.8</td><td>2.2</td><td>384.1</td><td>788.5/145 = 5.44 &#9888;</td><td>0.0258 / 0.0248</td><td>150 (1)</td><td>0</td><td>0</td><td>-26.1</td><td>low precision</td></tr>
+<tr class="warn"><td>A</td><td>HAT-P-20b</td><td>2023-04-08</td><td>R</td><td>High Gain StackPro</td><td>rawimage</td><td>605</td><td>+564.4</td><td>1149.1</td><td>880.7</td><td>228.8</td><td>72.4</td><td>6.1</td><td>1151.3</td><td>1671.6/127 = 13.16 &#9888;</td><td>0.0190 / 0.0180</td><td>132 (0)</td><td>1</td><td>0</td><td>+123.8</td><td>low precision</td></tr>
+<tr class="warn"><td>B</td><td>WASP-52b</td><td>2023-11-13</td><td>R</td><td>High Gain</td><td>rawimage</td><td>1,831</td><td>+211.9</td><td>108.5</td><td>109.0</td><td>84.6</td><td>75.5</td><td>14.3</td><td>133.4</td><td>193.6/192 = 1.01</td><td>0.0264 / 0.0300</td><td>199 (1)</td><td>2</td><td>38</td><td>-39.8</td><td>low precision</td></tr>
+<tr class="warn"><td>B</td><td>WASP-52b</td><td>2023-12-04</td><td>R</td><td>High Gain</td><td>rawimage</td><td>1,843</td><td>-446.5</td><td>254.3</td><td>242.6</td><td>208.7</td><td>293.0</td><td>14.3</td><td>388.2</td><td>397.8/189 = 2.10 &#9888;</td><td>0.0192 / 0.0300</td><td>195 (2)</td><td>0</td><td>104</td><td>-40.0</td><td>low precision</td></tr>
+<tr><td>B</td><td>WASP-183b</td><td>2024-01-14</td><td>R</td><td>High Gain StackPro</td><td>rawimage</td><td>144</td><td>+112.8</td><td>87.0</td><td>96.8</td><td>55.5</td><td>14.1</td><td>41.2</td><td>106.1</td><td>190.6/142 = 1.34</td><td>0.0287 / 0.0226</td><td>146 (0)</td><td>0</td><td>0</td><td>-14.7</td><td>yes</td></tr>
+<tr class="warn"><td>B</td><td>WASP-183b</td><td>2024-01-14</td><td>R</td><td>High Gain</td><td>rawimage</td><td>144</td><td>+183.1</td><td>150.8</td><td>100.2</td><td>109.9</td><td>57.1</td><td>41.2</td><td>166.4</td><td>203.9/123 = 1.66</td><td>0.0315 / 0.0226</td><td>127 (0)</td><td>0</td><td>0</td><td>-14.7</td><td>low precision</td></tr>
+<tr class="warn"><td>B</td><td>WASP-43b</td><td>2024-01-15</td><td>R</td><td>High Gain StackPro</td><td>rawimage</td><td>3,289</td><td>-162.0</td><td>92.3</td><td>141.5</td><td>35.1</td><td>18.3</td><td>4.6</td><td>142.7</td><td>436.3/166 = 2.63 &#9888;</td><td>0.0201 / 0.0270</td><td>170 (0)</td><td>0</td><td>0</td><td>-3.9</td><td>low precision</td></tr>
+<tr class="warn"><td>B</td><td>WASP-43b</td><td>2024-01-15</td><td>R</td><td>High Gain</td><td>rawimage</td><td>3,289</td><td>+10.1</td><td>149.8</td><td>296.0</td><td>92.0</td><td>1162.5</td><td>4.6</td><td>1199.6</td><td>176.6/141 = 1.25</td><td>0.0280 / 0.0270</td><td>145 (0)</td><td>0</td><td>0</td><td>-3.9</td><td>low precision</td></tr>
+<tr class="warn"><td>B</td><td>WASP-43b</td><td>2024-03-04</td><td>R</td><td>High Gain</td><td>rawimage</td><td>3,349</td><td>+11941.3</td><td>318.2</td><td>616.1</td><td>220.1</td><td>47.9</td><td>4.7</td><td>618.0</td><td>96.9/64 = 1.51</td><td>0.0109 / 0.0270</td><td>68 (0)</td><td>0</td><td>214</td><td>-3.9</td><td>low precision</td></tr>
+<tr><td>C</td><td>TrES-3b</td><td>2024-05-29</td><td>r</td><td>1MHz High Sensitivity 16-bit</td><td>rawimage</td><td>2,146</td><td>-29.6</td><td>45.2</td><td>40.1</td><td>28.6</td><td>9.6</td><td>6.4</td><td>46.7</td><td>375.4/357 = 1.05</td><td>0.0212 / 0.0237</td><td>362 (0)</td><td>1</td><td>0</td><td>-50.8</td><td>yes</td></tr>
+<tr><td>E</td><td>WASP-52b</td><td>2025-10-25</td><td>i</td><td>Mode0</td><td>rawimage</td><td>2,238</td><td>-86.1</td><td>55.5</td><td>58.2</td><td>60.0</td><td>25.9</td><td>17.1</td><td>66.0</td><td>171.8/167 = 1.03</td><td>0.0305 / 0.0300</td><td>174 (0)</td><td>3</td><td>0</td><td>-46.3</td><td>yes</td></tr>
+<tr><td>E</td><td>WASP-52b</td><td>2025-10-25</td><td>g</td><td>Mode0</td><td>rawimage</td><td>2,238</td><td>-12.4</td><td>38.9</td><td>49.0</td><td>29.6</td><td>6.4</td><td>17.1</td><td>52.3</td><td>266.1/178 = 1.49</td><td>0.0337 / 0.0300</td><td>184 (0)</td><td>2</td><td>0</td><td>-46.3</td><td>yes</td></tr>
+<tr><td>E</td><td>WASP-52b</td><td>2025-10-25</td><td>r</td><td>Mode0</td><td>rawimage</td><td>2,238</td><td>+27.2</td><td>44.8</td><td>49.5</td><td>46.2</td><td>26.2</td><td>17.1</td><td>58.6</td><td>206.4/168 = 1.23</td><td>0.0304 / 0.0300</td><td>176 (1)</td><td>3</td><td>0</td><td>-46.3</td><td>yes</td></tr>
+<tr class="warn"><td>E</td><td>HAT-P-28b</td><td>2025-11-10</td><td>g</td><td>Mode0</td><td>rawimage</td><td>620</td><td>-211.7</td><td>90.9</td><td>118.7</td><td>57.3</td><td>234.6</td><td>31.9</td><td>264.9</td><td>427.8/362 = 1.18</td><td>0.0128 / 0.0154</td><td>370 (1)</td><td>3</td><td>0</td><td>+320.3</td><td>low precision</td></tr>
+<tr class="warn"><td>E</td><td>Qatar-7b</td><td>2025-11-11</td><td>g</td><td>Mode0</td><td>rawimage</td><td>1,152</td><td>-539.2</td><td>160.6</td><td>220.0</td><td>61.7</td><td>207.6</td><td>38.1</td><td>304.8</td><td>746.6/261 = 2.86 &#9888;</td><td>0.0154 / 0.0149</td><td>272 (5)</td><td>2</td><td>0</td><td>+5697.2</td><td>low precision</td></tr>
+<tr class="warn"><td>E</td><td>K2-295b</td><td>2025-11-13</td><td>g</td><td>Mode0</td><td>rawimage</td><td>799</td><td>+60.7</td><td>88.1</td><td>143.1</td><td>50.5</td><td>58.7</td><td>39.4</td><td>159.6</td><td>473.2/359 = 1.32</td><td>0.0195 / 0.0209</td><td>364 (0)</td><td>1</td><td>0</td><td>-1771.9</td><td>low precision</td></tr>
+<tr><td>E</td><td>NSVS 07826147</td><td>2026-01-15</td><td>g</td><td>Mode0</td><td>rawimage</td><td>33,659</td><td>+10.7</td><td>0.3</td><td>0.2</td><td>5.5</td><td>0.2</td><td>0.2</td><td>15.0</td><td>0.5/54 = 0.01 &#9888;</td><td>0.7140 / 0.6519</td><td>60 (0)</td><td>0</td><td>0</td><td>-5.3</td><td>yes</td></tr>
+<tr><td>E</td><td>NSVS 07826147</td><td>2026-01-16</td><td>g</td><td>Mode0</td><td>rawimage</td><td>33,665</td><td>+8.9</td><td>0.8</td><td>0.6</td><td>5.4</td><td>1.0</td><td>0.2</td><td>15.1</td><td>1.1/54 = 0.02 &#9888;</td><td>0.7126 / 0.6519</td><td>60 (0)</td><td>0</td><td>0</td><td>-5.3</td><td>yes</td></tr>
+<tr class="warn"><td>E</td><td>NSVS 07826147</td><td>2026-01-18</td><td>g</td><td>Mode0</td><td>rawimage</td><td>33,678</td><td>+13.2</td><td>1.1</td><td>0.8</td><td>3.6</td><td>0.8</td><td>0.2</td><td>15.1</td><td>4.1/72 = 0.06 &#9888;</td><td>0.7126 / 0.6519</td><td>75 (0)</td><td>0</td><td>0</td><td>-5.3</td><td>anchored</td></tr>
+<tr class="warn"><td>E</td><td>NSVS 07826147</td><td>2026-01-19</td><td>g</td><td>Mode0</td><td>rawimage</td><td>33,684</td><td>+11.9</td><td>0.9</td><td>1.2</td><td>1.5</td><td>1.5</td><td>0.2</td><td>15.1</td><td>15.6/57 = 0.27 &#9888;</td><td>0.7126 / 0.6519</td><td>60 (0)</td><td>0</td><td>0</td><td>-5.3</td><td>anchored</td></tr>
+<tr class="warn"><td>E</td><td>NSVS 07826147</td><td>2026-01-20</td><td>g</td><td>Mode0</td><td>rawimage</td><td>33,690</td><td>+11.4</td><td>1.2</td><td>1.0</td><td>1.9</td><td>1.4</td><td>0.2</td><td>15.1</td><td>12.4/82 = 0.15 &#9888;</td><td>0.7126 / 0.6519</td><td>85 (0)</td><td>0</td><td>0</td><td>-5.3</td><td>anchored</td></tr>
+<tr><td>E</td><td>NSVS 07826147</td><td>2026-01-30</td><td>g</td><td>Mode0</td><td>rawimage</td><td>33,752</td><td>+10.5</td><td>0.6</td><td>0.4</td><td>4.7</td><td>0.3</td><td>0.2</td><td>15.0</td><td>0.8/59 = 0.01 &#9888;</td><td>0.7096 / 0.6519</td><td>65 (0)</td><td>0</td><td>0</td><td>-5.4</td><td>yes</td></tr>
+<tr><td>E</td><td>NSVS 07826147</td><td>2026-01-31</td><td>g</td><td>Mode0</td><td>rawimage</td><td>33,758</td><td>+11.5</td><td>2.0</td><td>2.3</td><td>1.0</td><td>0.8</td><td>0.2</td><td>15.2</td><td>301.6/191 = 1.58</td><td>0.7100 / 0.6519</td><td>198 (0)</td><td>1</td><td>0</td><td>-5.4</td><td>yes</td></tr>
+<tr><td>E</td><td>NSVS 07826147</td><td>2026-02-09</td><td>g</td><td>Mode0</td><td>rawimage</td><td>33,813</td><td>+11.4</td><td>1.2</td><td>1.2</td><td>2.2</td><td>0.3</td><td>0.2</td><td>15.1</td><td>119.3/134 = 0.89</td><td>0.7200 / 0.6519</td><td>143 (2)</td><td>1</td><td>0</td><td>-5.4</td><td>yes</td></tr>
+<tr><td>E</td><td>NSVS 07826147</td><td>2026-02-15</td><td>g</td><td>Mode0</td><td>rawimage</td><td>33,851</td><td>+13.2</td><td>3.8</td><td>5.2</td><td>7.8</td><td>0.8</td><td>0.2</td><td>15.9</td><td>19.7/37 = 0.53</td><td>0.7146 / 0.6519</td><td>43 (0)</td><td>0</td><td>0</td><td>-5.4</td><td>yes</td></tr>
+<tr class="warn"><td>E</td><td>NSVS 07826147</td><td>2026-02-26</td><td>g</td><td>Mode0</td><td>rawimage</td><td>33,919</td><td>+12.4</td><td>0.6</td><td>0.5</td><td>5.4</td><td>0.4</td><td>0.2</td><td>15.0</td><td>0.2/57 = 0.00 &#9888;</td><td>0.7126 / 0.6519</td><td>60 (0)</td><td>0</td><td>0</td><td>-5.4</td><td>anchored</td></tr>
+<tr><td>E</td><td>NSVS 07826147</td><td>2026-03-04</td><td>g</td><td>Mode0</td><td>rawimage</td><td>33,956</td><td>+11.9</td><td>0.4</td><td>0.5</td><td>5.2</td><td>0.3</td><td>0.2</td><td>15.0</td><td>0.9/54 = 0.02 &#9888;</td><td>0.7114 / 0.6519</td><td>60 (0)</td><td>0</td><td>0</td><td>-5.4</td><td>yes</td></tr>
+<tr><td>E</td><td>NSVS 07826147</td><td>2026-03-15</td><td>g</td><td>Mode0</td><td>rawimage</td><td>34,024</td><td>+12.1</td><td>1.0</td><td>1.3</td><td>0.7</td><td>0.7</td><td>0.2</td><td>15.1</td><td>164.3/162 = 1.01</td><td>0.7145 / 0.6519</td><td>169 (1)</td><td>0</td><td>0</td><td>-5.5</td><td>yes</td></tr>
+<tr><td>E</td><td>NSVS 07826147</td><td>2026-03-16</td><td>g</td><td>Mode0</td><td>rawimage</td><td>34,030</td><td>+12.1</td><td>0.3</td><td>0.2</td><td>3.8</td><td>0.2</td><td>0.2</td><td>15.0</td><td>0.8/54 = 0.02 &#9888;</td><td>0.7120 / 0.6519</td><td>60 (0)</td><td>0</td><td>0</td><td>-5.5</td><td>yes</td></tr>
+<tr class="warn"><td>F</td><td>GK Vir</td><td>2026-04-08</td><td>g</td><td>Fast</td><td>rawimage</td><td>54,006</td><td>+1826.3</td><td>43.2</td><td>39.6</td><td>72.7</td><td>842.2</td><td>4.5</td><td>843.4</td><td>22.3/28 = 0.80</td><td>0.5794 / 0.8000</td><td>35 (0)</td><td>1</td><td>0</td><td>-15.6</td><td>low precision</td></tr>
+<tr><td>F</td><td>GK Vir</td><td>2026-04-19</td><td>g</td><td>Fast</td><td>reduced</td><td>54,038</td><td>+1.7</td><td>0.9</td><td>0.9</td><td>1.0</td><td>0.8</td><td>4.5</td><td>16.3</td><td>38.8/29 = 1.34</td><td>0.9923 / 0.8000</td><td>36 (0)</td><td>1</td><td>0</td><td>-15.6</td><td>yes</td></tr>
+<tr class="warn"><td>F</td><td>NSVS 07826147</td><td>2026-05-13</td><td>g</td><td>Fast</td><td>reduced</td><td>34,387</td><td>+9.3</td><td>2.0</td><td>2.4</td><td>1.7</td><td>3.9</td><td>0.2</td><td>15.7</td><td>79.2/82 = 0.97</td><td>0.7126 / 0.6519</td><td>85 (0)</td><td>0</td><td>0</td><td>-5.6</td><td>anchored</td></tr>
+</table>
+<p class="sub">Errors are in seconds.  <i>bootstrap</i> and <i>prayer
+bead</i> are the two red-noise estimates (the larger is the statistical
+error); <i>formal</i> is the least-squares value, shown only so the reader
+can see how much correlated noise inflates it; <i>model</i> is the
+root-mean-square mid-time shift over the analysis variants of section 7.
+&chi;&sup2; uses empirical point errors from successive differences, so a
+ratio above one measures correlated noise the white-noise estimate cannot
+see: 9 of 38 fits have &chi;&sup2;/dof &gt; 2 and
+9 have &chi;&sup2;/dof &lt; 0.5 (range 0.00 to
+13.16; flagged &#9888; in the tables).  No error on this page is
+rescaled by a &chi;&sup2;: the bootstrap draws from the actual residuals.
+The last column says whether a row enters the era means.  <i>twin</i>:
+the server-reduced copy of a raw series already counted.  <i>low
+precision</i>: the event&rsquo;s own measurement error (statistical and
+model in quadrature) exceeds 120&nbsp;s, so
+it cannot test a 120&nbsp;s criterion; the gate looks at the
+error, never at the O&minus;C.  <i>anchored</i>: a binary eclipse of
+which only one flank was observed, timed with the duration and depth
+fixed to the median of the same star&rsquo;s complete eclipses &mdash; a
+supplementary check, never averaged.</p>
+</div></section>
+
+<section id="eras"><h2>4 &middot; The verdict per clock era</h2>
+<div class="q">
+<p class="sub">A clock era is one camera under one acquisition-software
+build.  Events of one standard are combined first (they share an
+ephemeris error, which is then added once, with the standard&rsquo;s own
+timing systematic); standards are then combined per era.  Both the formal
+and the scatter-based error are shown and the larger is adopted.</p>
+<table class="data">
+<tr><th>era</th><th>camera / software</th><th>targets</th><th>series</th><th>O&minus;C (s)</th><th>formal &plusmn;</th><th>&chi;&sup2;/dof</th><th>scatter &plusmn;</th><th>adopted &plusmn;</th><th>3&sigma; reach (s)</th><th>&plusmn;1,065 s injections recovered</th><th>signed bias (s)</th><th>verdict</th><th>low-precision events (not in mean)</th><th>information only: mean of ALL events (s)</th></tr>
+<tr><td>A</td><td>AC4040, 2023 season (MaxIm 6.30)</td><td>1</td><td>1</td><td>+40.1</td><td>114.6</td><td>&mdash;</td><td>&mdash;</td><td>114.6</td><td>344</td><td>8/16</td><td>-20.3</td><td>PASS (central value); 2-sigma interval reaches the criterion</td><td>7</td><td>+139 &plusmn; 84</td></tr>
+<tr><td>B</td><td>AC4040, 2023-24 season (MaxIm 6.30/6.40)</td><td>1</td><td>1</td><td>+112.8</td><td>106.1</td><td>&mdash;</td><td>&mdash;</td><td>106.1</td><td>318</td><td>16/16</td><td>-29.2</td><td>PASS (central value); 2-sigma interval reaches the criterion</td><td>6</td><td>+204 &plusmn; 65</td></tr>
+<tr><td>C</td><td>Andor iKon-L, 2024 (MaxIm 6.40)</td><td>1</td><td>1</td><td>-29.6</td><td>46.7</td><td>&mdash;</td><td>&mdash;</td><td>46.7</td><td>140</td><td>16/16</td><td>-12.2</td><td>PASS (central value); 2-sigma interval reaches the criterion</td><td>0</td><td>-30 &plusmn; 47</td></tr>
+<tr class="warn"><td>D</td><td>ASI6200, 2024-12 to 2025-06 (MaxIm 6.40)</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK TARGET IN ERA</td><td>0</td><td>&mdash;</td></tr>
+<tr><td>E</td><td>ASI6200, 2025-10 to 2026-03 (MaxIm 6.30)</td><td>2</td><td>12</td><td>+7.3</td><td>13.9</td><td>0.5/1 = 0.54</td><td>14.7</td><td>14.7</td><td>44</td><td>88/192</td><td>-1.8</td><td>PASS</td><td>3</td><td>+11 &plusmn; 5</td></tr>
+<tr><td>F</td><td>QHY600, 2026-03 to 2026-06 (MaxIm 6.40)</td><td>1</td><td>1</td><td>+1.7</td><td>16.3</td><td>&mdash;</td><td>&mdash;</td><td>16.3</td><td>49</td><td>16/16</td><td>+0.3</td><td>PASS</td><td>1</td><td>+2 &plusmn; 16</td></tr>
+<tr class="warn"><td>G</td><td>QHY600, pyscope (2026-06-28 on)</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK TARGET IN ERA</td><td>0</td><td>&mdash;</td></tr>
+</table>
+<h3>Per standard</h3>
+<table class="data">
+<tr><th>era</th><th>standard</th><th>kind</th><th>series</th><th>epochs</th><th>nights</th><th>O&minus;C (s)</th><th>formal &plusmn;</th><th>&chi;&sup2;/dof</th><th>scatter &plusmn;</th><th>ephemeris &plusmn;</th><th>standard&rsquo;s own systematic</th><th>total &plusmn;</th></tr>
+<tr><td>A</td><td>WASP-43b</td><td>transit</td><td>1</td><td>1</td><td>2023-03-12</td><td>+40.1</td><td>114.5</td><td>&mdash;</td><td>&mdash;</td><td>4.2</td><td>0.0</td><td>114.6</td></tr>
+<tr><td>B</td><td>WASP-183b</td><td>transit</td><td>1</td><td>1</td><td>2024-01-14</td><td>+112.8</td><td>97.8</td><td>&mdash;</td><td>&mdash;</td><td>41.2</td><td>0.0</td><td>106.1</td></tr>
+<tr><td>C</td><td>TrES-3b</td><td>transit</td><td>1</td><td>1</td><td>2024-05-29</td><td>-29.6</td><td>46.2</td><td>&mdash;</td><td>&mdash;</td><td>6.4</td><td>0.0</td><td>46.7</td></tr>
+<tr><td>E</td><td>NSVS 07826147</td><td>eclipse</td><td>9</td><td>9</td><td>2026-01-15 &amp;rarr; 2026-03-16</td><td>+11.4</td><td>0.2</td><td>13.2/8 = 1.65</td><td>0.4</td><td>0.2</td><td>15.0</td><td>15.0</td></tr>
+<tr><td>E</td><td>WASP-52b</td><td>transit</td><td>3</td><td>1</td><td>2025-10-25</td><td>-18.1</td><td>32.0</td><td>1.8/2 = 0.90</td><td>33.2</td><td>17.1</td><td>0.0</td><td>37.3</td></tr>
+<tr><td>F</td><td>GK Vir</td><td>eclipse</td><td>1</td><td>1</td><td>2026-04-19</td><td>+1.7</td><td>1.2</td><td>&mdash;</td><td>&mdash;</td><td>4.5</td><td>15.6</td><td>16.3</td></tr>
+</table>
+<div class="decision"><b>2 of 5 measured clock eras pass |O&minus;C| &lt; 120 s at 2&sigma;; the largest |O&minus;C| + 2&sigma; of any measured era is 325 s.</b>
+Eras with no usable standard, where the clock is NOT directly verified: D (ASI6200, 2024-12 to 2025-06 (MaxIm 6.40)); G (QHY600, pyscope (2026-06-28 on)).</div>
+</div></section>
+
+<section id="aglmi"><h2>5 &middot; S3&rsquo;s AG LMi residual, printed and
+explained</h2><div class="q">
+<p class="sub"><b>The number (RF.M4).</b>  S3&rsquo;s one eclipsing-binary
+check, AG&nbsp;LMi on 2024-02-22, gave
+O&minus;C&nbsp;=&nbsp;-294&nbsp;&plusmn;&nbsp;59&nbsp;s
+from 36 points against the VSX ephemeris, and a
+clock bound of 4,517&nbsp;s.  A five-sigma,
+five-minute residual on a timing paper&rsquo;s only external check has to
+be explained, not described as &ldquo;weak&rdquo;.</p>
+<p class="sub"><b>The explanation.</b>  That eclipse lies
+1,584 cycles after the VSX epoch.  VSX quotes the
+period as 1.3590176&nbsp;d with no uncertainty;
+Gaia&nbsp;DR3 measures
+1.3590118&nbsp;&plusmn;&nbsp;3.0e-05&nbsp;d
+for the same star, which by itself predicts an O&minus;C of
+-797&nbsp;s with a
+&plusmn;4,121&nbsp;s envelope.  The clock
+of that same camera era (B) is now measured independently on this page:
++112.8&nbsp;&plusmn;&nbsp;106.1&nbsp;s.
+Subtracting it leaves
+-406&nbsp;&plusmn;&nbsp;121&nbsp;s
+that belongs to AG&nbsp;LMi&rsquo;s ephemeris, i.e. a true period of
+1.3590146&nbsp;&plusmn;&nbsp;8.9e-07&nbsp;d
+&mdash; 0.09&nbsp;&sigma;
+from the Gaia period and between the two catalogue values.  (The VSX epoch
+is also quoted to 0.001&nbsp;d, &plusmn;43&nbsp;s,
+which this conversion ignores; it does not change the conclusion.)  The
+residual is a stale survey ephemeris, not a clock error, and the S3
+statistical error of 59&nbsp;s was never the
+relevant uncertainty.</p>
+<div class="grid"><figure><a href="figures/s3b/s3b_aglmi.png"><img src="figures/s3b/s3b_aglmi.png" alt=""></a><figcaption>The straight line is the O-C any true period would produce at the cycle of the AG LMi eclipse.  The S3 measurement (orange) crosses it inside the Gaia period interval (blue).</figcaption></figure></div>
+</div></section>
+
+<section id="cv"><h2>6 &middot; What this means for the shared
+~1,065 s CV offset</h2><div class="q">
+<p class="sub">ST&nbsp;LMi and EU&nbsp;UMa sit about 1,065&nbsp;s
+from their catalogue ephemerides.  If that were the clock, every standard
+on this page observed in the same era would sit at +1,065&nbsp;s
+too (the dashed line of the first figure).</p>
+<table class="data">
+<tr><th>CV target</th><th>clock era</th><th>nights timed</th><th>span</th><th>published edge offset (s)</th><th>clock O&minus;C in that era (s)</th><th>&plusmn;</th><th>clock verdict</th><th>offset / clock error</th></tr>
+<tr><td>euuma</td><td>E</td><td>2</td><td>2026-01-09 &rarr; 2026-01-16</td><td>+1060 (rms 84)</td><td>+7.3</td><td>14.7</td><td>PASS</td><td>72&sigma; away</td></tr>
+<tr><td>stlmi</td><td>B</td><td>4</td><td>2024-01-30 &rarr; 2024-03-03</td><td>+1071 (rms 97)</td><td>+112.8</td><td>106.1</td><td>PASS (central value); 2-sigma interval reaches the criterion</td><td>10&sigma; away</td></tr>
+<tr><td>stlmi</td><td>C</td><td>1</td><td>2024-04-10 &rarr; 2024-04-10</td><td>+1071 (rms 97)</td><td>-29.6</td><td>46.7</td><td>PASS (central value); 2-sigma interval reaches the criterion</td><td>23&sigma; away</td></tr>
+<tr class="warn"><td>stlmi</td><td>D</td><td>11</td><td>2025-02-21 &rarr; 2025-05-08</td><td>+1071 (rms 97)</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK TARGET IN ERA</td><td>&mdash;</td></tr>
+<tr><td>stlmi</td><td>E</td><td>1</td><td>2025-12-17 &rarr; 2025-12-17</td><td>+1071 (rms 97)</td><td>+7.3</td><td>14.7</td><td>PASS</td><td>73&sigma; away</td></tr>
+</table>
+<div class="decision">
+In 4 of 5 (target, era) blocks a clock standard exists in the same era, and in each the clock O&minus;C is tens of seconds or less while the edge offset is over a thousand: <b>the shared offset is not an observatory clock error there</b>.
+ In 1 block(s) (stlmi era D, 2025-02-21 to 2025-05-08) no standard was observed, so the clock is not verified directly; the statement there rests on the same offset being measured in the verified eras on either side.
+The offset is therefore a property of the comparison (what feature each
+catalogue epoch marks, and how stale each catalogue period is), which is
+for the CV analysis to settle; it must not be described as, or corrected
+as, a clock term.</div>
+</div></section>
+
+<section id="tests"><h2>7 &middot; Would a clock error have been seen,
+and can the analysis move the answer?</h2><div class="q">
+<p class="sub"><b>Injection.</b>  For every event the fitted model was
+removed, re-injected displaced by a known offset, block-resampled noise
+added, and the whole blind measurement repeated
+(8 draws per offset).  The bias is signed, per the
+standing rule.</p>
+<table class="data">
+<tr><th>injected offset (s)</th><th>draws recovered</th><th>mean signed bias (s)</th><th>largest |bias| of any event (s)</th></tr>
+<tr><td>-1065</td><td>173/264</td><td>-49.2</td><td>791.3</td></tr>
+<tr><td>-300</td><td>221/264</td><td>-35.5</td><td>806.0</td></tr>
+<tr><td>-120</td><td>239/264</td><td>-62.4</td><td>2546.1</td></tr>
+<tr><td>+0</td><td>254/264</td><td>-15.9</td><td>1088.7</td></tr>
+<tr><td>+120</td><td>240/264</td><td>-18.7</td><td>1126.3</td></tr>
+<tr><td>+300</td><td>226/264</td><td>-21.2</td><td>1364.6</td></tr>
+<tr><td>+1065</td><td>196/264</td><td>-130.6</td><td>2834.7</td></tr>
+</table>
+<div class="grid"><figure><a href="figures/s3b/s3b_injection.png"><img src="figures/s3b/s3b_injection.png" alt=""></a><figcaption>Left: recovered minus injected offset for every event and draw-set (error bar = scatter over draws).  Right: fraction of draws in which the displaced event was still recovered as a two-sided fit; a displaced event that leaves the observing window is, correctly, not recovered.</figcaption></figure></div>
+<p class="sub"><b>Variants.</b>  Each event was re-measured with the
+other two apertures, the other baseline order, limb darkening moved by
+&plusmn;0.2, the duration (or the radius ratio) freed, and
+without outlier rejection.</p>
+<table class="data">
+<tr><th>variant</th><th>events</th><th>re-fitted ok</th><th>mean signed shift (s)</th><th>largest |shift| (s)</th></tr>
+<tr><td>anchor_depth_hi</td><td>5</td><td>5</td><td>-0.1</td><td>0.3</td></tr>
+<tr><td>anchor_depth_lo</td><td>5</td><td>5</td><td>+0.1</td><td>0.4</td></tr>
+<tr><td>anchor_duration_hi</td><td>5</td><td>5</td><td>-1.6</td><td>6.2</td></tr>
+<tr><td>anchor_duration_lo</td><td>5</td><td>5</td><td>+1.3</td><td>5.0</td></tr>
+<tr><td>aperture_0</td><td>16</td><td>16</td><td>+113.2</td><td>3487.3</td></tr>
+<tr><td>aperture_1</td><td>20</td><td>20</td><td>+24.6</td><td>181.9</td></tr>
+<tr><td>aperture_2</td><td>30</td><td>30</td><td>+8.6</td><td>203.5</td></tr>
+<tr><td>baseline_order_1</td><td>11</td><td>11</td><td>+0.3</td><td>4.5</td></tr>
+<tr><td>baseline_order_2</td><td>27</td><td>26</td><td>-13.6</td><td>359.6</td></tr>
+<tr><td>decorr_airmass</td><td>33</td><td>31</td><td>-9.3</td><td>371.5</td></tr>
+<tr><td>decorr_fwhm</td><td>33</td><td>33</td><td>+11.6</td><td>448.9</td></tr>
+<tr><td>duration_free</td><td>22</td><td>22</td><td>-17.2</td><td>303.3</td></tr>
+<tr><td>k_x1.3</td><td>11</td><td>11</td><td>-0.3</td><td>4.0</td></tr>
+<tr><td>ld_high</td><td>33</td><td>33</td><td>+21.2</td><td>779.9</td></tr>
+<tr><td>ld_low</td><td>33</td><td>33</td><td>-3.6</td><td>105.5</td></tr>
+<tr><td>no_jump_offsets</td><td>16</td><td>16</td><td>+95.9</td><td>733.1</td></tr>
+<tr><td>no_outlier_clip</td><td>33</td><td>33</td><td>-8.6</td><td>147.6</td></tr>
+</table>
+<div class="grid"><figure><a href="figures/s3b/s3b_variants.png"><img src="figures/s3b/s3b_variants.png" alt=""></a><figcaption>Mid-time shift of every event under every variant, relative to the adopted fit.  The rms shift per event is carried as its model error.</figcaption></figure></div>
+<h3>Pairs that should agree</h3>
+<table class="data">
+<tr><th>comparison</th><th>standard</th><th>night</th><th>&Delta; (s)</th><th>&plusmn; (s)</th></tr>
+<tr><td>stackpro minus plain</td><td>WASP-183b</td><td>2024-01-14</td><td>-70.3</td><td>188.6</td></tr>
+<tr><td>stackpro minus plain</td><td>WASP-43b</td><td>2024-01-15</td><td>-172.0</td><td>1208.1</td></tr>
+</table>
+<p class="sub">StackPro minus plain High Gain on the same transit: -72.7 &plusmn; 186.3 s from 2 pair(s) &mdash; a direct measurement of the StackPro mid-time policy that S3 could only bound from cadence.
+</p>
+</div></section>
+
+<section id="bounds"><h2>8 &middot; Timing terms no event here can
+measure: stated bounds</h2><div class="q">
+<p class="sub">DE.F7 asked for the rolling-shutter and mechanical-shutter
+terms to be stated.  They are sub-second, far below what any O&minus;C
+above resolves, and are therefore <i>bounds from vendor figures, not
+measurements</i>:</p>
+<table class="data">
+<tr><th>term</th><th>applies to</th><th>bound (s)</th><th>sign</th><th>basis</th></tr>
+<tr><td>rolling shutter (row-sequential start of exposure)</td><td>SBIG Aluma AC4040 (GSENSE4040), eras 1-44</td><td>0.75</td><td>late, 0..bound</td><td>vendor full-frame download time 0.75 s is an upper limit on the top-to-bottom row skew; the target row lies somewhere inside it</td></tr>
+<tr><td>rolling shutter (row-sequential start of exposure)</td><td>ZWO ASI6200MM (IMX455), eras 75-77, 84</td><td>0.32</td><td>late, 0..bound</td><td>vendor full-resolution frame rate 3.19 fps -&gt; one frame scan &lt;= 1/3.19 s</td></tr>
+<tr><td>rolling shutter (row-sequential start of exposure)</td><td>QHY600 (IMX455), eras 78-82</td><td>0.40</td><td>late, 0..bound</td><td>vendor 16-bit full-frame rate 2.5 fps -&gt; one frame scan &lt;= 0.40 s</td></tr>
+<tr><td>mechanical shutter travel (open and close)</td><td>Andor iKon-L 936, eras 45-74</td><td>0.10</td><td>either, |x| &lt;= bound</td><td>ASSUMED: the vendor documents a 45 mm iris shutter but the open/close time was not found in the documentation consulted; 0.1 s is a generous class figure for such shutters and is flagged for confirmation.  An iris shutter also exposes the field centre longer than the corners, which shifts no mid-time</td></tr>
+<tr><td>StackPro sub-read dead time (already in S3)</td><td>AC4040 'High Gain StackPro'</td><td>5.67</td><td>late, 0..bound</td><td>macro_core.timing.STACKPRO_MID_WORST_CASE_S (cadence bound); this stage MEASURES it wherever one transit was observed in StackPro and plain High Gain on the same night</td></tr>
+</table>
+<p class="sub">None of these terms is applied as a correction.  They add
+to the S3 error budget for any claim of sub-second absolute timing; they
+are negligible against every timing claim currently made by a MACRO
+paper.  Also for the record (OA.E6): the two header clock cards DATE-OBS
+and TELUT are written by the same PC and are not independent.</p>
+<h3>Where the time stamps came from</h3>
+<p class="sub">Every time on this page is the header JD (identical to
+DATE-OBS, the exposure start) plus half the exposure.  File names are
+never read for time: the scripted eras embed the <i>scheduled</i> start in
+the name, which precedes the real start.  Measured on the frames timed
+here:</p>
+<table class="data">
+<tr><th>era</th><th>acquisition software</th><th>frames timed</th><th>max |time used &minus; DATE-OBS| (s)</th><th>frames with a time in the file name</th><th>DATE-OBS minus file-name time: median (s)</th><th>max (s)</th></tr>
+<tr><td>A</td><td>MaxIm DL Version 6.30 231201 0HTQT</td><td>1,810</td><td>0.001</td><td>0</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>B</td><td>MaxIm DL Version 6.30 231201 0HTQT</td><td>169</td><td>0.001</td><td>0</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>B</td><td>MaxIm DL Version 6.40 231201 0HTQT</td><td>3,281</td><td>0.001</td><td>0</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>C</td><td>MaxIm DL Version 6.40 231201 0HTQT</td><td>380</td><td>0.000</td><td>380</td><td>0</td><td>606</td></tr>
+<tr><td>E</td><td>MaxIm DL Version 6.30 231201 0HTQT</td><td>3,298</td><td>0.000</td><td>3,298</td><td>866</td><td>1317</td></tr>
+<tr><td>F</td><td>MaxIm DL Version 6.40 231201 0HTQT</td><td>370</td><td>0.000</td><td>370</td><td>174</td><td>775</td></tr>
+</table>
+</div></section>
+
+<section id="limits"><h2>9 &middot; What this does not show</h2>
+<div class="q"><ul>
+<li>An era&rsquo;s verdict certifies the nights that have a standard.  A
+PC clock can step between nights; the evidence against that is the
+agreement of standards spread across each era, not a proof.</li>
+<li>The light curves are not publication photometry.  Unguided drift,
+months-old flats and passing cloud leave correlated noise of several
+millimagnitudes; that is why the errors come from a block bootstrap of the
+real residuals and why the analysis variants are carried as a model error.
+An event whose red noise is large gets a large error and little weight; it
+is not removed.</li>
+<li>Planet ephemerides come from one living catalogue (ExoClock); the
+independent NASA-archive ephemeris of each planet is used only to show
+how far a second prediction lies from the first (event table).</li>
+<li>The eclipsing binaries have their own timing variations; those are
+carried as a systematic per star, not removed.</li>
+</ul></div></section>
+
+<footer>Generated by <code>pipeline/scripts/build_s3b_clock_transits.py</code>
+from <code>products/clock/clock_transits.sqlite</code> — every number on
+this page is the result of a query; none is typed by hand.</footer>
+<!--/MACRO-SITE:CONTENT-->
+<div class="prevnext"><a class="pv" href="../pipeline/pipeline_status.html"><span class="dir">&larr; Previous</span>Pipeline status &amp; invalidation audit</a></div>
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v2.0 (2026-10-03)), the provenance DAG (<code>macro_core.provenance</code>, P v1.1 (2026-10-03)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+</div>
+</div>
+</body></html>

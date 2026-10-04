@@ -535,6 +535,13 @@ def cmd_reclassify(args) -> int:
         con.executemany(
             "UPDATE frame_dispersion SET verdict = ?, strength_class = ?, "
             "reason = ?, code_version = ? WHERE obs_rowid = ?", updates)
+        # Every verdict now comes from this code, so the stage's recorded
+        # code version must say so too — otherwise provenance keeps reading
+        # the build-time version and the stage can never go fresh.
+        for k, v in (("code_version", DISPERSION_CODE_VERSION),
+                     ("reclassified_at", utcnow())):
+            con.execute("INSERT OR REPLACE INTO s2c_build_meta (key, value) "
+                        "VALUES (?, ?)", (k, v))
         con.commit()
         print(f"reclassify: {len(updates):,} rows re-judged under "
               f"{DISPERSION_CODE_VERSION}")

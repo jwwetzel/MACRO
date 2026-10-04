@@ -3,7 +3,7 @@
 <title>S3 &mdash; The Shared Time Axis (mid-exposure BJD_TDB)</title>
 <link rel="stylesheet" href="../assets/macro.css">
 </head><body>
-<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">0/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">2/34 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series"><span class="n">CV Time Series</span><span class="m">34/34 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf Early Light Curve"><span class="n">SN 2023ixf</span><span class="m">5/20 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/24 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf Galaxies + NGC 5548"><span class="n">Dwarf Galaxies</span><span class="m">1/31 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Rigel-Era Legacy Archive (candidate)"><span class="n">Legacy Rigel</span><span class="m">0/11 done</span></a></nav></div>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">9/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">34/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">7/26 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
 <div class="tabbar"><nav class="tabbar-inner" aria-label="Data &amp; Instrument Characterization views"><a class="tab" href="../pipeline/index.html">The Case</a><a class="tab" href="../pipeline/figures.html">Figures</a><a class="tab" href="../pipeline/pipeline_status.html">Freshness &amp; DAG</a><a class="tab" aria-current="page" href="../pipeline/evidence.html">Evidence Detail</a></nav></div>
 <div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../pipeline/index.html">Data &amp; Instrument Characterization</a></li><li><a href="../pipeline/evidence.html">Evidence Detail</a></li><li aria-current="page">S3 — The Shared Time Axis</li></ol></nav></div>
 <div class="layout">
@@ -13,12 +13,12 @@
 
 <header>
   <h1>S3 &mdash; The Shared Time Axis</h1>
-  <p>198,289 header stamps audited &middot; 191,858 of
-  193,318 canonical science frames with mid-exposure BJD_TDB
+  <p>169,102 header stamps audited &middot; 162,859 of
+  164,188 canonical science frames with mid-exposure BJD_TDB
   (ephemeris <code>de440s</code>) &middot;
-  absolute clock consistent with zero at the ~75 min level set by AG LMi's ephemeris &middot; built 2026-08-19T23:47Z
+  absolute clock consistent with zero at the ~75 min level set by AG LMi's ephemeris &middot; built 2026-10-04T00:07Z
   (S3 v1.0 (2026-08-18),
-  commit <code>2c897e7</code>)
+  commit <code>916243b</code>)
   &middot; <a href="../index.html">the front page</a></p>
 </header>
 
@@ -33,7 +33,7 @@
 <section id="stamp">
 <div class="bhead"><h2>1 &middot; What instant does the header stamp?</h2>
 <span class="tag">JD = DATE-OBS = UTC exposure start &mdash; proven for
-189,401 frames, assumed for 3,917
+162,179 frames, assumed for 2,009
 </span></div>
 
 <div class="stage"><h3>Question</h3>
@@ -44,16 +44,16 @@ which instant of the exposure do they name?</p>
 
 <h3>Evidence</h3>
 <p class="sub">First, internal consistency: header JD against header
-DATE-OBS for all 198,289 canonical frames carrying both cards,
+DATE-OBS for all 169,102 canonical frames carrying both cards,
 by readout family:</p>
 <table class="data">
 <tr><th>readout family</th><th>frames</th><th>median (s)</th><th>p1 (s)</th><th>p99 (s)</th><th>max |diff| (s)</th><th>&gt; 0.1 s</th><th>stamp resolution (s)</th></tr>
-<tr class="warn"><td>Mode0</td><td>70,720</td><td>0.000</td><td>0.000</td><td>0.000</td><td>211.220</td><td>1</td><td>0.001</td></tr>
-<tr><td>Fast</td><td>52,516</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0</td><td>0.001</td></tr>
-<tr><td>High Gain</td><td>26,456</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.001</td><td>0</td><td>0.001</td></tr>
-<tr><td>1MHz High Sensitivity 16-bit</td><td>22,582</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.002</td><td>0</td><td>0.001</td></tr>
-<tr><td>High Gain StackPro</td><td>20,429</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.001</td><td>0</td><td>0.001</td></tr>
-<tr class="warn"><td>(blank)</td><td>3,896</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0</td><td>1.000 <b>(whole seconds)</b></td></tr>
+<tr class="warn"><td>Mode0</td><td>69,555</td><td>0.000</td><td>0.000</td><td>0.000</td><td>211.220</td><td>1</td><td>0.001</td></tr>
+<tr><td>Fast</td><td>26,902</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0</td><td>0.001</td></tr>
+<tr><td>High Gain</td><td>26,454</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.001</td><td>0</td><td>0.001</td></tr>
+<tr><td>1MHz High Sensitivity 16-bit</td><td>22,087</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.002</td><td>0</td><td>0.001</td></tr>
+<tr><td>High Gain StackPro</td><td>20,426</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.001</td><td>0</td><td>0.001</td></tr>
+<tr class="warn"><td>(blank)</td><td>1,988</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0</td><td>1.000 <b>(whole seconds)</b></td></tr>
 <tr><td>Low Gain</td><td>822</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.001</td><td>0</td><td>0.001</td></tr>
 <tr><td>5MHz High Sensitivity 16-bit</td><td>746</td><td>0.000</td><td>0.000</td><td>0.001</td><td>0.002</td><td>0</td><td>0.001</td></tr>
 <tr><td>3MHz High Sensitivity 16-bit</td><td>90</td><td>0.000</td><td>-0.000</td><td>0.000</td><td>0.000</td><td>0</td><td>0.001</td></tr>
@@ -82,7 +82,7 @@ therefore withdraws the BJD of the reduced copy in every one of them
 <code>s3_time_outliers</code>) and carries
 <code>sibling_jd_drift_s</code> on every row that has a linked sibling,
 so a re-stamped time is visible where a consumer will actually look.</p>
-<p class="sub">Second, which instant: 40 headers sampled across
+<p class="sub">Second, which instant: 41 headers sampled across
 era families and years (38 carry JD-HELIO).  We recomputed
 the heliocentric correction independently (astropy, DE ephemeris, Winer
 coordinates) at the exposure START and at MID-exposure:</p>
@@ -95,7 +95,7 @@ of the header, after readout) sits at DATE-OBS + EXPTIME + a small
 constant: slope of TELUT&minus;DATE-OBS against EXPTIME over the
 14 sampled headers whose TELUT is genuinely a second clock
 read = 0.997 (1.0 = header written one full exposure after the
-stamp).  2 further rows are EXCLUDED from that fit
+stamp).  3 further rows are EXCLUDED from that fit
 because their TELUT is byte-identical to DATE-OBS — a copy, not a clock
 read, contributing an uninformative (EXPTIME, 0) point that would pull
 the slope to 0.901 and silently credit those eras with evidence they do
@@ -116,16 +116,16 @@ systematic if pyscope truncates rather than rounds.  The frames with no
 start-vs-mid evidence at all:</p>
 <table class="data">
 <tr><th>readout family</th><th>frames</th><th>eras</th><th>nights</th><th>what is missing</th></tr>
-<tr class="warn"><td>(blank)</td><td>3,901</td><td>81&ndash;82</td><td>2026-06-28 &ndash; 2026-07-02</td><td>no JD-HELIO card; TELUT is a copy of DATE-OBS</td></tr>
+<tr class="warn"><td>(blank)</td><td>1,993</td><td>81</td><td>2026-06-28 &ndash; 2026-07-02</td><td>no JD-HELIO card; TELUT is a copy of DATE-OBS</td></tr>
 <tr class="warn"><td>HDR</td><td>16</td><td>5</td><td>2023-04-17 &ndash; 2023-11-22</td><td>JD-HELIO present but broken / no discriminating exposure</td></tr>
 </table>
 
 <h3>Decision</h3>
 <div class="decision"><b>Header JD (&equiv; DATE-OBS) is the UTC exposure
 START — proven by two independent probes for the
-189,401 frames whose readout family carries a
+162,179 frames whose readout family carries a
 discriminating JD-HELIO or TELUT card, and ASSUMED (not proven) for the
-3,917 that do not.</b>  Those rows say so on their face:
+2,009 that do not.</b>  Those rows say so on their face:
 <code>frame_times.start_evidence</code> =
 <code>unverified_no_helio_no_telut</code>.  Header JD-HELIO is never used as a
 time stamp — it is heliocentric-only (up to ~4 s from barycentric),
@@ -137,11 +137,11 @@ were on the shared axis, and this build takes them off it.</div>
 <h3>Consequence</h3>
 <p class="sub">The era-audit table above is the paper appendix: any
 referee asking &ldquo;how do you know your clocks?&rdquo; gets pointed at
-198,289 internal comparisons, 38 independent
+169,102 internal comparisons, 38 independent
 heliocentric recomputations, and the TELUT cross-check — all
 regenerable by one script.  Two gaps are named rather than papered over,
 and both are cheap to close: a one-line citation of the pyscope source
-would settle start-vs-mid for 3,917 frames, and the
+would settle start-vs-mid for 2,009 frames, and the
 <code>UT</code> and <code>MJD-OBS</code> cards those headers do carry are
 a second, unused probe.</p>
 </div></section>
@@ -156,7 +156,7 @@ seconds, not milliseconds</span></div>
 16 sub-reads (S2's PTC result).  Header EXPTIME could
 mean the total span or the per-sub-read time, and any dead time between
 sub-reads would shift the photon-weighted midpoint.  What is the
-mid-time of 20,364 StackPro science frames, and what is the
+mid-time of 20,361 StackPro science frames, and what is the
 worst case if the contiguity assumption is wrong?</p>
 
 <h3>Evidence</h3>
@@ -256,7 +256,7 @@ It is an upper limit, not an estimate of the error.</div>
 1024&nbsp;s deep fields) inherits a systematic of up to
 5.67&nbsp;s, which is NOT below a
 sub-second target.</b>  A paper quoting sub-second absolute mid-times
-must either avoid the 20,364 frames carrying
+must either avoid the 20,361 frames carrying
 <code>stackpro_sum_midpoint_half_exptime</code>, or first close this bound with evidence
 cadence cannot supply: the camera's sub-read readout time from a manual
 or a lab measurement.  Either would collapse the ceiling by orders of
@@ -268,7 +268,7 @@ measurement.</p>
 <section id="frametimes">
 <div class="bhead"><h2>3 &middot; frame_times: BJD_TDB for every
 canonical science frame</h2>
-<span class="tag">191,858 of 193,318 frames on the shared
+<span class="tag">162,859 of 164,188 frames on the shared
 time axis</span></div>
 
 <div class="stage"><h3>Question</h3>
@@ -281,23 +281,23 @@ its own time axis.</p>
 <div class="grid"><figure><a href="figures/s3/s3_bjd_offset.png"><img src="figures/s3/s3_bjd_offset.png" alt=""></a><figcaption>The correction S3 applies: the barycentric light-travel term spans -8.3 to +8.5 minutes over the archive's sky and seasons; the TDB-UTC scale offset adds 69.182-69.186 s. Ignoring either would be fatal for eclipse timing.</figcaption></figure></div>
 <table class="data">
 <tr><th>mid_method</th><th>bjd_method</th><th>frames</th><th>meaning</th></tr>
-<tr><td><code>start_plus_half_exptime</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>171,338</td><td>start + EXPTIME/2</td></tr>
-<tr><td><code>stackpro_sum_midpoint_half_exptime</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>20,364</td><td>start + EXPTIME/2 (StackPro sum; &le; 5.67 s worst case)</td></tr>
-<tr class="warn"><td><code>start_plus_half_exptime</code></td><td><code>no_coords</code></td><td>1,409</td><td>start + EXPTIME/2; no BJD: frame has no cataloged sky position, so there is nothing to point the light-travel correction at (the UTC mid-time is still valid)</td></tr>
-<tr><td><code>exptime_nonpos_start_used</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>156</td><td>EXPTIME &le; 0 or missing — start used</td></tr>
+<tr><td><code>start_plus_half_exptime</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>142,352</td><td>start + EXPTIME/2</td></tr>
+<tr><td><code>stackpro_sum_midpoint_half_exptime</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>20,361</td><td>start + EXPTIME/2 (StackPro sum; &le; 5.67 s worst case)</td></tr>
+<tr class="warn"><td><code>start_plus_half_exptime</code></td><td><code>no_coords</code></td><td>1,278</td><td>start + EXPTIME/2; no BJD: frame has no cataloged sky position, so there is nothing to point the light-travel correction at (the UTC mid-time is still valid)</td></tr>
+<tr><td><code>exptime_nonpos_start_used</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>146</td><td>EXPTIME &le; 0 or missing — start used</td></tr>
 <tr class="warn"><td><code>start_plus_half_exptime</code></td><td><code>jd_disagrees_with_raw_parent</code></td><td>46</td><td>start + EXPTIME/2; BJD WITHDRAWN: this copy's stamp disagrees with its raw parent by &gt; 10 s</td></tr>
 <tr class="warn"><td><code>no_jd</code></td><td><code>no_jd</code></td><td>5</td><td>no header JD — no time axis possible; no BJD: no header JD to convert</td></tr>
 </table>
 <p class="sub">Three exclusions and flags travel with the table, each
-counted here rather than discovered later: 232 frames
+counted here rather than discovered later: 182 frames
 whose headers say <code>IMAGETYP = 'Light Frame'</code> but which S0b
 catalogued as CALIBRATIONS (164 master flats, 60 raw flats, 8 master
 darks) are kept OFF the axis — a master frame is a stack, so its header
-JD is not an exposure instant at all; 3,917 rows carry
+JD is not an exposure instant at all; 2,009 rows carry
 <code>start_evidence = unverified_no_helio_no_telut</code> (section 1); and
-54,368 rows carry a <code>sibling_jd_drift_s</code> because the
+99 rows carry a <code>sibling_jd_drift_s</code> because the
 same exposure also sits on the axis as a second copy
-(27,206 raw/reduced pairs), of which 46
+(51 raw/reduced pairs), of which 46
 disagreed badly enough to lose their BJD.</p>
 
 <h3>Decision</h3>
@@ -326,11 +326,11 @@ needing sub-second absolutes for an off-center object recomputes with
 <code>macro_core.timing.bjd_tdb_from_utc</code> at the object's own
 coordinates — every input needed is in the row.</p>
 <p class="sub">Second, and easier to trip over: this table is one row per
-canonical FILE, and 27,206 exposures appear TWICE on it — a
+canonical FILE, and 51 exposures appear TWICE on it — a
 raw copy and a reduced copy that S0 did not collapse into one duplicate
 group.  Selecting straight from <code>frame_times</code> therefore
 double-counts about
-14% of the archive's
+0% of the archive's
 photometry.  <b>Deduplicate (drop the reduced tree, or group on the
 raw/reduced link) before building a light curve.</b></p>
 </div></section>
@@ -348,7 +348,7 @@ UTC.  Does an external astrophysical clock confirm the time axis?</p>
 <p class="sub">AG LMi (type EA,
 V 10.55 - 11.16) is an eclipsing binary in the
 archive with P = 1.3590176&nbsp;d, minimum epoch HJD
-2458211.194 (VSX via Vizier B/vsx/vsx, fetched live 2026-08-19).  4 nights of it were
+2458211.194 (VSX via Vizier B/vsx/vsx, fetched live 2026-10-04).  4 nights of it were
 measured; 192 frames of those plus three baseline nights
 went through forced-aperture differential photometry against
 3 fixed comparison stars
@@ -378,21 +378,21 @@ same reason: so it cannot vanish from the table without a trace.</p>
 their agreement — however tight — cannot bound that clock's drift.  The
 one genuinely independent comparison in the archive is TELUT, the
 telescope control system's UTC, against the acquisition PC's DATE-OBS.
-Sampled across every era (34 of 239 sampled
+Sampled across every era (49 of 270 sampled
 headers carry a TELUT that is a real clock read; the rest have no TELUT
 card, or the pyscope copy of DATE-OBS):</p>
 <div class="grid"><figure><a href="figures/s3/s3_clock_drift.png"><img src="figures/s3/s3_clock_drift.png" alt=""></a><figcaption>TELUT minus the end of the exposure DATE-OBS names, per sampled header, across the baseline. The scatter is header-write latency; a diverging pair of clocks would show as a trend.</figcaption></figure></div>
 <p class="sub">Over 2024-05-25 to 2026-06-25 the residual
 TELUT&nbsp;&minus;&nbsp;(DATE-OBS&nbsp;+&nbsp;EXPTIME) has median
-1.97&nbsp;s and interquartile spread 1.01&nbsp;s,
+2.03&nbsp;s and interquartile spread 1.09&nbsp;s,
 ranging +1.04 to +17.73&nbsp;s, with a fitted trend of
--2.18&nbsp;s/year — smaller than the scatter it is fitted
+-2.09&nbsp;s/year — smaller than the scatter it is fitted
 through, i.e. consistent with no divergence at all.  That scatter is
 dominated by variable header-write latency, so the number is an UPPER
 limit on relative drift, not a measurement of it: <b>the two clocks do
 not diverge by more than a few seconds across the baseline, and S3
 cannot say anything finer than that.</b>  The check also has a hole worth
-naming: 205 of the 239 sampled
+naming: 221 of the 270 sampled
 headers carry no usable TELUT, so the eras before 2024-05-25 are not
 covered at all.</p>
 
@@ -422,7 +422,7 @@ Header JD-HELIO is never used by any MACRO product; see section 1 for
 why.</footer>
 <!--/MACRO-SITE:CONTENT-->
 <div class="prevnext"><a class="pv" href="../pipeline/s1_astrometry.html"><span class="dir">&larr; Previous</span>S1 — Astrometry Go/No-Go Experiment</a><a class="nx" href="../pipeline/s4_photometry.html"><span class="dir">Next &rarr;</span>S4 — Ensemble Photometry Prototype (AN UMa &amp; VV Pup)</a></div>
-<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v1.0 (2026-08-18)), the provenance DAG (<code>macro_core.provenance</code>, P v1.0 (2026-08-18)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v2.0 (2026-10-03)), the provenance DAG (<code>macro_core.provenance</code>, P v1.1 (2026-10-03)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
 </div>
 </div>
 </body></html>

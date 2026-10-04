@@ -9,7 +9,7 @@ re-recorded, not re-derived, so the provenance never claims work that was not
 done.  Stops at the first failing command — a later stage must never be
 recorded FRESH on top of an earlier one that failed.
 
-Usage:  refresh_stale.py [--dry-run]      (log: products/refresh_stale.log)
+Usage:  refresh_stale.py [--dry-run] [--only=STAGE,STAGE]      (log: products/refresh_stale.log)
 """
 import re
 import subprocess
@@ -42,7 +42,13 @@ def plan():
 
 def main() -> int:
     dry = "--dry-run" in sys.argv
+    # --only S4,SN-G0,... runs just those stages (a second, parallel driver
+    # for branches of the DAG that do not wait on the first driver's stage).
+    only = next((a.split("=", 1)[1].split(",") for a in sys.argv
+                 if a.startswith("--only=")), None)
     for stage, cmds in plan():
+        if only and stage not in only:
+            continue
         for cmd in cmds:
             if cmd.startswith("("):
                 continue                      # hand-authored: no command

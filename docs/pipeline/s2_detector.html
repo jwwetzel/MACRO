@@ -3,7 +3,7 @@
 <title>S2 — Detector Truth</title>
 <link rel="stylesheet" href="../assets/macro.css">
 </head><body>
-<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">0/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">2/34 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series"><span class="n">CV Time Series</span><span class="m">34/34 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf Early Light Curve"><span class="n">SN 2023ixf</span><span class="m">5/20 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/24 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf Galaxies + NGC 5548"><span class="n">Dwarf Galaxies</span><span class="m">1/31 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Rigel-Era Legacy Archive (candidate)"><span class="n">Legacy Rigel</span><span class="m">0/11 done</span></a></nav></div>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">9/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">34/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">7/26 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
 <div class="tabbar"><nav class="tabbar-inner" aria-label="Data &amp; Instrument Characterization views"><a class="tab" href="../pipeline/index.html">The Case</a><a class="tab" href="../pipeline/figures.html">Figures</a><a class="tab" href="../pipeline/pipeline_status.html">Freshness &amp; DAG</a><a class="tab" aria-current="page" href="../pipeline/evidence.html">Evidence Detail</a></nav></div>
 <div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../pipeline/index.html">Data &amp; Instrument Characterization</a></li><li><a href="../pipeline/evidence.html">Evidence Detail</a></li><li aria-current="page">S2 — Detector Truth</li></ol></nav></div>
 <div class="layout">
@@ -18,9 +18,9 @@
   reduction eras reconstructed &middot; 8 empirical noise
   curves &middot; 82 rows in
   <code>detector_params</code> &middot;
-  built 2026-08-20T01:54Z
+  built 2026-10-03T23:56Z
   (S2 v1.2 (2026-08-19),
-  commit <code>2c897e7</code>)
+  commit <code>916243b</code>)
   &middot; <a href="../index.html">the front page</a></p>
 </header>
 
@@ -44,8 +44,8 @@ facility notes as documented constants).  Which number is right, is the
 detector 12-bit, and what are the ceilings of the OTHER seven modes nobody
 measured?</p>
 <h3>Evidence</h3>
-<p class="sub">1,110 science frames sampled across every readout
-mode (14,667,447,395 pixels histogrammed):</p>
+<p class="sub">1,360 science frames sampled across every readout
+mode (18,502,778,123 pixels histogrammed):</p>
 <figure><a href="figures/s2/s2_ceiling_hist.png"><img src="figures/s2/s2_ceiling_hist.png" alt=""></a><figcaption>Terminal histogram structure per mode.  A ceiling is a valley-then-mound at the very end of the occupied range (pileup); a smooth falling tail is honest headroom.</figcaption></figure>
 <figure><a href="figures/s2/s2_frame_maxes.png"><img src="figures/s2/s2_frame_maxes.png" alt=""></a><figcaption>Per-frame maxima.  High Gain frames pile at the mound; StackPro frames cluster at a multiple of the single-read clip (the measured ratio is on the panel); Low Gain's tight cluster failed the position-diversity test (same hot feature in every frame) and is NOT a ceiling.</figcaption></figure>
 <table class="data">
@@ -53,11 +53,11 @@ mode (14,667,447,395 pixels histogrammed):</p>
 <tr><td>(blank 2026)</td><td>120</td><td>65,535</td><td>65,534</td><td>60,200</td><td>16</td><td>1</td></tr>
 <tr><td>1MHz High Sensitivity 16-bit</td><td>150</td><td>64,866</td><td>64,674</td><td>59,500</td><td>16</td><td>861</td></tr>
 <tr><td>5MHz High Sensitivity 16-bit</td><td>120</td><td>65,531</td><td><i>not observed to saturate</i></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
-<tr><td>Fast</td><td>150</td><td>65,535</td><td>65,534</td><td>60,200</td><td>16</td><td>1</td></tr>
+<tr><td>Fast</td><td>251</td><td>65,535</td><td>65,534</td><td>60,200</td><td>16</td><td>1</td></tr>
 <tr><td>High Gain</td><td>150</td><td>3,584</td><td>3,496</td><td>3,200</td><td>12</td><td>599</td></tr>
 <tr><td>High Gain StackPro</td><td>150</td><td>65,518</td><td>56,062</td><td>51,500</td><td>16</td><td>9,473</td></tr>
 <tr><td>Low Gain</td><td>120</td><td>3,546</td><td><i>not observed to saturate</i></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
-<tr><td>Mode0</td><td>150</td><td>65,535</td><td>65,535</td><td>60,200</td><td>16</td><td>0</td></tr>
+<tr><td>Mode0</td><td>299</td><td>65,535</td><td>65,535</td><td>60,200</td><td>16</td><td>0</td></tr>
 </table>
 <p class="sub">Method notes, each one load-bearing: (1) the High Gain
 &ldquo;clip&rdquo; is not one code but a 88-ADU-wide
@@ -238,8 +238,8 @@ exposure ladders</h2>
 <p>Does flux scale with exposure time — and can the 2024-05-20 Vega
 BeStar ladder (0.0001&ndash;0.1&nbsp;s) calibrate the short end?</p>
 <h3>Evidence</h3>
-<p class="sub">66 same-night same-target same-filter same-gain
-ladders surfaced from the manifest (66 fittable); residuals
+<p class="sub">67 same-night same-target same-filter same-gain
+ladders surfaced from the manifest (67 fittable); residuals
 against flux = k&middot;t for the cleanest ladder per mode:</p>
 <figure><a href="figures/s2/s2_linearity.png"><img src="figures/s2/s2_linearity.png" alt=""></a><figcaption>Per-mode best ladder.  Filled points: unsaturated rungs (the linearity measurement).  Crosses: rungs whose peak sits above the saturation veto — they measure the ceiling, not linearity, and are excluded from the statistic.</figcaption></figure>
 <table class="data">
@@ -292,9 +292,9 @@ observed in — so it needs the question answered without that night and
 without a gain: <i>at a measured level of L&nbsp;ADU, how much does a pixel
 of this mode actually fluctuate?</i></p>
 <h3>Evidence</h3>
-<p class="sub">128 same-scene consecutive science pairs
-across 113 distinct (night, target) scenes &rarr;
-603 (level, variance) measurements &mdash; level bins backed by
+<p class="sub">137 same-scene consecutive science pairs
+across 116 distinct (night, target) scenes &rarr;
+642 (level, variance) measurements &mdash; level bins backed by
 fewer than 2 independent pairs are discarded
 rather than published thin &mdash; distilled into
 8 per-mode curves.  No gain, no Poisson law, no formula
@@ -303,8 +303,8 @@ half-difference variance is recorded.</p>
 <figure><a href="figures/s2/s2_noise.png"><img src="figures/s2/s2_noise.png" alt=""></a><figcaption>Left: the measured variance of each mode against level, with the between-pair spread as error bars; dotted lines are each mode's measured floor, dashed lines the level where variance reaches twice it.  Right: the same table expressed as the per-pixel sigma an error model multiplies by.</figcaption></figure>
 <table class="data">
 <tr><th>mode</th><th>level span measured (ADU)</th><th>bins</th><th>points</th><th>floor &sigma; (ADU)</th><th>2&times;-floor crossover (ADU)</th><th>log-log slope</th></tr>
-<tr><td>(blank 2026)</td><td>188&ndash;8,278</td><td>11</td><td>58</td><td>3.95</td><td>195</td><td>2.30</td></tr>
-<tr><td>1MHz High Sensitivity 16-bit</td><td>356&ndash;3,164</td><td>6</td><td>39</td><td>10.88</td><td>358</td><td>1.06</td></tr>
+<tr><td>(blank 2026)</td><td>183&ndash;17,751</td><td>13</td><td>95</td><td>3.95</td><td>189</td><td>1.38</td></tr>
+<tr><td>1MHz High Sensitivity 16-bit</td><td>356&ndash;3,136</td><td>8</td><td>48</td><td>10.88</td><td>358</td><td>1.34</td></tr>
 <tr><td>5MHz High Sensitivity 16-bit</td><td>5,964&ndash;6,294</td><td>11</td><td>88</td><td>22.65</td><td><i>not witnessed</i></td><td>&mdash;</td></tr>
 <tr><td>Fast</td><td>182&ndash;556</td><td>5</td><td>32</td><td>3.54</td><td>184</td><td>5.62</td></tr>
 <tr><td>High Gain</td><td>102&ndash;933</td><td>10</td><td>82</td><td>4.86</td><td>112</td><td>3.23</td></tr>
@@ -346,7 +346,7 @@ is typed by hand.  Regenerate with
 <code>pipeline/scripts/run_s2_campaign.py report</code>.</footer>
 <!--/MACRO-SITE:CONTENT-->
 <div class="prevnext"><a class="pv" href="../pipeline/s0c_staging.html"><span class="dir">&larr; Previous</span>S0c — Per-Project Staging Manifests</a><a class="nx" href="../pipeline/s2c_filter_identity.html"><span class="dir">Next &rarr;</span>S2c — Filter Identity, Measured</a></div>
-<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v1.0 (2026-08-18)), the provenance DAG (<code>macro_core.provenance</code>, P v1.0 (2026-08-18)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v2.0 (2026-10-03)), the provenance DAG (<code>macro_core.provenance</code>, P v1.1 (2026-10-03)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
 </div>
 </div>
 </body></html>
