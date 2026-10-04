@@ -298,6 +298,32 @@ def stackpro_signature(dark_points_sp: Sequence[tuple[float, float, float]],
                                     for v in ratios.values()))}
 
 
+#: StackPro sub-exposure length (seconds) and the cap on the number of
+#: sub-reads.  MEASURED on the archive (2026-10 review): the dark-sky
+#: pedestal of StackPro frames is ~94 ADU at 1-2 s, ~385 at 8 s, ~775 at
+#: 16 s and ~1,540 at every exposure from 32 s up — 1, 4, 8 and 16 single-
+#: read pedestals — and the brightest unsaturated-looking plateau in the
+#: 8 s frames sits at 14.1 kADU = 4 x the single-read clip.  A StackPro
+#: frame is therefore a sum of 2-second sub-reads up to sixteen of them;
+#: only from 32 s up is it the "x16" detector S2 v1.2 described.
+STACKPRO_SUBEXP_S = 2.0
+STACKPRO_MAX_NSUB = 16
+
+
+def stackpro_nsub_for_exptime(exptime: Optional[float]) -> int:
+    """Number of summed sub-reads in a StackPro frame of a given exposure.
+
+    ``clamp(round(exptime / 2 s), 1, 16)``.  Everything that scales with
+    the number of reads — the bias pedestal, the read-noise VARIANCE and
+    the saturation ceiling — must be taken at this N, not at 16: a 16 s
+    StackPro frame clips at 8 x 3,500 = 28 kADU, not 56 kADU.
+    """
+    if exptime is None or not np.isfinite(exptime) or exptime <= 0:
+        return 1
+    return int(min(max(round(float(exptime) / STACKPRO_SUBEXP_S), 1),
+                   STACKPRO_MAX_NSUB))
+
+
 def nsub_estimate(gain_apparent: float, gain_true: float) -> dict:
     """N_sub under the AVERAGING hypothesis (the model the data rejected).
 

@@ -36,7 +36,7 @@ from . import reconstruct as recmod  # noqa: E402
 import sys                        # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from macro_core.report_s0 import (  # noqa: E402
-    ACCENT, STYLE, DPI, FAINT, GOOD, MUTED, WARN,
+    ACCENT, STYLE, DPI, FAINT, GOOD, MUTED, WARN, BAD,
     _figure, esc, fmt, q, q1, table)
 from macro_core import plotstyle as ps   # noqa: E402  (house figure style)
 
@@ -926,6 +926,244 @@ error budget cites the sub-10-ms finding directly.</p>
 
 
 # ---------------------------------------------------------------------------
+# Section 6 — measured gain, read noise, caps and masks (2026-10 review:
+# findings F-4, F-5, SN-S2-linearity).  Every number from a query.
+# ---------------------------------------------------------------------------
+def _has(con, table: str) -> bool:
+    return bool(q1(con, "SELECT count(*) FROM sqlite_master WHERE "
+                        "type = 'table' AND name = ?", (table,)))
+
+
+def fig_flat_ptc(con) -> str:
+    """Flat-pair photon transfer per configuration, plus the D2 test."""
+    configs = [r[0] for r in q(con, """
+        SELECT config FROM s2_camera_configs
+        WHERE status = 'measured' ORDER BY config""")]
+    with plt.rc_context(STYLE):
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.2, 4.0))
+        for i, config in enumerate(configs):
+            st = ps.series(i)
+            pts = q(con, """
+                SELECT q.signal_adu, q.var_adu2 FROM s2_flat_points q
+                JOIN s2_flat_pairs p USING (pair_id)
+                WHERE p.config = ? AND p.kind = 'flat' AND p.status = 'ok'
+                  AND q.signal_adu > 0
+                  -- the pairs the fit used: no grism flats, no
+                  -- correlated (changed-scene) pairs
+                  AND lower(coalesce(p.filter, '')) NOT IN
+                      ('hrg', 'lrg', 'hagrism', 'oggrism', 'hag', 'ogg')
+                  AND (p.rho_x IS NULL OR max(p.rho_x, p.rho_y) <= 0.03)""",
+                     (config,))
+            k, rn = q(con, "SELECT gain_e_per_adu, read_noise_adu FROM "
+                           "s2_camera_configs WHERE config = ?", (config,))[0]
+            if not pts:
+                continue
+            x = np.array([r[0] for r in pts])
+            ax1.loglog(x, [r[1] for r in pts], **ps.measurement_kw(
+                st["color"], st["marker"], size=3.5), label=config)
+            xx = np.geomspace(x.min(), x.max(), 40)
+            ax1.loglog(xx, (rn or 0) ** 2 + xx / k, color=st["color"],
+                       lw=0.9)
+        ax1.set_xlabel("signal above bias (ADU)")
+        ax1.set_ylabel("single-frame variance (ADU$^2$)")
+        ax1.set_title("Flat-pair photon transfer (lines: adopted K, RN)")
+        ax1.legend(fontsize=6)
+        # Right: D2 — measured K against the header EGAIN, sum vs average.
+        rows = q(con, """SELECT config, gain_e_per_adu, gain_err,
+                                header_egain, n_native
+                         FROM s2_camera_configs
+                         WHERE gain_e_per_adu IS NOT NULL
+                           AND header_egain > 0.1
+                           -- the QHY 'EGAIN' card holds 1.0 or the GAIN
+                           -- SETTING (56), not an e-/ADU value
+                           AND camera != 'QHY600' ORDER BY config""")
+        for i, (config, k, ke, eg, nn) in enumerate(rows):
+            st = ps.series(i)
+            ax2.errorbar(i, k / eg, yerr=ke / eg, **ps.measurement_kw(
+                st["color"], st["marker"], size=5), capsize=2)
+        ax2.axhline(1.0, **ps.reference_kw(label="sum / unbinned"))
+        ax2.axhline(4.0, **ps.reference_kw(color=WARN, style=":",
+                                           label="2x2 average"))
+        ax2.set_xticks(range(len(rows)), [r[0] for r in rows], rotation=30,
+                       ha="right", fontsize=6)
+        ax2.set_ylabel("measured K / header EGAIN")
+        ax2.set_title("D2: is the header gain the gain?")
+        ax2.legend(fontsize=7)
+        fig.tight_layout()
+        fig.savefig(FIG_DIR / "s2_flat_ptc.png", dpi=DPI)
+        plt.close(fig)
+    return "figures/s2/s2_flat_ptc.png"
+
+
+def fig_peak_linearity(con) -> str:
+    """Deviation from linear response vs own peak, per mode and source."""
+    modes = [r[0] for r in q(con, """SELECT DISTINCT mode FROM
+        s2_linearity_curve WHERE source NOT LIKE 'cv:%'
+        AND source != 'combined' ORDER BY mode""")]
+    with plt.rc_context(STYLE):
+        n = max(len(modes), 1)
+        ncol = min(n, 3)
+        nrow = int(np.ceil(n / ncol))
+        fig, axes = plt.subplots(nrow, ncol, figsize=(10.2, 3.2 * nrow),
+                                 squeeze=False)
+        for ax, mode in zip(axes.ravel(), modes):
+            srcs = [r[0] for r in q(con, """SELECT DISTINCT source FROM
+                s2_linearity_curve WHERE mode = ? AND source NOT LIKE 'cv:%'
+                AND source != 'combined' ORDER BY source""", (mode,))]
+            for i, src in enumerate(srcs):
+                st = ps.series(i)
+                rows = q(con, """SELECT peak_frac, dev_pct, dev_err_pct
+                                 FROM s2_linearity_curve WHERE mode = ?
+                                 AND source = ? AND measured = 1
+                                 AND dev_err_pct IS NOT NULL
+                                 ORDER BY lo""", (mode, src))
+                if rows:
+                    ax.errorbar([r[0] for r in rows], [r[1] for r in rows],
+                                yerr=[r[2] for r in rows], capsize=2,
+                                **ps.measurement_kw(st["color"],
+                                                    st["marker"], size=4),
+                                label=src)
+            ax.axhspan(-1, 1, color=FAINT, alpha=0.25, zorder=0)
+            ax.axvline(1.0, **ps.reference_kw())
+            cap = q(con, "SELECT cap_fraction FROM s2_linearity_caps "
+                         "WHERE mode = ?", (mode,))
+            if cap and cap[0][0] is not None:
+                ax.axvline(cap[0][0], **ps.reference_kw(
+                    color=BAD, style="-", label="adopted cap"))
+            ax.set_ylim(-8, 4)
+            ax.set_xlim(0, 1.1)
+            ax.set_title(mode, fontsize=8)
+            ax.set_xlabel("own peak / usable scale")
+            ax.set_ylabel("deviation from linear (%)")
+            ax.legend(fontsize=6, loc="lower left")
+        for ax in axes.ravel()[len(modes):]:
+            ax.axis("off")
+        fig.tight_layout()
+        fig.savefig(FIG_DIR / "s2_peak_linearity.png", dpi=DPI)
+        plt.close(fig)
+    return "figures/s2/s2_peak_linearity.png"
+
+
+def section_review(con) -> str:
+    """Section 6: gain, read noise, caps and bad-pixel masks."""
+    if not _has(con, "s2_camera_configs"):
+        return ""
+    src_ptc = fig_flat_ptc(con)
+    src_lin = fig_peak_linearity(con)
+    cfg = q(con, """SELECT config, status, gain_e_per_adu, gain_err,
+                           gain_rel_err, read_noise_adu, read_noise_e,
+                           read_noise_e_err, bias_adu, clip_adu,
+                           full_scale_e, binning_verdict, binning_ratio,
+                           binning_ratio_err, gain_basis, note, n_frames
+                    FROM s2_camera_configs ORDER BY config""")
+    ctbl = table(
+        ["configuration", "status", "K (e-/ADU)", "rel. err", "RN (ADU)",
+         "RN (e-)", "bias (ADU)", "clip (ADU)", "full scale (e-)",
+         "frames", "basis / notes"],
+        [[esc(c[0]), esc(c[1]),
+          (f"{c[2]:.4f} &plusmn; {c[3]:.4f}" if c[2] is not None
+           else "&mdash;"),
+          (f"{100 * c[4]:.2f}%" if c[4] is not None else "&mdash;"),
+          fnum(c[5], 3),
+          (f"{c[6]:.2f} &plusmn; {c[7]:.2f}" if c[6] is not None
+           else "&mdash;"),
+          fnum(c[8], 1), fnum(c[9], 0), fnum(c[10], 0), fmt(c[16]),
+          esc(" ".join(x for x in (c[14], c[15]) if x))] for c in cfg])
+    d2 = q(con, """SELECT gain_e_per_adu, gain_err, header_egain,
+                          binning_ratio, binning_ratio_err, binning_verdict
+                   FROM s2_camera_configs WHERE config = 'ASI Mode0 2x2'""")
+    d2_txt = (f"The ASI's 2&times;2 frames give K = {d2[0][0]:.3f} &plusmn; "
+              f"{d2[0][1]:.3f} e<sup>-</sup>/ADU, {d2[0][3]:.2f} &plusmn; "
+              f"{d2[0][4]:.2f} times the header EGAIN {d2[0][2]:.4f}: the "
+              f"verdict is <b>{esc(d2[0][5])}</b> (sum = 1, average = 4)."
+              if d2 and d2[0][0] is not None else "")
+    alias = q(con, """SELECT count(*), sum(gap_s <= 0), min(gap_s)
+                      FROM s2_noise_pairs""")[0]
+    zero_bins = q1(con, "SELECT count(*) FROM s2_noise_curve "
+                        "WHERE var_adu2 <= 0")
+    caps = q(con, """SELECT mode, cap_fraction, cap_adu, ceiling_adu,
+                            bias_adu, worst_dev_pct, precision_pct, status,
+                            note FROM s2_linearity_caps ORDER BY mode""")
+    captbl = table(
+        ["mode / configuration", "cap (fraction)", "cap (raw ADU)",
+         "ceiling (ADU)", "bias (ADU)", "worst |dev| below cap (%)",
+         "precision (%)", "status", "deciding source"],
+        [[esc(c[0]), fnum(c[1], 2), fnum(c[2], 0), fnum(c[3], 0),
+          fnum(c[4], 1), fnum(c[5], 2), fnum(c[6], 2),
+          esc((c[7] or "").replace("_", " ")),
+          esc((c[8] or "").split(";")[0])] for c in caps])
+    scaps = q(con, """SELECT mode, source, cap_fraction, limited_by,
+                             first_bad_lo, first_bad_dev_pct,
+                             first_bad_err_pct, measured_to_fraction
+                      FROM s2_linearity_source_caps ORDER BY mode, source""")
+    stbl = table(
+        ["mode", "source", "cap", "limited by", "first failing bin",
+         "its deviation (%)", "measured to"],
+        [[esc(r[0]), esc(r[1]), fnum(r[2], 2),
+          esc((r[3] or "").replace("_", " ")), fnum(r[4], 2),
+          (f"{r[5]:+.2f} &plusmn; {r[6]:.2f}" if r[5] is not None
+           and r[6] is not None else fnum(r[5], 2)), fnum(r[7], 2)]
+         for r in scaps])
+    inj = q(con, """SELECT source, mode, max(abs(bias_pct)),
+                           max(bias_err_pct), count(*)
+                    FROM s2_linearity_injection WHERE case_name = 'null'
+                      AND lo >= 0.3 AND n_trials >= 20
+                    GROUP BY source, mode ORDER BY source""")
+    inj_txt = "; ".join(f"{esc(r[0])} ({esc(r[1])}): largest signed bias "
+                        f"{r[2]:.3f}% (&plusmn;{r[3]:.3f}) over {r[4]} bins"
+                        for r in inj)
+    masks = q(con, """SELECT mask_key, n_science, n_hot, n_rail, n_noisy,
+                             n_bad, bad_fraction, rail1_median_adu,
+                             rail1_expected_adu, npz_path
+                      FROM s2_badpix_masks ORDER BY mask_key""")
+    mtbl = table(
+        ["mask", "science frames", "hot", "rail", "noisy (RTS)", "total",
+         "fraction", "rail-1 median (ADU)", "(65535+3&middot;level)/4",
+         "product"],
+        [[esc(m[0]), fmt(m[1]), fmt(m[2]), fmt(m[3]), fmt(m[4]), fmt(m[5]),
+          f"{100 * m[6]:.4f}%", fnum(m[7], 0), fnum(m[8], 0),
+          f"<code>{esc(m[9])}</code>"] for m in masks])
+    return f"""
+<section id="review">
+<h2>6 Measured gain, read noise, linearity caps and bad-pixel masks</h2>
+<p class="q"><b>Question.</b> What are the gain and read noise of each
+camera and readout configuration, measured rather than read from a header
+or bracketed — and up to what peak level is each mode linear to 1%?</p>
+<p><b>Evidence — gain.</b> Flat-pair photon transfer
+(<code>rlmt_diagnostics.flatptc</code>) on every flat on disk, with
+zero-signal pairs for read noise; configurations with no flats use sky
+pairs validated against the flats of the same camera. {d2_txt}</p>
+{_figure(src_ptc, "Left: flat-pair PTC points with the adopted K and read "
+         "noise. Right: measured K over header EGAIN; 4 = on-camera 2x2 "
+         "average, 1 = sum or unbinned.")}
+{ctbl}
+<p>Same-scene noise pairs ({fmt(alias[0])} in
+<code>s2_noise_pairs</code>) now require distinct DATE-OBS: {fmt(alias[1])}
+have a zero time gap (shortest gap {fnum(alias[2], 1)} s), and
+{fmt(zero_bins)} bins of <code>s2_noise_curve</code> have zero variance.</p>
+<p><b>Evidence — linearity.</b> Deviation from linear response against each
+star's own raw peak (<code>linearity.ensemble_deviation</code>), with the
+frame-to-frame terms taken out by stars below
+{linmod.REF_PEAK_FRACTION:g} of scale. Null-injection signed bias on each
+source's real geometry: {inj_txt or "&mdash;"}.</p>
+{_figure(src_lin, "Deviation from linear response vs own peak, per mode "
+         "and source; grey band &plusmn;1% (the criterion), red line the "
+         "adopted cap.")}
+{captbl}
+{stbl}
+<p><b>Decision.</b> One cap per mode (and per EGAIN epoch for High Gain):
+the lowest cap at which any source that tested the mode sees its response
+leave &plusmn;{linmod.CAP_CRITERION_PCT:g}%. For average-binned cameras the
+cap applies to the native-pixel-equivalent peak
+(<code>saturation.native_equivalent_peak</code>).</p>
+<p><b>Bad-pixel masks</b> (<code>badpix.load_mask</code> /
+<code>mask_for_frame</code>; True = bad), per camera, temperature and image
+orientation:</p>
+{mtbl}
+</section>"""
+
+
+# ---------------------------------------------------------------------------
 # Page assembly
 # ---------------------------------------------------------------------------
 def render_report(manifest_path: Path) -> Path:
@@ -950,6 +1188,7 @@ def render_report(manifest_path: Path) -> Path:
             section_recon(con),
             section_linearity(con),
             section_noise(con),
+            section_review(con),
         ]
 
         html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
@@ -976,7 +1215,8 @@ def render_report(manifest_path: Path) -> Path:
   <a href="#ptc">2 Photon transfer</a> &middot;
   <a href="#recon">3 Master reconstruction</a> &middot;
   <a href="#linearity">4 Linearity</a> &middot;
-  <a href="#noise">5 Empirical noise model</a>
+  <a href="#noise">5 Empirical noise model</a> &middot;
+  <a href="#review">6 Gain, caps, masks</a>
 </nav>
 
 {"".join(sections)}

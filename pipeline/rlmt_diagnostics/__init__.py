@@ -57,4 +57,11 @@ off).  Report renderer: ``rlmt_diagnostics.report_s2`` →
 # ladder scheduling so EVERY readout mode is tried for linearity instead of
 # the two richest taking all twelve slots, and blank-2026 ladders keyed on
 # the canonical mode label so they can join their saturation veto.
-S2_CODE_VERSION = "S2 v1.2 (2026-08-19)"
+# v1.3 (2026-10 review, F-4/F-5/SN-S2-linearity): flat-pair photon transfer
+# per camera/configuration (flatptc, camera) replacing the gain bracket;
+# alias-safe noise pairs; peak-resolved differential linearity and ONE cap
+# per mode (and per High Gain EGAIN epoch); bad-pixel masks per camera
+# (badpix); per-frame target saturation (saturation, starphot).  S2 now
+# computes in products/detector/detector.sqlite and is published into the
+# manifest by `run_s2_campaign.py promote`.
+S2_CODE_VERSION = "S2 v1.3 (2026-10-04)"

@@ -48,7 +48,18 @@ SUBCOMMANDS
                 only the frames in flight, which stay pending
     status      progress + per-label verdict tallies (read-only)
     reclassify  recompute verdicts from the STORED numbers, no pixel reads
+                (v1.2: trace verdict, then lozenge templates, morphology
+                class and the two-witness verdict)
     calibrate   print the known-label separation table (read-only)
+
+    -- S2c v1.2, finding F-6 (the second witness) --
+    truth-load       load the tracked truth set into s2c_truth
+    queue-sn         queue every never-measured SN 2023ixf frame (SN-G0d)
+    morph-queue      mark the rows that get a background map (scope in
+                     the function's docstring)
+    morph-run        measure pending background maps (resumable)
+    morph-calibrate  template_r of the undisputed-label populations
+    truth-score      both confusion matrices with Wilson intervals
 
 USAGE
 -----
@@ -407,10 +418,14 @@ def _frame_task(task: dict) -> tuple[int, dict]:
     t0 = time.time()
     out = {"status": "measured", "error": None}
     try:
-        shape = dsp.measure_file(task["abs_path"])
+        shape, bmap = dsp.measure_file_with_map(task["abs_path"])
         verdict = dsp.classify_frame(shape)
         out.update(shape.as_dict())
+        out.update(_morph_fields(bmap))
+        # The two-witness verdict is set by reclassify (templates need
+        # the whole population); until then the trace verdict stands.
         out["verdict"] = verdict.verdict
+        out["verdict_traces"] = verdict.verdict
         out["strength_class"] = verdict.strength_class
         out["reason"] = verdict.reason
     except Exception as exc:                      # noqa: BLE001 — recorded
@@ -428,7 +443,10 @@ _RESULT_COLS = ["status", "n_detected", "n_sources", "n_bright",
                 "n_trace", "trace_frac", "trace_ab", "trace_a_px",
                 "trace_pa", "trace_pa_scatter", "detect_sigma",
                 "height", "width", "verdict", "strength_class", "reason",
-                "measure_s", "error", "code_version", "measured_at"]
+                "measure_s", "error", "code_version", "measured_at",
+                "verdict_traces", "morph_status", "bg_corner", "bg_edge_tb",
+                "bg_peak", "bg_sigma", "bg_contrast", "bg_edge_ratio",
+                "bg_area_frac", "bg_map"]
 
 
 def _flush(con, results: list[tuple[int, dict]]) -> None:
@@ -449,6 +467,7 @@ def cmd_run(args) -> int:
     con = connect(args.manifest)
     n_done = 0
     with closing(con):
+        ensure_morph_schema(con)
         total = con.execute(
             "SELECT count(*) FROM frame_dispersion").fetchone()[0]
         if not total:
@@ -532,9 +551,13 @@ def cmd_reclassify(args) -> int:
             v = dsp.classify_frame(shape)
             updates.append((v.verdict, v.strength_class, v.reason,
                             DISPERSION_CODE_VERSION, rid))
+        ensure_morph_schema(con)
         con.executemany(
-            "UPDATE frame_dispersion SET verdict = ?, strength_class = ?, "
-            "reason = ?, code_version = ? WHERE obs_rowid = ?", updates)
+            "UPDATE frame_dispersion SET verdict_traces = ?, "
+            "strength_class = ?, reason = ?, code_version = ? "
+            "WHERE obs_rowid = ?", updates)
+        # v1.2: the second witness, then the two-witness verdict.
+        judge_morphology(con)
         # Every verdict now comes from this code, so the stage's recorded
         # code version must say so too — otherwise provenance keeps reading
         # the build-time version and the stage can never go fresh.
@@ -628,6 +651,370 @@ def cmd_report(args) -> int:
 
 
 # ---------------------------------------------------------------------------
+# The second witness (F-6): background morphology, truth set, SN coverage
+# ---------------------------------------------------------------------------
+#: Columns added to frame_dispersion by S2c v1.2.  ``verdict`` stays THE
+#: verdict every consumer reads; it is now the two-witness verdict, and
+#: the trace-only verdict it was before is kept beside it.
+MORPH_COLUMNS = (
+    ("verdict_traces", "TEXT"),   # trace-only verdict (the v1.1 rule)
+    ("verdict_basis", "TEXT"),    # which witness(es) decided
+    ("morph_status", "TEXT"),     # NULL (not queued) | pending | measured
+                                  # | unreadable
+    ("bg_corner", "REAL"), ("bg_edge_tb", "REAL"), ("bg_peak", "REAL"),
+    ("bg_sigma", "REAL"), ("bg_contrast", "REAL"),
+    ("bg_edge_ratio", "REAL"), ("bg_area_frac", "REAL"),
+    ("bg_template_r", "REAL"),    # best lozenge-template correlation
+    ("bg_template", "TEXT"),      # which template (class, shape, rotation)
+    ("bg_map", "BLOB"),           # normalised 48x48 map, float16
+    ("morph_class", "TEXT"), ("morph_reason", "TEXT"),
+)
+
+TRUTH_SCHEMA = """
+CREATE TABLE IF NOT EXISTS s2c_truth (
+    truth_idx INTEGER PRIMARY KEY,
+    path      TEXT NOT NULL,
+    stratum   TEXT,                -- FILTER class / v1.1 verdict at draw
+    label     TEXT NOT NULL,       -- dispersed | direct | unusable
+    note      TEXT
+);
+"""
+
+#: The truth set: tracked source file (paths + eyeball labels).
+TRUTH_CSV = PIPELINE_ROOT / "rlmt_diagnostics" / "s2c_truth_labels.csv"
+
+#: How the truth set was DRAWN (2026-10-03, seed TRUTH_SEED) from the
+#: measured rows: (stratum, predicate, size).  Kept as the record of the
+#: design; the draw itself is frozen in TRUTH_CSV.  The weights follow
+#: DS.F8 — populations whose verdicts nobody had checked get the most.
+TRUTH_STRATA = (
+    ("named_grism/dispersed", 20), ("named_grism/indeterminate", 30),
+    ("named_grism/direct", 30), ("slot6/dispersed", 15),
+    ("slot6/indeterminate", 20), ("slot6/direct", 20),
+    ("slotW/dispersed", 8), ("slotW/indeterminate", 8), ("slotW/direct", 9),
+    ("ordinary/dispersed", 20), ("ordinary/indeterminate", 8),
+    ("ordinary/direct", 12))
+TRUTH_SEED = 20261003
+
+#: Template members: at most this many maps per template group, drawn by
+#: a fixed seed, so a group with thousands of frames cannot make the
+#: leave-one-target-out medians slow.
+TEMPLATE_MAX_MEMBERS = 200
+TEMPLATE_SEED = 20261004
+
+#: Named-grism frames the trace test calls dispersed are NOT all given a
+#: background map (the sky can only demote them, and the truth set
+#: measures how often that is right); this many per (card class, frame
+#: shape) are, to build the named-grism templates.
+NAMED_TEMPLATE_SAMPLE = 60
+
+
+def filter_class(filt) -> str:
+    """Template group of a FILTER card: the two named units' vocabularies
+    pooled, the two disputed slots, or 'ordinary'."""
+    f = (filt or "").strip().lower()
+    if f in ("hrg", "hagrism", "hag"):
+        return "hrg"
+    if f in ("lrg", "oggrism", "lrgblue"):
+        return "lrg"
+    return {"6": "slot6", "w": "slotW"}.get(f, "ordinary")
+
+
+def ensure_morph_schema(con) -> None:
+    """Add the v1.2 columns and the truth table when absent (idempotent;
+    ALTER TABLE ADD COLUMN does not rewrite the table)."""
+    have = {r[1] for r in con.execute("PRAGMA table_info(frame_dispersion)")}
+    for col, typ in MORPH_COLUMNS:
+        if col not in have:
+            con.execute(f"ALTER TABLE frame_dispersion ADD COLUMN {col} {typ}")
+    con.executescript(TRUTH_SCHEMA)
+    con.commit()
+
+
+def _morph_fields(bmap) -> dict:
+    """Morphology numbers + normalised-map BLOB for one background map
+    (template correlation and class are set by ``reclassify``, which
+    sees the whole population)."""
+    m = dsp.morphology_metrics(bmap)
+    return {"morph_status": "measured", "bg_corner": m["corner"],
+            "bg_edge_tb": m["edge_tb"], "bg_peak": m["peak"],
+            "bg_sigma": m["sigma"], "bg_contrast": m["contrast"],
+            "bg_edge_ratio": m["edge_ratio"], "bg_area_frac": m["area_frac"],
+            "bg_map": dsp.map_to_blob(dsp.normalized_map(bmap))}
+
+
+def cmd_truth_load(args) -> int:
+    """Load the tracked truth set into ``s2c_truth`` (replaces it)."""
+    import csv
+    con = connect(args.manifest)
+    with closing(con):
+        ensure_morph_schema(con)
+        with open(TRUTH_CSV, newline="") as fh:
+            rows = [r for r in csv.DictReader(
+                line for line in fh if not line.startswith("#"))]
+        con.execute("DELETE FROM s2c_truth")
+        con.executemany(
+            "INSERT INTO s2c_truth VALUES (?,?,?,?,?)",
+            [(int(r["truth_idx"]), r["path"], r["stratum"], r["label"],
+              r["note"]) for r in rows])
+        missing = con.execute(
+            "SELECT count(*) FROM s2c_truth t LEFT JOIN frame_dispersion d "
+            "USING (path) WHERE d.obs_rowid IS NULL").fetchone()[0]
+        con.commit()
+    print(f"truth-load: {len(rows)} labels; {missing} paths not in "
+          "frame_dispersion")
+    return 0 if missing == 0 else 2
+
+
+def cmd_queue_sn(args) -> int:
+    """Queue every SN 2023ixf Gate-0 frame that S2c has never measured
+    (finding SN-G0d: nine in ten broadband frames had only been ASSUMED
+    direct from the filter name).  Population ``sn_campaign``."""
+    con = connect(args.manifest)
+    with closing(con):
+        ensure_morph_schema(con)
+        cols = ", ".join(f"f.{c}" for c in _FRAME_COLS)
+        rows = con.execute(f"""
+            SELECT {cols} FROM sn_g0_frames s JOIN frames f USING (obs_rowid)
+            LEFT JOIN frame_dispersion d USING (obs_rowid)
+            WHERE d.obs_rowid IS NULL""").fetchall()
+        con.executemany(
+            f"INSERT INTO frame_dispersion ({', '.join(_FRAME_COLS)}, "
+            "population, priority, status, morph_status) "
+            f"VALUES ({', '.join('?' * len(_FRAME_COLS))}, 'sn_campaign', "
+            "1, 'pending', 'pending')", rows)
+        con.commit()
+    print(f"queue-sn: {len(rows)} SN 2023ixf frames queued")
+    return 0
+
+
+def cmd_morph_queue(args) -> int:
+    """Mark the rows whose background morphology is to be measured.
+
+    Scope, and why (the sky can PROMOTE a frame to dispersed and DEMOTE a
+    trace-dispersed frame to indeterminate):
+      * every measured row whose trace verdict is NOT dispersed — the sky
+        is the only witness that can promote it;
+      * every slot '6' / 'W' row — the disputed slots, re-issued in full;
+      * every control / holdout / SN row — the undisputed-label
+        populations whose false-positive rates the report publishes;
+      * every truth-set frame;
+      * a fixed-seed sample of named-grism trace-dispersed frames per
+        (card class, frame shape), to build their templates.
+    Not queued: the remaining named-grism frames the trace test already
+    calls dispersed; for them v1.2 equals v1.1 ("traces, no sky
+    evidence").  The report states the count.
+    """
+    con = connect(args.manifest)
+    with closing(con):
+        ensure_morph_schema(con)
+        con.execute("""
+            UPDATE frame_dispersion SET morph_status = 'pending'
+            WHERE status = 'measured' AND morph_status IS NULL AND (
+                  coalesce(verdict_traces, verdict) != 'dispersed'
+               OR lower(filter) IN ('6', 'w')
+               OR population IN ('control', 'holdout', 'sn_campaign')
+               OR path IN (SELECT path FROM s2c_truth))""")
+        rng = random.Random(TEMPLATE_SEED)
+        groups: dict = {}
+        for rid, filt, h, w in con.execute("""
+                SELECT obs_rowid, filter, height, width FROM frame_dispersion
+                WHERE status = 'measured' AND morph_status IS NULL
+                  AND coalesce(verdict_traces, verdict) = 'dispersed'
+                ORDER BY obs_rowid"""):
+            if filter_class(filt) in ("hrg", "lrg"):
+                groups.setdefault((filter_class(filt), h, w), []).append(rid)
+        pick = []
+        for key in sorted(groups, key=str):
+            ids = groups[key]
+            pick += ids if len(ids) <= NAMED_TEMPLATE_SAMPLE else \
+                rng.sample(ids, NAMED_TEMPLATE_SAMPLE)
+        con.executemany("UPDATE frame_dispersion SET morph_status = "
+                        "'pending' WHERE obs_rowid = ?", [(r,) for r in pick])
+        con.commit()
+        n = con.execute("SELECT count(*) FROM frame_dispersion WHERE "
+                        "morph_status = 'pending'").fetchone()[0]
+    print(f"morph-queue: {n:,} rows pending a background map "
+          f"({len(pick)} named-grism template members)")
+    return 0
+
+
+def _morph_task(task: dict) -> tuple[int, dict]:
+    """Worker: one pixel read, the background map.  Never raises."""
+    try:
+        from macro_grism.fits_io import load_frame
+        data, _h, _l = load_frame(task["abs_path"])
+        return task["obs_rowid"], _morph_fields(dsp.background_map(data))
+    except Exception as exc:                      # noqa: BLE001 — recorded
+        return task["obs_rowid"], {
+            "morph_status": "unreadable",
+            "morph_reason": f"{type(exc).__name__}: {exc}"[:200]}
+
+
+def cmd_morph_run(args) -> int:
+    """Measure pending background maps (resumable; one short transaction
+    per chunk)."""
+    started = time.time()
+    con = connect(args.manifest)
+    n_done = 0
+    with closing(con):
+        with concurrent.futures.ProcessPoolExecutor(
+                max_workers=args.workers) as pool:
+            while True:
+                if args.max_seconds and (time.time() - started
+                                         > args.max_seconds):
+                    break
+                rows = con.execute(
+                    "SELECT obs_rowid, path FROM frame_dispersion WHERE "
+                    "morph_status = 'pending' ORDER BY priority, obs_rowid "
+                    "LIMIT ?", (CHUNK,)).fetchall()
+                if not rows:
+                    print("morph-run: nothing pending.", flush=True)
+                    break
+                tasks = [{"obs_rowid": r[0],
+                          "abs_path": str(args.archive / r[1])} for r in rows]
+                res = list(pool.map(_morph_task, tasks, chunksize=4))
+                for rid, out in res:
+                    keys = list(out)
+                    con.execute(
+                        f"UPDATE frame_dispersion SET "
+                        f"{', '.join(k + ' = ?' for k in keys)} "
+                        "WHERE obs_rowid = ?", [out[k] for k in keys] + [rid])
+                con.commit()
+                n_done += len(res)
+                print(f"  {utcnow()}  maps {n_done:,} "
+                      f"({n_done / (time.time() - started):.2f}/s)",
+                      flush=True)
+    return 0
+
+
+def judge_morphology(con) -> int:
+    """Second half of ``reclassify``: lozenge templates (leave-one-target-
+    out), morphology class, and the two-witness verdict, for every
+    measured row.  Rows without a background map get
+    combine_verdicts(trace verdict, None) — the trace verdict, with the
+    basis saying there was no sky evidence."""
+    import numpy as np
+    rows = con.execute("""
+        SELECT obs_rowid, verdict_traces, filter, height, width,
+               coalesce(canonical_target, ''), bg_contrast, bg_edge_ratio,
+               bg_map
+        FROM frame_dispersion WHERE status = 'measured'""").fetchall()
+    maps, members = {}, {}
+    for rid, vt, filt, h, w, tgt, s_, e_, blob in rows:
+        if blob is None:
+            continue
+        maps[rid] = dsp.blob_to_map(blob)
+        cls = filter_class(filt)
+        if (vt == dsp.VERDICT_DISPERSED and cls != "ordinary"
+                and (s_ or 0) >= dsp.MORPH_TEMPLATE_MIN_CONTRAST):
+            members.setdefault((cls, h, w), []).append((rid, tgt))
+    rng = random.Random(TEMPLATE_SEED)
+    for key in sorted(members, key=str):
+        if len(members[key]) > TEMPLATE_MAX_MEMBERS:
+            members[key] = rng.sample(members[key], TEMPLATE_MAX_MEMBERS)
+    stacks = {k: (np.array([maps[r] for r, _ in v]),
+                  np.array([t for _, t in v]), np.array([r for r, _ in v]))
+              for k, v in members.items()}
+    cache: dict = {}
+
+    def templates_without(tgt: str, rid: int) -> dict:
+        # A frame never votes on its own template; neither do frames of
+        # its target.  (Excluding the frame itself only matters when the
+        # target is blank, which is rare; it is handled exactly.)
+        key = tgt if tgt else ("#", rid)
+        if key not in cache:
+            out = {}
+            for g, (stk, tg, ids) in stacks.items():
+                keep = (tg != tgt) if tgt else (ids != rid)
+                out[g] = dsp.build_template(list(stk[keep]))
+            if tgt:
+                cache[key] = out
+            else:
+                return out
+        return cache[key]
+
+    updates = []
+    for rid, vt, filt, h, w, tgt, s_, e_, blob in rows:
+        if rid in maps:
+            r, key, rot = dsp.template_correlation(
+                maps[rid], templates_without(tgt, rid))
+            cls, why = dsp.classify_morphology(
+                {"contrast": s_, "edge_ratio": e_, "template_r": r})
+            tname = None if key is None else \
+                f"{key[0]} {key[2]}x{key[1]} rot{rot}"
+        else:
+            r, tname, cls, why = None, None, None, None
+        verdict, basis = dsp.combine_verdicts(vt, cls)
+        updates.append((r, tname, cls, why, verdict, basis, rid))
+    con.executemany(
+        "UPDATE frame_dispersion SET bg_template_r = ?, bg_template = ?, "
+        "morph_class = ?, morph_reason = ?, verdict = ?, verdict_basis = ? "
+        "WHERE obs_rowid = ?", updates)
+    sizes = ", ".join(f"{k[0]} {k[2]}x{k[1]}: {len(v)}"
+                      for k, v in sorted(members.items(), key=str))
+    print(f"reclassify: template members — {sizes}")
+    return len(updates)
+
+
+def confusion(con, column: str) -> dict:
+    """{truth label: {verdict: count}} on the truth set, for the verdict
+    held in ``column`` ('verdict_traces' = v1.1, 'verdict' = v1.2)."""
+    out: dict = {}
+    for label, v in con.execute(f"""
+            SELECT t.label, d.{column} FROM s2c_truth t
+            JOIN frame_dispersion d USING (path)"""):
+        out.setdefault(label, {}).setdefault(v, 0)
+        out[label][v] += 1
+    return out
+
+
+def cmd_truth_score(args) -> int:
+    """Print both confusion matrices with Wilson 95% intervals (the
+    report renders the same numbers from the same function)."""
+    con = connect(args.manifest, read_only=True)
+    with closing(con):
+        for name, col in (("v1.1 traces only", "verdict_traces"),
+                          ("v1.2 traces + sky", "verdict")):
+            cm = confusion(con, col)
+            print(f"\n{name}")
+            for label in ("dispersed", "direct", "unusable"):
+                row = cm.get(label, {})
+                n = sum(row.values())
+                cells = []
+                for v in ("dispersed", "indeterminate", "direct"):
+                    k = row.get(v, 0)
+                    lo, hi = dsp.wilson_interval(k, n)
+                    cells.append(f"{v} {k}/{n} [{lo:.3f},{hi:.3f}]")
+                print(f"  truth {label:9s}: " + "; ".join(cells))
+    return 0
+
+
+def cmd_morph_calibrate(args) -> int:
+    """Template correlation and contrast of the undisputed-label
+    populations (control/holdout = ordinary filters; named grisms called
+    dispersed by the trace test) — the evidence the thresholds rest on."""
+    import numpy as np
+    con = connect(args.manifest, read_only=True)
+    with closing(con):
+        for name, pred in (
+                ("ordinary filters (control+holdout)",
+                 "population IN ('control','holdout')"),
+                ("named grisms, trace-dispersed",
+                 "lower(filter) IN ('hrg','lrg','hagrism','oggrism','hag') "
+                 "AND verdict_traces = 'dispersed'")):
+            v = np.array([r[0] for r in con.execute(
+                f"SELECT bg_template_r FROM frame_dispersion WHERE {pred} "
+                f"AND bg_template_r IS NOT NULL AND bg_contrast >= "
+                f"{dsp.MORPH_MIN_CONTRAST}")])
+            if len(v):
+                q = np.percentile(v, [0, 1, 50, 99, 100])
+                print(f"{name:40s} n={len(v):5d} template_r min/p1/p50/p99/"
+                      f"max = " + "/".join(f"{x:.2f}" for x in q))
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 def main(argv=None) -> int:
@@ -667,6 +1054,20 @@ def main(argv=None) -> int:
 
     rp = sub.add_parser("report", help="render the S2c evidence report")
     rp.set_defaults(func=cmd_report)
+
+    for name, func, helptext in (
+            ("truth-load", cmd_truth_load, "load the tracked truth set"),
+            ("queue-sn", cmd_queue_sn, "queue unmeasured SN 2023ixf frames"),
+            ("morph-queue", cmd_morph_queue, "queue background maps"),
+            ("morph-calibrate", cmd_morph_calibrate,
+             "template_r of the labelled populations"),
+            ("truth-score", cmd_truth_score, "confusion matrices")):
+        sp = sub.add_parser(name, help=helptext)
+        sp.set_defaults(func=func)
+    mr = sub.add_parser("morph-run", help="measure pending background maps")
+    mr.add_argument("--workers", type=int, default=4)
+    mr.add_argument("--max-seconds", type=float, default=0.0)
+    mr.set_defaults(func=cmd_morph_run)
 
     args = p.parse_args(argv)
     # Guard the house rule: never more than six workers against this disk.

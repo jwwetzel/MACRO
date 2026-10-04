@@ -97,7 +97,7 @@ import numpy as np
 # change here would alter a stored verdict, so a later reader can tell which
 # rules produced the numbers in front of them.
 # ---------------------------------------------------------------------------
-DISPERSION_CODE_VERSION = "S2c v1.1 (2026-08-18)"
+DISPERSION_CODE_VERSION = "S2c v1.2 (2026-10-04)"
 
 # ---------------------------------------------------------------------------
 # Tunable constants — single source of truth; the report interpolates these
@@ -749,6 +749,295 @@ def expected_strength(filter_name: Optional[str]) -> Optional[str]:
 
 
 # ---------------------------------------------------------------------------
+# The SECOND witness: background morphology (committee finding OA.E4 / F-6)
+# ---------------------------------------------------------------------------
+# WHY A SECOND TEST EXISTS
+# ------------------------
+# Everything above judges a frame by its SOURCES.  That fails silently in
+# exactly one direction, and the 2026-10-03 review caught it on NGC 5548:
+# 143 frames through one wheel slot, one exposure time, received three
+# different verdicts (17 direct, 91 dispersed, 35 indeterminate).  On a
+# long exposure of a FAINT target the first-order spectrum is spread below
+# the detection threshold; what the extractor does find are the compact
+# zero-order images of the field, which are round.  A frame of round
+# sources and no trace is, by rule 7, "direct" — a certificate for
+# aperture photometry issued to a spectrum.
+#
+# The sky does not have that problem.  A slitless grism disperses the SKY
+# too, and the sky fills the instrument's field stop.  The dispersed image
+# of the stop is a bright LOZENGE in the middle of the frame — tens to
+# thousands of ADU on a long exposure — while the rest of the detector,
+# top, bottom and corners alike, receives no first-order sky at all and
+# sits at the electronic pedestal.  A direct image is the opposite: sky
+# everywhere, falling off only in the vignetted corners.  The two are
+# distinguishable from a 128-cell thumbnail, need no source detection, and
+# get EASIER as the target gets fainter and the exposure longer — the
+# regime where the trace test goes blind.
+#
+# WHAT IS MEASURED (all pedestal-free: only DIFFERENCES of map cells)
+# -------------------------------------------------------------------
+# From a median-binned background map (medians remove stars and traces):
+#
+#   contrast    S = (peak - corner) / sigma
+#               how strongly the brightest region stands above the corners;
+#               below MORPH_MIN_CONTRAST there is no diffuse light to judge
+#   template_r  the Pearson correlation of the normalised map with the
+#               LOZENGE TEMPLATE of some grism/camera configuration — the
+#               median map of frames that the trace test (independent
+#               evidence) already calls dispersed.  The lozenge is the
+#               image of a fixed stop through a fixed grism: its shape and
+#               position are hardware, so a real one correlates at > 0.9.
+#   edge_ratio  E = (top/bottom edge - corner) / (peak - corner)
+#               a direct sky is bright at the frame edges and dark only in
+#               the vignetted corners (E ~ 0.4-0.9)
+#
+# WHY NOT THE SIMPLER TEST.  The first version used E and the area of the
+# bright region alone ("edges as dark as the corners").  Calibration on
+# undisputed labels killed it: an emission nebula on a faint sky (M16,
+# M27), a cluster, a bright star's halo on a 20 s exposure and a
+# flat-fielded reduced frame all have dark edges and a bright middle.  A
+# shape template does not confuse any of them with the stop's image; the
+# separation of the two labelled populations in template_r is rendered in
+# section 6 of the S2c report (no number is typed here, for the reason
+# given at STRENGTH_HIGH_MIN_FRAC).
+#
+# The thresholds below are CALIBRATED on frames whose filter label is not
+# in dispute (named grisms vs ordinary photometric filters) and SCORED on
+# an independently drawn, eyeball-labelled truth set; neither number set
+# is typed here — see ``run_s2c_dispersion.py morph-calibrate`` and
+# section 6 of the report.  A template is never built from frames of the target
+# it is applied to (leave-one-target-out), so a frame cannot vouch for
+# itself.
+
+#: Background map size: the frame is median-binned to about this many
+#: cells along its longer side.
+MORPH_CELLS = 128
+
+#: Box geometry, in fractions of the frame: corner boxes, the top/bottom
+#: mid-edge boxes, and the border excluded from the peak search.
+MORPH_CORNER_FRAC = 0.10
+MORPH_EDGE_HALFWIDTH = 0.12
+MORPH_EDGE_DEPTH = 0.07
+
+#: Verdict thresholds (see the calibration table for where the two
+#: labelled populations actually fall).
+MORPH_MIN_CONTRAST = 15.0        # S: below this there is no sky to judge
+MORPH_LOZENGE_MIN_R = 0.75       # template correlation: at/above -> lozenge
+MORPH_DIRECT_MAX_R = 0.55        # ... and a direct sky must stay below this
+MORPH_DIRECT_MIN_EDGE = 0.40     # E: at or above -> edges carry sky
+
+#: Floor of the cell-to-cell noise (ADU).  Cell medians of integer frames
+#: are quantised: on a dark grism frame most cells equal their neighbours
+#: exactly and the MAD is identically zero.  Half an ADU is the
+#: quantisation scale of a median of integers.
+MORPH_SIGMA_FLOOR = 0.5
+
+#: Side of the square grid a map is resampled to for template work.
+MORPH_TEMPLATE_GRID = 48
+
+#: A lozenge template is the median of at least this many frames, each
+#: with contrast above this value.
+MORPH_TEMPLATE_MIN_FRAMES = 3
+MORPH_TEMPLATE_MIN_CONTRAST = 40.0
+
+MORPH_LOZENGE = "lozenge"
+MORPH_FLAT = "direct_sky"
+MORPH_NONE = "no_sky_signal"
+MORPH_AMBIGUOUS = "ambiguous"
+MORPH_OTHER = "other_sky"
+
+
+def background_map(data: np.ndarray, cells: int = MORPH_CELLS) -> np.ndarray:
+    """Median-binned background map of a frame.
+
+    Cell size is chosen so the longer side has about ``cells`` cells; the
+    median inside a cell removes stars, cosmic rays and narrow traces
+    (a 25-px-wide trace cannot own the median of a 32x32 cell), leaving
+    the diffuse light.  Ragged edges are trimmed.
+    """
+    ny, nx = data.shape
+    b = max(1, int(round(max(ny, nx) / float(cells))))
+    gy, gx = ny // b, nx // b
+    cut = np.asarray(data[:gy * b, :gx * b], dtype=np.float32)
+    blocks = cut.reshape(gy, b, gx, b).transpose(0, 2, 1, 3)
+    return np.median(blocks.reshape(gy, gx, b * b), axis=2)
+
+
+def morphology_metrics(bmap: np.ndarray) -> dict:
+    """The three pedestal-free numbers of the background-morphology test
+    (plus the raw levels they were formed from, for the record).
+
+    Returns {'corner', 'edge_tb', 'peak', 'sigma', 'contrast',
+    'edge_ratio', 'area_frac'}.  ``sigma`` is the larger of the MAD and
+    the 16-84 half-spread of the cell-to-cell residual, floored at
+    ``MORPH_SIGMA_FLOOR`` (quantised medians).  ``area_frac`` (cells
+    above half of peak - corner) is recorded for the report; it no
+    longer enters the verdict.
+    """
+    from scipy.ndimage import median_filter, uniform_filter
+    gy, gx = bmap.shape
+    cy = max(1, int(round(MORPH_CORNER_FRAC * gy)))
+    cx = max(1, int(round(MORPH_CORNER_FRAC * gx)))
+    corners = [bmap[:cy, :cx], bmap[:cy, -cx:], bmap[-cy:, :cx],
+               bmap[-cy:, -cx:]]
+    corner = float(np.median([np.median(c) for c in corners]))
+    ex0 = int(round((0.5 - MORPH_EDGE_HALFWIDTH) * gx))
+    ex1 = int(round((0.5 + MORPH_EDGE_HALFWIDTH) * gx))
+    ed = max(1, int(round(MORPH_EDGE_DEPTH * gy)))
+    edge_tb = float(np.median([np.median(bmap[:ed, ex0:ex1]),
+                               np.median(bmap[-ed:, ex0:ex1])]))
+    # Peak: 99th percentile of the 3x3-smoothed interior (one hot cell or
+    # a single bright star's cell cannot be "the lozenge").
+    sm = uniform_filter(bmap.astype(np.float64), size=3, mode="nearest")
+    peak = float(np.percentile(sm[ed:-ed, cx:-cx] if gy > 2 * ed
+                               and gx > 2 * cx else sm, 99.0))
+    # Cell-to-cell noise: MAD of the map minus its 3x3 median smoothing.
+    resid = bmap - median_filter(bmap, size=3, mode="nearest")
+    mad = 1.4826 * np.median(np.abs(resid - np.median(resid)))
+    spread = 0.5 * (np.percentile(resid, 84) - np.percentile(resid, 16))
+    sigma = float(max(mad, spread, MORPH_SIGMA_FLOOR))
+    out = {"corner": corner, "edge_tb": edge_tb, "peak": peak,
+           "sigma": sigma, "contrast": None, "edge_ratio": None,
+           "area_frac": None}
+    if not np.isfinite(sigma):
+        return out
+    rise = peak - corner
+    out["contrast"] = float(rise / sigma)
+    if rise > 0:
+        out["edge_ratio"] = float((edge_tb - corner) / rise)
+        out["area_frac"] = float(np.mean(sm > corner + 0.5 * rise))
+    return out
+
+
+def normalized_map(bmap: np.ndarray,
+                   grid: int = MORPH_TEMPLATE_GRID) -> np.ndarray:
+    """A background map resampled to ``grid`` x ``grid`` and scaled so the
+    corners are 0 and the peak is 1 — camera- and exposure-independent,
+    ready to be correlated with a template."""
+    from scipy.ndimage import zoom
+    gy, gx = bmap.shape
+    z = zoom(bmap.astype(np.float64), (grid / gy, grid / gx), order=1)
+    m = morphology_metrics(bmap)
+    rise = m["peak"] - m["corner"]
+    return (z - m["corner"]) / (rise if rise > 0 else 1.0)
+
+
+def build_template(norm_maps: Sequence[np.ndarray]) -> Optional[np.ndarray]:
+    """Median of normalised maps — a lozenge template — or None when
+    fewer than ``MORPH_TEMPLATE_MIN_FRAMES`` are offered."""
+    if len(norm_maps) < MORPH_TEMPLATE_MIN_FRAMES:
+        return None
+    return np.median(np.array(norm_maps), axis=0)
+
+
+def template_correlation(norm_map: np.ndarray, templates: dict):
+    """(best r, best template key, rotation) over all templates, each
+    tried as built and rotated by 180 degrees (the camera was turned end
+    for end across the 2025 monsoon; the stop's image turns with it).
+    (None, None, None) for a featureless map (zero variance: a blank
+    frame has no shape to compare)."""
+    best = (None, None, None)
+    if not np.isfinite(norm_map).all() or np.std(norm_map) == 0:
+        return best              # a featureless map correlates with nothing
+    for key, tpl in templates.items():
+        if tpl is None or np.std(tpl) == 0:
+            continue
+        for rot in (0, 2):
+            r = float(np.corrcoef(norm_map.ravel(),
+                                  np.rot90(tpl, rot).ravel())[0, 1])
+            if np.isfinite(r) and (best[0] is None or r > best[0]):
+                best = (r, key, 90 * rot)
+    return best
+
+
+def classify_morphology(metrics: dict) -> tuple[str, str]:
+    """(class, reason) from the morphology numbers (``metrics`` must
+    carry 'contrast', 'edge_ratio' and 'template_r').
+
+    * ``no_sky_signal`` — the brightest region does not stand
+      ``MORPH_MIN_CONTRAST`` sigma above the corners: a short exposure
+      with no measurable diffuse light.  NOT evidence either way.
+    * ``lozenge``       — the diffuse light has the shape of the dispersed
+      field stop (template correlation >= ``MORPH_LOZENGE_MIN_R``).
+      Positive evidence of a disperser in the beam.
+    * ``direct_sky``    — sky reaches the frame edges and the map does not
+      resemble a lozenge: an ordinary image.
+    * ``other_sky``     — diffuse light that does not reach the edges
+      but does not resemble the stop's image either (template r below
+      ``MORPH_DIRECT_MAX_R``): a nebula, galaxy or bright star's halo on
+      a faint sky.  Not evidence against a direct certificate.
+    * ``ambiguous``     — diffuse light partly lozenge-like (r between
+      ``MORPH_DIRECT_MAX_R`` and ``MORPH_LOZENGE_MIN_R``).
+
+    Why ``other_sky`` is split from ``ambiguous`` (2026-10-04): with one
+    class, every ordinary-filter frame of a bright galaxy or nebula lost
+    its direct certificate.  On the undisputed-label controls nearly all
+    such frames have template r below ``MORPH_DIRECT_MAX_R``; the frames
+    the second witness exists to catch (spectra certified direct) have
+    lozenges.  Section 6 of the report shows both populations.
+    """
+    s, e, r = (metrics.get("contrast"), metrics.get("edge_ratio"),
+               metrics.get("template_r"))
+    if s is None or s < MORPH_MIN_CONTRAST:
+        return MORPH_NONE, ("no diffuse light above the corners "
+                            f"(contrast {0.0 if s is None else s:.1f})")
+    if r is not None and r >= MORPH_LOZENGE_MIN_R:
+        return MORPH_LOZENGE, (f"dispersed-sky lozenge: template r "
+                               f"{r:.2f}, contrast {s:.0f}")
+    if (e is not None and e >= MORPH_DIRECT_MIN_EDGE
+            and (r is None or r < MORPH_DIRECT_MAX_R)):
+        return MORPH_FLAT, (f"sky reaches the frame edges (edge ratio "
+                            f"{e:.2f}, template r "
+                            f"{-1.0 if r is None else r:.2f})")
+    if r is None or r < MORPH_DIRECT_MAX_R:
+        return MORPH_OTHER, (f"diffuse light unlike the stop's image "
+                             f"(template r {-1.0 if r is None else r:.2f}, "
+                             f"edge ratio {-1.0 if e is None else e:.2f}): "
+                             "a nebula, galaxy or halo")
+    return MORPH_AMBIGUOUS, (f"contrast {s:.0f}, template r {r:.2f}, edge "
+                             f"ratio {-1.0 if e is None else e:.2f}: partly "
+                             "lozenge-like")
+
+
+def combine_verdicts(trace_verdict: Optional[str],
+                     morph_class: Optional[str]) -> tuple[str, str]:
+    """The re-issued S2c verdict from both witnesses: (verdict, basis).
+
+    The rule is asymmetric on purpose, because the two tests fail in
+    different directions:
+
+    * a ``lozenge`` is positive evidence of a disperser that needs no
+      source to be detected -> ``dispersed``, whatever the trace test
+      said (this is the NGC 5548 correction);
+    * a trace-test ``dispersed`` stands on its own evidence (bright
+      standard, short exposure, no sky) -> ``dispersed``;
+    * ``direct`` is a CERTIFICATE and now needs both witnesses not to
+      object: trace test direct AND a sky that is neither a lozenge nor
+      lozenge-like (``ambiguous``).  The basis says which sky it had;
+    * everything else is ``indeterminate``.
+    """
+    if morph_class == MORPH_LOZENGE:
+        if trace_verdict == VERDICT_DISPERSED:
+            return VERDICT_DISPERSED, "traces + sky lozenge"
+        return VERDICT_DISPERSED, "sky lozenge (no trace detected)"
+    if trace_verdict == VERDICT_DISPERSED:
+        if morph_class == MORPH_FLAT:
+            # The witnesses disagree: sources say grism, sky says image.
+            # (A satellite or bleed trail on a star field.)  Withhold.
+            return VERDICT_INDETERMINATE, "traces but direct-image sky"
+        return VERDICT_DISPERSED, "traces (no sky evidence)"
+    if trace_verdict == VERDICT_DIRECT:
+        if morph_class == MORPH_FLAT:
+            return VERDICT_DIRECT, "round sources + direct-image sky"
+        if morph_class == MORPH_AMBIGUOUS:
+            return VERDICT_INDETERMINATE, "round sources, lozenge-like sky"
+        if morph_class == MORPH_OTHER:
+            return VERDICT_DIRECT, "round sources; sky not a lozenge"
+        return VERDICT_DIRECT, "round sources (no sky evidence)"
+    return VERDICT_INDETERMINATE, "no trace verdict; sky not a lozenge"
+
+
+# ---------------------------------------------------------------------------
 # Impure edge: pixels in, FrameShape out
 # ---------------------------------------------------------------------------
 def extract_sources(data: np.ndarray,
@@ -834,3 +1123,46 @@ def measure_file(path: str) -> FrameShape:
 
     data, _header, _layout = load_frame(path)
     return extract_sources(data)
+
+
+def measure_file_with_map(path: str) -> tuple[FrameShape, np.ndarray]:
+    """One pixel read, both witnesses: the source-shape summary of
+    :func:`measure_file` and the background map of
+    :func:`background_map` (the frame costs seconds to decompress off the
+    archive disk; nothing should read it twice)."""
+    import sys
+    from pathlib import Path
+    pkg_root = Path(__file__).resolve().parent.parent
+    if str(pkg_root) not in sys.path:
+        sys.path.insert(0, str(pkg_root))
+    from macro_grism.fits_io import load_frame
+
+    data, _header, _layout = load_frame(path)
+    return extract_sources(data), background_map(data)
+
+
+def map_to_blob(norm_map: np.ndarray) -> bytes:
+    """A normalised map as a compact BLOB (float16, row-major) for the
+    frame_dispersion row — 4.6 kB for the 48x48 grid."""
+    return np.asarray(norm_map, dtype=np.float16).tobytes()
+
+
+def blob_to_map(blob: bytes, grid: int = MORPH_TEMPLATE_GRID) -> np.ndarray:
+    """Inverse of :func:`map_to_blob`."""
+    return np.frombuffer(blob, dtype=np.float16).astype(
+        np.float64).reshape(grid, grid)
+
+
+def wilson_interval(k: int, n: int, z: float = 1.959964) -> tuple[float,
+                                                                   float]:
+    """Wilson score interval for a binomial proportion k/n (95% default).
+    Unlike the normal approximation it stays inside [0, 1] and is honest
+    at k = 0 or k = n — exactly the cells a confusion matrix of a good
+    classifier is made of.  (nan, nan) for n = 0."""
+    if n == 0:
+        return float("nan"), float("nan")
+    p = k / n
+    denom = 1.0 + z * z / n
+    centre = (p + z * z / (2.0 * n)) / denom
+    half = z * math.sqrt(p * (1.0 - p) / n + z * z / (4.0 * n * n)) / denom
+    return max(0.0, centre - half), min(1.0, centre + half)

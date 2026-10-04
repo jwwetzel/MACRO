@@ -85,6 +85,12 @@ def screen_of(con) -> g0.Screen:
     if not r:
         raise RuntimeError("s2_ceiling_modes has no High Gain row: the "
                            "saturation screen has no measurement behind it")
+    cap = q(con, "SELECT value FROM detector_params WHERE quantity = "
+                 "'linearity_cap_adu' AND era_group = 'AC4040 High Gain e1.054'")
+    if cap:
+        # The campaign's EGAIN epoch has a measured linearity cap (S2,
+        # SN-S2-linearity closed 2026-10-04): it IS the screen.
+        return g0.screen_from_cap("High Gain", r[0][1], r[0][2], cap[0][0])
     return g0.screen_for_mode(*r[0])
 
 
@@ -469,32 +475,35 @@ tables that held the measured one had been destroyed. That is precisely why
 the project task <code>SN-G0b</code> was marked BLOCKED: a screen with
 nothing behind it is not a screen.</p>
 
-<p>S2 has since been rebuilt and measures the High Gain channel's ceiling
-from science-frame histograms. This page therefore stores the strategy's
-<em>fractions</em> and applies them to the <em>measurement</em>:</p>
+<p>S2 has since been rebuilt. It measures the High Gain channel's ceiling
+from science-frame histograms, and &mdash; since the linearity audit
+(<code>SN-S2-linearity</code>) closed on 2026-10-04 &mdash; it measures the
+response curve itself per EGAIN epoch: in this campaign's epoch (EGAIN
+1.054) High Gain departs 1.2&nbsp;&plusmn;&nbsp;0.5% from linear at half scale
+and 2.3&nbsp;&plusmn;&nbsp;0.7% at 2,800&nbsp;ADU
+(<a href="../pipeline/s2_detector.html">S2 detector page</a>). The screen is
+therefore no longer a fraction of the clip but S2's <em>linearity cap</em>:
+the highest raw peak at which the response stays within 1%.</p>
 
 {table(["quantity", "value", "source"],
        [["measured clip", f"{fmt(s.clip_adu)} ADU",
          "S2 <code>s2_ceiling_modes.clip_adu</code>, High Gain"],
         ["S2's own saturation veto", f"{fmt(s.veto_adu)} ADU",
-         "S2 <code>s2_ceiling_modes.veto_adu</code> &mdash; an independent "
-         "cross-check, not used as the screen here"],
-        ["reject screen",
-         f"{fmt(s.reject_adu)} ADU "
-         f"({g0.REJECT_CLIP_FRACTION:.2f} &times; clip)",
-         "the strategy's 80%-of-clip rule, applied to the measurement"],
-        ["suspect floor",
-         f"{fmt(s.suspect_adu)} ADU "
-         f"({g0.SUSPECT_CLIP_FRACTION:.3f} &times; clip)",
-         "the strategy's lower flag level, likewise"]])}
+         "S2 <code>s2_ceiling_modes.veto_adu</code> &mdash; a cross-check, "
+         "not used as the screen here"],
+        ["reject screen = linearity cap", f"{fmt(s.reject_adu)} ADU",
+         "S2 <code>detector_params.linearity_cap_adu</code>, "
+         "<code>AC4040 High Gain e1.054</code>"],
+        ["suspect band", "none",
+         "the strategy held 2,400&ndash;2,800 ADU as suspect only "
+         "&ldquo;pending the empirical linearity curve&rdquo;; the curve now "
+         "exists, so the band collapses onto the cap"]])}
 
-<div class="decision"><b>The strategy's hand numbers survive contact with
-the measurement.</b> 0.80 &times; {fmt(s.clip_adu)} =
-{fmt(s.reject_adu)} against a typed 2,800, and the suspect floor lands on
-{fmt(s.suspect_adu)} against a typed 2,400 &mdash; both inside 0.2%. The
-assumed ceiling was right. What has changed is that the screen is now a
-consequence of a query, so an S2 re-measurement moves it without anyone
-editing a document.</div>
+<div class="decision"><b>The strategy's 2,800&nbsp;ADU screen did not survive
+the linearity curve.</b> At 2,800&nbsp;ADU the response is already 2.3% low,
+so the screen moves down to {fmt(s.reject_adu)}&nbsp;ADU. Every frame was
+re-judged from its stored peak (<code>run_sn_gate0.py rescreen</code>) without
+re-reading a pixel; the usable count in &sect;5 is the consequence.</div>
 
 <h3>Consequence</h3>
 <p>Every frame on this sky was screened against the ceiling of the readout
@@ -515,7 +524,8 @@ def section_census(con, fig_m: str, fig_p: str) -> str:
                              n_bound, n_clean, n_suspect, n_rejected,
                              n_bounded_clean, n_undetermined, n_usable,
                              first_clean_night, first_clean_phase_d,
-                             isolation_false_id, isolation_tested
+                             isolation_false_id, isolation_tested,
+                             n_nonscience
                       FROM sn_g0_bands ORDER BY band_role DESC, filter""")
     both = q1(con, "SELECT count(*) FROM sn_g0_matrix WHERE band_role = "
                    "'broadband' AND n_clean > 0 AND n_rejected > 0")
@@ -535,6 +545,7 @@ def section_census(con, fig_m: str, fig_p: str) -> str:
         rows.append([esc(b[1]), esc(b[0]), fmt(b[2]), fmt(b[3]),
                      f"{fmt(b[4])} / {fmt(b[5])}",
                      fmt(b[6]), fmt(b[9]), fmt(b[7]), fmt(b[8]), fmt(b[10]),
+                     fmt(b[16]),
                      f"<b>{fmt(b[11])}</b>",
                      (esc(b[12]) + f" (+{b[13]:.1f} d)") if b[12] else "&mdash;",
                      f"{fmt(b[14])}/{fmt(b[15])}"])
@@ -581,8 +592,17 @@ is why no narrowband bound was ever promoted to a measurement.</p>
 
 {table(["filter", "role", "frames", "images", "solved / unsolved",
         "clean", "clean by bound", "suspect", "rejected", "undetermined",
-        "USABLE", "first clean epoch", "box would misidentify"],
+        "outside science tree", "USABLE", "first clean epoch",
+        "box would misidentify"],
        rows, classes)}
+
+<p>The class columns count science-tree frames only, so in every
+broadband row <b>clean + clean by bound = USABLE</b> exactly. The
+<em>outside science tree</em> column is the one exclusion rule the first
+version of this table applied without naming it (DS.F9): the
+detector-engineering frames under <code>mjc/misc/neg10_test</code> carry
+the campaign's target name, and one of them is pixel-clean in R, so the old
+R row read 106&nbsp;+&nbsp;21&nbsp;=&nbsp;127 against 126 usable.</p>
 
 {_figure(fig_p, "Every supernova peak the census could measure directly, "
                 "against phase. Solid rule: the measured clip. Dashed: the "
@@ -666,8 +686,8 @@ flash-phase narrowband record of this supernova?</p>
 <h3>Evidence</h3>
 <p>No. On night 2023-05-20 (UT 05-21, +2.5 d) the narrowband exposures were
 64&nbsp;s, and the census measures the supernova at a few hundred to
-~1,900 ADU in them &mdash; well under the {fmt(s.suspect_adu)} ADU flag
-level. The night after, the exposures ramp to 128&nbsp;s and the same
+~1,900 ADU in them &mdash; straddling the {fmt(s.suspect_adu)}&nbsp;ADU
+linearity cap, so some are clean and some are not (table below). The night after, the exposures ramp to 128&nbsp;s and the same
 frames clip. Here is every narrowband frame across the four earliest
 narrowband nights:</p>
 
@@ -943,10 +963,7 @@ flash phase it did not know it had. Steps 1 and 2 are now unblocked and are
 the next binding gates.</p>
 
 <p>What Gate 0 does NOT settle, stated so it is not mistakenly assumed:
-the physical identity of the filter codes (Step 1), the linearity curve
-below the screen &mdash; which is what would let the
-{fmt(q1(con, "SELECT sum(n_suspect) FROM sn_g0_bands WHERE band_role='broadband'"))}
-suspect broadband frames be recovered (Step 2), whether the grism traces
+the physical identity of the filter codes (Step 1), whether the grism traces
 are clipped (no plate solutions), and the narrowband transmission profiles
 without which the H&alpha; product stays a methods demonstration.</p>
 </div>

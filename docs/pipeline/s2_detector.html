@@ -3,24 +3,17 @@
 <title>S2 — Detector Truth</title>
 <link rel="stylesheet" href="../assets/macro.css">
 </head><body>
-<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">9/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">34/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">7/26 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
-<div class="tabbar"><nav class="tabbar-inner" aria-label="Data &amp; Instrument Characterization views"><a class="tab" href="../pipeline/index.html">The Case</a><a class="tab" href="../pipeline/figures.html">Figures</a><a class="tab" href="../pipeline/pipeline_status.html">Freshness &amp; DAG</a><a class="tab" aria-current="page" href="../pipeline/evidence.html">Evidence Detail</a></nav></div>
-<div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../pipeline/index.html">Data &amp; Instrument Characterization</a></li><li><a href="../pipeline/evidence.html">Evidence Detail</a></li><li aria-current="page">S2 — Detector Truth</li></ol></nav></div>
-<div class="layout">
-<aside class="rail" aria-label="Questions in this view"><a class="railback" href="../pipeline/index.html">&larr; Back to the case</a><h2>The questions</h2><p class="railnote">The questions this page answers, in order.</p><ol><li><a href="#ceiling"><span class="qn">1</span> The SN panel measured the High Gain clip at ~3,530–3,550 ADU; the CV team…</a></li><li><a href="#ptc"><span class="qn">2</span> Roadmap R2: the 2023-06-07 repeated darks were shot for a StackPro…</a></li><li><a href="#recon"><span class="qn">3</span> The reduced/ tree was produced by a pipeline whose calibration files we…</a></li><li><a href="#linearity"><span class="qn">4</span> Does flux scale with exposure time — and can the 2024-05-20 Vega BeStar…</a></li><li><a href="#noise"><span class="qn">5</span> §2's photon transfer needed one very special night, and that night was…</a></li></ol></aside>
-<div class="pane">
-<!--MACRO-SITE:CONTENT-->
 
 <header>
   <h1>S2 — Detector Truth</h1>
   <p>8 readout modes characterized (6 measured
   ceilings) &middot; 98 PTC pairs &middot; 6
   reduction eras reconstructed &middot; 8 empirical noise
-  curves &middot; 82 rows in
+  curves &middot; 159 rows in
   <code>detector_params</code> &middot;
-  built 2026-10-03T23:56Z
-  (S2 v1.2 (2026-08-19),
-  commit <code>916243b</code>)
+  built 2026-10-04T22:20Z
+  (S2 v1.3 (2026-10-04),
+  commit <code>ceea0fa</code>)
   &middot; <a href="../index.html">the front page</a></p>
 </header>
 
@@ -29,7 +22,8 @@
   <a href="#ptc">2 Photon transfer</a> &middot;
   <a href="#recon">3 Master reconstruction</a> &middot;
   <a href="#linearity">4 Linearity</a> &middot;
-  <a href="#noise">5 Empirical noise model</a>
+  <a href="#noise">5 Empirical noise model</a> &middot;
+  <a href="#review">6 Gain, caps, masks</a>
 </nav>
 
 
@@ -44,8 +38,8 @@ facility notes as documented constants).  Which number is right, is the
 detector 12-bit, and what are the ceilings of the OTHER seven modes nobody
 measured?</p>
 <h3>Evidence</h3>
-<p class="sub">1,360 science frames sampled across every readout
-mode (18,502,778,123 pixels histogrammed):</p>
+<p class="sub">1,110 science frames sampled across every readout
+mode (14,667,447,395 pixels histogrammed):</p>
 <figure><a href="figures/s2/s2_ceiling_hist.png"><img src="figures/s2/s2_ceiling_hist.png" alt=""></a><figcaption>Terminal histogram structure per mode.  A ceiling is a valley-then-mound at the very end of the occupied range (pileup); a smooth falling tail is honest headroom.</figcaption></figure>
 <figure><a href="figures/s2/s2_frame_maxes.png"><img src="figures/s2/s2_frame_maxes.png" alt=""></a><figcaption>Per-frame maxima.  High Gain frames pile at the mound; StackPro frames cluster at a multiple of the single-read clip (the measured ratio is on the panel); Low Gain's tight cluster failed the position-diversity test (same hot feature in every frame) and is NOT a ceiling.</figcaption></figure>
 <table class="data">
@@ -53,11 +47,11 @@ mode (18,502,778,123 pixels histogrammed):</p>
 <tr><td>(blank 2026)</td><td>120</td><td>65,535</td><td>65,534</td><td>60,200</td><td>16</td><td>1</td></tr>
 <tr><td>1MHz High Sensitivity 16-bit</td><td>150</td><td>64,866</td><td>64,674</td><td>59,500</td><td>16</td><td>861</td></tr>
 <tr><td>5MHz High Sensitivity 16-bit</td><td>120</td><td>65,531</td><td><i>not observed to saturate</i></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
-<tr><td>Fast</td><td>251</td><td>65,535</td><td>65,534</td><td>60,200</td><td>16</td><td>1</td></tr>
+<tr><td>Fast</td><td>150</td><td>65,535</td><td>65,534</td><td>60,200</td><td>16</td><td>1</td></tr>
 <tr><td>High Gain</td><td>150</td><td>3,584</td><td>3,496</td><td>3,200</td><td>12</td><td>599</td></tr>
 <tr><td>High Gain StackPro</td><td>150</td><td>65,518</td><td>56,062</td><td>51,500</td><td>16</td><td>9,473</td></tr>
 <tr><td>Low Gain</td><td>120</td><td>3,546</td><td><i>not observed to saturate</i></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
-<tr><td>Mode0</td><td>299</td><td>65,535</td><td>65,535</td><td>60,200</td><td>16</td><td>0</td></tr>
+<tr><td>Mode0</td><td>150</td><td>65,535</td><td>65,535</td><td>60,200</td><td>16</td><td>0</td></tr>
 </table>
 <p class="sub">Method notes, each one load-bearing: (1) the High Gain
 &ldquo;clip&rdquo; is not one code but a 88-ADU-wide
@@ -121,7 +115,7 @@ the dark slope is sub-Poisson-biased and the light slope motion-biased
 <li><b>Read noise</b> — the variance floor of the shortest darks has no
 scene and only a small dark-current term (1.0% of the floor variance, measured from the 8s-vs-128s floors — negligible but not zero): High Gain
 3.93&nbsp;ADU =
-4.15&nbsp;&plusmn;&nbsp;2.30
+4.18&nbsp;&plusmn;&nbsp;0.02
 &nbsp;e<sup>-</sup> (value at nominal EGAIN; the electron-unit uncertainty
 spans the measured gain bracket below, NOT the tiny ADU statistical
 error); StackPro 15.59&nbsp;ADU.</li>
@@ -238,8 +232,8 @@ exposure ladders</h2>
 <p>Does flux scale with exposure time — and can the 2024-05-20 Vega
 BeStar ladder (0.0001&ndash;0.1&nbsp;s) calibrate the short end?</p>
 <h3>Evidence</h3>
-<p class="sub">67 same-night same-target same-filter same-gain
-ladders surfaced from the manifest (67 fittable); residuals
+<p class="sub">66 same-night same-target same-filter same-gain
+ladders surfaced from the manifest (66 fittable); residuals
 against flux = k&middot;t for the cleanest ladder per mode:</p>
 <figure><a href="figures/s2/s2_linearity.png"><img src="figures/s2/s2_linearity.png" alt=""></a><figcaption>Per-mode best ladder.  Filled points: unsaturated rungs (the linearity measurement).  Crosses: rungs whose peak sits above the saturation veto — they measure the ceiling, not linearity, and are excluded from the statistic.</figcaption></figure>
 <table class="data">
@@ -292,8 +286,8 @@ observed in — so it needs the question answered without that night and
 without a gain: <i>at a measured level of L&nbsp;ADU, how much does a pixel
 of this mode actually fluctuate?</i></p>
 <h3>Evidence</h3>
-<p class="sub">137 same-scene consecutive science pairs
-across 116 distinct (night, target) scenes &rarr;
+<p class="sub">135 same-scene consecutive science pairs
+across 114 distinct (night, target) scenes &rarr;
 642 (level, variance) measurements &mdash; level bins backed by
 fewer than 2 independent pairs are discarded
 rather than published thin &mdash; distilled into
@@ -303,14 +297,14 @@ half-difference variance is recorded.</p>
 <figure><a href="figures/s2/s2_noise.png"><img src="figures/s2/s2_noise.png" alt=""></a><figcaption>Left: the measured variance of each mode against level, with the between-pair spread as error bars; dotted lines are each mode's measured floor, dashed lines the level where variance reaches twice it.  Right: the same table expressed as the per-pixel sigma an error model multiplies by.</figcaption></figure>
 <table class="data">
 <tr><th>mode</th><th>level span measured (ADU)</th><th>bins</th><th>points</th><th>floor &sigma; (ADU)</th><th>2&times;-floor crossover (ADU)</th><th>log-log slope</th></tr>
-<tr><td>(blank 2026)</td><td>183&ndash;17,751</td><td>13</td><td>95</td><td>3.95</td><td>189</td><td>1.38</td></tr>
-<tr><td>1MHz High Sensitivity 16-bit</td><td>356&ndash;3,136</td><td>8</td><td>48</td><td>10.88</td><td>358</td><td>1.34</td></tr>
-<tr><td>5MHz High Sensitivity 16-bit</td><td>5,964&ndash;6,294</td><td>11</td><td>88</td><td>22.65</td><td><i>not witnessed</i></td><td>&mdash;</td></tr>
+<tr><td>(blank 2026)</td><td>183&ndash;6,492</td><td>9</td><td>59</td><td>3.79</td><td>189</td><td>2.18</td></tr>
+<tr><td>1MHz High Sensitivity 16-bit</td><td>356&ndash;3,164</td><td>6</td><td>40</td><td>10.88</td><td>358</td><td>1.10</td></tr>
+<tr><td>5MHz High Sensitivity 16-bit</td><td>6,011&ndash;6,320</td><td>3</td><td>98</td><td>25.66</td><td><i>not witnessed</i></td><td>&mdash;</td></tr>
 <tr><td>Fast</td><td>182&ndash;556</td><td>5</td><td>32</td><td>3.54</td><td>184</td><td>5.62</td></tr>
-<tr><td>High Gain</td><td>102&ndash;933</td><td>10</td><td>82</td><td>4.86</td><td>112</td><td>3.23</td></tr>
-<tr><td>High Gain StackPro</td><td>1,521&ndash;3,203</td><td>6</td><td>36</td><td>19.89</td><td>1,721</td><td>6.48</td></tr>
+<tr><td>High Gain</td><td>102&ndash;2,650</td><td>11</td><td>115</td><td>4.77</td><td>111</td><td>1.87</td></tr>
+<tr><td>High Gain StackPro</td><td>1,522&ndash;3,203</td><td>5</td><td>40</td><td>20.25</td><td>1,790</td><td>7.68</td></tr>
 <tr><td>Low Gain</td><td>92&ndash;280</td><td>4</td><td>178</td><td>1.47</td><td>93</td><td>0.67</td></tr>
-<tr><td>Mode0</td><td>315&ndash;2,104</td><td>5</td><td>30</td><td>4.18</td><td>316</td><td>4.95</td></tr>
+<tr><td>Mode0</td><td>316&ndash;878</td><td>3</td><td>21</td><td>4.47</td><td>316</td><td>7.90</td></tr>
 </table>
 <p class="sub">How to read the last column, because it decides how much of
 each curve is <i>detector</i>: a log-log slope of 1.0 is a
@@ -318,7 +312,7 @@ shot-noise-dominated span (variance tracks signal), ~0 is a
 floor-dominated span, and anything above 1 means the pair difference is
 also measuring the sky and the mount — consecutive science exposures move
 by a fraction of a pixel, which inflates the difference variance wherever
-the image has gradients.  The steepest curve here is <b>High Gain StackPro</b> at 6.48, so its bright end is an UPPER bound on detector noise, not a measurement of it.  Because these are science frames rather than darks,
+the image has gradients.  The steepest curve here is <b>Mode0</b> at 7.90, so its bright end is an UPPER bound on detector noise, not a measurement of it.  Because these are science frames rather than darks,
 the &ldquo;floor&rdquo; column is the whole floor a real exposure carries
 &mdash; read noise plus dark current plus bias structure &mdash; which is
 the number an error model wants and is deliberately NOT the same quantity
@@ -338,15 +332,88 @@ evaluated at a nominal EGAIN and become an interpolation of measured
 pixels; a mode whose curve was never measured now fails loudly instead of
 silently inheriting High Gain's numbers.</p>
 </section>
+<section id="review">
+<h2>6 Measured gain, read noise, linearity caps and bad-pixel masks</h2>
+<p class="q"><b>Question.</b> What are the gain and read noise of each
+camera and readout configuration, measured rather than read from a header
+or bracketed — and up to what peak level is each mode linear to 1%?</p>
+<p><b>Evidence — gain.</b> Flat-pair photon transfer
+(<code>rlmt_diagnostics.flatptc</code>) on every flat on disk, with
+zero-signal pairs for read noise; configurations with no flats use sky
+pairs validated against the flats of the same camera. The ASI's 2&times;2 frames give K = 1.046 &plusmn; 0.015 e<sup>-</sup>/ADU, 4.24 &plusmn; 0.06 times the header EGAIN 0.2467: the verdict is <b>average</b> (sum = 1, average = 4).</p>
+<figure><a href="figures/s2/s2_flat_ptc.png"><img src="figures/s2/s2_flat_ptc.png" alt=""></a><figcaption>Left: flat-pair PTC points with the adopted K and read noise. Right: measured K over header EGAIN; 4 = on-camera 2x2 average, 1 = sum or unbinned.</figcaption></figure>
+<table class="data">
+<tr><th>configuration</th><th>status</th><th>K (e-/ADU)</th><th>rel. err</th><th>RN (ADU)</th><th>RN (e-)</th><th>bias (ADU)</th><th>clip (ADU)</th><th>full scale (e-)</th><th>frames</th><th>basis / notes</th></tr>
+<tr><td>AC4040 High Gain</td><td>no_measurement</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>3,496</td><td>&mdash;</td><td>7</td><td></td></tr>
+<tr><td>AC4040 High Gain e1.054</td><td>measured_sky</td><td>1.0715 &plusmn; 0.0151</td><td>1.41%</td><td>3.901</td><td>4.18 &plusmn; 0.06</td><td>93.0</td><td>3,557</td><td>3,712</td><td>3,291</td><td>sky-pair gain (median of 4 signal-dominated pairs; zero reference: 2 zero-signal pairs) x flat/sky ratio 1.0139 measured on the same camera (1 configuration with flats) no flats on disk for this configuration — a flat-pair PTC at the October re-opening is the confirmation</td></tr>
+<tr><td>AC4040 High Gain e1.057</td><td>measured</td><td>1.0683 &plusmn; 0.0046</td><td>0.43%</td><td>3.909</td><td>4.18 &plusmn; 0.02</td><td>94.2</td><td>3,511</td><td>3,650</td><td>21,983</td><td>flat-pair PTC, free additive term per flat group (72 pairs, chi2/dof 476.5/276) per-filter within-group gains (10 filters): 1.0530-1.0721, excess scatter 0.0043; additive variance of the flat groups over read noise: +2.81 +/- 0.11 ADU^2 (11 groups); pinned fit gives 1.0605 (-0.73%), biased by that additive term</td></tr>
+<tr><td>AC4040 Low Gain</td><td>no_measurement</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>784</td><td></td></tr>
+<tr><td>AC4040 StackPro e1.054</td><td>inherited</td><td>1.0715 &plusmn; 0.0151</td><td>1.41%</td><td>15.599</td><td>16.71 &plusmn; 0.24</td><td>1,490.2</td><td>56,098</td><td>&mdash;</td><td>10,671</td><td>inherited from AC4040 High Gain e1.054 (measured_sky): a StackPro frame is a sum of single reads, which leaves e-/ADU unchanged 3 StackPro sky pairs with S &gt;= V0 give K_i 0.95-1.11 (median 1.048); bias, read-noise variance and ceiling scale with the number of 2 s sub-reads (1-16) — the values in this row are for 16 (exposures &gt;= 32 s)</td></tr>
+<tr><td>AC4040 StackPro e1.057</td><td>inherited</td><td>1.0683 &plusmn; 0.0046</td><td>0.43%</td><td>&mdash;</td><td>&mdash;</td><td>94.2</td><td>55,937</td><td>&mdash;</td><td>7,420</td><td>inherited from AC4040 High Gain e1.057 (measured): a StackPro frame is a sum of single reads, which leaves e-/ADU unchanged 2 StackPro sky pairs with S &gt;= V0 give K_i 1.04-1.05 (median 1.047); bias, read-noise variance and ceiling scale with the number of 2 s sub-reads (1-16) — the values in this row are for 16 (exposures &gt;= 32 s)</td></tr>
+<tr><td>ASI Mode0 1x1</td><td>no_measurement</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>65,535</td><td>&mdash;</td><td>61</td><td></td></tr>
+<tr><td>ASI Mode0 2x2</td><td>measured</td><td>1.0455 &plusmn; 0.0149</td><td>1.42%</td><td>2.289</td><td>2.39 &plusmn; 0.04</td><td>303.0</td><td>65,535</td><td>68,203</td><td>67,782</td><td>flat-pair PTC, joint fit with zero-signal pairs (70 pairs, chi2/dof 16467.4/239) per-filter within-group gains (5 filters): 1.0111-1.0517, excess scatter 0.0147; additive variance of the flat groups over read noise: -29.96 +/- 11.93 ADU^2 (15 groups); within-group 1.0455 vs pinned 1.0455</td></tr>
+<tr><td>ASI Mode0 2x2 e0.780</td><td>no_measurement</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>65,535</td><td>&mdash;</td><td>39</td><td></td></tr>
+<tr><td>QHY600 Fast 2x2</td><td>provisional_sky</td><td>1.2884 &plusmn; 0.0602</td><td>4.67%</td><td>&mdash;</td><td>&mdash;</td><td>172.5</td><td>65,534</td><td>84,210</td><td>26,902</td><td>sky-pair gain (median of 4 signal-dominated pairs; zero reference: PSEUDO-bias: the 0.125 s sky pair of QHY600 Fast 2x2 (no bias or dark frames exist for this camera; level and variance are upper bounds)) x flat/sky ratio 1.003 +/- 0.045 (mean and scatter over 3 OTHER cameras that have flats) no flats on disk for this configuration — a flat-pair PTC at the October re-opening is the confirmation; no bias or dark frames either: the zero reference is a short sky pair; bias level 172.5 ADU from the pseudo-bias (short sky pair)</td></tr>
+<tr><td>QHY600 pyscope 2x2</td><td>provisional_sky</td><td>1.2795 &plusmn; 0.0655</td><td>5.12%</td><td>&mdash;</td><td>&mdash;</td><td>172.5</td><td>65,534</td><td>83,631</td><td>1,987</td><td>sky-pair gain (median of 9 signal-dominated pairs; zero reference: PSEUDO-bias: the 0.125 s sky pair of QHY600 Fast 2x2 (no bias or dark frames exist for this camera; level and variance are upper bounds)) x flat/sky ratio 1.003 +/- 0.045 (mean and scatter over 3 OTHER cameras that have flats) no flats on disk for this configuration — a flat-pair PTC at the October re-opening is the confirmation; no bias or dark frames either: the zero reference is a short sky pair; bias level 172.5 ADU from the pseudo-bias (short sky pair)</td></tr>
+<tr><td>iKon 1MHz 1x</td><td>measured</td><td>3.2863 &plusmn; 0.0377</td><td>1.15%</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>64,674</td><td>&mdash;</td><td>&mdash;</td><td>flat-pair PTC, free additive term per flat group (9 pairs, chi2/dof 126.6/28) pixel correlation rho_nn = 0.0107 +/- 0.0007 corrected for (PTC slope / 1.0427)</td></tr>
+<tr><td>iKon 1MHz 4x</td><td>measured</td><td>0.9404 &plusmn; 0.0069</td><td>0.73%</td><td>7.386</td><td>6.95 &plusmn; 0.05</td><td>300.7</td><td>64,674</td><td>60,535</td><td>16,499</td><td>flat-pair PTC, joint fit with zero-signal pairs (20 pairs, chi2/dof 4463.0/42) additive variance of the flat groups over read noise: -121.25 +/- 18.70 ADU^2 (4 groups); within-group 0.9730 vs pinned 0.9796; pixel correlation rho_nn = 0.0104 +/- 0.0006 corrected for (PTC slope / 1.0417)</td></tr>
+<tr><td>iKon 5MHz</td><td>no_measurement</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>245</td><td></td></tr>
+</table>
+<p>Same-scene noise pairs (135 in
+<code>s2_noise_pairs</code>) now require distinct DATE-OBS: 0
+have a zero time gap (shortest gap 1.7 s), and
+0 bins of <code>s2_noise_curve</code> have zero variance.</p>
+<p><b>Evidence — linearity.</b> Deviation from linear response against each
+star's own raw peak (<code>linearity.ensemble_deviation</code>), with the
+frame-to-frame terms taken out by stars below
+0.3 of scale. Null-injection signed bias on each
+source's real geometry: albireo (High Gain): largest signed bias 0.015% (&plusmn;0.011) over 10 bins; cv:vvpup|e72|r (1MHz High Sensitivity 16-bit): largest signed bias 0.004% (&plusmn;0.004) over 10 bins; cv:vvpup|e76|g (Mode0): largest signed bias 0.002% (&plusmn;0.001) over 10 bins; cv:yzcnc|e7|R (High Gain): largest signed bias 0.016% (&plusmn;0.011) over 10 bins; qhy_v2400oph (Fast): largest signed bias 0.000% (&plusmn;0.001) over 1 bins; qhy_v426oph (Fast): largest signed bias 0.008% (&plusmn;0.018) over 1 bins.</p>
+<figure><a href="figures/s2/s2_peak_linearity.png"><img src="figures/s2/s2_peak_linearity.png" alt=""></a><figcaption>Deviation from linear response vs own peak, per mode and source; grey band &plusmn;1% (the criterion), red line the adopted cap.</figcaption></figure>
+<table class="data">
+<tr><th>mode / configuration</th><th>cap (fraction)</th><th>cap (raw ADU)</th><th>ceiling (ADU)</th><th>bias (ADU)</th><th>worst |dev| below cap (%)</th><th>precision (%)</th><th>status</th><th>deciding source</th></tr>
+<tr><td>(blank 2026)</td><td>0.40</td><td>26,300</td><td>65,534</td><td>172.5</td><td>-0.30</td><td>0.02</td><td>inherited from Fast</td><td>same QHY600 sensor and GAIN 56</td></tr>
+<tr><td>1MHz High Sensitivity 16-bit</td><td>0.60</td><td>38,900</td><td>64,674</td><td>300.7</td><td>0.94</td><td>0.13</td><td>cap set by measured nonlinearity</td><td>deciding source: cv</td></tr>
+<tr><td>AC4040 High Gain e1.054</td><td>0.50</td><td>1,800</td><td>3,557</td><td>93.6</td><td>-0.67</td><td>0.41</td><td>cap set by measured nonlinearity</td><td>deciding source: albireo</td></tr>
+<tr><td>AC4040 High Gain e1.057</td><td>0.85</td><td>2,950</td><td>3,511</td><td>93.6</td><td>-0.34</td><td>0.07</td><td>cap set by measured nonlinearity</td><td>deciding source: cv</td></tr>
+<tr><td>Fast</td><td>0.40</td><td>26,300</td><td>65,534</td><td>172.5</td><td>-0.30</td><td>0.02</td><td>linear as far as measured</td><td>deciding source: qhy_v2400oph</td></tr>
+<tr><td>High Gain</td><td>0.50</td><td>1,750</td><td>3,496</td><td>93.6</td><td>-0.67</td><td>0.41</td><td>cap set by measured nonlinearity</td><td>deciding source: albireo</td></tr>
+<tr><td>High Gain StackPro</td><td>0.40</td><td>23,200</td><td>55,936</td><td>1,498.0</td><td>-0.24</td><td>0.24</td><td>cap set by measured nonlinearity</td><td>deciding source: albireo</td></tr>
+<tr><td>Mode0</td><td>0.95</td><td>62,200</td><td>65,535</td><td>303.0</td><td>-0.12</td><td>0.07</td><td>linear to cap maximum</td><td>deciding source: cv</td></tr>
+</table>
+<table class="data">
+<tr><th>mode</th><th>source</th><th>cap</th><th>limited by</th><th>first failing bin</th><th>its deviation (%)</th><th>measured to</th></tr>
+<tr><td>1MHz High Sensitivity 16-bit</td><td>cv</td><td>0.60</td><td>nonlinearity</td><td>0.60</td><td>+1.45 &plusmn; 0.16</td><td>1.10</td></tr>
+<tr><td>Fast</td><td>qhy_v2400oph</td><td>0.40</td><td>data</td><td>&mdash;</td><td>&mdash;</td><td>0.40</td></tr>
+<tr><td>Fast</td><td>qhy_v426oph</td><td>&mdash;</td><td>none</td><td>&mdash;</td><td>&mdash;</td><td>0.30</td></tr>
+<tr><td>High Gain</td><td>albireo</td><td>0.50</td><td>nonlinearity</td><td>0.50</td><td>-1.17 &plusmn; 0.49</td><td>0.95</td></tr>
+<tr><td>High Gain</td><td>cv</td><td>0.85</td><td>nonlinearity</td><td>0.85</td><td>-1.16 &plusmn; 0.08</td><td>1.10</td></tr>
+<tr><td>High Gain</td><td>sn2023ixf</td><td>0.50</td><td>data</td><td>&mdash;</td><td>&mdash;</td><td>0.70</td></tr>
+<tr><td>High Gain StackPro</td><td>albireo</td><td>0.40</td><td>nonlinearity</td><td>0.40</td><td>-1.04 &plusmn; 0.53</td><td>0.50</td></tr>
+<tr><td>Mode0</td><td>cv</td><td>1.00</td><td>nonlinearity</td><td>1.00</td><td>-4.43 &plusmn; 0.25</td><td>1.10</td></tr>
+</table>
+<p><b>Decision.</b> One cap per mode (and per EGAIN epoch for High Gain):
+the lowest cap at which any source that tested the mode sees its response
+leave &plusmn;1%. For average-binned cameras the
+cap applies to the native-pixel-equivalent peak
+(<code>saturation.native_equivalent_peak</code>).</p>
+<p><b>Bad-pixel masks</b> (<code>badpix.load_mask</code> /
+<code>mask_for_frame</code>; True = bad), per camera, temperature and image
+orientation:</p>
+<table class="data">
+<tr><th>mask</th><th>science frames</th><th>hot</th><th>rail</th><th>noisy (RTS)</th><th>total</th><th>fraction</th><th>rail-1 median (ADU)</th><th>(65535+3&middot;level)/4</th><th>product</th></tr>
+<tr><td>AC4040_4096x4096_T-15_FM</td><td>36</td><td>26,228</td><td>0</td><td>0</td><td>26,228</td><td>0.1563%</td><td>&mdash;</td><td>&mdash;</td><td><code>products/detector/badpix/AC4040_4096x4096_T-15_FM.npz</code></td></tr>
+<tr><td>AC4040_4096x4096_T-20_FM</td><td>36</td><td>20,560</td><td>0</td><td>8,488</td><td>21,001</td><td>0.1252%</td><td>&mdash;</td><td>&mdash;</td><td><code>products/detector/badpix/AC4040_4096x4096_T-20_FM.npz</code></td></tr>
+<tr><td>ASI_4788x3194_T-10_FM</td><td>18</td><td>347</td><td>4</td><td>79,209</td><td>79,247</td><td>0.5182%</td><td>6,861</td><td>16,611</td><td><code>products/detector/badpix/ASI_4788x3194_T-10_FM.npz</code></td></tr>
+<tr><td>ASI_4788x3194_T-10_N</td><td>18</td><td>285</td><td>9</td><td>0</td><td>285</td><td>0.0019%</td><td>16,629</td><td>16,622</td><td><code>products/detector/badpix/ASI_4788x3194_T-10_N.npz</code></td></tr>
+<tr><td>QHY600_4800x3211_T-20_N</td><td>36</td><td>35,216</td><td>31</td><td>0</td><td>35,216</td><td>0.2285%</td><td>16,521</td><td>16,518</td><td><code>products/detector/badpix/QHY600_4800x3211_T-20_N.npz</code></td></tr>
+<tr><td>iKon_2048x2048_T-65_FM</td><td>36</td><td>1</td><td>0</td><td>2</td><td>3</td><td>0.0001%</td><td>&mdash;</td><td>&mdash;</td><td><code>products/detector/badpix/iKon_2048x2048_T-65_FM.npz</code></td></tr>
+<tr><td>iKon_2048x2048_T-80_FM</td><td>36</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0.0000%</td><td>&mdash;</td><td>&mdash;</td><td><code>products/detector/badpix/iKon_2048x2048_T-80_FM.npz</code></td></tr>
+</table>
+</section>
 
 <footer>Generated by <code>rlmt_diagnostics.report_s2</code> from
 <code>products/manifest/rlmt-manifest.sqlite</code> — every number on this
 page is the result of a SQL query or a documented pipeline constant; none
 is typed by hand.  Regenerate with
 <code>pipeline/scripts/run_s2_campaign.py report</code>.</footer>
-<!--/MACRO-SITE:CONTENT-->
-<div class="prevnext"><a class="pv" href="../pipeline/s0c_staging.html"><span class="dir">&larr; Previous</span>S0c — Per-Project Staging Manifests</a><a class="nx" href="../pipeline/s2c_filter_identity.html"><span class="dir">Next &rarr;</span>S2c — Filter Identity, Measured</a></div>
-<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v2.0 (2026-10-03)), the provenance DAG (<code>macro_core.provenance</code>, P v1.1 (2026-10-03)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
-</div>
-</div>
 </body></html>

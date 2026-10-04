@@ -1297,6 +1297,220 @@ expect a referee to ask which frames were actually looked at.</p>
 # ---------------------------------------------------------------------------
 # render
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Section 6 — the second witness and the truth set (S2c v1.2, finding F-6)
+# ---------------------------------------------------------------------------
+_TRUTH_ROWS = ("dispersed", "direct", "unusable")
+_VERDICTS = ("dispersed", "indeterminate", "direct")
+
+
+def _confusion(con, column: str) -> dict:
+    """{truth label: {verdict: n}} for the verdict in ``column``."""
+    out: dict = {}
+    for label, v in q(con, f"""SELECT t.label, d.{column} FROM s2c_truth t
+                              JOIN frame_dispersion d USING (path)"""):
+        out.setdefault(label, {}).setdefault(v, 0)
+        out[label][v] += 1
+    return out
+
+
+def _cell(k: int, n: int) -> str:
+    """'k/n = p% [lo, hi]' with the Wilson 95% interval."""
+    if not n:
+        return "&mdash;"
+    lo, hi = dsp.wilson_interval(k, n)
+    return (f"{k}/{n} = {100.0 * k / n:.1f}%<br><small>[{100 * lo:.1f}, "
+            f"{100 * hi:.1f}]</small>")
+
+
+def _matrix_table(cm: dict, title: str) -> str:
+    rows = []
+    for label in _TRUTH_ROWS:
+        row = cm.get(label, {})
+        n = sum(row.values())
+        cells = "".join(f"<td>{_cell(row.get(v, 0), n)}</td>"
+                        for v in _VERDICTS)
+        rows.append(f"<tr><th>{label}</th>{cells}<td>{n}</td></tr>")
+    head = "".join(f"<th>called {v}</th>" for v in _VERDICTS)
+    return (f"<table><caption>{title} — rows: eyeball truth; cells: count, "
+            f"row rate, Wilson 95% interval</caption><tr><th>truth</th>"
+            f"{head}<th>n</th></tr>{''.join(rows)}</table>")
+
+
+def _slot_block(con, target_sql: str, slot_sql: str):
+    """(n, v1.1 counts, v1.2 counts, nights, nights all-dispersed, per-night
+    rows) for one disputed slot of one target."""
+    rows = q(con, f"""
+        SELECT d.night, d.verdict_traces, d.verdict
+        FROM frame_dispersion d JOIN frames f USING (obs_rowid)
+        WHERE f.is_canonical = 1 AND {target_sql} AND {slot_sql}
+          AND d.status = 'measured' ORDER BY d.night""")
+    v1, v2, nights = {}, {}, {}
+    for night, a, b in rows:
+        v1[a] = v1.get(a, 0) + 1
+        v2[b] = v2.get(b, 0) + 1
+        nights.setdefault(night, {}).setdefault(b, 0)
+        nights[night][b] += 1
+    all_disp = sum(1 for v in nights.values() if set(v) == {"dispersed"})
+    return len(rows), v1, v2, nights, all_disp
+
+
+def _counts(d: dict) -> str:
+    return ", ".join(f"{d.get(v, 0)} {v}" for v in _VERDICTS)
+
+
+def section_witness(con) -> str:
+    has = {r[1] for r in q(con, "PRAGMA table_info(frame_dispersion)")}
+    if "verdict_traces" not in has:
+        return ""
+    v1 = _confusion(con, "verdict_traces")
+    v2 = _confusion(con, "verdict")
+
+    def rate(cm, truth, verdict):
+        row = cm.get(truth, {})
+        n = sum(row.values())
+        return row.get(verdict, 0), n
+
+    key_rates = []
+    for name, truth, verdict in (
+            ("spectra certified <em>direct</em> (the dangerous error)",
+             "dispersed", "direct"),
+            ("spectra recognised as dispersed", "dispersed", "dispersed"),
+            ("images called dispersed", "direct", "dispersed"),
+            ("images certified direct", "direct", "direct")):
+        a, b = rate(v1, truth, verdict), rate(v2, truth, verdict)
+        key_rates.append(f"<tr><td>{name}</td><td>{_cell(*a)}</td>"
+                         f"<td>{_cell(*b)}</td></tr>")
+
+    n_meas = q1(con, f"SELECT count(*) FROM frame_dispersion WHERE {MEASURED}")
+    n_map = q1(con, "SELECT count(*) FROM frame_dispersion "
+                    "WHERE morph_status = 'measured'")
+    n_nomap_disp = q1(con, f"""SELECT count(*) FROM frame_dispersion
+        WHERE {MEASURED} AND morph_status IS NULL
+          AND verdict_traces = 'dispersed'""")
+    n_changed = q1(con, f"""SELECT count(*) FROM frame_dispersion
+        WHERE {MEASURED} AND verdict != verdict_traces""")
+    changed = q(con, f"""SELECT verdict_traces, verdict, count(*)
+        FROM frame_dispersion WHERE {MEASURED} AND verdict != verdict_traces
+        GROUP BY 1, 2 ORDER BY 3 DESC""")
+    changed_rows = "".join(f"<tr><td>{a}</td><td>{b}</td><td>{fmt(n)}</td>"
+                           "</tr>" for a, b, n in changed)
+
+    # Undisputed-label populations: controls and holdout (ordinary filters).
+    ctrl = {}
+    for col in ("verdict_traces", "verdict"):
+        ctrl[col] = dict(q(con, f"""SELECT {col}, count(*) FROM
+            frame_dispersion WHERE {MEASURED}
+              AND population IN ('control', 'holdout') GROUP BY 1"""))
+    n_ctrl = sum(ctrl["verdict"].values())
+
+    # template_r of the two labelled populations (strong-sky frames only).
+    def rs(pred):
+        return np.array([r[0] for r in q(con, f"""SELECT bg_template_r FROM
+            frame_dispersion WHERE {pred} AND bg_template_r IS NOT NULL
+              AND bg_contrast >= {dsp.MORPH_MIN_CONTRAST}""")])
+    r_ord = rs("population IN ('control','holdout')")
+    r_grism = rs(f"filter IN ({DISP_IN}) AND verdict_traces = 'dispersed'")
+    sep_txt = ""
+    if len(r_ord) and len(r_grism):
+        sep_txt = (f"Over frames with diffuse light (contrast &ge; "
+                   f"{dsp.MORPH_MIN_CONTRAST:g}&sigma;), the lozenge-template "
+                   f"correlation of {fmt(len(r_ord))} ordinary-filter control "
+                   f"frames reaches at most {r_ord.max():.2f} (99th percentile "
+                   f"{np.percentile(r_ord, 99):.2f}); for {fmt(len(r_grism))} "
+                   f"named-grism frames the trace test calls dispersed the "
+                   f"median is {np.median(r_grism):.2f}.  The lozenge "
+                   f"threshold is {dsp.MORPH_LOZENGE_MIN_R:.2f}.")
+
+    # Re-issued slots.
+    blocks = []
+    for name, tsql, ssql in (
+            ("NGC 5548, slot <code>6</code>",
+             "lower(f.target_best) IN ('ngc 5548','ngc5548')",
+             "d.filter = '6'"),
+            ("T CrB, slot <code>6</code>", "f.target_best = 'T CrB'",
+             "d.filter = '6'"),
+            ("T CrB, slot <code>W</code>", "f.target_best = 'T CrB'",
+             "lower(d.filter) = 'w'")):
+        n, a, b, nights, alld = _slot_block(con, tsql, ssql)
+        night_rows = " &middot; ".join(
+            f"{esc(k)}: " + ", ".join(f"{v[x]} {x}" for x in _VERDICTS
+                                     if v.get(x))
+            for k, v in sorted(nights.items()))
+        blocks.append(f"<tr><td>{name}</td><td>{n}</td><td>{_counts(a)}</td>"
+                      f"<td>{_counts(b)}</td><td>{alld} of {len(nights)}</td>"
+                      f"</tr><tr><td colspan=5><small>per night (v1.2): "
+                      f"{night_rows}</small></td></tr>")
+
+    # SN 2023ixf coverage (SN-G0d).
+    sn = q(con, """SELECT s.band_role, count(*),
+                          sum(d.status = 'measured'),
+                          sum(d.obs_rowid IS NULL OR d.status = 'pending'),
+                          sum(d.status = 'unreadable'),
+                          sum(d.verdict = 'dispersed'),
+                          sum(d.verdict = 'indeterminate'),
+                          sum(d.verdict = 'direct')
+                   FROM sn_g0_frames s LEFT JOIN frame_dispersion d
+                        USING (obs_rowid) GROUP BY 1 ORDER BY 1""")
+    sn_rows = "".join(
+        f"<tr><td>{esc(r[0])}</td>" + "".join(f"<td>{fmt(v or 0)}</td>"
+                                               for v in r[1:]) + "</tr>"
+        for r in sn)
+
+    return f"""
+<section id="witness"><h2>6&nbsp;&middot;&nbsp;The second witness: the sky,
+and a labelled truth set (S2c v1.2)</h2>
+<p>Sections 1&ndash;5 judge a frame by its <em>sources</em>.  That fails in
+one direction: on a long exposure of a faint target the first-order spectrum
+sinks below the detection threshold and only the round zero-order images are
+found, so the frame is certified <em>direct</em>.  A slitless grism also
+disperses the <em>sky</em>, which fills the field stop: its image is a bright
+lozenge in the middle of an otherwise pedestal-level frame, and it gets
+easier to see exactly as the target gets fainter.  S2c v1.2 measures a
+median-binned background map of every frame it reads, correlates it with the
+lozenge template of each grism/camera configuration (median map of frames
+the trace test calls dispersed; a frame never contributes to the template it
+is judged by, nor does any frame of its target), and combines the two
+witnesses: a lozenge makes a frame <em>dispersed</em>; traces against a
+direct-image sky are withheld as <em>indeterminate</em>; <em>direct</em> now
+needs both witnesses not to object.</p>
+<p>{sep_txt}</p>
+
+<h3>The truth set</h3>
+<p>{fmt(q1(con, "SELECT count(*) FROM s2c_truth"))} frames drawn at random,
+stratified by filter class and v1.1 verdict (weights favour the populations
+nobody had checked), labelled by eye from anonymous thumbnails showing
+neither the filter card nor any verdict (<code>pipeline/rlmt_diagnostics/
+s2c_truth_labels.csv</code>).  Because the draw is stratified the rates below
+describe the strata as drawn, not the archive; they are the error rates of
+the classifier on the hard cases, which is what they are for.</p>
+{_matrix_table(v1, "v1.1 — traces only")}
+{_matrix_table(v2, "v1.2 — traces + sky")}
+<table><caption>The rates that matter (Wilson 95% intervals)</caption>
+<tr><th></th><th>v1.1</th><th>v1.2</th></tr>{''.join(key_rates)}</table>
+
+<h3>What changed in the archive</h3>
+<p>{fmt(n_map)} of {fmt(n_meas)} measured frames carry a background map.
+The {fmt(n_nomap_disp)} without one are frames the trace test already calls
+dispersed under an hrg/lrg-family card; the sky could only demote them, and the
+truth set's <code>named_grism/dispersed</code> stratum measures how often that
+would be right, so their v1.2 verdict is the v1.1 verdict (basis: "traces, no
+sky evidence").  {fmt(n_changed)} verdicts changed:</p>
+<table><tr><th>v1.1</th><th>v1.2</th><th>frames</th></tr>{changed_rows}</table>
+<p>Ordinary-filter controls and holdout ({fmt(n_ctrl)} frames): v1.1
+{_counts(ctrl['verdict_traces'])}; v1.2 {_counts(ctrl['verdict'])}.</p>
+
+<h3>Re-issued verdicts for the disputed slots</h3>
+<table><tr><th>target / slot</th><th>frames</th><th>v1.1</th><th>v1.2</th>
+<th>nights with every frame dispersed</th></tr>{''.join(blocks)}</table>
+
+<h3>SN 2023ixf: every Gate-0 frame measured (SN-G0d)</h3>
+<table><tr><th>band role</th><th>frames</th><th>measured</th>
+<th>unmeasured</th><th>unreadable</th><th>dispersed</th>
+<th>indeterminate</th><th>direct</th></tr>{sn_rows}</table>
+</section>"""
+
+
 def render_report(manifest_path: Path) -> Path:
     """Render the full S2c report from the manifest DB.  Returns HTML path."""
     FIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -1317,6 +1531,7 @@ def render_report(manifest_path: Path) -> Path:
             section_slot6(con),
             section_projects(con),
             section_census(con),
+            section_witness(con),
         ]
 
         html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
@@ -1339,7 +1554,8 @@ def render_report(manifest_path: Path) -> Path:
   <a href="#strength">2 Which grism</a> &middot;
   <a href="#slot6">3 Slot '6'</a> &middot;
   <a href="#projects">4 NGC 5548 &amp; SN 2023ixf</a> &middot;
-  <a href="#census">5 Spectra census</a>
+  <a href="#census">5 Spectra census</a> &middot;
+  <a href="#witness">6 Second witness &amp; truth set</a>
 </nav>
 
 {"".join(sections)}

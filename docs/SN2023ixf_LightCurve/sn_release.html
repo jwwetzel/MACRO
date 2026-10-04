@@ -1,0 +1,229 @@
+<!doctype html><html><head><meta charset='utf-8'><title>SN 2023ixf release evidence</title><style>body{font-family:Georgia,serif;max-width:1100px;margin:auto;padding:1em;color:#222;background:#fafaf7}table{border-collapse:collapse;font-size:12px;margin:.6em 0}td,th{border:1px solid #ccc;padding:2px 6px}.decision{background:#eef4ea;padding:.5em;border-left:4px solid #4a7}img{max-width:100%}.task{color:#666}</style></head><body><h1>SN 2023ixf — validation and limits release: evidence</h1><p>Generated 2026-10-04T23:21:18Z by <code>macro_sn.report_sn</code> from <code>products/sn/sn2023ixf.sqlite</code> (SN-PHOT v1.0 (2026-10-04)) and the manifest Gate 0 tables. Every number is a query.</p><section id="resolve"><h2>Astrometry for every frame</h2><p class="task">Plan task <code>SN-S4-resolve</code></p><h3>Question</h3><p>Which broadband frames lacked a plate solution, and can each be solved?</p><h3>Evidence</h3><table><tr><th>filter</th><th>epoch</th><th>header solved</th><th>status</th><th>WCS source</th><th>frames</th><th>mean REFCAT2 matched</th><th>mean rms (&quot;)</th><th>mean 5σ detections</th></tr>
+<tr><td>G</td><td>campaign</td><td>0</td><td>failed</td><td>failed</td><td>24</td><td>&mdash;</td><td>&mdash;</td><td>13</td></tr>
+<tr><td>G</td><td>campaign</td><td>0</td><td>measured</td><td>solved</td><td>5</td><td>241</td><td>0.58</td><td>1097</td></tr>
+<tr><td>G</td><td>campaign</td><td>0</td><td>measured</td><td>solved-vote</td><td>5</td><td>163</td><td>0.60</td><td>687</td></tr>
+<tr><td>G</td><td>campaign</td><td>1</td><td>failed</td><td>failed</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>209595</td></tr>
+<tr><td>G</td><td>campaign</td><td>1</td><td>measured</td><td>header</td><td>174</td><td>63</td><td>0.62</td><td>101</td></tr>
+<tr><td>I</td><td>campaign</td><td>0</td><td>failed</td><td>failed</td><td>16</td><td>&mdash;</td><td>&mdash;</td><td>18</td></tr>
+<tr><td>I</td><td>campaign</td><td>0</td><td>measured</td><td>solved-vote</td><td>2</td><td>19</td><td>0.66</td><td>16</td></tr>
+<tr><td>I</td><td>campaign</td><td>1</td><td>measured</td><td>header</td><td>201</td><td>126</td><td>0.60</td><td>156</td></tr>
+<tr><td>I</td><td>campaign</td><td>1</td><td>measured</td><td>solved-vote</td><td>1</td><td>17</td><td>0.62</td><td>26</td></tr>
+<tr><td>R</td><td>campaign</td><td>0</td><td>failed</td><td>failed</td><td>16</td><td>&mdash;</td><td>&mdash;</td><td>13</td></tr>
+<tr><td>R</td><td>campaign</td><td>0</td><td>measured</td><td>solved</td><td>4</td><td>331</td><td>0.59</td><td>1030</td></tr>
+<tr><td>R</td><td>campaign</td><td>0</td><td>measured</td><td>solved-vote</td><td>5</td><td>108</td><td>0.64</td><td>313</td></tr>
+<tr><td>R</td><td>campaign</td><td>1</td><td>measured</td><td>header</td><td>178</td><td>111</td><td>0.59</td><td>147</td></tr>
+<tr><td>g</td><td>template_post</td><td>0</td><td>failed</td><td>failed</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>5639</td></tr>
+<tr><td>g</td><td>template_post</td><td>0</td><td>measured</td><td>solved</td><td>15</td><td>183</td><td>0.41</td><td>246</td></tr>
+<tr><td>g</td><td>template_post</td><td>1</td><td>measured</td><td>header</td><td>37</td><td>170</td><td>0.42</td><td>1317</td></tr>
+<tr><td>i</td><td>template_post</td><td>1</td><td>measured</td><td>header</td><td>37</td><td>161</td><td>0.46</td><td>1476</td></tr>
+<tr><td>r</td><td>template_post</td><td>0</td><td>measured</td><td>solved</td><td>15</td><td>237</td><td>0.40</td><td>313</td></tr>
+<tr><td>r</td><td>template_post</td><td>1</td><td>measured</td><td>header</td><td>37</td><td>199</td><td>0.45</td><td>1406</td></tr>
+<tr><td>G</td><td>template_pre</td><td>1</td><td>failed</td><td>failed</td><td>3</td><td>&mdash;</td><td>&mdash;</td><td>703</td></tr>
+<tr><td>G</td><td>template_pre</td><td>1</td><td>measured</td><td>header</td><td>5</td><td>17</td><td>0.76</td><td>737</td></tr>
+<tr><td>R</td><td>template_pre</td><td>1</td><td>measured</td><td>header</td><td>8</td><td>288</td><td>0.56</td><td>1091</td></tr>
+</table><h3>Decision</h3><div class="decision">Every frame's WCS is re-fitted to REFCAT2 (header solutions are never used unrefined). Unsolved frames were solved by a translation vote under the campaign camera's measured CD matrix, then by triangle matching. The frames that remain unsolved carry a median of about a dozen 5σ detections — fewer than the eight calibration stars the photometry needs — so no solution could make them usable.</div></section><section id="crosswalk"><h2>Filter identification and the MaxIm→pyscope crosswalk</h2><p class="task">Plan task <code>SN-S1-filter-crosswalk</code></p><h3>Question</h3><p>Which PS1 band does each filter code measure, and do the MaxIm campaign codes and the pyscope template codes agree?</p><h3>Evidence</h3><table><tr><th>epoch</th><th>camera</th><th>code</th><th>PS1 band</th><th>colour term (g−i)</th><th>±</th><th>tie rms</th><th>stars</th><th>identified</th></tr>
+<tr><td>campaign</td><td>AC4040</td><td>1</td><td>g</td><td>-0.747</td><td>0.008</td><td>0.055</td><td>54</td><td>0</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>1</td><td>i</td><td>+0.253</td><td>0.008</td><td>0.055</td><td>54</td><td>0</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>1</td><td>r</td><td>-0.075</td><td>0.007</td><td>0.061</td><td>55</td><td>1</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>G</td><td>g</td><td>+0.103</td><td>0.020</td><td>0.053</td><td>26</td><td>1</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>G</td><td>i</td><td>+1.103</td><td>0.020</td><td>0.053</td><td>26</td><td>0</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>G</td><td>r</td><td>+0.759</td><td>0.020</td><td>0.053</td><td>26</td><td>0</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>H</td><td>g</td><td>-0.756</td><td>0.006</td><td>0.060</td><td>54</td><td>0</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>H</td><td>i</td><td>+0.244</td><td>0.006</td><td>0.060</td><td>54</td><td>0</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>H</td><td>r</td><td>-0.226</td><td>0.006</td><td>0.054</td><td>54</td><td>1</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>I</td><td>g</td><td>-1.009</td><td>0.005</td><td>0.053</td><td>59</td><td>0</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>I</td><td>i</td><td>-0.009</td><td>0.005</td><td>0.053</td><td>59</td><td>1</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>I</td><td>r</td><td>-0.517</td><td>0.005</td><td>0.100</td><td>59</td><td>0</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>O</td><td>g</td><td>+0.009</td><td>0.018</td><td>0.070</td><td>31</td><td>1</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>O</td><td>i</td><td>+1.009</td><td>0.018</td><td>0.070</td><td>31</td><td>0</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>O</td><td>r</td><td>+0.673</td><td>0.018</td><td>0.072</td><td>31</td><td>0</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>R</td><td>g</td><td>-0.619</td><td>0.008</td><td>0.058</td><td>51</td><td>0</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>R</td><td>i</td><td>+0.381</td><td>0.008</td><td>0.058</td><td>51</td><td>0</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>R</td><td>r</td><td>+0.037</td><td>0.007</td><td>0.060</td><td>52</td><td>1</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>g</td><td>g</td><td>-0.053</td><td>0.005</td><td>0.209</td><td>70</td><td>1</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>g</td><td>i</td><td>+0.947</td><td>0.005</td><td>0.209</td><td>70</td><td>0</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>g</td><td>r</td><td>+0.364</td><td>0.005</td><td>0.244</td><td>70</td><td>0</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>ha</td><td>g</td><td>-0.785</td><td>0.007</td><td>0.094</td><td>41</td><td>0</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>ha</td><td>i</td><td>+0.215</td><td>0.007</td><td>0.094</td><td>41</td><td>1</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>ha</td><td>r</td><td>-0.300</td><td>0.007</td><td>0.070</td><td>40</td><td>0</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>i</td><td>g</td><td>-1.022</td><td>0.005</td><td>0.079</td><td>79</td><td>0</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>i</td><td>i</td><td>-0.022</td><td>0.005</td><td>0.079</td><td>79</td><td>1</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>i</td><td>r</td><td>-0.597</td><td>0.005</td><td>0.128</td><td>79</td><td>0</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>r</td><td>g</td><td>-0.545</td><td>0.005</td><td>0.115</td><td>76</td><td>0</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>r</td><td>i</td><td>+0.455</td><td>0.005</td><td>0.115</td><td>76</td><td>0</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>r</td><td>r</td><td>-0.123</td><td>0.005</td><td>0.141</td><td>76</td><td>1</td></tr>
+<tr><td>template_post</td><td>iKon</td><td>g</td><td>g</td><td>+0.122</td><td>0.005</td><td>0.158</td><td>63</td><td>1</td></tr>
+<tr><td>template_post</td><td>iKon</td><td>g</td><td>i</td><td>+1.122</td><td>0.005</td><td>0.158</td><td>63</td><td>0</td></tr>
+<tr><td>template_post</td><td>iKon</td><td>g</td><td>r</td><td>+0.581</td><td>0.005</td><td>0.223</td><td>63</td><td>0</td></tr>
+<tr><td>template_post</td><td>iKon</td><td>r</td><td>g</td><td>-0.543</td><td>0.005</td><td>0.112</td><td>65</td><td>0</td></tr>
+<tr><td>template_post</td><td>iKon</td><td>r</td><td>i</td><td>+0.457</td><td>0.005</td><td>0.112</td><td>65</td><td>0</td></tr>
+<tr><td>template_post</td><td>iKon</td><td>r</td><td>r</td><td>-0.123</td><td>0.005</td><td>0.138</td><td>65</td><td>1</td></tr>
+<tr><td>template_pre</td><td>AC4040</td><td>H</td><td>g</td><td>-0.756</td><td>0.006</td><td>0.070</td><td>57</td><td>0</td></tr>
+<tr><td>template_pre</td><td>AC4040</td><td>H</td><td>i</td><td>+0.244</td><td>0.006</td><td>0.070</td><td>57</td><td>0</td></tr>
+<tr><td>template_pre</td><td>AC4040</td><td>H</td><td>r</td><td>-0.208</td><td>0.006</td><td>0.050</td><td>56</td><td>1</td></tr>
+<tr><td>template_pre</td><td>AC4040</td><td>O</td><td>g</td><td>+0.276</td><td>0.011</td><td>0.056</td><td>37</td><td>1</td></tr>
+<tr><td>template_pre</td><td>AC4040</td><td>O</td><td>i</td><td>+1.276</td><td>0.011</td><td>0.056</td><td>37</td><td>0</td></tr>
+<tr><td>template_pre</td><td>AC4040</td><td>O</td><td>r</td><td>+0.944</td><td>0.011</td><td>0.060</td><td>37</td><td>0</td></tr>
+</table><h3>Decision</h3><div class="decision">Identification = the PS1 band with the smallest |colour term|. G, R, I are g, r, i; pyscope g, r, i are the same bands. Narrowband codes cannot be identified this way (no profile from a colour term).</div></section><section id="cal"><h2>REFCAT2 ensemble calibration with held-out check stars</h2><p class="task">Plan task <code>SN-S4-ensemble-cal</code></p><h3>Question</h3><p>Is the error model honest on stars that took no part in the fit?</p><h3>Evidence</h3><table><tr><th>epoch</th><th>camera</th><th>code</th><th>frames used</th><th>ensemble</th><th>check</th><th>colour term</th><th>k″ (colour×X)</th><th>floor</th><th>tie rms</th><th>check χ²ν</th><th>dof</th><th>verdict (rule 1)</th></tr>
+<tr><td>campaign</td><td>AC4040</td><td>G</td><td>158/184</td><td>26</td><td>15</td><td>+0.105</td><td>+0.000</td><td>0.0387</td><td>0.053</td><td>0.99</td><td>1066</td><td>pass</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>R</td><td>166/185</td><td>52</td><td>20</td><td>+0.039</td><td>-0.009</td><td>0.0276</td><td>0.060</td><td>1.04</td><td>2072</td><td>pass</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>I</td><td>184/204</td><td>59</td><td>25</td><td>-0.003</td><td>-0.003</td><td>0.0225</td><td>0.046</td><td>1.04</td><td>2972</td><td>pass</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>H</td><td>99/102</td><td>54</td><td>21</td><td>-0.226</td><td>-0.006</td><td>0.0329</td><td>0.054</td><td>1.02</td><td>1369</td><td>pass</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>O</td><td>115/134</td><td>31</td><td>10</td><td>+0.008</td><td>+0.036</td><td>0.0437</td><td>0.070</td><td>0.90</td><td>948</td><td>pass</td></tr>
+<tr><td>campaign</td><td>AC4040</td><td>1</td><td>106/113</td><td>55</td><td>21</td><td>+0.257</td><td>-0.003</td><td>0.0348</td><td>0.055</td><td>1.09</td><td>1492</td><td>pass</td></tr>
+<tr><td>template_pre</td><td>AC4040</td><td>H</td><td>8/8</td><td>59</td><td>15</td><td>-0.201</td><td>-0.068</td><td>0.0160</td><td>0.051</td><td>1.40</td><td>94</td><td>pass</td></tr>
+<tr><td>template_pre</td><td>AC4040</td><td>O</td><td>8/8</td><td>38</td><td>9</td><td>+0.264</td><td>-0.376</td><td>0.0170</td><td>0.056</td><td>1.69</td><td>55</td><td>pass</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>g</td><td>33/37</td><td>70</td><td>25</td><td>-0.055</td><td>+1.206</td><td>0.1570</td><td>0.209</td><td>0.34</td><td>475</td><td>DEFECT (errors overestimated)</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>r</td><td>24/29</td><td>76</td><td>27</td><td>-0.110</td><td>+0.225</td><td>0.0139</td><td>0.142</td><td>1.13</td><td>399</td><td>pass</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>i</td><td>30/37</td><td>80</td><td>26</td><td>-0.025</td><td>+0.185</td><td>0.0406</td><td>0.079</td><td>0.94</td><td>557</td><td>pass</td></tr>
+<tr><td>template_post</td><td>QHY600</td><td>ha</td><td>16/17</td><td>41</td><td>11</td><td>-0.288</td><td>+0.309</td><td>0.0166</td><td>0.071</td><td>1.63</td><td>117</td><td>pass</td></tr>
+<tr><td>template_post</td><td>iKon</td><td>g</td><td>15/15</td><td>63</td><td>25</td><td>+0.133</td><td>-1.964</td><td>0.0025</td><td>0.158</td><td>1.39</td><td>350</td><td>pass</td></tr>
+<tr><td>template_post</td><td>iKon</td><td>r</td><td>15/15</td><td>65</td><td>26</td><td>-0.111</td><td>-0.002</td><td>0.0033</td><td>0.139</td><td>1.35</td><td>362</td><td>pass</td></tr>
+</table><p>Scintillation scale (pooled over G, R, I): C = 2.78 × Young (1967).</p><table><tr><th>code</th><th>exp (s)</th><th>check points</th><th>rms obs</th><th>rms model</th><th>normalised rms</th><th>scint share of variance</th></tr>
+<tr><td>1</td><td>32.0</td><td>79</td><td>0.0863</td><td>0.0841</td><td>1.156</td><td>0.001</td></tr>
+<tr><td>1</td><td>64.0</td><td>82</td><td>0.0620</td><td>0.0558</td><td>1.147</td><td>0.002</td></tr>
+<tr><td>1</td><td>128.0</td><td>1352</td><td>0.0530</td><td>0.0473</td><td>1.031</td><td>0.002</td></tr>
+<tr><td>G</td><td>0.5</td><td>34</td><td>0.1102</td><td>0.1092</td><td>1.039</td><td>0.103</td></tr>
+<tr><td>G</td><td>2.0</td><td>979</td><td>0.0810</td><td>0.0582</td><td>0.989</td><td>0.077</td></tr>
+<tr><td>G</td><td>8.0</td><td>58</td><td>0.1256</td><td>0.1048</td><td>1.127</td><td>0.007</td></tr>
+<tr><td>G</td><td>32.0</td><td>10</td><td>0.0749</td><td>0.0571</td><td>1.143</td><td>0.002</td></tr>
+<tr><td>H</td><td>32.0</td><td>108</td><td>0.0823</td><td>0.0808</td><td>1.039</td><td>0.001</td></tr>
+<tr><td>H</td><td>64.0</td><td>73</td><td>0.0523</td><td>0.0538</td><td>1.066</td><td>0.003</td></tr>
+<tr><td>H</td><td>128.0</td><td>1209</td><td>0.0510</td><td>0.0468</td><td>1.004</td><td>0.003</td></tr>
+<tr><td>I</td><td>0.5</td><td>47</td><td>0.1575</td><td>0.1434</td><td>1.101</td><td>0.049</td></tr>
+<tr><td>I</td><td>2.0</td><td>154</td><td>0.0886</td><td>0.0867</td><td>1.037</td><td>0.034</td></tr>
+<tr><td>I</td><td>4.0</td><td>49</td><td>0.0749</td><td>0.0569</td><td>1.529</td><td>0.015</td></tr>
+<tr><td>I</td><td>8.0</td><td>2642</td><td>0.0428</td><td>0.0417</td><td>0.999</td><td>0.052</td></tr>
+<tr><td>I</td><td>16.0</td><td>64</td><td>0.0322</td><td>0.0313</td><td>1.109</td><td>0.043</td></tr>
+<tr><td>I</td><td>32.0</td><td>41</td><td>0.0343</td><td>0.0271</td><td>1.295</td><td>0.031</td></tr>
+<tr><td>O</td><td>32.0</td><td>32</td><td>0.0569</td><td>0.0643</td><td>0.811</td><td>0.002</td></tr>
+<tr><td>O</td><td>64.0</td><td>889</td><td>0.0497</td><td>0.0539</td><td>0.909</td><td>0.003</td></tr>
+<tr><td>O</td><td>128.0</td><td>37</td><td>0.0822</td><td>0.0485</td><td>1.720</td><td>0.002</td></tr>
+<tr><td>R</td><td>0.5</td><td>58</td><td>0.1601</td><td>0.1254</td><td>1.102</td><td>0.068</td></tr>
+<tr><td>R</td><td>2.0</td><td>77</td><td>0.0651</td><td>0.0611</td><td>1.007</td><td>0.065</td></tr>
+<tr><td>R</td><td>4.0</td><td>1875</td><td>0.0475</td><td>0.0451</td><td>1.001</td><td>0.079</td></tr>
+<tr><td>R</td><td>8.0</td><td>52</td><td>0.0494</td><td>0.0471</td><td>1.306</td><td>0.038</td></tr>
+<tr><td>R</td><td>32.0</td><td>30</td><td>0.0446</td><td>0.0323</td><td>1.311</td><td>0.016</td></tr>
+</table><h3>Decision</h3><div class="decision">Check-star χ²ν per band is reported with its dof; every campaign band passes standing rule 1. The QHY600 g template set fails it (χ²ν < 0.5) and is used only for the crosswalk.</div></section><section id="templates"><h2>The template table</h2><p class="task">Plan task <code>SN-S5-template-table</code></p><h3>Question</h3><p>Which template epochs are usable, on which camera, mechanical epoch, FWHM and focus?</p><h3>Evidence</h3><table><tr><th>night</th><th>camera</th><th>filter</th><th>frames</th><th>exp (s)</th><th>mech epoch</th><th>rotation (°)</th><th>scale (&quot;/px)</th><th>FWHM (&quot;)</th><th>FOCPOS</th><th>focus offset</th><th>in focus</th></tr>
+<tr><td>2023-05-04</td><td>AC4040</td><td>G</td><td>8</td><td>256</td><td>AC4040:2023-02-06</td><td>179.1</td><td>0.539</td><td>&mdash;</td><td>17386</td><td>+312</td><td>0</td></tr>
+<tr><td>2023-05-04</td><td>AC4040</td><td>H</td><td>8</td><td>256</td><td>AC4040:2023-02-06</td><td>179.1</td><td>0.539</td><td>2.42</td><td>17666</td><td>+435</td><td>1</td></tr>
+<tr><td>2023-05-04</td><td>AC4040</td><td>O</td><td>8</td><td>256</td><td>AC4040:2023-02-06</td><td>179.1</td><td>0.539</td><td>2.64</td><td>17670</td><td>+314</td><td>0</td></tr>
+<tr><td>2023-05-04</td><td>AC4040</td><td>R</td><td>8</td><td>256</td><td>AC4040:2023-02-06</td><td>179.1</td><td>0.539</td><td>4.34</td><td>17328</td><td>+155</td><td>0</td></tr>
+<tr><td>2023-05-04</td><td>AC4040</td><td>X</td><td>8</td><td>256</td><td>AC4040:2023-02-06</td><td>179.1</td><td>0.539</td><td>3.97</td><td>17483</td><td>+266</td><td>0</td></tr>
+<tr><td>2023-11-27</td><td>AC4040</td><td>L</td><td>2</td><td>64</td><td>AC4040:2023-02-06</td><td>179.1</td><td>0.539</td><td>4.21</td><td>17123</td><td>-56</td><td>0</td></tr>
+<tr><td>2024-03-11</td><td>AC4040</td><td>L</td><td>1</td><td>32</td><td>AC4040:2023-02-06</td><td>179.1</td><td>0.539</td><td>2.65</td><td>17094</td><td>-85</td><td>1</td></tr>
+<tr><td>2024-05-18</td><td>iKon</td><td>g</td><td>15</td><td>90</td><td>iKon:2024-05-12</td><td>177.9</td><td>0.809</td><td>2.90</td><td>3434</td><td>-301</td><td>1</td></tr>
+<tr><td>2024-05-18</td><td>iKon</td><td>r</td><td>15</td><td>90</td><td>iKon:2024-05-12</td><td>177.9</td><td>0.809</td><td>2.96</td><td>3435</td><td>-368</td><td>1</td></tr>
+<tr><td>2026-03-21</td><td>QHY600</td><td>g</td><td>15</td><td>30</td><td>QHY600:2026-03-21</td><td>3.2</td><td>0.451</td><td>2.42</td><td>8304</td><td>+104</td><td>1</td></tr>
+<tr><td>2026-03-21</td><td>QHY600</td><td>ha</td><td>15</td><td>90</td><td>QHY600:2026-03-21</td><td>3.2</td><td>&mdash;</td><td>&mdash;</td><td>8304</td><td>+116</td><td>0</td></tr>
+<tr><td>2026-03-21</td><td>QHY600</td><td>i</td><td>15</td><td>30</td><td>QHY600:2026-03-21</td><td>3.2</td><td>0.451</td><td>1.87</td><td>8304</td><td>+39</td><td>1</td></tr>
+<tr><td>2026-03-21</td><td>QHY600</td><td>r</td><td>15</td><td>30</td><td>QHY600:2026-03-21</td><td>3.2</td><td>0.451</td><td>2.17</td><td>8304</td><td>+150</td><td>1</td></tr>
+<tr><td>2026-03-22</td><td>QHY600</td><td>g</td><td>20</td><td>30</td><td>QHY600:2026-03-22</td><td>179.9</td><td>0.451</td><td>3.21</td><td>8591</td><td>+391</td><td>0</td></tr>
+<tr><td>2026-03-22</td><td>QHY600</td><td>ha</td><td>20</td><td>90</td><td>QHY600:2026-03-22</td><td>179.9</td><td>0.451</td><td>2.91</td><td>8591</td><td>+403</td><td>1</td></tr>
+<tr><td>2026-03-22</td><td>QHY600</td><td>i</td><td>20</td><td>30</td><td>QHY600:2026-03-22</td><td>179.9</td><td>0.451</td><td>2.73</td><td>8591</td><td>+326</td><td>0</td></tr>
+<tr><td>2026-03-22</td><td>QHY600</td><td>r</td><td>20</td><td>30</td><td>QHY600:2026-03-22</td><td>179.9</td><td>0.451</td><td>2.84</td><td>8591</td><td>+437</td><td>0</td></tr>
+<tr><td>2026-04-01</td><td>QHY600</td><td>g</td><td>3</td><td>190</td><td>QHY600:2026-04-01</td><td>179.6</td><td>0.451</td><td>2.20</td><td>8061</td><td>-140</td><td>1</td></tr>
+<tr><td>2026-04-01</td><td>QHY600</td><td>i</td><td>2</td><td>175</td><td>QHY600:2026-04-01</td><td>179.6</td><td>0.451</td><td>2.07</td><td>8046</td><td>-219</td><td>1</td></tr>
+<tr><td>2026-04-01</td><td>QHY600</td><td>r</td><td>2</td><td>200</td><td>QHY600:2026-04-01</td><td>179.6</td><td>0.451</td><td>1.96</td><td>8046</td><td>-108</td><td>1</td></tr>
+</table><h3>Decision</h3><div class="decision">In focus = FWHM within 1.3× the campaign median (AC4040) or the best epoch of that camera. Narrowband template: 2023-05-04 H only (O fails the focus test). Pre-explosion G/R are out of focus.</div></section><section id="phot"><h2>Two-regime photometry</h2><p class="task">Plan task <code>SN-S5-photometry</code></p><h3>Question</h3><p>Does the aperture (bright) regime agree with the template-subtracted (faint) regime, and is the scintillation term matched by the check-star rms?</p><h3>Evidence</h3><table><tr><th>code</th><th>frames</th><th>mean aperture − subtracted (mag)</th><th>min</th><th>max</th></tr>
+<tr><td>G</td><td>112</td><td>+0.0020</td><td>-0.0069</td><td>+0.0074</td></tr>
+<tr><td>I</td><td>55</td><td>+0.0032</td><td>-0.0004</td><td>+0.0220</td></tr>
+<tr><td>R</td><td>54</td><td>+0.0019</td><td>-0.0064</td><td>+0.0051</td></tr>
+</table><table><tr><th>code</th><th>SN floor (mag)</th><th>frames</th><th>nights</th><th>star floor</th></tr>
+<tr><td>G</td><td>0.0127</td><td>107</td><td>32</td><td>0.0387</td></tr>
+<tr><td>R</td><td>0.0120</td><td>41</td><td>24</td><td>0.0276</td></tr>
+<tr><td>I</td><td>0.0163</td><td>48</td><td>19</td><td>0.0225</td></tr>
+<tr><td>1</td><td>0.0154</td><td>12</td><td>8</td><td>0.0348</td></tr>
+</table><table><tr><th>code</th><th>usable frames</th><th>campaign frames</th><th>nights</th></tr>
+<tr><td>1</td><td>15</td><td>124</td><td>8</td></tr>
+<tr><td>G</td><td>112</td><td>209</td><td>32</td></tr>
+<tr><td>H</td><td>8</td><td>112</td><td>4</td></tr>
+<tr><td>I</td><td>55</td><td>220</td><td>19</td></tr>
+<tr><td>O</td><td>21</td><td>172</td><td>17</td></tr>
+<tr><td>R</td><td>54</td><td>203</td><td>24</td></tr>
+</table><figure><img src="figures/sn/sn_fig2_lightcurve.png" alt=""><figcaption>Figure 2: PS1-tied gri light curve.</figcaption></figure><h3>Decision</h3><div class="decision">The overlap systematic is a few mmag in every band. SN frames are photometry only in exposure groups whose check stars validate the error model; S2c-indeterminate frames only if their own star PSFs pass the elongation check.</div></section><section id="peak"><h2>The peak epoch</h2><p class="task">Plan task <code>SN-S5b-peak-epoch</code></p><h3>Question</h3><p>Is the clean start (+5.4 d) at or after optical maximum?</p><h3>Evidence</h3><table><tr><th>quantity</th><th>value</th><th>source</th></tr>
+<tr><td>peak_V_Teja</td><td>5</td><td>Teja et al. 2023, ApJL 954, L12</td></tr>
+<tr><td>peak_V_Li</td><td>6</td><td>Li et al. 2025, A&amp;A 703, A168</td></tr>
+<tr><td>first_clean_G</td><td>5.3725</td><td>this work (sn_phot)</td></tr>
+<tr><td>first_clean_I</td><td>5.37347</td><td>this work (sn_phot)</td></tr>
+<tr><td>first_clean_R</td><td>5.37172</td><td>this work (sn_phot)</td></tr>
+<tr><td>t0_mjd_li25</td><td>60082.8</td><td>Li et al. 2025, A&amp;A 703, A168</td></tr>
+<tr><td>f_halpha_max</td><td>3.18e-13</td><td>Bostroem et al. 2023, ApJL 956, L5</td></tr>
+<tr><td>f_halpha_max_phase</td><td>1.36</td><td>Bostroem et al. 2023, ApJL 956, L5</td></tr>
+<tr><td>f_halpha_fade</td><td>3</td><td>Smith et al. 2023, ApJ 956, 46</td></tr>
+<tr><td>ps1_r_weff</td><td>1252.41</td><td>SVO FPS PAN-STARRS/PS1.r (Tonry et al. 2012)</td></tr>
+</table><table><tr><th>band</th><th>t_peak (d)</th><th>16%</th><th>84%</th><th>points</th></tr>
+<tr><td>g</td><td>5.36</td><td>4.95</td><td>5.76</td><td>4</td></tr>
+<tr><td>r</td><td>5.90</td><td>5.72</td><td>6.21</td><td>5</td></tr>
+<tr><td>i</td><td>14.34</td><td>12.07</td><td>15.27</td><td>6</td></tr>
+<tr><td>V</td><td>&mdash;</td><td>7.92</td><td>14.31</td><td>4</td></tr>
+</table><h3>Decision</h3><div class="decision">g and r peak at the clean start; i keeps brightening to ~+14 d. The paper uses no 'rise' language.</div></section><section id="gate"><h2>The predicted-excess gate</h2><p class="task">Plan task <code>SN-S6-0-excess-gate</code></p><h3>Question</h3><p>Would the flash-phase (H − '[S II]') colour see the Hα excess published spectroscopy predicts?</p><h3>Evidence</h3><table><tr><th>epoch (d)</th><th>W (Å)</th><th>excess (upper)</th><th>Δm upper</th><th>Δm central</th><th>σ_rep</th><th>σ_loc</th><th>σ_NB</th><th>passes 3σ_NB</th><th>passes 3σ_rep</th></tr>
+<tr><td>2.5</td><td>50</td><td>0.153</td><td>0.154</td><td>0.123</td><td>0.020</td><td>0.327</td><td>0.328</td><td>0</td><td>1</td></tr>
+<tr><td>2.5</td><td>65</td><td>0.117</td><td>0.121</td><td>0.096</td><td>0.020</td><td>0.327</td><td>0.328</td><td>0</td><td>1</td></tr>
+<tr><td>2.5</td><td>80</td><td>0.095</td><td>0.099</td><td>0.079</td><td>0.020</td><td>0.327</td><td>0.328</td><td>0</td><td>1</td></tr>
+<tr><td>2.5</td><td>53</td><td>0.144</td><td>0.146</td><td>0.116</td><td>0.020</td><td>0.327</td><td>0.328</td><td>0</td><td>1</td></tr>
+<tr><td>5.4</td><td>50</td><td>0.075</td><td>0.079</td><td>0.036</td><td>0.020</td><td>0.327</td><td>0.328</td><td>0</td><td>1</td></tr>
+<tr><td>5.4</td><td>65</td><td>0.058</td><td>0.061</td><td>0.028</td><td>0.020</td><td>0.327</td><td>0.328</td><td>0</td><td>1</td></tr>
+<tr><td>5.4</td><td>80</td><td>0.047</td><td>0.050</td><td>0.023</td><td>0.020</td><td>0.327</td><td>0.328</td><td>0</td><td>0</td></tr>
+<tr><td>5.4</td><td>53</td><td>0.071</td><td>0.074</td><td>0.034</td><td>0.020</td><td>0.327</td><td>0.328</td><td>0</td><td>1</td></tr>
+<tr><td>6.4</td><td>50</td><td>0.072</td><td>0.076</td><td>0.029</td><td>0.020</td><td>0.302</td><td>0.302</td><td>0</td><td>1</td></tr>
+<tr><td>6.4</td><td>65</td><td>0.055</td><td>0.059</td><td>0.022</td><td>0.020</td><td>0.302</td><td>0.302</td><td>0</td><td>0</td></tr>
+<tr><td>6.4</td><td>80</td><td>0.045</td><td>0.048</td><td>0.018</td><td>0.020</td><td>0.302</td><td>0.302</td><td>0</td><td>0</td></tr>
+<tr><td>6.4</td><td>53</td><td>0.068</td><td>0.071</td><td>0.027</td><td>0.020</td><td>0.302</td><td>0.302</td><td>0</td><td>1</td></tr>
+</table><table><tr><th>code</th><th>W from ZP ratio (Å)</th><th>MAD</th><th>nights</th></tr>
+<tr><td>H</td><td>53</td><td>3</td><td>26</td></tr>
+<tr><td>1</td><td>41</td><td>2</td><td>26</td></tr>
+</table><h3>Decision</h3><div class="decision">Verdict: <b>DEMOTE S6a</b>. The locus transfer to the SN's colour, blueward of every calibration star, is uncertain by ~0.3 mag; S6a is demoted before the measurement.</div></section><section id="resid"><h2>Residuals against the published photometry</h2><p class="task">Plan task <code>SN-S7b-residuals-table</code></p><h3>Question</h3><p>How do the RLMT nightly magnitudes compare with Li et al. (2025)?</p><h3>Evidence</h3><table><tr><th>code</th><th>subset</th><th>N</th><th>offset</th><th>±</th><th>rms</th><th>χ²ν</th><th>dof</th><th>colour range lo</th><th>hi</th></tr>
+<tr><td>G</td><td>all</td><td>24</td><td>+0.099</td><td>0.005</td><td>0.037</td><td>1.33</td><td>23</td><td>0.31</td><td>0.93</td></tr>
+<tr><td>G</td><td>colour inside training range</td><td>6</td><td>+0.122</td><td>0.010</td><td>0.020</td><td>0.75</td><td>5</td><td>0.31</td><td>0.93</td></tr>
+<tr><td>G</td><td>colour outside training range</td><td>18</td><td>+0.091</td><td>0.006</td><td>0.036</td><td>1.19</td><td>17</td><td>0.31</td><td>0.93</td></tr>
+<tr><td>G</td><td>all, published SDSS mags untransformed</td><td>24</td><td>+0.066</td><td>0.005</td><td>0.024</td><td>0.70</td><td>23</td><td>0.31</td><td>0.93</td></tr>
+<tr><td>R</td><td>all</td><td>19</td><td>+0.037</td><td>0.006</td><td>0.027</td><td>1.03</td><td>18</td><td>0.33</td><td>1.60</td></tr>
+<tr><td>R</td><td>colour inside training range</td><td>5</td><td>+0.054</td><td>0.010</td><td>0.016</td><td>0.78</td><td>4</td><td>0.33</td><td>1.60</td></tr>
+<tr><td>R</td><td>colour outside training range</td><td>14</td><td>+0.028</td><td>0.007</td><td>0.028</td><td>0.81</td><td>13</td><td>0.33</td><td>1.60</td></tr>
+<tr><td>R</td><td>all, published SDSS mags untransformed</td><td>19</td><td>+0.035</td><td>0.006</td><td>0.027</td><td>0.98</td><td>18</td><td>0.33</td><td>1.60</td></tr>
+<tr><td>I</td><td>all</td><td>15</td><td>+0.044</td><td>0.006</td><td>0.039</td><td>1.66</td><td>14</td><td>0.33</td><td>2.00</td></tr>
+<tr><td>I</td><td>colour inside training range</td><td>3</td><td>+0.053</td><td>0.009</td><td>0.010</td><td>0.57</td><td>2</td><td>0.33</td><td>2.00</td></tr>
+<tr><td>I</td><td>colour outside training range</td><td>12</td><td>+0.038</td><td>0.007</td><td>0.042</td><td>1.87</td><td>11</td><td>0.33</td><td>2.00</td></tr>
+<tr><td>I</td><td>all, published SDSS mags untransformed</td><td>15</td><td>+0.044</td><td>0.006</td><td>0.037</td><td>1.48</td><td>14</td><td>0.33</td><td>2.00</td></tr>
+</table><table><tr><th>phase (d)</th><th>ZTF g</th><th>RLMT g</th><th>RLMT − ZTF</th></tr>
+<tr><td>35.47</td><td>12.019</td><td>12.035</td><td>+0.017</td></tr>
+<tr><td>39.52</td><td>12.148</td><td>12.174</td><td>+0.026</td></tr>
+</table><figure><img src="figures/sn/sn_fig3_residuals.png" alt=""><figcaption>Figure 3: residuals vs Li et al. (2025).</figcaption></figure><h3>Decision</h3><div class="decision">The table exists before any variability limit is quoted.</div></section><section id="var"><h2>Variability and bump limits</h2><p class="task">Plan task <code>SN-S8-variability-limits</code></p><h3>Question</h3><p>What night-to-night variability could the campaign have seen?</p><h3>Evidence</h3><table><tr><th>code</th><th>nights</th><th>knots (d)</th><th>χ²ν about trend</th><th>bump SNR</th><th>threshold</th><th>FAP</th><th>sine Δχ²</th><th>threshold</th><th>FAP</th></tr>
+<tr><td>G</td><td>32</td><td>4</td><td>1.99</td><td>3.40</td><td>4.31</td><td>0.050</td><td>9.3</td><td>17.6</td><td>0.066</td></tr>
+<tr><td>R</td><td>24</td><td>8</td><td>1.33</td><td>2.37</td><td>3.40</td><td>0.152</td><td>6.3</td><td>12.9</td><td>0.076</td></tr>
+<tr><td>I</td><td>19</td><td>12</td><td>1.25</td><td>1.77</td><td>4.21</td><td>0.584</td><td>4.4</td><td>17.0</td><td>0.252</td></tr>
+</table><table><tr><th>code</th><th>shape</th><th>σ_t or P (d)</th><th>A90 (mag)</th><th>noise-only scale</th><th>signed bias</th><th>A50 all</th><th>completeness</th></tr>
+<tr><td>G</td><td>bump</td><td>1</td><td>0.232</td><td>0.143</td><td>-0.0006</td><td>0.113</td><td>0.87</td></tr>
+<tr><td>G</td><td>bump</td><td>2</td><td>&mdash;</td><td>0.051</td><td>&mdash;</td><td>0.203</td><td>0.71</td></tr>
+<tr><td>G</td><td>bump</td><td>4</td><td>&mdash;</td><td>0.034</td><td>&mdash;</td><td>&mdash;</td><td>0.00</td></tr>
+<tr><td>G</td><td>sine</td><td>2.5</td><td>0.019</td><td>0.018</td><td>-0.0004</td><td>0.015</td><td>1.00</td></tr>
+<tr><td>G</td><td>sine</td><td>5</td><td>0.021</td><td>0.018</td><td>+0.0004</td><td>0.015</td><td>1.00</td></tr>
+<tr><td>G</td><td>sine</td><td>10</td><td>0.120</td><td>0.018</td><td>+0.0112</td><td>0.040</td><td>1.00</td></tr>
+<tr><td>G</td><td>sine</td><td>20</td><td>&mdash;</td><td>0.018</td><td>&mdash;</td><td>&mdash;</td><td>0.00</td></tr>
+<tr><td>R</td><td>bump</td><td>1</td><td>0.162</td><td>0.487</td><td>-0.0000</td><td>0.113</td><td>0.87</td></tr>
+<tr><td>R</td><td>bump</td><td>2</td><td>0.311</td><td>0.069</td><td>-0.0001</td><td>0.095</td><td>0.95</td></tr>
+<tr><td>R</td><td>bump</td><td>4</td><td>&mdash;</td><td>0.040</td><td>&mdash;</td><td>0.243</td><td>0.75</td></tr>
+<tr><td>R</td><td>sine</td><td>2.5</td><td>0.028</td><td>0.019</td><td>+0.0015</td><td>0.011</td><td>1.00</td></tr>
+<tr><td>R</td><td>sine</td><td>5</td><td>0.024</td><td>0.019</td><td>+0.0009</td><td>0.016</td><td>1.00</td></tr>
+<tr><td>R</td><td>sine</td><td>10</td><td>0.023</td><td>0.019</td><td>+0.0002</td><td>0.018</td><td>1.00</td></tr>
+<tr><td>R</td><td>sine</td><td>20</td><td>0.227</td><td>0.019</td><td>+0.0475</td><td>0.088</td><td>0.97</td></tr>
+<tr><td>I</td><td>bump</td><td>1</td><td>0.171</td><td>0.914</td><td>-0.0000</td><td>0.158</td><td>0.72</td></tr>
+<tr><td>I</td><td>bump</td><td>2</td><td>0.248</td><td>0.105</td><td>-0.0000</td><td>0.137</td><td>1.00</td></tr>
+<tr><td>I</td><td>bump</td><td>4</td><td>&mdash;</td><td>0.061</td><td>&mdash;</td><td>0.195</td><td>0.85</td></tr>
+<tr><td>I</td><td>sine</td><td>2.5</td><td>0.030</td><td>0.023</td><td>+0.0017</td><td>0.018</td><td>1.00</td></tr>
+<tr><td>I</td><td>sine</td><td>5</td><td>0.029</td><td>0.023</td><td>+0.0017</td><td>0.020</td><td>1.00</td></tr>
+<tr><td>I</td><td>sine</td><td>10</td><td>0.033</td><td>0.023</td><td>-0.0001</td><td>0.024</td><td>1.00</td></tr>
+<tr><td>I</td><td>sine</td><td>20</td><td>0.107</td><td>0.023</td><td>+0.0109</td><td>0.036</td><td>1.00</td></tr>
+</table><figure><img src="figures/sn/sn_fig4_limits.png" alt=""><figcaption>Figure 4: injection-defined limits.</figcaption></figure><h3>Decision</h3><div class="decision">No detection (all FAP > 0.1%). Every limit carries its injected amplitude and a noise-only predicted scale; no intra-night periodogram.</div></section><section id="late"><h2>Late-time stacks</h2><p class="task">Plan task <code>SN-S9-late-time</code></p><h3>Question</h3><p>What do the post-fade stacks allow at the SN position?</p><h3>Evidence</h3><table><tr><th>epoch</th><th>camera</th><th>code</th><th>frames</th><th>ZP</th><th>±</th><th>SN SNR</th><th>SN mag</th><th>5σ limit</th><th>90% recovery</th><th>recovery / note</th></tr>
+<tr><td>+366 d</td><td>iKon</td><td>g</td><td>15</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>template PSF unmeasurable (defocused pre-explosion G); no subtraction</td></tr>
+<tr><td>+366 d</td><td>iKon</td><td>r</td><td>15</td><td>27.45</td><td>0.09</td><td>8.6</td><td>17.28</td><td>17.87</td><td>17.64</td><td>{&quot;3.0&quot;: 0.035, &quot;4.0&quot;: 0.1, &quot;5.0&quot;: 0.52, &quot;6.0&quot;: 0.88, &quot;7.0&quot;: 0.985, &quot;8.0&quot;: 0.99, &quot;10.0&quot;: 1.0}</td></tr>
+<tr><td>+1035 d</td><td>QHY600</td><td>g</td><td>14</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>template PSF unmeasurable (defocused pre-explosion G); no subtraction</td></tr>
+<tr><td>+1035 d</td><td>QHY600</td><td>r</td><td>35</td><td>26.94</td><td>0.09</td><td>1.0</td><td>20.14</td><td>18.41</td><td>18.14</td><td>{&quot;3.0&quot;: 0.045, &quot;4.0&quot;: 0.195, &quot;5.0&quot;: 0.545, &quot;6.0&quot;: 0.845, &quot;7.0&quot;: 0.98, &quot;8.0&quot;: 0.99, &quot;10.0&quot;: 1.0}</td></tr>
+<tr><td>+1045 d</td><td>QHY600</td><td>g</td><td>3</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>template PSF unmeasurable (defocused pre-explosion G); no subtraction</td></tr>
+<tr><td>+1045 d</td><td>QHY600</td><td>r</td><td>2</td><td>27.49</td><td>0.08</td><td>1.1</td><td>19.76</td><td>18.07</td><td>17.78</td><td>{&quot;3.0&quot;: 0.05, &quot;4.0&quot;: 0.24, &quot;5.0&quot;: 0.59, &quot;6.0&quot;: 0.83, &quot;7.0&quot;: 0.96, &quot;8.0&quot;: 1.0, &quot;10.0&quot;: 1.0}</td></tr>
+</table><h3>Decision</h3><div class="decision">+1035/+1045 d r: non-detections with 5σ limits. +366 d r: the forced flux is 8.6σ, consistent with ZTF r extrapolated — reported as a validation of the faint regime, not as a new detection claim (the plan's no-detection rule was written for +1049 d).</div></section><section id="census"><h2>Saturation census (Gate 0, rescreened)</h2><p class="task">Plan task <code>SN-G0-rerun</code></p><h3>Question</h3><p>How many broadband frames survive the measured linearity cap?</p><h3>Evidence</h3><table><tr><th>code</th><th>frames</th><th>clean</th><th>bounded</th><th>usable</th><th>rejected</th><th>undetermined</th><th>S2c dispersed</th><th>outside science tree</th></tr>
+<tr><td>G</td><td>209</td><td>122</td><td>27</td><td>149</td><td>52</td><td>6</td><td>1</td><td>1</td></tr>
+<tr><td>I</td><td>220</td><td>72</td><td>17</td><td>89</td><td>130</td><td>1</td><td>0</td><td>0</td></tr>
+<tr><td>R</td><td>203</td><td>61</td><td>21</td><td>82</td><td>116</td><td>4</td><td>0</td><td>1</td></tr>
+</table><figure><img src="figures/sn/sn_fig1_census.png" alt=""><figcaption>Figure 1: SN native peak vs phase.</figcaption></figure><h3>Decision</h3><div class="decision">clean + bounded = usable in every band; every exclusion is named.</div></section></body></html>

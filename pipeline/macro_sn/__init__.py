@@ -13,6 +13,21 @@ derives EVERY published number from the manifest database.
   ``docs/SN2023ixf_LightCurve/sn_gate0.html``, in the house Socratic format
   (Question → Evidence → Decision → Consequence).
 
+* ``macro_sn.snphot``     — pure rules of the release (astrometry acceptance,
+  calibration-star selection, the scintillation-aware error model, the
+  ensemble/colour-term solve, joint trend+signal variability search).
+  Unit tests: ``pipeline/tests/test_sn_phot.py``.
+* ``macro_sn.snio``       — frame I/O: calibration, plate solving, forced
+  photometry, grid resampling and template subtraction.
+* ``macro_sn.literature`` — every published number used, with its source.
+* ``macro_sn.paper_sn``   — manuscript figures + ``numbers.tex``.
+* ``macro_sn.report_sn``  — ``docs/SN2023ixf_LightCurve/sn_release.html``.
+
+Release entry point: ``pipeline/scripts/run_sn_photometry.py`` (fetch ->
+frames -> measure -> psfcheck -> calibrate -> templates -> photometry ->
+overlap -> peak -> excessgate -> residuals -> variability -> latetime ->
+release -> paper -> report), writing ``products/sn/sn2023ixf.sqlite``.
+
 Build entry point: ``pipeline/scripts/run_sn_gate0.py`` (subcommands
 ``freeze`` / ``census`` / ``matrix`` / ``triage`` / ``verdicts`` / ``report``,
 every one resumable and safe to re-invoke).
@@ -42,4 +57,4 @@ made one level up.
 # it whenever a rule in gate0.py changes in a way that could alter a stored
 # number, so a page built by the old rules can be told from one built by the
 # new ones without reading either.
-SN_G0_CODE_VERSION = "SN-G0 v1.0 (2026-08-20)"
+SN_G0_CODE_VERSION = "SN-G0 v1.3 (2026-10-04, linearity cap; census follows S2c)"

@@ -399,6 +399,35 @@ def screen_for_mode(mode: str, clip_adu, veto_adu,
                   suspect_adu=int(round(suspect_fraction * clip)))
 
 
+def screen_from_cap(mode: str, clip_adu, veto_adu, cap_adu) -> Screen:
+    """The screen once the linearity curve EXISTS (SN-S2-linearity, closed
+    2026-10-04 by the detector package).
+
+    The 80%/68.6%-of-clip fractions above were placeholders for a curve
+    nobody had measured: the strategy screened at 2,800 ADU and held
+    2,400-2,800 as ``suspect`` explicitly "pending the empirical linearity
+    curve".  S2 has now measured that curve per EGAIN epoch
+    (``s2_linearity_caps``): in the SN epoch (EGAIN 1.054) High Gain departs
+    1.2 +/- 0.5% from linear at half scale and 2.3 +/- 0.7% at 2,800 ADU, so
+    the highest peak at which the response stays within 1% is
+    ``linearity_cap_adu`` = 1,800 ADU.  With a measured curve there is
+    nothing left to be suspicious ABOUT: below the cap a pixel is linear to
+    1%, at or above it it is not.  The suspect band therefore collapses onto
+    the cap (``suspect_adu == reject_adu``) and the five-class rule of
+    :func:`saturation_class` reduces, unchanged, to clean / rejected /
+    bounded_clean / undetermined.
+    """
+    if cap_adu is None:
+        raise ValueError(f"no measured linearity cap for {mode!r}; S2 must "
+                         f"supply detector_params.linearity_cap_adu")
+    if clip_adu is None:
+        raise ValueError(f"no measured clip for readout mode {mode!r}")
+    cap = int(cap_adu)
+    return Screen(mode=mode, clip_adu=int(clip_adu),
+                  veto_adu=None if veto_adu is None else int(veto_adu),
+                  reject_adu=cap, suspect_adu=cap)
+
+
 def saturation_class(peak_adu: Optional[float], quality: str,
                      screen: Screen) -> str:
     """Judge one frame's supernova peak against the screen.
@@ -441,8 +470,8 @@ def saturation_class(peak_adu: Optional[float], quality: str,
 
 
 #: The classes from which broadband photometry may be taken.  ``suspect``
-#: is deliberately NOT here: the strategy makes it conditional on a
-#: linearity curve that Step 2 has not yet produced.
+#: is deliberately NOT here; since the linearity cap replaced the
+#: placeholder fractions (:func:`screen_from_cap`) no frame can be suspect.
 USABLE_CLASSES = ("clean", "bounded_clean")
 
 #: The archive tree that holds the campaign's science exposures.  The

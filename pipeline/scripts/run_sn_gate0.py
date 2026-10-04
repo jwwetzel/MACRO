@@ -394,6 +394,14 @@ def cmd_census(args) -> int:
                 VALUES (:obs_rowid,:path,:tree,:night,:filter,:exptime,
                         :phase_d,:epoch_role,:band_role,:dispersion_class,
                         :readoutm,'pending')""", new)
+            # Already-measured rows keep their PIXEL measurement but must
+            # carry S2c's CURRENT verdict: the dispersion class is a
+            # property of the freeze, not of the census, and a re-measured
+            # S2c (F-6 / SN-G0d) moves it without moving a single peak.
+            con.execute("""UPDATE sn_g0_census SET dispersion_class = (
+                    SELECT f.dispersion_class FROM sn_g0_frames f
+                    WHERE f.obs_rowid = sn_g0_census.obs_rowid)
+                WHERE obs_rowid IN (SELECT obs_rowid FROM sn_g0_frames)""")
         pending = con.execute("SELECT count(*) FROM sn_g0_census "
                               "WHERE status = 'pending'").fetchone()[0]
         print(f"census queue: {len(rows):,} frames total, "
@@ -618,7 +626,15 @@ def cmd_measure(args) -> int:
 
 
 def _screens(con) -> dict:
-    """Per-readout-mode screens, built from S2's measured ceilings."""
+    """Screens keyed by readout mode AND by detector EGAIN epoch.
+
+    Since SN-S2-linearity closed (2026-10-04) the reject level is S2's
+    MEASURED linearity cap (``detector_params.linearity_cap_adu``), read per
+    EGAIN epoch where S2 measured one (``AC4040 High Gain e1.054`` = the SN
+    campaign: 1,800 ADU) and per readout mode otherwise; the clip still comes
+    from ``s2_ceiling_modes``.  A mode with no measured cap keeps the old
+    fraction-of-clip screen and says so by its key.
+    """
     rows = con.execute("SELECT mode, clip_adu, veto_adu FROM "
                        "s2_ceiling_modes").fetchall()
     if not rows:
@@ -626,13 +642,44 @@ def _screens(con) -> dict:
             "s2_ceiling_modes is empty: the saturation screen has no "
             "measured clip behind it.  Re-run stage S2 "
             "(`run_s2_campaign.py ceiling` then `params`) first.")
+    caps = {r[0]: r[1] for r in con.execute(
+        "SELECT era_group, value FROM detector_params "
+        "WHERE quantity = 'linearity_cap_adu'")}
     out = {}
     for r in rows:
         if r["clip_adu"] is None:
             continue
-        out[r["mode"]] = g0.screen_for_mode(r["mode"], r["clip_adu"],
-                                            r["veto_adu"])
+        mode = r["mode"]
+        if mode in caps:
+            out[mode] = g0.screen_from_cap(mode, r["clip_adu"], r["veto_adu"],
+                                           caps[mode])
+        else:
+            out[mode] = g0.screen_for_mode(mode, r["clip_adu"], r["veto_adu"])
+        for key, cap in caps.items():
+            # Per-EGAIN-epoch caps of this mode, e.g. "AC4040 High Gain e1.054".
+            if key.endswith(tuple(f" {mode} e{x}" for x in ("1.054", "1.057"))):
+                out[key] = g0.screen_from_cap(key, r["clip_adu"],
+                                              r["veto_adu"], cap)
     return out
+
+
+_EGAIN_CACHE: dict = {}
+
+
+def _screen_for(con, obs_rowid, screens):
+    """The screen that judges one frame: its EGAIN epoch's cap if S2
+    measured one, else its readout mode's, else High Gain's."""
+    if not _EGAIN_CACHE:
+        for r in con.execute("SELECT c.obs_rowid, f.camera, f.readoutm, "
+                             "f.egain FROM sn_g0_census c JOIN frames f "
+                             "ON f.obs_rowid = c.obs_rowid"):
+            _EGAIN_CACHE[r[0]] = (r[1], r[2], r[3])
+    cam, mode, egain = _EGAIN_CACHE.get(obs_rowid, (None, None, None))
+    if egain:
+        key = f"{cam} {mode} e{egain:.3f}"
+        if key in screens:
+            return screens[key]
+    return screens.get(mode) or screens["High Gain"]
 
 
 def _flush(con, batch, screens) -> None:
@@ -645,7 +692,7 @@ def _flush(con, batch, screens) -> None:
     """
     rows = []
     for r in batch:
-        sc = screens.get(_mode_of(con, r["obs_rowid"])) or screens["High Gain"]
+        sc = _screen_for(con, r["obs_rowid"], screens)
         cls = None
         if r["status"] == "measured":
             cls = g0.saturation_class(r["peak_adu"], r["quality"], sc)
@@ -667,6 +714,35 @@ def _flush(con, batch, screens) -> None:
 
 
 _MODE_CACHE: dict = {}
+
+
+def cmd_rescreen(args) -> int:
+    """Re-judge every measured census row against the CURRENT screens from
+    its stored ADU values — no pixel is re-read.  Run after S2 moves a
+    clip or a linearity cap (the measure-first-judge-later discipline)."""
+    con = connect(args.manifest)
+    try:
+        screens = _screens(con)
+        rows = con.execute("SELECT obs_rowid, peak_adu, quality, "
+                           "saturation_class FROM sn_g0_census "
+                           "WHERE status = 'measured'").fetchall()
+        upd, moved = [], {}
+        for r in rows:
+            cls = g0.saturation_class(r["peak_adu"], r["quality"],
+                                      _screen_for(con, r["obs_rowid"], screens))
+            if cls != r["saturation_class"]:
+                k = f"{r['saturation_class']} -> {cls}"
+                moved[k] = moved.get(k, 0) + 1
+            upd.append((cls, SN_G0_CODE_VERSION, r["obs_rowid"]))
+        with con:
+            con.executemany("UPDATE sn_g0_census SET saturation_class = ?, "
+                            "code_version = ? WHERE obs_rowid = ?", upd)
+            record_meta(con, rescreened_at=utcnow(),
+                        code_version=SN_G0_CODE_VERSION)
+        print(f"rescreen: {len(upd)} rows judged; moves: {moved}")
+        return 0
+    finally:
+        con.close()
 
 
 def _mode_of(con, obs_rowid):
@@ -697,7 +773,8 @@ CREATE TABLE sn_g0_bands (
     n_clean INTEGER, n_suspect INTEGER, n_rejected INTEGER,
     n_bounded_clean INTEGER, n_undetermined INTEGER,
     n_usable INTEGER, first_clean_night TEXT, first_clean_phase_d REAL,
-    isolation_false_id INTEGER, isolation_tested INTEGER
+    isolation_false_id INTEGER, isolation_tested INTEGER,
+    n_nonscience INTEGER
 );
 """
 
@@ -750,14 +827,33 @@ def cmd_matrix(args) -> int:
                 ORDER BY night, phase_d""", (filt,)).fetchall()
             n_images = sum(1 for x in rows
                            if x["dispersion_class"] != "dispersed")
-            counts = {k: sum(1 for x in rows if x["saturation_class"] == k)
+            # THE SCIENCE-TREE RULE, named (DS.F9, 2026-10-04).  The class
+            # counts are taken over science-tree frames only, so that
+            # clean + bounded_clean = usable holds exactly in every band.
+            # Before this change the counts included the two mjc/misc/
+            # neg10_test engineering frames, which is_usable_photometry()
+            # removes by its tree clause: one of them (R, 2023-06-17) is
+            # pixel-clean, so the R row read 106 + 21 = 127 against 126
+            # usable and the verdict string "371 + 68 = 438" summed to 439
+            # with the 439th frame removed by a rule nobody named.  Those
+            # frames are now counted in their own column, n_nonscience.
+            # ... and over IMAGES only: a frame S2c measures as dispersed is
+            # removed by the imaging rule, so it must not sit in a class
+            # column summed against the usable count (v1.3: the census row
+            # carries dispersion_CLASS, and the rule is now handed it; v1.2
+            # handed it a missing key and so counted a measured spectrum).
+            sci = [x for x in rows if x["tree"] == g0.SCIENCE_TREE
+                   and x["dispersion_class"] != "dispersed"]
+            n_nonscience = sum(1 for x in rows if x["tree"] != g0.SCIENCE_TREE)
+            counts = {k: sum(1 for x in sci if x["saturation_class"] == k)
                       for k in ("clean", "suspect", "rejected",
                                 "bounded_clean", "undetermined")}
-            usable = sum(1 for x in rows if g0.is_usable_photometry(dict(x)))
+            usable = sum(1 for x in rows if g0.is_usable_photometry(
+                {**dict(x), "dispersion_verdict": x["dispersion_class"]}))
             # First night at which this filter delivers a clean measurement
             # of the supernova — the "true clean start per band" the
             # strategy asks the census to decide.
-            first = next((x for x in rows
+            first = next((x for x in sci
                           if x["saturation_class"] == "clean"), None)
             iso = [x["isolation_px"] for x in rows]
             wrong, tested = g0.isolation_false_id_rate(iso, g0.BOUND_HALF_PX)
@@ -769,11 +865,21 @@ def cmd_matrix(args) -> int:
                           counts["undetermined"], usable,
                           first["night"] if first else None,
                           first["phase_d"] if first else None,
-                          wrong, tested))
+                          wrong, tested, n_nonscience))
+            if br == "broadband":
+                # The arithmetic the committee found broken, asserted at
+                # build time so it can never be published broken again.
+                if counts["clean"] + counts["bounded_clean"] != usable:
+                    raise RuntimeError(
+                        f"{filt}: clean {counts['clean']} + bounded "
+                        f"{counts['bounded_clean']} != usable {usable}")
         with con:
             con.executemany("INSERT INTO sn_g0_bands VALUES "
-                            "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bands)
-            record_meta(con, matrix_built_at=utcnow())
+                            "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bands)
+            # The band rows are built by the CURRENT rules, so the stage's
+            # recorded version follows them (v1.1 named the science-tree rule).
+            record_meta(con, matrix_built_at=utcnow(),
+                        code_version=SN_G0_CODE_VERSION)
         print(f"matrix: {len(cells)} filter x night cells, "
               f"{len(bands)} band rows")
         for b in bands:
@@ -955,7 +1061,8 @@ def cmd_verdicts(args) -> int:
             SELECT sum(n_usable) AS usable, sum(n_frames) AS total,
                    sum(n_spectra) AS spectra, sum(n_rejected) AS rejected,
                    sum(n_suspect) AS suspect, sum(n_undetermined) AS undet,
-                   sum(n_clean) AS clean, sum(n_bounded_clean) AS bounded
+                   sum(n_clean) AS clean, sum(n_bounded_clean) AS bounded,
+                   sum(n_nonscience) AS nonsci
             FROM sn_g0_bands WHERE band_role = 'broadband'""").fetchone()
         first = con.execute("""
             SELECT min(first_clean_night) AS night,
@@ -968,10 +1075,13 @@ def cmd_verdicts(args) -> int:
                   f"({b['clean']} measured clean + {b['bounded']} clean by "
                   f"bound)",
                   float(b["usable"]), "MEASURED", 0,
-                  f"removed: {b['rejected']} over the peak-ADU screen, "
-                  f"{b['suspect']} suspect (held pending the linearity "
-                  f"curve), {b['undet']} undetermined (no plate solution and "
-                  f"a search box that reaches the screen); the first clean "
+                  f"removed: {b['rejected']} at or over the screen (the S2 linearity cap where measured), "
+                  f"{b['spectra']} measured by S2c as dispersed, "
+                  f"{b['suspect']} suspect, {b['undet']} undetermined (no plate solution and "
+                  f"a search box that reaches the screen), {b['nonsci']} "
+                  f"outside the science tree (the science-tree rule: "
+                  f"detector-engineering frames under mjc/misc/neg10_test "
+                  f"that carry the target name); the first clean "
                   f"broadband frame is night {first['night']} "
                   f"(+{first['phase']:.1f} d)"))
 
@@ -1167,6 +1277,9 @@ def main(argv=None) -> int:
     p.add_argument("--max-seconds", type=float, default=0.0)
     p.set_defaults(func=cmd_measure)
 
+    p = sub.add_parser("rescreen", help="0b: re-judge stored peaks "
+                                        "against the current screens")
+    p.set_defaults(func=cmd_rescreen)
     p = sub.add_parser("matrix", help="0b: the filter x night matrix")
     p.set_defaults(func=cmd_matrix)
 

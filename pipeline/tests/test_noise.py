@@ -202,3 +202,65 @@ class TestNarrowSpanIsRefused:
 
     def test_span_ratio_of_an_empty_curve(self):
         assert noise.level_span_ratio([]) is None
+
+
+class TestAliasSafePairing:
+    """DE.F4: a frame and its own `_wcs` copy are ONE exposure.
+
+    S2 v1.2 paired list neighbours; for the 2026 camera 7 of 16 pairs were
+    a frame differenced against its plate-solved copy (gap 0 s, variance
+    exactly 0).  The pairing must be decided by time, not by filenames.
+    """
+
+    DAY = 1.0 / 86400.0
+
+    def _scene(self):
+        t0 = 2461000.5
+        return [
+            (t0, 1, "r/X_300s_T04-26-21.fts.fz"),
+            (t0, 2, "r/X_300s_T04-26-21_1_wcs.fts.fz"),      # alias of 1
+            (t0 + 304 * self.DAY, 3, "r/X_300s_T04-31-25.fts.fz"),
+            (t0 + 304 * self.DAY, 4, "r/X_300s_T04-31-25_wcs.fts.fz"),
+            (t0 + 608 * self.DAY, 5, "r/X_300s_T04-36-29.fts.fz"),
+        ]
+
+    def test_aliases_collapse_to_the_original(self):
+        rows = noise.distinct_exposures(self._scene())
+        assert [r[1] for r in rows] == [1, 3, 5]
+        assert not any(noise.is_alias_basename(r[2].rsplit("/", 1)[-1])
+                       for r in rows)
+
+    def test_no_pair_has_zero_gap(self):
+        pairs = noise.consecutive_pairs(self._scene(), 600 * self.DAY,
+                                        exptime_s=300.0)
+        assert pairs, "two distinct exposures must still pair"
+        assert all(b[0] - a[0] > 0 for a, b in pairs)
+        assert pairs[0][0][1] == 1 and pairs[0][1][1] == 3
+
+    def test_second_frame_must_start_after_the_first_ended(self):
+        t0 = 2461000.5
+        members = [(t0, 1, "a.fts"), (t0 + 100 * self.DAY, 2, "b.fts")]
+        assert noise.consecutive_pairs(members, 1.0, exptime_s=300.0) == []
+        assert len(noise.consecutive_pairs(members, 1.0, exptime_s=60.0)) == 1
+
+    def test_pairs_do_not_share_frames_by_default(self):
+        t0 = 2461000.5
+        members = [(t0 + k * 70 * self.DAY, k, f"{k}.fts") for k in range(5)]
+        pairs = noise.consecutive_pairs(members, 1.0, exptime_s=60.0)
+        ids = [m[1] for pr in pairs for m in pr]
+        assert len(ids) == len(set(ids)) == 4
+        assert len(noise.consecutive_pairs(members, 1.0, exptime_s=60.0,
+                                           overlapping=True)) == 4
+
+
+class TestStackProSubReads:
+    """A StackPro frame is a sum of 2 s sub-reads, at most sixteen."""
+
+    def test_nsub_rule(self):
+        from rlmt_diagnostics import ptc
+        assert ptc.stackpro_nsub_for_exptime(1.0) == 1
+        assert ptc.stackpro_nsub_for_exptime(8.0) == 4
+        assert ptc.stackpro_nsub_for_exptime(16.0) == 8
+        assert ptc.stackpro_nsub_for_exptime(32.0) == 16
+        assert ptc.stackpro_nsub_for_exptime(512.0) == 16
+        assert ptc.stackpro_nsub_for_exptime(None) == 1

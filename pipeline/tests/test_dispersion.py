@@ -535,3 +535,130 @@ class TestExtractSources:
     def test_non_2d_input_is_refused_cleanly(self):
         shape = dsp.extract_sources(np.zeros((10,), dtype=np.float32))
         assert shape.n_sources == 0
+
+
+# ---------------------------------------------------------------------------
+# S2c v1.2 — the second witness (background morphology, F-6)
+# ---------------------------------------------------------------------------
+def _lozenge_frame(ny=600, nx=900, level=400.0, pedestal=300.0, seed=1):
+    """A slitless frame's sky: pedestal everywhere, plus a bright elliptical
+    lozenge (the dispersed image of the field stop) in the middle."""
+    rng = np.random.default_rng(seed)
+    y, x = np.mgrid[0:ny, 0:nx]
+    r2 = ((x - nx * 0.45) / (nx * 0.25)) ** 2 + ((y - ny / 2) / (ny * 0.18)) ** 2
+    img = pedestal + level * np.clip(1.0 - r2, 0.0, None)
+    return img + rng.normal(0.0, 3.0, img.shape)
+
+
+def _direct_sky_frame(ny=600, nx=900, sky=800.0, pedestal=300.0, seed=2):
+    """A direct image's sky: flat, falling off only in vignetted corners."""
+    rng = np.random.default_rng(seed)
+    y, x = np.mgrid[0:ny, 0:nx]
+    rr = np.hypot((x - nx / 2) / (nx / 2), (y - ny / 2) / (ny / 2))
+    img = pedestal + sky * np.clip(1.25 - 0.6 * rr ** 4, 0.0, 1.0)
+    return img + rng.normal(0.0, 3.0, img.shape)
+
+
+class TestMorphology:
+    def test_contrast_and_edge_ratio_separate_the_two_skies(self):
+        loz = dsp.morphology_metrics(dsp.background_map(_lozenge_frame()))
+        sky = dsp.morphology_metrics(dsp.background_map(_direct_sky_frame()))
+        assert loz["contrast"] > dsp.MORPH_MIN_CONTRAST
+        assert sky["contrast"] > dsp.MORPH_MIN_CONTRAST
+        # A lozenge leaves the top/bottom edges at the corner level; a
+        # direct sky carries light there.
+        assert loz["edge_ratio"] < 0.1
+        assert sky["edge_ratio"] > dsp.MORPH_DIRECT_MIN_EDGE
+
+    def test_quantised_flat_map_has_a_noise_floor(self):
+        # A blank integer frame: every cell median equals its neighbours.
+        flat = np.full((400, 600), 303.0)
+        m = dsp.morphology_metrics(dsp.background_map(flat))
+        assert m["sigma"] == dsp.MORPH_SIGMA_FLOOR
+        assert m["contrast"] == 0.0
+
+    def test_template_recognises_its_own_shape_and_not_a_sky(self):
+        tpl = dsp.build_template([dsp.normalized_map(dsp.background_map(
+            _lozenge_frame(seed=s))) for s in range(3)])
+        r_loz, key, rot = dsp.template_correlation(
+            dsp.normalized_map(dsp.background_map(_lozenge_frame(seed=9))),
+            {"slot6": tpl})
+        r_sky, _, _ = dsp.template_correlation(
+            dsp.normalized_map(dsp.background_map(_direct_sky_frame())),
+            {"slot6": tpl})
+        assert r_loz > dsp.MORPH_LOZENGE_MIN_R and key == "slot6"
+        assert r_sky < dsp.MORPH_DIRECT_MAX_R
+
+    def test_template_tries_the_180_degree_rotation(self):
+        img = _lozenge_frame()
+        tpl = dsp.build_template([dsp.normalized_map(dsp.background_map(img))]
+                                 * 3)
+        flipped = dsp.normalized_map(dsp.background_map(img[::-1, ::-1]))
+        r, _, rot = dsp.template_correlation(flipped, {"k": tpl})
+        assert r > 0.99 and rot == 180
+
+    def test_too_few_members_make_no_template(self):
+        assert dsp.build_template([np.zeros((48, 48))] * 2) is None
+
+    def test_classify_morphology(self):
+        assert dsp.classify_morphology(
+            {"contrast": 5.0, "edge_ratio": 0.0, "template_r": 0.99}
+        )[0] == dsp.MORPH_NONE                  # no light: no evidence
+        assert dsp.classify_morphology(
+            {"contrast": 100.0, "edge_ratio": 0.0, "template_r": 0.9}
+        )[0] == dsp.MORPH_LOZENGE
+        assert dsp.classify_morphology(
+            {"contrast": 100.0, "edge_ratio": 0.6, "template_r": 0.2}
+        )[0] == dsp.MORPH_FLAT
+        # A nebula: dark edges, bright middle, but not the stop's shape.
+        assert dsp.classify_morphology(
+            {"contrast": 100.0, "edge_ratio": 0.05, "template_r": 0.3}
+        )[0] == dsp.MORPH_OTHER
+        # Partly lozenge-like: neither certificate nor promotion.
+        assert dsp.classify_morphology(
+            {"contrast": 100.0, "edge_ratio": 0.05, "template_r": 0.65}
+        )[0] == dsp.MORPH_AMBIGUOUS
+
+    def test_map_blob_roundtrip(self):
+        m = np.linspace(-0.2, 1.0, 48 * 48).reshape(48, 48)
+        back = dsp.blob_to_map(dsp.map_to_blob(m))
+        assert back.shape == (48, 48) and np.allclose(back, m, atol=1e-3)
+
+
+class TestCombineVerdicts:
+    D, I, R = (dsp.VERDICT_DISPERSED, dsp.VERDICT_INDETERMINATE,
+               dsp.VERDICT_DIRECT)
+
+    def test_lozenge_overrides_a_direct_certificate(self):
+        # The NGC 5548 case: round zero orders, a dispersed sky.
+        assert dsp.combine_verdicts(self.R, dsp.MORPH_LOZENGE)[0] == self.D
+        assert dsp.combine_verdicts(self.I, dsp.MORPH_LOZENGE)[0] == self.D
+
+    def test_traces_against_a_direct_sky_are_withheld(self):
+        assert dsp.combine_verdicts(self.D, dsp.MORPH_FLAT)[0] == self.I
+
+    def test_direct_needs_both_witnesses_not_to_object(self):
+        assert dsp.combine_verdicts(self.R, dsp.MORPH_FLAT)[0] == self.R
+        assert dsp.combine_verdicts(self.R, dsp.MORPH_AMBIGUOUS)[0] == self.I
+        assert dsp.combine_verdicts(self.R, dsp.MORPH_NONE)[0] == self.R
+        assert dsp.combine_verdicts(self.R, dsp.MORPH_OTHER)[0] == self.R
+        assert dsp.combine_verdicts(self.D, dsp.MORPH_OTHER)[0] == self.D
+
+    def test_no_sky_evidence_keeps_the_trace_verdict(self):
+        for v in (self.D, self.I, self.R):
+            assert dsp.combine_verdicts(v, None)[0] == v
+
+
+class TestWilson:
+    def test_known_value(self):
+        lo, hi = dsp.wilson_interval(2, 144)
+        assert abs(lo - 0.0038) < 5e-4 and abs(hi - 0.0491) < 5e-4
+
+    def test_bounds_at_the_edges(self):
+        lo, hi = dsp.wilson_interval(0, 10)
+        assert lo == 0.0 and 0 < hi < 0.35
+        lo, hi = dsp.wilson_interval(10, 10)
+        assert abs(hi - 1.0) < 1e-12 and lo > 0.65
+
+    def test_empty(self):
+        assert all(np.isnan(dsp.wilson_interval(0, 0)))

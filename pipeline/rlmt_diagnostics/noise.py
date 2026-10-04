@@ -294,3 +294,96 @@ def curve_shape_index(curve: Sequence[dict],
     if sxx <= 0:
         return None
     return float(((x - xm) * (y - ym)).sum() / sxx)
+
+
+# --------------------------------------------------------------------------
+# Pair selection (the alias fix — committee finding DE.F4)
+# --------------------------------------------------------------------------
+#
+# The S2 v1.2 noise stage paired "adjacent frames of one scene" and trusted
+# the manifest's is_canonical flag to mean "a distinct exposure".  It does
+# not: the 2026 pyscope tree stores ``X.fts.fz`` beside ``X_wcs.fts.fz`` and
+# ``X_1_wcs.fts.fz`` — the SAME exposure, re-written by the plate solver —
+# and both rows are canonical.  Seven of the sixteen "(blank 2026)" pairs
+# were a frame differenced against its own copy (gap 0 s), which is a
+# variance of exactly zero, and six bins of the published noise curve for
+# the camera currently on the telescope read 0.0 as a result.
+#
+# The rule that fixes it is about TIME, not about filenames (a filename
+# rule would be one more pattern list to go stale): two frames are distinct
+# exposures only if their DATE-OBS differ, and they are usable as a noise
+# pair only if the second one started after the first one ENDED.  The
+# campaign adds a pixel-level belt to these braces (a pair whose difference
+# image is identically zero is refused whatever its headers say).
+
+#: Suffix tokens the pipelines append to a re-written copy of an exposure.
+#: Used ONLY to choose which of several same-DATE-OBS rows represents the
+#: exposure (prefer the un-suffixed original); never to decide whether two
+#: rows are the same exposure — DATE-OBS decides that.
+ALIAS_SUFFIX_TOKENS = ("_wcs", "_calibrated", "_cal", "_test")
+
+#: A pair's second frame must start at least this fraction of the exposure
+#: time after the first one started.  1.0 would be "after it ended"; 0.9
+#: allows for DATE-OBS being written to 0.01-1 s precision.
+MIN_GAP_EXPTIME_FRACTION = 0.9
+
+
+def is_alias_basename(basename: str) -> bool:
+    """True when a filename carries a re-write suffix (``_wcs`` etc.)."""
+    stem = basename.lower().split(".fts")[0].split(".fit")[0]
+    return any(tok in stem for tok in ALIAS_SUFFIX_TOKENS)
+
+
+def distinct_exposures(members: Sequence[tuple]) -> list[tuple]:
+    """Collapse same-DATE-OBS rows of one scene to one row per exposure.
+
+    ``members`` = ``(jd, rowid, path)`` tuples.  Rows sharing a JD (to
+    1e-7 d = 9 ms, far finer than any exposure) are one exposure seen
+    twice; the representative kept is the one WITHOUT an alias suffix,
+    then the shortest path, then the lowest rowid — deterministic, and it
+    prefers the original over the plate-solver's copy.  Returned in time
+    order.
+    """
+    by_time: dict[int, list[tuple]] = {}
+    for jd, rowid, path in members:
+        by_time.setdefault(int(round(float(jd) * 1e7)), []).append(
+            (jd, rowid, path))
+    out = []
+    for key in sorted(by_time):
+        rows = sorted(by_time[key], key=lambda m: (
+            is_alias_basename(str(m[2]).rsplit("/", 1)[-1]),
+            len(str(m[2])), m[1]))
+        out.append(rows[0])
+    return out
+
+
+def consecutive_pairs(members: Sequence[tuple], max_gap_days: float,
+                      exptime_s: Optional[float] = None,
+                      overlapping: bool = False) -> list[tuple]:
+    """Adjacent-in-time pairs of DISTINCT exposures in one scene.
+
+    ``members`` = ``(jd, rowid, path)`` tuples (any order).  Same-DATE-OBS
+    aliases are collapsed first (:func:`distinct_exposures`); a pair is
+    kept when ``0 < gap <= max_gap_days`` and, if ``exptime_s`` is given,
+    the gap is at least :data:`MIN_GAP_EXPTIME_FRACTION` of it (two frames
+    cannot be different exposures if the second started before the first
+    finished).  By default pairs do not share frames (1-2, 3-4, ...), so
+    the pairs are statistically independent; ``overlapping=True`` gives
+    1-2, 2-3, ... for callers that only need existence.
+    """
+    rows = distinct_exposures(members)
+    min_gap = ((MIN_GAP_EXPTIME_FRACTION * float(exptime_s)) / 86400.0
+               if exptime_s and exptime_s > 0 else 0.0)
+    out = []
+    step = 1 if overlapping else 2
+    i = 0
+    while i < len(rows) - 1:
+        gap = float(rows[i + 1][0]) - float(rows[i][0])
+        if gap > 0 and gap >= min_gap and gap <= max_gap_days:
+            out.append((rows[i], rows[i + 1]))
+            i += step
+        else:
+            # A refused gap does not consume the second frame: it may
+            # still pair with the one after it.
+            i += 1
+    return out

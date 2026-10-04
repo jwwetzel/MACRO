@@ -411,3 +411,20 @@ class TestVenue:
         one appearing here would be the drafting-stage rationalisation the
         posture was decided in advance to prevent."""
         assert venue_posture(False, False)["moved"] is False
+
+
+def test_cap_screen_collapses_suspect_band():
+    """Once S2 measures a linearity cap, the screen IS the cap: below it a
+    measured peak is clean, at or above it rejected, and no frame can be
+    'suspect'; a box bound under the cap is bounded_clean."""
+    from macro_sn.gate0 import screen_from_cap
+    sc = screen_from_cap("High Gain", clip_adu=3496, veto_adu=3200,
+                         cap_adu=1800)
+    assert sc.reject_adu == sc.suspect_adu == 1800
+    assert saturation_class(1799.0, "wcs", sc) == "clean"
+    assert saturation_class(1800.0, "wcs", sc) == "rejected"
+    assert saturation_class(2500.0, "wcs", sc) == "rejected"
+    assert saturation_class(1700.0, "bound", sc) == "bounded_clean"
+    assert saturation_class(1900.0, "bound", sc) == "undetermined"
+    with pytest.raises(ValueError):
+        screen_from_cap("High Gain", 3496, 3200, None)
