@@ -6,6 +6,14 @@ committee seat satisfied. Detail behind each line: [`committee/reviews/2026-10-0
 and the reports in `committee/work/<package>/REPORT.md`. Task-level status lives in the plan ledger
 (`python pipeline/scripts/update_project_plan.py show`).
 
+## 0. Goal status (2026-10-05): CV 47/49, SN 21/25 — every remaining task needs James or an outside party
+
+- [ ] **One journal-editor read of the two abstracts** (closes CV-R13 and SN-figures). Reviews are benched — say yes to this one exception.
+- [ ] **CV-R15**: consortium authorship (`AUTHORSHIP.md`), real ORCIDs, Zenodo DOI, an outside polar reader.
+- [ ] **SN-S10**: publish the release tables (`products/sn/release/`, README written) to GitHub + Zenodo and record the DOI.
+- [ ] **SN narrowband curves + SN-S6 Hα curve**: need the filter transmission curve (Cannon / MACRO records); dropped by ruling if not in hand by **2026-11-15**.
+- Cosmetic: CV paper has two 12.5 pt vertical overruns at bibliography page breaks — fix in final layout.
+
 ## 1. Waiting on James
 
 - [ ] **Read and send observatory request rev. 3** to Winer — time-sensitive (as-found flats lose value nightly). `ops/2026-10_observatory_request_rev3.md`, cover note in `committee/work/ops/emails/01_…`
