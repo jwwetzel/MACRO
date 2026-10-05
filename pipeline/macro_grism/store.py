@@ -27,14 +27,14 @@ from . import db as gdb
 from .reduce import reduce_frame
 
 #: Bump when a change would alter cached spectra.
-REDUCE_VERSION = "G v2.0 (2026-10-03)"
+REDUCE_VERSION = "G v2.6 (2026-10-05)"
 
 DEFAULT_ARCHIVE = Path("/Volumes/OWC StudioStack HDD/DATA/ASTRO/rlmt-archive")
 SPEC_DIR = gconfig.PRODUCTS / "spec1d"
 
 #: Arrays cached per spectrum.
 SPEC_KEYS = ("flux", "var", "box", "box_var", "bg", "peak", "n_sat",
-             "n_rej", "inside", "fwhm_px", "fwhm_x")
+             "n_rej", "n_hot", "inside", "fwhm_px", "fwhm_x")
 
 #: Manifest columns a runner selects for its worklist.
 MANIFEST_COLS = ("obs_rowid, path, filter, night, jd, exptime, "
@@ -101,7 +101,9 @@ def _work(task: dict) -> dict:
         trace_height=tr["height"], trace_slope=tr["slope"],
         trace_u=tr["u"], trace_rms_px=tr["rms_px"],
         trace_n=tr["n_centroids"],
-        trace_coeffs=json.dumps([float(c) for c in tr["coeffs"]]))
+        trace_coeffs=json.dumps([float(c) for c in tr["coeffs"]]),
+        hot_mask=r["hot_mask"], sat_cap_adu=r["sat_cap_adu"],
+        pedestal_adu=r["detector"].pedestal_adu, offset=h.get("OFFSET"))
     if row.get("jd") is None and h.get("JD") is not None:
         row["jd"] = h.get("JD")
     if row.get("exptime") is None:

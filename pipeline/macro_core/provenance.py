@@ -1068,6 +1068,42 @@ _reg(_t(
     "themselves) — a re-extraction that reaches the same verdicts on the "
     "same frames is not a changed input to anything downstream."))
 
+# ---- G v2 outputs: the grism calibration library (products/grism) --------
+# The August pass above wrote g_extractions into the manifest; it is now
+# only READ (as the "before" of the old-vs-new comparison).  The corrected
+# library writes its own database.  What is hashed is the decision content
+# of each table — the adopted dispersion and its status, the gate verdict
+# per frame, the EW per frame and library — so a re-run that moved a
+# verdict or a solution cannot leave the fingerprint unchanged; per-frame
+# floats that do not decide anything are counted, not hashed.
+_GRISM_DB = "products/grism/grism.sqlite"
+_reg(ResourceSpec(
+    key="db:grism:g_dispersion", kind="db", name="g_dispersion",
+    database=_GRISM_DB, order_by="grism, mech_epoch",
+    columns=("grism", "mech_epoch", "round(disp_a_per_px, 5)",
+             "coeffs_json IS NOT NULL", "status"),
+    why="The fixed dispersion per (grism, mechanical epoch) — D1/G-1.  "
+        "Every wavelength downstream is computed from this table."))
+_reg(ResourceSpec(
+    key="db:grism:g_identity", kind="db", name="g_identity",
+    database=_GRISM_DB, order_by="path",
+    columns=("path", "verdict", "reason"),
+    why="The pixel identity gate's verdict per frame (G-3, TCRB-A0)."))
+_reg(ResourceSpec(
+    key="db:grism:g_frames", kind="db", name="g_frames",
+    database=_GRISM_DB, order_by="rowid", columns=("count",),
+    why="Frames reduced into the spectrum cache (count only: the spectra "
+        "are floats; their identity lives in the tables above)."))
+_reg(ResourceSpec(
+    key="db:grism:g_ew", kind="db", name="g_ew",
+    database=_GRISM_DB, order_by="path, library",
+    columns=("path", "library", "round(ew_a, 2)", "status"),
+    why="Halpha equivalent width per frame and library version."))
+_reg(ResourceSpec(
+    key="db:grism:g_lsf", kind="db", name="g_lsf",
+    database=_GRISM_DB, order_by="rowid", columns=("count",),
+    why="Delivered LSF rows (G-5); counted."))
+
 # ---- CV-S10 outputs (the two closing science decisions) -------------------
 # Both tasks this stage closes are DECISIONS about what the manuscript may
 # claim, so both sit in the graph.  What is hashed is chosen so that a re-run
@@ -1168,12 +1204,38 @@ for _key, _path, _why in (
      "fingerprinted whole because every table in it is one stage's output."),
     ("file:docs/pipeline/s3b_clock.html", "docs/pipeline/s3b_clock.html",
      "The absolute-clock evidence page."),
+    ("file:products/tcrb/tcrb.sqlite", "products/tcrb/tcrb.sqlite",
+     "The T CrB paper's product: Phase-0 gates, B anchors, flickering "
+     "limits, external pulls, theta CrB, EW series, line flux, ARAS "
+     "cross-validation; fingerprinted whole because one stage writes it."),
+    ("file:manuscripts/TCrB_Monitoring/numbers.tex",
+     "manuscripts/TCrB_Monitoring/numbers.tex",
+     "Every number the T CrB manuscripts state, as LaTeX macros."),
     ("file:products/sn/sn2023ixf.sqlite", "products/sn/sn2023ixf.sqlite",
      "The SN 2023ixf photometry, calibration, limits and release product; "
      "fingerprinted whole because one stage writes all of it."),
     ("file:docs/SN2023ixf_LightCurve/sn_release.html",
      "docs/SN2023ixf_LightCurve/sn_release.html",
      "The SN 2023ixf release and validation page."),
+    ("file:products/dwarf/dwarf.sqlite", "products/dwarf/dwarf.sqlite",
+     "The Dwarf-Galaxy Hα paper's product: frame disposition, plate "
+     "solutions, flats and their validation, zero points, stacks, Hα "
+     "measurements, depth and completeness; fingerprinted whole because one "
+     "stage writes all of it."),
+    ("file:docs/DwarfGalaxy_AGN_Survey/dw_paper.html",
+     "docs/DwarfGalaxy_AGN_Survey/dw_paper.html",
+     "The Dwarf-Galaxy Hα evidence page."),
+    ("file:BeStar_Grism/products/bestar.sqlite",
+     "BeStar_Grism/products/bestar.sqlite",
+     "The Be-star paper's product: re-drawn sample, master frame table, "
+     "dispositions, per-frame EWs and QC, nightly series, floors, events, "
+     "period search, BeSS/TESS tables; fingerprinted whole because one "
+     "stage writes all of it."),
+    ("file:BeStar_Grism/products/be_grism.sqlite",
+     "BeStar_Grism/products/be_grism.sqlite",
+     "The Be-star frames reduced by the shared grism library (g_frames "
+     "schema, the project's own copy); the 1-D spectra every EW is "
+     "measured from."),
 ):
     _f(_key, _path, _why)
 
@@ -1309,6 +1371,20 @@ _f("file:docs/SN2023ixf_LightCurve/sn_gate0.html",
    "SN 2023ixf Gate 0 page: the manifest freeze, the saturation matrix, the "
    "grism triage and the four verdicts that decide the paper's scope and "
    "its venue posture.  Whole-file hash.")
+_f("file:products/legacy/legacy.sqlite", "products/legacy/legacy.sqlite",
+   "Legacy-archive census database: the header scan, reconciliation, camera "
+   "and era timeline, target/series census, clock audit and the evaluated "
+   "go/no-go gates.  Whole-file hash — every table in it is a published "
+   "claim on the census page.")
+_f("file:docs/Legacy_Rigel/legacy_census.html",
+   "docs/Legacy_Rigel/legacy_census.html",
+   "Legacy census evidence page: the pre-registered rule, the census and "
+   "the rule applied.  Whole-file hash.")
+_f("file:Legacy_Rigel/notes/GO_NOGO_PREREGISTERED.md",
+   "Legacy_Rigel/notes/GO_NOGO_PREREGISTERED.md",
+   "The go/no-go criteria written before the census existed.  An input: "
+   "if it is ever edited, the census that applies it must read stale — "
+   "which is exactly the edit pre-registration forbids, made visible.")
 _f("file:docs/pipeline/s2_detector.html", "docs/pipeline/s2_detector.html",
    "S2 detector-truth page: ceiling, gain, read noise and linearity — the "
    "numbers every later error budget inherits.  Whole-file hash.")
@@ -1465,6 +1541,10 @@ _f("file:docs/pipeline/s2c_filter_identity.html",
    "docs/pipeline/s2c_filter_identity.html",
    "S2c filter-identity page: the per-frame dispersion verdicts that decide "
    "which FILTER labels denote a spectrum.  Whole-file hash.")
+_f("file:docs/pipeline/g_grism.html",
+   "docs/pipeline/g_grism.html",
+   "G grism-library page: D1, the fixed dispersions, the LSF table, the "
+   "identity gate and the T CrB acceptance tests.  Whole-file hash.")
 _f("file:ops/2026-08_observatory_request.md",
    "ops/2026-08_observatory_request.md",
    "The October shopping list, quoting calib_gaps rows by number.")
@@ -1596,14 +1676,20 @@ def _code_versions() -> dict[str, str]:
     from macro_grism.gate import G_CODE_VERSION
     from macro_sn import SN_G0_CODE_VERSION
     from macro_sn import SN_PHOT_CODE_VERSION
+    from macro_dw import DW_CODE_VERSION
+    from macro_be import BE_CODE_VERSION
+    from macro_tcrb import TCRB_CODE_VERSION
     from macro_core.clock_transits import S3B_CODE_VERSION
+    from macro_legacy import LEGACY_CENSUS_VERSION
     return {"S0": S0_CODE_VERSION, "S0b": S0B_CODE_VERSION,
             "S0c": S0C_CODE_VERSION, "S1": S1_CODE_VERSION,
             "S1b": S1B_CODE_VERSION, "S2": S2_CODE_VERSION,
             "S3": S3_CODE_VERSION, "S4": S4_CODE_VERSION,
             "G": G_CODE_VERSION, "SN-G0": SN_G0_CODE_VERSION,
             "R-SN-G0": SN_G0_CODE_VERSION,
-            "S3b": S3B_CODE_VERSION, "SN-PHOT": SN_PHOT_CODE_VERSION}
+            "S3b": S3B_CODE_VERSION, "SN-PHOT": SN_PHOT_CODE_VERSION, "DW": DW_CODE_VERSION,
+            "BE": BE_CODE_VERSION, "TCRB": TCRB_CODE_VERSION,
+            "L-CENSUS": LEGACY_CENSUS_VERSION}
 
 
 #: Commands that are typed by a person rather than run by a script.  They are
@@ -2173,19 +2259,38 @@ STAGES: tuple[Stage, ...] = (
              "that silently vanished would let a sentence lose its number "
              "and still compile."),
     Stage(
-        key="G", title="Grism extraction + identity gate (T CrB)",
+        key="G", title="Grism calibration library (D1, G-1..G-5) + T CrB "
+                       "core (A0, A2, A3, A6)",
         code_version="G_CODE_VERSION",
-        reads=("table:frames@grism", "table:eras", "table:calib_frames"),
-        writes=("table:g_extractions",),
-        # EVERY action in this script is behind a flag; the bare command
-        # creates two directories and exits without touching g_extractions.
-        # Recording the stage after the bare command would stamp a run that
-        # never happened — precisely the laundering this module exists to
-        # prevent — so the declared command is --all.
-        # No G report page exists (macro_grism.report_g was never committed),
-        # so the stage is the three producing steps of --all, not --all.
-        build_cmd="python pipeline/scripts/run_g_tcrb_validation.py --calibrate --run --parquet",
-        meta_table="g_build_meta"),
+        # The library reads every grism frame of the hot-star calibrators
+        # and the T CrB series (through a snapshot of these tables), the
+        # MEASURED detector table (gain, read noise, clip, linearity cap),
+        # the formal mechanical epochs it reconciles its grism epochs with,
+        # and — for the before/after comparison only — the August rows.
+        reads=("table:frames", "table:detector_params", "table:mech_epoch",
+               "table:frame_dispersion", "table:g_extractions"),
+        writes=("db:grism:g_frames", "db:grism:g_dispersion",
+                "db:grism:g_identity", "db:grism:g_lsf", "db:grism:g_ew"),
+        build_cmd=("python pipeline/scripts/run_g_snapshot.py\n"
+                   "python pipeline/scripts/run_g_reduce.py --sample tcrb "
+                   "--sample identity_controls\n"
+                   "python pipeline/scripts/run_g_dispersion.py --census "
+                   "--extract --identify --lines --solve\n"
+                   "python pipeline/scripts/run_g_tcrb_validation.py --zero "
+                   "--gate --variance --null --lsf --sat --ew"),
+        meta_table=None,
+        note="v2 (2026-10-05): one fixed dispersion per (grism, mechanical "
+             "epoch) from hot stars, a pixel identity gate, variance and "
+             "saturation from detector_params, a polynomial sky-lozenge "
+             "model and the measured LSF.  Replaces the August pass that "
+             "wrote g_extractions."),
+    Stage(
+        key="R-G", title="Report: G grism-library page",
+        code_version="G_CODE_VERSION",
+        reads=("db:grism:g_dispersion", "db:grism:g_identity",
+               "db:grism:g_lsf", "db:grism:g_ew"),
+        writes=("file:docs/pipeline/g_grism.html",),
+        build_cmd="python pipeline/scripts/run_g_tcrb_validation.py --report"),
     # ---- reports: stages too.  A published page is an OUTPUT with inputs. --
     #
     # THE COMMANDS BELOW ARE THE ONES THAT RUN.  The first version of this
@@ -2326,6 +2431,30 @@ STAGES: tuple[Stage, ...] = (
              "against published ephemerides; the per-era O-C is the clock "
              "bound every absolute epoch in the CV and SN papers carries."),
     Stage(
+        key="L-CENSUS", title="Legacy archive census, clock audit, go/no-go",
+        code_version="LEGACY_CENSUS_VERSION",
+        # The pre-registered criteria are an INPUT: editing them must make
+        # the census stale.  table:frames / table:eras are read for the
+        # overlap with the RLMT-era targets, the cross-archive duplicate
+        # check and the AC4040 era sharing.  The legacy archive itself is
+        # read-only and outside the graph (like the RLMT archive).
+        reads=("file:Legacy_Rigel/notes/GO_NOGO_PREREGISTERED.md",
+               "table:frames", "table:eras"),
+        writes=("file:products/legacy/legacy.sqlite",
+                "file:docs/Legacy_Rigel/legacy_census.html"),
+        build_cmd=("python pipeline/scripts/build_legacy_scan.py\n"
+                   "python pipeline/scripts/build_legacy_census.py "
+                   "--skip-report\n"
+                   "python pipeline/scripts/build_legacy_external.py\n"
+                   "python pipeline/scripts/build_legacy_clock.py\n"
+                   "python pipeline/scripts/build_legacy_census.py"),
+        note="Header census of the 2015-2022 legacy archive (L0-L1), the "
+             "per-season clock audit against TESS eclipse times, and the "
+             "mechanical application of the go/no-go rule written before "
+             "the census existed (L2).  The scan step is resumable and "
+             "opens only new files; the census steps rebuild every derived "
+             "table."),
+    Stage(
         key="SN-PHOT", title="SN 2023ixf photometry, limits and release",
         code_version="SN_PHOT_CODE_VERSION",
         reads=("table:sn_g0_frames", "table:sn_g0_census",
@@ -2346,6 +2475,105 @@ STAGES: tuple[Stage, ...] = (
              "held-out check stars, two-regime photometry under the S2 "
              "linearity cap, residuals against the published light curve, "
              "variability and late-time limits, and the release tables."),
+    Stage(
+        key="DW", title="Dwarf-Galaxy Hα paper: flats to manuscript",
+        code_version="DW_CODE_VERSION",
+        reads=("table:stage_dwarfgalaxy_agn_survey", "table:frames",
+               "table:detector_params"),
+        writes=("file:products/dwarf/dwarf.sqlite",
+                "file:docs/DwarfGalaxy_AGN_Survey/dw_paper.html"),
+        build_cmd=("python pipeline/scripts/run_dw_paper.py fetch\n"
+                   "python pipeline/scripts/run_dw_paper.py frames\n"
+                   "python pipeline/scripts/run_dw_paper.py flatprep\n"
+                   "python pipeline/scripts/run_dw_paper.py flats\n"
+                   "python pipeline/scripts/run_dw_paper.py measure\n"
+                   "python pipeline/scripts/run_dw_paper.py zp\n"
+                   "python pipeline/scripts/run_dw_paper.py qc\n"
+                   "python pipeline/scripts/run_dw_paper.py stacks\n"
+                   "python pipeline/scripts/run_dw_paper.py halpha\n"
+                   "python pipeline/scripts/run_dw_paper.py sersic\n"
+                   "python pipeline/scripts/run_dw_paper.py depth\n"
+                   "python pipeline/scripts/run_dw_paper.py lightcurves\n"
+                   "python pipeline/scripts/run_dw_paper.py completeness\n"
+                   "python pipeline/scripts/run_dw_paper.py zeroorder\n"
+                   "python pipeline/scripts/run_dw_paper.py paper\n"
+                   "python pipeline/scripts/run_dw_paper.py report"),
+        note="Everything the Dwarf-Galaxy Hα paper states: frame disposition "
+             "and pointing, plate solutions on REFCAT2, night-sky superflats "
+             "and their held-out residuals, zero points under the S2 "
+             "linearity cap, stacks, the NGC 5238 end-to-end line-flux scale, "
+             "Hα measurements, depth, NGC 5238 field-star completeness and "
+             "the NGC 5548 zero-order feasibility test."),
+    Stage(
+        key="TCRB", title="T CrB paper: Phase-0 gates to manuscript",
+        code_version="TCRB_CODE_VERSION",
+        reads=("table:stage_tcrb_monitoring", "table:frames",
+               "table:mech_epoch", "table:frame_dispersion",
+               "table:detector_params", "table:frame_times",
+               "db:grism:g_frames", "db:grism:g_dispersion",
+               "db:grism:g_lsf", "db:grism:g_identity"),
+        writes=("file:products/tcrb/tcrb.sqlite",
+                "file:manuscripts/TCrB_Monitoring/numbers.tex"),
+        build_cmd=("python pipeline/scripts/run_tcrb.py mech-epoch\n"
+                   "python pipeline/scripts/run_tcrb.py temp-split\n"
+                   "python pipeline/scripts/run_tcrb.py temp-report\n"
+                   "python pipeline/scripts/run_tcrb.py shutter\n"
+                   "python pipeline/scripts/run_tcrb.py catalogues\n"
+                   "python pipeline/scripts/run_tcrb.py census\n"
+                   "python pipeline/scripts/run_tcrb.py measure\n"
+                   "python pipeline/scripts/run_tcrb.py filters\n"
+                   "python pipeline/scripts/run_tcrb.py filters-report\n"
+                   "python pipeline/scripts/run_tcrb.py zmag-report\n"
+                   "python pipeline/scripts/run_tcrb.py resolve-report\n"
+                   "python pipeline/scripts/run_tcrb.py external\n"
+                   "python pipeline/scripts/run_tcrb.py external-report\n"
+                   "python pipeline/scripts/run_tcrb.py aavso-load\n"
+                   "python pipeline/scripts/run_tcrb.py ensemble\n"
+                   "python pipeline/scripts/run_tcrb.py errors\n"
+                   "python pipeline/scripts/run_tcrb.py flicker\n"
+                   "python pipeline/scripts/run_tcrb.py phaseb-report\n"
+                   "python pipeline/scripts/run_tcrb.py aras\n"
+                   "python pipeline/scripts/run_tcrb.py reduce-tet\n"
+                   "python pipeline/scripts/run_tcrb.py tet-analysis\n"
+                   "python pipeline/scripts/run_tcrb.py ew\n"
+                   "python pipeline/scripts/run_tcrb.py floor\n"
+                   "python pipeline/scripts/run_tcrb.py nightly\n"
+                   "python pipeline/scripts/run_tcrb.py flux\n"
+                   "python pipeline/scripts/run_tcrb.py xval\n"
+                   "python pipeline/scripts/run_tcrb.py detect\n"
+                   "python pipeline/scripts/run_tcrb.py release\n"
+                   "python pipeline/scripts/run_tcrb.py paper"),
+        note="Everything the T CrB paper states: mechanical epochs, the "
+             "temperature split and dark residual, shutter timing, filter "
+             "forensics and ZMAG provenance, the B-only anchors and "
+             "flickering limits, the external pulls, theta CrB, the "
+             "pre-registered EW series on the shared grism library, line "
+             "flux, ARAS cross-validation, the release and numbers.tex."),
+    Stage(
+        key="BE", title="Be-star paper: re-drawn sample to manuscript",
+        code_version="BE_CODE_VERSION",
+        reads=("table:frames@grism", "table:frame_times", "table:frame_dispersion",
+               "table:mech_epoch", "table:detector_params", "table:calib_frames",
+               "db:grism:g_dispersion", "db:grism:g_lsf"),
+        writes=("file:BeStar_Grism/products/bestar.sqlite",
+                "file:BeStar_Grism/products/be_grism.sqlite"),
+        build_cmd=("python BeStar_Grism/scripts/be_step0.py all\n"
+                   "python BeStar_Grism/scripts/be_calib.py\n"
+                   "python BeStar_Grism/scripts/be_external.py all\n"
+                   "python BeStar_Grism/scripts/be_cadence.py\n"
+                   "python BeStar_Grism/scripts/be_extract.py\n"
+                   "python BeStar_Grism/scripts/be_measure.py\n"
+                   "python BeStar_Grism/scripts/be_series.py nightly\n"
+                   "python BeStar_Grism/scripts/be_response.py\n"
+                   "python BeStar_Grism/scripts/be_injection.py\n"
+                   "python BeStar_Grism/scripts/be_series.py results\n"
+                   "python BeStar_Grism/scripts/be_figures.py\n"
+                   "python BeStar_Grism/scripts/be_numbers.py"),
+        note="Everything the re-drawn Be-star paper states: the BeSS-verified "
+             "sample, Step-0 dispositions, the shared-library reduction, "
+             "per-frame EWs with QC, standards floors, cross-calibration, "
+             "events, injection-recovery and the period search, BeSS/TESS "
+             "co-analysis, figures and numbers.tex."),
     Stage(
         key="WEB", title="The public site (plan pages, landing, cases)",
         code_version="(hand-authored)",

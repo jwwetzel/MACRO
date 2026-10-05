@@ -31,7 +31,7 @@ WHAT IS COPIED
 * ``g_extractions``, ``g_gate_calib``, ``g_build_meta`` — the v1 grism
                           library's results (the "before" of step 7).
 * ``calib_frames``, ``eras``, ``detector_params``, ``build_meta``,
-  ``s2c_build_meta``    — small reference tables.
+  ``s2c_build_meta``, ``mech_epoch`` — small reference tables.
 """
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ TARGET_LIKES = ("t crb%", "ngc 5548%", "ngc5548%")
 
 WHOLE_TABLES = ("frame_dispersion", "g_extractions", "g_gate_calib",
                 "g_build_meta", "calib_frames", "eras", "detector_params",
-                "build_meta", "s2c_build_meta")
+                "build_meta", "s2c_build_meta", "mech_epoch")
 
 
 def snapshot(manifest: Path, out: Path) -> dict:
@@ -89,7 +89,11 @@ def snapshot(manifest: Path, out: Path) -> dict:
         if t not in have:
             counts[t] = None                 # absent in this manifest
             continue
-        con.execute(f"CREATE TABLE {t} AS SELECT * FROM m.{t}")
+        # frame_dispersion's background-map BLOBs are not needed here.
+        cols = "*" if t != "frame_dispersion" else ", ".join(
+            r[1] for r in con.execute(f"PRAGMA m.table_info({t})")
+            if r[1] != "bg_map")
+        con.execute(f"CREATE TABLE {t} AS SELECT {cols} FROM m.{t}")
         counts[t] = con.execute(f"SELECT count(*) FROM {t}").fetchone()[0]
     if counts.get("frame_dispersion"):
         con.execute("CREATE INDEX ix_snap_fd ON frame_dispersion(obs_rowid)")

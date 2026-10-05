@@ -56,6 +56,55 @@ def header_subset(header) -> dict:
     return out
 
 
+#: A frame's own dark corners must sit within this many ADU of the
+#: tabulated pedestal, else the pedestal is taken from the frame.
+PEDESTAL_TOL_ADU = 20.0
+CORNER_PX = 200
+
+
+def frame_pedestal(det, data: np.ndarray, hdr: dict):
+    """The detector record with the pedestal THIS frame actually has.
+
+    The tabulated pedestal belongs to one camera setting; the ASI was
+    also run at OFFSET 50 (pedestal ~503 ADU instead of ~303 at OFFSET
+    30), and a 200 ADU error in the pedestal is 200 ADU of phantom sky
+    whose photon noise the variance model then predicts (found by the G-2
+    test, 2026-10-05: measured/predicted 0.2 on those frames).  A slitless
+    frame's corners receive no first-order sky, so their median IS the
+    pedestal (plus dark, negligible at -10 C).  When it differs from the
+    table by more than PEDESTAL_TOL_ADU the frame's value is used and the
+    provenance says so; otherwise the measured table value stands."""
+    from dataclasses import replace
+    c = CORNER_PX
+    corners = [data[:c, :c], data[:c, -c:], data[-c:, :c], data[-c:, -c:]]
+    ped = float(np.median([np.median(q) for q in corners]))
+    if abs(ped - det.pedestal_adu) <= PEDESTAL_TOL_ADU:
+        return det
+    return replace(det, pedestal_adu=ped,
+                   provenance=det.provenance + f"; pedestal {ped:.1f} from "
+                   f"frame corners (OFFSET card {hdr.get('OFFSET')})")
+
+
+def hot_pixel_mask(hdr: dict, shape) -> tuple:
+    """(mask, note): the detector package's bad-pixel mask for this
+    frame's camera, geometry, orientation and sensor temperature
+    (``rlmt_diagnostics.badpix``; hot, rail and noisy pixels), or
+    (None, 'none') when no product matches — the extraction then relies on
+    the Horne outlier test alone, and the row says so."""
+    from rlmt_diagnostics import badpix
+    ny, nx = shape
+    try:
+        m = badpix.mask_for_frame(hdr.get("INSTRUME"), nx, ny,
+                                  readoutm=hdr.get("READOUTM"),
+                                  ccd_temp=hdr.get("CCD-TEMP"),
+                                  flipstat=hdr.get("FLIPSTAT"))
+    except Exception as exc:                          # noqa: BLE001
+        return None, f"error: {type(exc).__name__}"
+    if m is None:
+        return None, "none"
+    return m, f"badpix ({int(m.sum())} px)"
+
+
 def find_trace(data: np.ndarray) -> dict:
     """Trace geometry of the brightest spectrum on a frame.
 
@@ -110,9 +159,15 @@ def reduce_frame(path: str, night: Optional[str] = None,
     hdr = header_subset(header)
     det = gconfig.detector_for(hdr.get("INSTRUME"), hdr.get("READOUTM"),
                                night)
+    det = frame_pedestal(det, data, hdr)
+    hot_note = "given"
+    if hot is None:
+        hot, hot_note = hot_pixel_mask(hdr, data.shape)
     tr = find_trace(data)
     out = {"status": "ok", "layout": layout, "shape": data.shape,
-           "detector": det, "header": hdr, "trace": tr}
+           "detector": det, "header": hdr, "trace": tr,
+           "hot_mask": hot_note,
+           "sat_cap_adu": float(det.saturation_cap_adu())}
     if (tr["height"] < MIN_TRACE_HEIGHT_ADU or tr["rms_px"] is None
             or tr["extent"] is None):
         out["status"] = "no_trace"

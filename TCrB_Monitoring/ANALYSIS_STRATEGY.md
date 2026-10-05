@@ -299,6 +299,63 @@ continuum light curve.
 a task below waits on one of them, the ledger states it as a dependency and reads
 its status from the database — no blocker here is prose about a table.
 
+### Pre-registered EW-change detection rule (TCRB-A5a) — fixed 2026-10-05T02:40Z
+
+Written **before TCRB-A5-ew has produced a single EW** (the grism library G-1…G-5
+that A5 reads is still being rebuilt at this timestamp; no RLMT EW from the
+rebuilt library exists on disk). It is applied verbatim by
+`pipeline/macro_tcrb/detect.py`; any departure is reported in the paper as a
+departure, with both results. Thresholds are not tuned after the series is seen.
+
+*Measurement definitions fixed with the rule (so the windows cannot be chosen
+after the fact).* EW is emission-positive, in Å, on the G-1 wavelength scale.
+Line window: Hα 6562.8 Å ± h, with h = max(30 Å, 1.5 × the measured LSF FWHM of
+the frame's (grism, mechanical epoch, focus) cell from G-5). Pseudo-continuum: a
+straight line through the medians of 6470–6520 Å and 6600–6640 Å (blueward of
+the TiO 6651 Å head). Sensitivity: the same EW with every window edge shifted by
+−10 and +10 Å is reported beside the primary (A5 accept clause). ARAS spectra are
+measured with these identical windows after degradation to the measured LSF.
+*Window-survival tolerance (TCRB-A5 accept clause), fixed 2026-10-05T03:35Z
+before any ARAS spectrum was measured:* the windows "survive this instrument's
+resolution" when, over all Hα-covering ARAS spectra in the 2025 window, the
+median |EW_degraded / EW_native − 1| ≤ 5% and its 90th percentile ≤ 10%. If they
+fail, the EW is still reported but every comparison to native-resolution EWs
+carries the measured degradation offset as a stated correction with its scatter.
+
+1. **Unit.** The nightly EW per grism (hrg and lrg kept separate): the
+   inverse-variance mean of that night's gate-accepted frames, with
+   σ_n² = σ_stat² + σ_floor², σ_floor taken from TCRB-A7 (θ CrB floor ⊕
+   extraction-method difference ⊕ 240 s smear term) and fixed before step 2.
+2. **Step change.** Between two consecutive observed nights i → j of one grism
+   (gap ≤ 4 d), a change is *called* only if all hold:
+   (a) |E_j − E_i| > 3 √(σ_i² + σ_j²);
+   (b) persistence on both sides: the next observed night of that grism within
+       4 d after j agrees with E_j within 2σ and differs from E_i by > 3σ, and the
+       previous observed night within 4 d before i agrees with E_i within 2σ (each
+       level is held on ≥ 2 consecutive nights, so a one-night outlier can call
+       neither its rise nor its fall; clause made two-sided at 2026-10-05T02:55Z,
+       before any EW existed, when its unit test showed a one-sided version calls
+       the fall from a one-night outlier);
+   (c) the other grism, where it observed within ±1 d of both i and j, shows a
+       difference of the same sign at ≥ 2σ (where it did not observe, the event is
+       labelled single-grism and reported as such).
+3. **Season-level variability.** χ² of each grism's nightly series about its
+   inverse-variance mean, reported with dof; variability is claimed only if
+   p < 0.001 **and** p < 0.01 survives with σ_floor inflated × 1.5.
+4. **False alarms.** The expected number of false step calls under rule 2 is
+   computed by Monte Carlo (10⁴ realisations of a constant EW with the actual
+   sampling and σ_n). If it exceeds 0.05 per season, the 3σ threshold in 2(a) is
+   raised until it does not, and the raised value is the one used. The
+   smallest step that rule 2 recovers in 90% of injections at the real sampling
+   is reported beside every result (standing rule 2).
+5. **Continuum.** Each called event is re-tested on line flux (TCRB-A5b,
+   EW × contemporaneous continuum). An event significant in EW but not in flux
+   (< 2σ) is reported as *continuum-driven* (ellipsoidal or photometric), never as
+   an accretion change. No ellipsoidal model is subtracted from EW.
+6. **External agreement** (ARAS, same date, re-measured) is reported per event but
+   is not a detection criterion.
+7. The paper makes no eruption-date prediction from any event (§6.12).
+
 ### Task amendments
 
 Emitted from the plan ledger by `python pipeline/scripts/update_project_plan.py amendments TCrB_Monitoring` — do not edit by hand; change the ledger and re-emit. *Action* is the committee's verb; *Ruling* is the place in the synthesis and the finding ids behind it.

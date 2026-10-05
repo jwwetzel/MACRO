@@ -35,10 +35,17 @@ The timing conventions implemented here, with their evidence:
     JD-HELIO card at all and copy DATE-OBS verbatim into TELUT, so
     NEITHER probe exists for them; their rows carry
     :data:`START_UNVERIFIED` in ``frame_times.start_evidence``.
-2.  Mid-exposure = start + EXPTIME/2 for every readout family, including
-    StackPro (see :data:`STACKPRO_DEADTIME_BOUND_S` for the worst case,
-    which is SECONDS, not milliseconds — read that constant before using
-    a StackPro time for sub-second work).
+2.  Mid-exposure = start + EXPTIME/2 for every readout family EXCEPT
+    StackPro, whose DATE-OBS is already the mid-exposure instant.  That
+    was measured, not assumed (S3b, 2026-10-05, table
+    ``s3b_stamp_convention``): between consecutive frames of different
+    exposure, the a->b minus b->a stamp gap is e_a - e_b for a start stamp
+    and 0 for a mid stamp; StackPro eras give ratios 0.01 and -0.06
+    (mid), plain High Gain era 7 gives 1.02 (start).  The JD-HELIO probe
+    of convention 1 cannot see this — MaxIm writes start + EXPTIME/2
+    there on mid-stamped frames too.  Until 2026-10-05 S3 added EXPTIME/2
+    to StackPro stamps, putting 20,364 frames late by up to 512 s.  See
+    :data:`STACKPRO_DEADTIME_BOUND_S` for the residual sub-read bound.
 3.  BJD_TDB = (UTC start + EXPTIME/2) -> TDB scale -> + barycentric light
     travel time toward the frame's sky position, computed with astropy
     ``Time.light_travel_time`` at the Winer EarthLocation with a JPL DE
@@ -216,7 +223,7 @@ EPHEMERIS_PREFERENCE: tuple[str, ...] = ("de440s", "builtin")
 
 #: Mid-time method identifiers written into ``frame_times.mid_method``.
 MID_PLAIN = "start_plus_half_exptime"
-MID_STACKPRO = "stackpro_sum_midpoint_half_exptime"
+MID_STACKPRO = "stackpro_dateobs_is_mid"
 MID_NO_JD = "no_jd"
 MID_EXPTIME_NONPOS = "exptime_nonpos_start_used"
 
@@ -244,7 +251,7 @@ JD_SIBLING_DISAGREE_S = 10.0
 #: The code-version string recorded in ``s3_build_meta`` and in every
 #: ``frame_times`` row (kept here rather than ``macro_core/__init__`` so S3
 #: work does not touch files a concurrent stage may be editing).
-S3_CODE_VERSION = "S3 v1.0 (2026-08-18)"
+S3_CODE_VERSION = "S3 v1.1 (2026-10-05, StackPro DATE-OBS is mid-exposure)"
 
 
 # --------------------------------------------------------------------------
@@ -330,15 +337,15 @@ def jd_utc_mid(jd_start: Optional[float], exptime_s: Optional[float],
                ) -> tuple[Optional[float], str]:
     """Mid-exposure UTC JD for one frame, plus the method identifier.
 
-    Every readout family uses start + EXPTIME/2:
+    Plain readout families use start + EXPTIME/2; StackPro uses DATE-OBS:
 
     * **Plain frames** — DATE-OBS/JD is the UTC exposure start (evidence:
       module docstring, convention 1) and EXPTIME the shutter-open span,
       so the midpoint is exact up to the header's own stamping precision.
     * **StackPro frames** — a StackPro frame is the on-camera SUM of
-      :data:`N_SUB_STACKPRO` = 16 sub-reads (S2).  ASSUMPTION, stated:
-      the sub-reads are contiguous and together span EXPTIME, so the
-      photon-weighted midpoint of the sum is start + EXPTIME/2.  The
+      :data:`N_SUB_STACKPRO` = 16 sub-reads (S2), and its DATE-OBS is the
+      MID-exposure instant (measured by S3b's cadence test; module
+      docstring, convention 2), so the stamp is returned unchanged.  The
       cadence of back-to-back StackPro series bounds any violation:
       total internal dead time <= :data:`STACKPRO_DEADTIME_BOUND_S`,
       hence worst-case mid-time error
@@ -354,6 +361,8 @@ def jd_utc_mid(jd_start: Optional[float], exptime_s: Optional[float],
     if method == MID_NO_JD:
         return None, method
     if method == MID_EXPTIME_NONPOS:
+        return float(jd_start), method
+    if method == MID_STACKPRO:
         return float(jd_start), method
     return float(jd_start) + float(exptime_s) / 2.0 / 86400.0, method
 

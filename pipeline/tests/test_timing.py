@@ -78,10 +78,19 @@ class TestMidPolicy:
         assert method == tm.MID_PLAIN
         assert abs((mid - 2460000.0) * 86400.0 - 60.0) < 1e-3
 
-    def test_stackpro_same_arithmetic_distinct_label(self):
+    def test_stackpro_dateobs_is_already_mid(self):
+        """S3b's cadence test (table s3b_stamp_convention, 2026-10-05):
+        StackPro DATE-OBS is the mid-exposure instant, so it is returned
+        unchanged — adding EXPTIME/2 made 20,364 frames late by up to
+        512 s."""
         mid, method = tm.jd_utc_mid(2460000.0, 1024.0, "High Gain StackPro")
         assert method == tm.MID_STACKPRO
-        assert abs((mid - 2460000.0) * 86400.0 - 512.0) < 1e-3
+        assert mid == 2460000.0
+
+    def test_plain_high_gain_still_adds_half_exptime(self):
+        mid, method = tm.jd_utc_mid(2460000.0, 64.0, "High Gain")
+        assert method == tm.MID_PLAIN
+        assert abs((mid - 2460000.0) * 86400.0 - 32.0) < 1e-3
 
     def test_stackpro_detection_is_substring_and_case_blind(self):
         assert tm.is_stackpro("High Gain StackPro")
@@ -321,10 +330,12 @@ class TestBjdTdb:
         class).  This one test cross-checks the mid-exposure policy AND
         the heliocentric geometry against software we did not write.
         """
-        jd_mid, method = tm.jd_utc_mid(2460096.8459347221, 1024.0,
-                                       "High Gain StackPro")
-        assert method == tm.MID_STACKPRO
-        hjd, _ = tm.hjd_utc_from_utc(jd_mid, 274.665588238, -13.8092470258,
+        # MaxIm writes JD-HELIO at header JD + EXPTIME/2 whatever the frame
+        # really is (S3b showed StackPro DATE-OBS is itself mid-exposure),
+        # so this anchor checks the heliocentric GEOMETRY at the instant
+        # MaxIm used — not the mid-time policy, which it cannot see.
+        jd_maxim = 2460096.8459347221 + 512.0 / 86400.0
+        hjd, _ = tm.hjd_utc_from_utc(jd_maxim, 274.665588238, -13.8092470258,
                                      ephemeris="builtin")
         assert abs((float(hjd) - 2460096.8571224902) * 86400.0) < 0.5
 

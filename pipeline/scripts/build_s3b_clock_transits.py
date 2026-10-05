@@ -1574,6 +1574,78 @@ def stage_fit(db: sqlite3.Connection, manifest: Path, targets: dict,
 
 
 # ---------------------------------------------------------------------------
+# Stamp convention: does DATE-OBS mark the START or the MIDDLE of exposure?
+# ---------------------------------------------------------------------------
+#: Families (readout mode x camera era x acquisition build) in which the
+#: convention is tested.  A cell = consecutive same-night frame pairs with
+#: exposure e_a followed by e_b; its gap is the 10th percentile of the
+#: stamp-to-stamp intervals (the shortest gaps are the machine cycle; the
+#: long tail is waiting).  Symmetric differential, for each e_a < e_b:
+#:     D = gap(e_a -> e_b) - gap(e_b -> e_a)
+#: Every overhead tied to the sequence cancels.  START stamping gives
+#: D = e_a - e_b; MID stamping gives D = 0; END stamping gives e_b - e_a.
+#: The slope s of D on (e_a - e_b) is therefore 1 / 0 / -1.  Header
+#: JD-HELIO cannot make this distinction (MaxIm computes it by ASSUMING a
+#: start stamp), which is why S3's probe could not.
+CONV_MIN_PAIRS = 3
+CONV_MAX_DEXP_S = 300.0
+#: ...and at least this large: the cycle gap jitters by a few seconds
+#: (download, filter wheel), so a cell whose exposures differ by less than
+#: this measures the jitter, not the convention (a 0.1 s vs 0.5 s cell
+#: returns "ratios" of +-60).
+CONV_MIN_DEXP_S = 8.0
+
+
+def stamp_convention(con_manifest) -> list[tuple]:
+    """Rows of ``s3b_stamp_convention`` (see the constants above)."""
+    rows = con_manifest.execute(f"""
+        SELECT night, era_id, readoutm, filter, exptime, jd, swcreate
+        FROM frames WHERE {SCIENCE_WHERE} AND jd IS NOT NULL
+          AND exptime > 0 AND tree = 'rawimage'
+        ORDER BY night, jd""").fetchall()
+    cells: dict = {}
+    for a, b in zip(rows, rows[1:]):
+        if a[0] != b[0] or a[1] != b[1] or a[2] != b[2] or a[6] != b[6]:
+            continue
+        gap = (b[5] - a[5]) * 86400.0
+        if gap <= 0 or gap > max(a[4], b[4]) + 180.0:
+            continue
+        key = (a[2] or "", int(a[1]), a[6] or "", round(a[4], 1),
+               round(b[4], 1), a[3] != b[3])
+        cells.setdefault(key, []).append(gap)
+    fam: dict = {}
+    for k, g in cells.items():
+        if k[3] >= k[4]:
+            continue
+        k2 = k[:3] + (k[4], k[3], k[5])
+        if k2 not in cells or min(len(g), len(cells[k2])) < CONV_MIN_PAIRS:
+            continue
+        x = k[3] - k[4]
+        if not CONV_MIN_DEXP_S <= abs(x) <= CONV_MAX_DEXP_S:
+            continue
+        d = float(np.percentile(g, 10) - np.percentile(cells[k2], 10))
+        fam.setdefault(k[:3], []).append((x, d))
+    out = []
+    for (mode, era, sw), v in sorted(fam.items()):
+        x = np.array([t[0] for t in v])
+        d = np.array([t[1] for t in v])
+        r = d / x
+        lo, med, hi = np.percentile(r, [25, 50, 75])
+        if len(v) < 5:
+            verdict = "undetermined (fewer than 5 cells)"
+        elif abs(med - 1.0) < 0.25 and lo > 0.5:
+            verdict = "START"
+        elif abs(med) < 0.25 and hi < 0.5:
+            verdict = "MID"
+        else:
+            verdict = "undetermined (cells disagree)"
+        out.append((mode, era, sw, ct.clock_era("", era) if False else
+                    None, len(v), float(med), float(lo), float(hi),
+                    float(np.mean(r > 0.5)), verdict))
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Stage: summary
 # ---------------------------------------------------------------------------
 def stage_summary(db: sqlite3.Connection, manifest: Path, cv_db: Path,
@@ -1789,6 +1861,29 @@ def stage_summary(db: sqlite3.Connection, manifest: Path, cv_db: Path,
                     float(np.median(a["lead"])) if a["lead"] else None,
                     max(a["lead"]) if a["lead"] else None)
                    for k, a in sorted(audit.items())], 7)
+
+    # ---- start-vs-mid stamping, from cadence -----------------------------
+    with open_ro(manifest) as con:
+        conv = stamp_convention(con)
+    replace_table(db, "s3b_stamp_convention", """CREATE TABLE {table} (
+        readoutm TEXT, era_id INTEGER, swcreate TEXT, unused TEXT,
+        n_cells INTEGER, slope_median REAL, slope_q25 REAL, slope_q75 REAL,
+        frac_cells_start_like REAL, verdict TEXT)""", conv, 10)
+    # What a MID stamp would do to the StackPro events timed here: S3's
+    # policy adds EXPTIME/2 to every stamp, so a mid-stamped frame's time
+    # is late by EXPTIME/2 and its O - C too high by the same amount.
+    sp = [(r[0], r[2], r[5], r[13], r[22]) for r in oc_rows
+          if tm.is_stackpro(r[7])]
+    sp_rows = []
+    with open_ro(manifest) as con:
+        for eid, name, night, oc, grade in sp:
+            sid = eid.split("#")[0]
+            e = db.execute("SELECT avg(exptime_s) FROM s3b_frames WHERE "
+                           "series_id = ?", (sid,)).fetchone()[0]
+            sp_rows.append((eid, name, night, grade, e, oc, oc - e / 2.0))
+    replace_table(db, "s3b_stackpro_mid", """CREATE TABLE {table} (
+        event_id TEXT PRIMARY KEY, target TEXT, night TEXT, grade TEXT,
+        exptime_s REAL, oc_s REAL, oc_if_mid_stamp_s REAL)""", sp_rows, 7)
 
     # ---- the stated bounds ----------------------------------------------
     replace_table(db, "s3b_bounds", """CREATE TABLE {table} (
@@ -2287,6 +2382,20 @@ def render_report(db_path: Path) -> Path:
          "max (s)"],
         [[r[0], esc(r[1]), fmt(r[2]), f1(r[3], 3), fmt(r[4]), f1(r[5], 0),
           f1(r[6], 0)] for r in q(con, "SELECT * FROM s3b_stamp_audit")])
+    conv_tbl = table(
+        ["readout mode", "era", "software", "cells", "median ratio",
+         "IQR", "fraction start-like", "verdict"],
+        [[esc(r[0]), r[1], esc(r[2]), fmt(r[4]), f"{r[5]:.2f}",
+          f"{r[6]:.2f}&ndash;{r[7]:.2f}", f"{r[8]:.2f}", esc(r[9])]
+         for r in q(con, "SELECT * FROM s3b_stamp_convention")],
+        row_classes=[None if r[0] == "START" else "warn" for r in q(
+            con, "SELECT verdict FROM s3b_stamp_convention")])
+    spmid_tbl = table(
+        ["standard", "night", "grade", "EXPTIME (s)", "O&minus;C as built "
+         "(s)", "O&minus;C if mid-stamped (s)"],
+        [[esc(r[1]), r[2], esc(r[3]), f1(r[4], 0), f1(r[5], 1, True),
+          f1(r[6], 1, True)] for r in q(con, "SELECT * FROM "
+                                             "s3b_stackpro_mid")])
     leg = dict(q(con, "SELECT key, value FROM s3b_legacy"))
     cv = q(con, """SELECT target_key, clock_era, n_nights, first_night,
                           last_night, cv_offset_s, cv_offset_rms_s,
@@ -2565,6 +2674,19 @@ to the S3 error budget for any claim of sub-second absolute timing; they
 are negligible against every timing claim currently made by a MACRO
 paper.  Also for the record (OA.E6): the two header clock cards DATE-OBS
 and TELUT are written by the same PC and are not independent.</p>
+<h3>Does DATE-OBS mark the start or the middle of the exposure?</h3>
+<p class="sub">S3 read the convention off JD-HELIO, but MaxIm computes
+JD-HELIO by <i>assuming</i> a start stamp, so that probe cannot tell.  A
+test that can: for consecutive frames with exposures e<sub>a</sub> and
+e<sub>b</sub>, compare the shortest stamp-to-stamp gap a&rarr;b with the
+gap b&rarr;a.  Every overhead cancels; a start stamp leaves
+e<sub>a</sub>&minus;e<sub>b</sub>, a mid stamp leaves zero.  The ratio is
+1 for START and 0 for MID, per (readout mode, era, software build):</p>
+{conv_tbl}
+<p class="sub">Where a family is MID, S3&rsquo;s start + EXPTIME/2 puts
+the time late by EXPTIME/2.  The StackPro events timed on this page, with
+their O&minus;C under a mid stamp:</p>
+{spmid_tbl}
 <h3>Where the time stamps came from</h3>
 <p class="sub">Every time on this page is the header JD (identical to
 DATE-OBS, the exposure start) plus half the exposure.  File names are

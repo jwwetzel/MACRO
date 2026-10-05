@@ -1,4 +1,13 @@
-"""The identity gate: Gaia DR3 field verification for slitless frames.
+"""The identity gate for slitless frames.
+
+STATUS (2026-10-05): the v1 gate below (Gaia field verification behind a
+header-pointing test) is SUPERSEDED by the pixel fingerprint gate at the
+end of this module (findings OA.E2, TE.F2: the header must never be the
+sole reason a frame is rejected).  The v1 functions are kept because the
+August validation rows in ``g_extractions`` were produced by them and the
+report compares the two.
+
+v1 — Gaia DR3 field verification:
 
 A grism frame has no WCS and no point sources, so "is this really the
 claimed field?" must be answered from the dispersed content itself.  The
@@ -57,7 +66,7 @@ import numpy as np
 # --------------------------------------------------------------------------
 
 #: Gate code version, recorded into g_build_meta.
-G_CODE_VERSION = "G v1.0 (2026-08-18)"
+G_CODE_VERSION = "G v2.1 (2026-10-05)"
 
 #: header-vs-target tolerance.  The manifest's own pointing-outlier law
 #: (manifest.POINTING_OUTLIER_DEG): the good T CrB series scatters at
@@ -375,3 +384,167 @@ def angular_offset_deg(ra1, dec1, ra2, dec2) -> float:
     a = (math.sin((p2 - p1) / 2) ** 2
          + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2)
     return math.degrees(2 * math.asin(min(1.0, math.sqrt(a))))
+
+
+# ==========================================================================
+# v2 (2026-10-05): the PIXEL identity gate — a spectral fingerprint
+# ==========================================================================
+# WHY THE v1 GATE IS RETIRED (findings OA.E2, TE.F2, RF)
+# -----------------------------------------------------
+# v1 asked the header first: a frame whose RA/Dec card was > 1 deg from
+# the target was rejected before a pixel was looked at.  The 21 T CrB
+# frames it rejected that way carry a stale pointing card (RA 05h29, a
+# position below the horizon at the time) while the pixels show T CrB's
+# spectrum.  Its pixel arm compared one coordinate of one star under two
+# meridian-flip parities the mount never used.  A header can be wrong in
+# either direction; a spectrum cannot pretend to be T CrB's.
+#
+# WHAT T CrB LOOKS LIKE THROUGH THE GRISM
+# ---------------------------------------
+# A symbiotic: an M4 III continuum (TiO bands — the 7054 A head is a
+# 20-40% step on the hrg) with strong, narrow Halpha emission.  Few stars
+# on the archive's grism target lists show both, and none shows them at
+# T CrB's relative strengths.  The gate therefore asks, from the pixels
+# alone:
+#
+#   1. is there a trace at all, and a sharp emission line to anchor on?
+#   2. with that line as Halpha and the FIXED dispersion of the frame's
+#      (grism, mechanical epoch), does the response-free 6300-7400 A
+#      spectrum correlate with T CrB's template (median of the OTHER
+#      nights' T CrB frames)?
+#   3. is the TiO 7054 step present?
+#
+# Thresholds come from T CrB's own frames only (see FP_COMPLETENESS); the
+# false-accept rate on non-T CrB frames of the same grisms, camera state
+# and exposure regime is then MEASURED and published.  The header pointing
+# is recorded beside every verdict and never consulted.
+
+#: Fingerprint window (A) and the wavelength step of the common grid.
+FP_WAVE = (6300.0, 7400.0)
+FP_STEP_A = {"hrg": 1.0, "lrg": 4.0}
+
+#: Halpha itself is excluded from the correlation (+/- this many A): the
+#: anchor line would otherwise correlate with itself on ANY emission-line
+#: star, and the test is about the continuum's fingerprint.
+FP_HALPHA_GUARD_A = 30.0
+
+#: TiO 7054 band: flux just redward of the head over flux just blueward.
+TIO_BLUE_A = (6990.0, 7045.0)
+TIO_RED_A = (7060.0, 7120.0)
+
+#: Pre-registered thresholds (2026-10-05, before scoring the controls).
+#: THEY FAILED and are kept as the record: on the raw (response-shaped)
+#: spectra every hot star's continuum correlates with T CrB's at r ~ 0.9,
+#: because the grism's response dominates the shape, and the response
+#: alone lowers the red/blue ratio across 7054 A to ~0.8 on the hrg; 51 of
+#: 160 non-T CrB frames (all hrg Be stars) passed.  The report prints the
+#: pre-registered verdicts beside the adopted ones.
+FP_MIN_R_PREREG = 0.80
+TIO_MAX_STEP_PREREG = 0.90
+
+#: The adopted gate (v2.1) removes the response before correlating: each
+#: spectrum is divided by its own running median over FP_HIGHPASS_A, so
+#: only structure narrower than the response — band heads and lines —
+#: enters the correlation.  Its two thresholds are DERIVED FROM T CrB
+#: ALONE (the value that keeps FP_COMPLETENESS of the target's frames,
+#: two-fold cross-validated by night parity), so the control frames never
+#: influence them and the false-accept rate measured on the controls is
+#: an out-of-sample number.
+FP_HIGHPASS_A = 120.0
+FP_COMPLETENESS = 0.95
+
+GATE_ACCEPT, GATE_REJECT = "ACCEPT", "REJECT"
+
+
+def resample(wave: np.ndarray, flux: np.ndarray, grid: np.ndarray):
+    """Flux on a wavelength grid by linear interpolation (NaN outside the
+    finite, sorted part of the input)."""
+    ok = np.isfinite(wave) & np.isfinite(flux)
+    if ok.sum() < 10:
+        return np.full(len(grid), np.nan)
+    w, f = wave[ok], flux[ok]
+    order = np.argsort(w)
+    w, f = w[order], f[order]
+    out = np.interp(grid, w, f, left=np.nan, right=np.nan)
+    return out
+
+
+def normalise(f: np.ndarray) -> np.ndarray:
+    """Divide by the median (a fingerprint is about SHAPE, not level)."""
+    med = np.nanmedian(f)
+    return f / med if np.isfinite(med) and med > 0 else f * np.nan
+
+
+def tio_step(grid: np.ndarray, f: np.ndarray) -> Optional[float]:
+    """Median flux redward of the TiO 7054 head over blueward."""
+    b = (grid >= TIO_BLUE_A[0]) & (grid <= TIO_BLUE_A[1]) & np.isfinite(f)
+    r = (grid >= TIO_RED_A[0]) & (grid <= TIO_RED_A[1]) & np.isfinite(f)
+    if b.sum() < 5 or r.sum() < 5:
+        return None
+    blue = float(np.median(f[b]))
+    return float(np.median(f[r]) / blue) if blue > 0 else None
+
+
+def highpass(grid: np.ndarray, f: np.ndarray,
+             win_a: float = FP_HIGHPASS_A) -> np.ndarray:
+    """f / running-median(f) - 1 over a window of ``win_a`` Angstrom:
+    the spectrum with the instrument response (and the star's own
+    broad continuum) divided out."""
+    from scipy.ndimage import median_filter
+    step = float(np.median(np.diff(grid)))
+    win = max(3, int(round(win_a / step)) | 1)
+    ok = np.isfinite(f)
+    if ok.sum() < win:
+        return np.full(len(f), np.nan)
+    filled = np.interp(np.arange(len(f)), np.where(ok)[0], f[ok])
+    cont = median_filter(filled, size=win, mode="nearest")
+    with np.errstate(divide="ignore", invalid="ignore"):
+        out = np.where(ok & (cont > 0), filled / cont - 1.0, np.nan)
+    return out
+
+
+def derive_thresholds(r_values, step_values,
+                      completeness: float = FP_COMPLETENESS):
+    """(r_min, step_max) that keep ``completeness`` of the TARGET's own
+    frames: the (1 - completeness) quantile of r and the completeness
+    quantile of the TiO step.  Nothing but target frames goes in."""
+    r = np.asarray([v for v in r_values if v is not None], dtype=float)
+    st = np.asarray([v for v in step_values if v is not None], dtype=float)
+    return (float(np.quantile(r, 1.0 - completeness)),
+            float(np.quantile(st, completeness)))
+
+
+def fingerprint_r(grid: np.ndarray, f: np.ndarray,
+                  template: np.ndarray) -> Optional[float]:
+    """Pearson correlation of a normalised spectrum with the template on
+    the common grid, Halpha excluded; None with < 50% overlap."""
+    use = (np.isfinite(f) & np.isfinite(template)
+           & (np.abs(grid - 6562.8) > FP_HALPHA_GUARD_A))
+    if use.sum() < 0.5 * len(grid):
+        return None
+    a, b = f[use], template[use]
+    if np.std(a) == 0 or np.std(b) == 0:
+        return None
+    return float(np.corrcoef(a, b)[0, 1])
+
+
+def fingerprint_verdict(has_trace: bool, halpha_snr: Optional[float],
+                        r: Optional[float], step: Optional[float],
+                        r_min: float = FP_MIN_R_PREREG,
+                        step_max: float = TIO_MAX_STEP_PREREG
+                        ) -> tuple[str, str]:
+    """The pixel gate's verdict and its reason (first failed check).
+    Nothing here takes a header value."""
+    if not has_trace:
+        return GATE_REJECT, "no_trace"
+    if halpha_snr is None:
+        return GATE_REJECT, "no_emission_line"
+    if r is None:
+        return GATE_REJECT, "no_wavelength_overlap"
+    if r < r_min:
+        return GATE_REJECT, "fingerprint_mismatch"
+    if step is None:
+        return GATE_REJECT, "tio_window_off_spectrum"
+    if step > step_max:
+        return GATE_REJECT, "no_tio_step"
+    return GATE_ACCEPT, "ok"

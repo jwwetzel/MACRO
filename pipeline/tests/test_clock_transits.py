@@ -545,6 +545,13 @@ def _summary_fixture(tmp_path):
         n_points INTEGER, o_minus_c_s REAL, o_minus_c_err_s REAL,
         clock_bound_s REAL, status TEXT)""")
     man.execute("CREATE TABLE s3_build_meta (key TEXT, value TEXT)")
+    # The stamp-convention and stamp-audit steps read these; empty is a
+    # legal manifest for them (they then report nothing).
+    man.execute("""CREATE TABLE frames (path TEXT, night TEXT,
+        era_id INTEGER, readoutm TEXT, filter TEXT, exptime REAL, jd REAL,
+        swcreate TEXT, date_obs TEXT, is_canonical INTEGER,
+        imagetyp TEXT, tree TEXT)""")
+    man.execute("CREATE TABLE calib_frames (path TEXT)")
     man.commit()
     man.close()
     return db
@@ -679,3 +686,36 @@ class TestGradesAndAnchoring:
                     "status": ct.STATUS_ONE_SIDED}]
         assert b.anchored_refits(jobs, results) == []
         assert len(results) == 1
+
+
+class TestStampConvention:
+    def _manifest(self, mid: bool, step: float = 6.0):
+        """Randomly ordered 10-60 s exposures, stamped at start or middle."""
+        con = sqlite3.connect(":memory:")
+        con.execute("""CREATE TABLE frames (path TEXT, night TEXT,
+            era_id INTEGER, readoutm TEXT, filter TEXT, exptime REAL,
+            jd REAL, swcreate TEXT, is_canonical INTEGER, imagetyp TEXT,
+            tree TEXT)""")
+        con.execute("CREATE TABLE calib_frames (path TEXT)")
+        rng = np.random.default_rng(0)
+        t, rows = 0.0, []
+        for i in range(400):
+            e = float(rng.choice((10.0, 20.0, 40.0, 60.0)))  # both orders
+            stamp = t + (e / 2 if mid else 0.0)
+            rows.append((f"f{i}", "2024-01-01", 7, "High Gain", "R", e,
+                         2460000.5 + stamp / DAY, "MaxIm", 1, "Light Frame",
+                         "rawimage"))
+            t += e + step + rng.uniform(0, 1.0)      # exposure + overhead
+        con.executemany("INSERT INTO frames VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                        rows)
+        return con
+
+    def test_start_stamps_are_called_start(self):
+        out = b.stamp_convention(self._manifest(mid=False))
+        assert len(out) == 1 and out[0][9] == "START"
+        assert out[0][5] == pytest.approx(1.0, abs=0.1)
+
+    def test_mid_stamps_are_called_mid(self):
+        out = b.stamp_convention(self._manifest(mid=True))
+        assert out[0][9] == "MID"
+        assert out[0][5] == pytest.approx(0.0, abs=0.1)

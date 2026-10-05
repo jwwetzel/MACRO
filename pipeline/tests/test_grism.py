@@ -19,8 +19,12 @@ import pytest
 # Make the package importable regardless of pytest's working directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from macro_grism import config as gcfg
+from macro_grism import ew as gew
 from macro_grism import extract as gext
 from macro_grism import gate as gg
+from macro_grism import linecal as lc
+from macro_grism import summary_g as gsum
 from macro_grism import trace as gt
 from macro_grism import wavelength as gw
 from macro_grism.fits_io import GrismLayoutError, HduSummary, classify_hdus
@@ -271,6 +275,9 @@ class TestFlankingBackground:
         assert ok and np.all(np.abs(bg - 10.0) < 0.5)
 
 
+DET = gcfg.DETECTOR_DEFAULTS["ASI-Mode0-bin2avg"]
+
+
 class TestHorne:
     def _column(self, flux=500.0, bg=20.0, fwhm=5.0, seed=0):
         rng = np.random.default_rng(seed)
@@ -278,39 +285,33 @@ class TestHorne:
         y = np.arange(n)
         prof = np.exp(-0.5 * ((y - n // 2) / (fwhm / 2.3548)) ** 2)
         prof /= prof.sum()
-        clean = flux * prof + bg
-        return clean + rng.normal(0, 2.0, n), prof, bg
+        clean = flux * prof + bg + DET.pedestal_adu
+        return clean + rng.normal(0, 2.0, n), prof, bg + DET.pedestal_adu
 
     def test_flux_recovered(self):
         win, prof, bg = self._column()
-        f, v, ns = gext.horne_column(win, np.full(len(win), bg), prof,
-                                     egain=0.25, read_noise_e=3.5)
+        f, v, ns = gext.horne_column(win, np.full(len(win), bg), prof, DET)
         assert abs(f - 500.0) < 30.0
         assert v > 0 and ns == 0
 
     def test_saturated_pixels_masked_and_counted(self):
         win, prof, bg = self._column(flux=500.0)
-        win[gext.APERTURE_HALFWIN] = gext.SATURATION_ADU + 100
-        f, v, ns = gext.horne_column(win, np.full(len(win), bg), prof,
-                                     egain=0.25, read_noise_e=3.5)
+        win[gext.APERTURE_HALFWIN] = DET.saturation_cap_adu() + 100
+        f, v, ns = gext.horne_column(win, np.full(len(win), bg), prof, DET)
         assert ns == 1
         assert f is not None                 # the wings still constrain it
 
     def test_fully_saturated_column_refuses(self):
-        win = np.full(25, gext.SATURATION_ADU + 1.0)
+        win = np.full(25, DET.saturation_cap_adu() + 1.0)
         prof = np.full(25, 1 / 25)
-        f, v, ns = gext.horne_column(win, np.zeros(25), prof,
-                                     egain=0.25, read_noise_e=3.5)
+        f, v, ns = gext.horne_column(win, np.zeros(25), prof, DET)
         assert f is None and ns == 25
 
     def test_optimal_beats_box_under_noise(self):
-        # The Horne estimator's variance across noise realizations must
-        # undercut the plain box sum's — that is its whole point.
         fh, fb = [], []
         for seed in range(60):
             win, prof, bg = self._column(flux=200.0, seed=seed)
-            f, _, _ = gext.horne_column(win, np.full(len(win), bg), prof,
-                                        egain=0.25, read_noise_e=3.5)
+            f, _, _ = gext.horne_column(win, np.full(len(win), bg), prof, DET)
             fh.append(f)
             fb.append(float((win - bg).sum()))
         assert np.std(fh) < np.std(fb)
@@ -323,88 +324,218 @@ class TestHorne:
     def test_median_relative_difference(self):
         a = np.full(1000, 100.0)
         b = np.full(1000, 98.0)               # a steady 2% offset
-        d = gext.median_relative_difference(a, b)
-        assert abs(d - 0.02) < 1e-9
+        assert abs(gext.median_relative_difference(a, b) - 0.02) < 1e-9
 
     def test_median_relative_difference_needs_overlap(self):
-        a = np.full(1000, np.nan)
-        b = np.full(1000, 1.0)
-        assert gext.median_relative_difference(a, b) is None
+        assert gext.median_relative_difference(
+            np.full(1000, np.nan), np.full(1000, 1.0)) is None
+
+
+class TestDetector:
+    def test_pedestal_carries_no_shot_noise(self):
+        v = DET.variance_adu2(np.array([DET.pedestal_adu]))
+        assert abs(v[0] - DET.read_noise_adu ** 2) < 1e-9
+
+    def test_average_binning_derates_the_clip(self):
+        cap = gcfg.replace(DET, linearity_cap_adu=None).saturation_cap_adu()
+        assert cap < DET.native_clip_adu
+        assert abs(cap - ((65535 - DET.pedestal_adu) / gcfg.NATIVE_PEAKING
+                          + DET.pedestal_adu)) < 1e-6
+
+    def test_linearity_cap_wins_when_lower(self):
+        d = gcfg.replace(DET, linearity_cap_adu=20000.0)
+        assert d.saturation_cap_adu() == 20000.0
+
+    def test_table_reads_measured_params(self):
+        params = {("ASI Mode0 2x2", "gain_e_per_adu"): 1.0455,
+                  ("ASI Mode0 2x2", "read_noise_adu"): 2.289}
+        t = gcfg.build_detector_table(params)
+        d = t["ASI-Mode0-bin2avg"]
+        assert d.gain_e_per_adu == 1.0455 and d.read_noise_adu == 2.289
+        # Quantities absent from the table keep the default AND say so.
+        assert d.provisional and "DEFAULT for" in d.provenance
+
+    def test_unknown_override_refused(self):
+        with pytest.raises(KeyError):
+            gcfg.detector_table({"no-such-camera": {"gain_e_per_adu": 1}},
+                                db_path=False)
+
+    def test_detector_key(self):
+        assert gcfg.detector_key("ASI Camera (1)", "Mode0") == \
+            "ASI-Mode0-bin2avg"
+        assert gcfg.detector_key("QHYCCD-Cameras-Capture", "Fast") == \
+            "QHY600-bin2avg"
+        assert gcfg.detector_key("QHY600Pro", "") == "QHY600-pyscope-bin2avg"
+        assert gcfg.detector_key("DL Imaging", "High Gain StackPro") == \
+            "AC4040-StackPro"
+
+
+class TestEpochs:
+    def test_merge_only_across_soft_boundaries(self):
+        rows = [("ASI:2024-12-16", "2024-12-16", "2025-06-23", "wheel_map"),
+                ("ASI:2025-10-11", "2025-10-11", "2026-03-16", "flipstat")]
+        assert all(r["verdict"] == "ok" for r in gcfg.reconcile_epochs(rows))
+
+    def test_hardware_boundary_inside_an_epoch_is_caught(self):
+        rows = [("X:a", "2025-01-01", "2025-02-01", "camera"),
+                ("X:b", "2025-03-01", "2025-04-01", "flipstat")]
+        out = gcfg.reconcile_epochs(rows)
+        assert out[1]["verdict"] == "MERGED_OVER_HARDWARE"
+
+
+class TestSky:
+    def test_polynomial_sky_follows_a_curved_lozenge(self):
+        # A rectified cutout: curved sky (quadratic across the trace) plus
+        # a narrow trace at the centre row.
+        half, nx = gext.RECT_HALF, 300
+        dy = np.arange(-half, half + 1)[:, None]
+        sky = 500.0 - 0.02 * dy ** 2 + 0.0 * np.arange(nx)[None, :]
+        trace = 1000.0 * np.exp(-0.5 * (dy / 2.5) ** 2)
+        rng = np.random.default_rng(1)
+        cut = sky + trace + rng.normal(0, 1.0, sky.shape)
+        poly = gext.sky_polynomial(cut)
+        line = gext.sky_flanking(cut)
+        at = half                                # the trace row
+        assert abs(np.median(poly[at]) - 500.0) < 1.0
+        # The straight line through the bands misses the curvature.
+        assert np.median(line[at]) < 500.0 - 10.0
 
 
 # ---------------------------------------------------------------------------
-# Wavelength anchors
+# Zero point, line measurement, the fixed solution
 # ---------------------------------------------------------------------------
-def synthetic_spectrum(nx=4000, x_ha=1800.0, disp=0.5, ha_height=800.0,
-                      o2_depth=250.0, noise=5.0, seed=3):
-    """Continuum + Halpha emission + O2 B/A absorption at the pixel
-    positions the dispersion implies (red toward +x)."""
+def emission_spectrum(nx=4000, x_ha=1800.0, height=800.0, noise=5.0,
+                      seed=3):
     rng = np.random.default_rng(seed)
     x = np.arange(nx, dtype=float)
-    cont = 1000.0 + 0.05 * x
-    spec = cont + ha_height * np.exp(-0.5 * ((x - x_ha) / 8.0) ** 2)
-    for band in (gw.O2_B_A, gw.O2_A_A):
-        xb = x_ha + (band - gw.HALPHA_A) / disp
-        spec -= o2_depth * np.exp(-0.5 * ((x - xb) / 10.0) ** 2)
+    spec = 1000.0 + 0.05 * x + height * np.exp(-0.5 * ((x - x_ha) / 6.0) ** 2)
     return spec + rng.normal(0, noise, nx)
 
 
-class TestWavelength:
-    def test_halpha_found(self):
-        w = gw.solve_wavelength(synthetic_spectrum())
-        assert w["x_halpha"] is not None
-        assert abs(w["x_halpha"] - 1800.0) < 2.0
-        assert w["halpha_snr"] > gw.PEAK_MIN_SNR
+class TestZeroPoint:
+    def test_halpha_found_to_a_fraction_of_a_pixel(self):
+        z = gw.halpha_zero_point(emission_spectrum())
+        assert z is not None and abs(z["x"] - 1800.0) < 0.3
+        assert z["x_err"] is not None and z["x_err"] < 0.3
 
-    def test_dispersion_from_o2(self):
-        w = gw.solve_wavelength(synthetic_spectrum(disp=0.5))
-        assert w["anchor_status"] == "halpha+o2"
-        # Dispersion is only ever accepted from the O2 B+A PAIR (see
-        # find_o2_pair): requiring both bands is a firmer identification than
-        # either alone, so 'o2_pair' is the single legal source token.  This
-        # assertion previously named the pre-revision per-band tokens.
-        assert w["disp_source"] == "o2_pair"
-        assert abs(w["disp_a_per_px"] - 0.5) < 0.02
-
-    def test_reversed_dispersion_sign_measured(self):
-        # Red toward -x: the anchors sit blueward in pixel terms and the
-        # solved dispersion must come out NEGATIVE, not fail.
-        spec = synthetic_spectrum()[::-1].copy()
-        w = gw.solve_wavelength(spec)
-        assert w["anchor_status"] == "halpha+o2"
-        assert w["disp_a_per_px"] < 0
-
-    def test_no_line_no_anchor(self):
+    def test_no_line_no_zero_point(self):
         rng = np.random.default_rng(0)
-        flat = 1000.0 + rng.normal(0, 5.0, 4000)
-        w = gw.solve_wavelength(flat)
-        assert w["anchor_status"] == "none"
-        assert w["x_halpha"] is None and w["disp_a_per_px"] is None
+        assert gw.halpha_zero_point(1000.0 + rng.normal(0, 5, 4000)) is None
 
     def test_cosmic_ray_not_mistaken_for_halpha(self):
-        # A single-pixel spike is narrower than PEAK_MIN_WIDTH: refused.
         rng = np.random.default_rng(0)
         spec = 1000.0 + rng.normal(0, 5.0, 4000)
         spec[2000] += 5000.0
-        w = gw.solve_wavelength(spec)
-        assert w["x_halpha"] is None
-
-    def test_wavelength_axis_arithmetic(self):
-        lam = gw.wavelength_axis(10, x_halpha=4.0, disp_a_per_px=2.0)
-        assert lam[4] == gw.HALPHA_A
-        assert lam[5] == gw.HALPHA_A + 2.0
-        assert lam[0] == gw.HALPHA_A - 8.0
+        assert gw.halpha_zero_point(spec) is None
 
     def test_snippet_roundtrip(self):
         import json
         flux = np.arange(100, dtype=float)
         flux[50] = np.nan
-        s = gw.snippet(flux, 50.0, halfwin=10, stride=1)
-        back = json.loads(json.dumps(s))
+        back = json.loads(json.dumps(gw.snippet(flux, 50.0, 10, 1)))
         xs = [p[0] for p in back]
-        assert 40 in xs and 60 in xs
-        assert back[xs.index(50)][1] is None          # NaN -> null
-        assert back[xs.index(41)][1] == 41.0
+        assert back[xs.index(50)][1] is None and back[xs.index(41)][1] == 41.0
+
+
+class TestLineCal:
+    COEFFS = [-460.0, 45.0, -20.0]      # A per kpx^k: ~0.46 A/px, curved
+
+    def test_wavelength_and_pixel_are_inverse(self):
+        x = np.array([500.0, 2394.0, 4000.0])
+        lam = lc.wavelength_of(x, 2394.0, self.COEFFS, 2394.0)
+        assert abs(lam[1] - lc.HALPHA_A) < 1e-9
+        back = lc.predict_x(lam, 2394.0, self.COEFFS, 2394.0)
+        assert np.allclose(back, x, atol=1e-6)
+
+    def test_fixed_solution_recovered_with_free_frame_constants(self):
+        waves = np.array([5875.6, 6347.1, 6562.8, 6678.2, 7065.2])
+        rng = np.random.default_rng(2)
+        ids, ws, xs = [], [], []
+        for f, shift in enumerate((-300.0, 0.0, 250.0)):
+            # x for each wavelength under the polynomial with this frame's
+            # constant (Newton inverse of the forward model).
+            x = lc.predict_x(waves, 2394.0 + shift, self.COEFFS, 2394.0)
+            ids += [f] * len(waves)
+            ws += list(waves)
+            xs += list(x + rng.normal(0, 0.05, len(x)))
+        sol = lc.solve_dispersion(ids, ws, xs, np.full(len(xs), 0.05),
+                                  degree=3, x_ref=2394.0)
+        assert abs(sol["disp_ref"] - self.COEFFS[0] / 1000.0) < 2e-3
+        assert sol["rms_px"] < 0.2 and sol["dof"] > 0
+
+    def test_fit_line_centre(self):
+        x = np.arange(200, dtype=float)
+        y = 1000.0 - 300.0 * np.exp(-0.5 * ((x - 100.3) / 4.0) ** 2)
+        m = lc.fit_line(y, 98.0, 30)
+        assert abs(m["x"] - 100.3) < 0.05 and m["amp_frac"] < 0
+
+    def test_edge_position_finds_a_cliff(self):
+        x = np.arange(400, dtype=float)
+        y = np.where(x < 200.0, 1000.0, 700.0) + 0.0 * x
+        m = lc.edge_position(y, 200.0, +1, search_px=10, span_px=20)
+        assert m is not None and abs(m["x"] - 199.5) < 1.5
+
+    def _b_star_features(self, a):
+        """Feature list of a synthetic B star dispersed at ``a`` px/A."""
+        names = ("HeI5876", "O2gamma", "SiII6347", "Halpha", "HeI6678",
+                 "O2B", "HeI7065")
+        return [{"x": 2400.0 + a * (lc._id_wave(lc.LINE_BY_NAME[n])
+                                    - lc.HALPHA_A),
+                 "depth": 0.3 if n == "Halpha" else 0.05} for n in names]
+
+    def test_true_dispersion_beats_the_rival(self):
+        a = lc.SEEDS["hrg"][0]
+        feats = self._b_star_features(a)
+        true = lc.identify_lines(feats, "hrg", "B", seed=(a, 0.0))
+        rival = lc.identify_lines(feats, "hrg", "B",
+                                  seed=lc.RIVALS["hrg"]["1.59 A/px (v1 code)"])
+        assert true["n_match"] >= 6
+        assert rival["n_match"] < true["n_match"] - 2
+
+
+class TestFingerprintGate:
+    def test_verdict_never_needs_a_header(self):
+        import inspect
+        params = inspect.signature(gg.fingerprint_verdict).parameters
+        assert not any("point" in p or "header" in p for p in params)
+
+    def test_truth_table(self):
+        A, R = gg.GATE_ACCEPT, gg.GATE_REJECT
+        assert gg.fingerprint_verdict(False, 20, 0.95, 0.6)[0] == R
+        assert gg.fingerprint_verdict(True, None, 0.95, 0.6)[1] == \
+            "no_emission_line"
+        assert gg.fingerprint_verdict(True, 20, 0.5, 0.6)[1] == \
+            "fingerprint_mismatch"
+        assert gg.fingerprint_verdict(True, 20, 0.95, 1.0)[1] == \
+            "no_tio_step"
+        assert gg.fingerprint_verdict(True, 20, 0.95, 0.6)[0] == A
+
+    def test_tio_step_and_correlation(self):
+        grid = np.arange(*gg.FP_WAVE, 1.0)
+        f = np.where(grid > 7054.0, 0.6, 1.0)
+        assert abs(gg.tio_step(grid, f) - 0.6) < 1e-9
+        assert gg.fingerprint_r(grid, f, f) > 0.999
+
+
+class TestEW:
+    def test_gaussian_emission_line(self):
+        wave = np.arange(6400.0, 6700.0, 0.5)
+        sig = 3.0
+        flux = 100.0 * (1 + 2.0 * np.exp(-0.5 * ((wave - 6562.8) / sig) ** 2))
+        m = gew.equivalent_width(wave, flux)
+        assert abs(m["ew_a"] - 2.0 * sig * np.sqrt(2 * np.pi)) < 0.05
+
+    def test_missing_band_refuses(self):
+        wave = np.arange(6540.0, 6580.0, 0.5)
+        assert gew.equivalent_width(wave, np.ones_like(wave)) is None
+
+
+class TestPTC:
+    def test_gain_and_floor_recovered(self):
+        level = np.linspace(10, 500, 40)
+        var = 2.3 ** 2 + level / 1.05
+        k, ke, rn, rne = gsum.ptc_fit(level, var)
+        assert abs(k - 1.05) < 1e-6 and abs(rn - 2.3) < 1e-6
 
 
 class TestGaiaConeCache:

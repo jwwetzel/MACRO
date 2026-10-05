@@ -1,619 +1,664 @@
 #!/usr/bin/env python
-"""G-track validation runner: T CrB grism series, core machinery pass.
+"""G-track: the corrected grism library applied to the T CrB series.
 
-Stages (each independently runnable; ``--all`` chains them):
+This runner replaces the 2026-08-18 validation pass.  That pass solved a
+dispersion per frame, used a header gain four times too small, masked
+every pixel above 16.3 kADU and rejected frames on a stale header
+pointing; the committee review of 2026-10-03 withdrew all four (OA.E1,
+OA.E2, DE.F1, TE.F3, PH.P7).  What runs here is the corrected library on
+EVERY T CrB hrg/lrg frame, from the 1-D spectrum cache written by
+``run_g_reduce.py --sample tcrb`` (and the calibrator cache of
+``run_g_dispersion.py``) — no stage below reads the archive.
 
-* ``--calibrate``  solve a handful of era-76 Mode0 IMAGING frames from the
-                   grism season with the S1 astrometry wrapper, harvest
-                   their CD matrices, and adopt the parity-normalized
-                   median as the gate's camera model (g_gate_calib).
-* ``--plan``       print the frame worklist (roles and counts), no work.
-* ``--run``        process frames (gate -> extract x2 -> wavelength ->
-                   FITS product + g_extractions row).  Resumable: frames
-                   already in g_extractions are skipped; ``--limit N``
-                   bounds one batch so no invocation outruns a shell
-                   timeout.
-* ``--parquet``    bundle every product FITS into one analysis-ready
-                   parquet (adds the per-grism fallback wavelength axis
-                   for halpha_only frames).
-* ``--report``     render docs/pipeline/g_grism.html from the DB.
+STAGES (each independent; ``--all`` chains them in order)
+---------------------------------------------------------
+``--gate``      (runs first) G-3 / TCRB-A0: the pixel identity gate and
+                the Halpha identification it implies   -> g_identity
+``--zero``      TCRB-A3: per-frame zero point (Halpha emission) under the
+                FIXED detector-coordinate dispersion of the frame's
+                (grism, mechanical epoch); the O2-B edge as the check (G-1:
+                its wavelength constant across the series) -> g_zero_point
+``--variance``  G-2: measured vs predicted sky variance in the trace
+                flanks; pooled photon-transfer fit          -> g_variance_check
+``--null``      G-4: empty-aperture residual of each sky model, negative-
+                continuum census, sky-method and boxcar-vs-optimal
+                differences                                 -> g_null_sky
+``--lsf``       G-5: delivered line-spread function per frame (T CrB and
+                calibrators), focus offset and CCD-TEMP     -> g_lsf
+``--sat``       TCRB-A6: saturation triage against the measured cap with
+                the bad-pixel mask applied                  -> g_saturation
+``--ew``        Halpha equivalent width, corrected library ('v2') and the
+                August library's spectra and dispersions ('v1'), same
+                estimator                                    -> g_ew
+``--summary``   print every acceptance number (the report renders the
+                same numbers from the same tables)
+``--report``    render docs/pipeline/g_grism.html
 
-The archive is READ-ONLY; outputs go to products/grism/ and docs/.
+Reads ``products/grism/grism.sqlite`` (own tables), the spectrum cache,
+and — for the v1 comparison only — the August ``g_extractions`` rows in
+the manifest snapshot and their FITS products under
+``products/grism/spectra`` (read-only).
 """
 
 from __future__ import annotations
 
 import argparse
-import glob
-import shutil
 import json
-import os
 import sys
-import time
+from collections import defaultdict
+from typing import Optional
 from pathlib import Path
 
 import numpy as np
 
-# Make pipeline/ importable when run as a script from the repo root.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import sqlite3
-
-from macro_core.astrom import solve_one_frame            # noqa: E402
+from macro_grism import config as gconfig                # noqa: E402
 from macro_grism import db as gdb                        # noqa: E402
+from macro_grism import ew as gew                        # noqa: E402
 from macro_grism import extract as gext                  # noqa: E402
 from macro_grism import gate as ggate                    # noqa: E402
-from macro_grism import trace as gtrace                  # noqa: E402
+from macro_grism import store as gstore                  # noqa: E402
+from macro_grism.summary_g import ptc_fit                # noqa: E402
 from macro_grism import wavelength as gwave              # noqa: E402
-from macro_grism.fits_io import GrismLayoutError, load_frame  # noqa: E402
 
-# ---------------------------------------------------------------------------
-# Locations (defaults follow the repo layout; every one is overridable).
-# ---------------------------------------------------------------------------
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-DEFAULT_MANIFEST = REPO_ROOT / "products" / "manifest" / "rlmt-manifest.sqlite"
-DEFAULT_ARCHIVE = Path("/Volumes/OWC StudioStack HDD/DATA/ASTRO/rlmt-archive")
-DEFAULT_PRODUCTS = REPO_ROOT / "products" / "grism"
-ASTROMETRY_CFG = Path.home() / "astrometry-indices" / "astrometry.cfg"
+#: Acceptance thresholds, quoted from SYNTHESIS section 3 and the ledger.
+G1_SEP_TOL = 0.02          # O2-B edge constant to 1-2% of the lever arm
+G2_VAR_TOL = 0.20          # predicted vs measured variance within 20%
+G4_METHOD_TOL = 0.03       # sky-method / extraction-method difference < 3%
 
-#: The validation sample sizes (the strategy's numbers).
-N_TCRB_SAMPLE = 54          # stratified across the 60 nights, both grisms
-N_CALIBRATOR = 10           # tet CrB frames (C4 Be-contamination flagged)
-N_CD_SOLVES = 6             # imaging frames solved for the camera model
+#: Nominal hrg-minus-lrg focuser offset (counts) under MaxIm's filter-
+#: offset table (TE.F4), and how far from nominal a frame may sit before
+#: it is flagged off-nominal.  (Under pyscope the offsets are zero —
+#: ops package — but the T CrB series is entirely MaxIm-era.)
+NOMINAL_FOCUS_OFFSET = {"hrg": 650.0, "lrg": 0.0}
+FOCUS_TOL = 150.0
 
-#: tet CrB rows carry this flag everywhere (strategy ruling C4: the
-#: calibrator is a Be/shell star — its Halpha region is astrophysically
-#: contaminated and must never be used as a featureless reference there).
-C4_FLAG = "C4_Be_Halpha"
+#: Sensor temperature (C) above which a frame is "warm" relative to the
+#: -10 C master darks and bad-pixel masks (DE.F5).
+WARM_CCD_TEMP = -5.0
 
-#: The grism era under validation (T CrB series is entirely era 76 Mode0).
-ERA_ID = 76
+#: A column is "negative continuum" when its optimal flux is below zero by
+#: more than this many sigma (inside the trace extent, Halpha excluded).
+NEG_SIGMA = 3.0
 
+#: Saturation triage: a saturated column within this many A of Halpha
+#: (the EW window plus its continuum bands) DISCARDS the frame for EW
+#: work; anywhere else on the trace it only FLAGS it.
+SAT_DISCARD_HALFWIDTH_A = 65.0
 
-# ---------------------------------------------------------------------------
-# Camera-model calibration
-# ---------------------------------------------------------------------------
-def pick_calibration_frames(con) -> list[tuple]:
-    """Era-76 Mode0 full-frame IMAGING frames spread across the T CrB
-    season (2025-02..06): candidates for the CD solve.  Spread is by
-    night percentile so pier-side/season drift is sampled, not assumed."""
-    rows = con.execute("""
-        SELECT path, night, ra_deg, dec_deg FROM frames
-        WHERE is_canonical = 1 AND era_id = ? AND tree = 'rawimage'
-          AND lower(coalesce(filter,'')) IN ('g','r','i')
-          AND imagetyp LIKE 'Light%' AND naxis1 = 4788
-          AND exptime BETWEEN 5 AND 300
-          AND night BETWEEN '2025-02-15' AND '2025-06-30'
-        ORDER BY night""", (ERA_ID,)).fetchall()
-    if not rows:
-        return []
-    # Even spread: one frame at each of N evenly spaced positions.
-    idx = np.unique(np.linspace(0, len(rows) - 1, N_CD_SOLVES).astype(int))
-    return [rows[i] for i in idx]
+C_KMS = 299792.458
 
 
-def run_calibrate(con, archive: Path, scratch: Path) -> None:
-    """Solve the calibration frames, store every result, adopt the
-    parity-normalized element-wise median CD."""
-    con.execute("DELETE FROM g_gate_calib")     # a re-calibration replaces
-    frames = pick_calibration_frames(con)
-    from astropy.io import fits as _fits
-    cds = []
-    for path, night, ra, dec in frames:
-        work = scratch / f"solve_{Path(path).stem}"
-        # A work directory left by an earlier calibration still holds that
-        # run's unpacked FITS; funpack refuses to overwrite it and the solve
-        # comes back "error".  Start every solve from an empty directory.
-        shutil.rmtree(work, ignore_errors=True)
-        res = solve_one_frame(str(archive / path), str(work),
-                              str(ASTROMETRY_CFG), "Mode0", 2, ra, dec)
-        cd = [None] * 4
-        if res["status"] == "solved":
-            wcs_files = glob.glob(str(work / "*.wcs"))
-            if wcs_files:
-                h = _fits.getheader(wcs_files[0])
-                cd = [h["CD1_1"], h["CD1_2"], h["CD2_1"], h["CD2_2"]]
-                cds.append(cd)
-        con.execute("""
-            INSERT INTO g_gate_calib (era_id, frame_path, night, status,
-                cd1_1, cd1_2, cd2_1, cd2_2, pixscale_arcsec, rotation_deg,
-                rms_arcsec, n_matched, adopted)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,0)""",
-            (ERA_ID, path, night, res["status"], *cd,
-             res["pixscale_arcsec"], res["rotation_deg"],
-             res["rms_arcsec"], res["n_matched"]))
-        print(f"  calib {night} {res['status']} "
-              f"scale={res['pixscale_arcsec']} rot={res['rotation_deg']}")
-    if not cds:
-        raise SystemExit("no calibration frame solved — gate cannot run")
-    # Parity normalization: a meridian flip negates the whole matrix, so
-    # flip every solution onto the sign of the first, then take the
-    # element-wise median (robust to one bad solve).
-    ref_sign = np.sign(cds[0][0])
-    normed = [np.array(c) if np.sign(c[0]) == ref_sign else -np.array(c)
-              for c in cds]
-    adopted = np.median(np.array(normed), axis=0)
-    con.execute("""
-        INSERT INTO g_gate_calib (era_id, frame_path, night, status,
-            cd1_1, cd1_2, cd2_1, cd2_2, adopted)
-        VALUES (?, 'ADOPTED-MEDIAN', NULL, 'adopted', ?,?,?,?, 1)""",
-        (ERA_ID, *[float(v) for v in adopted]))
-    gdb.set_meta(con, "cd_n_solved", str(len(cds)))
-    con.commit()
-    print(f"adopted CD (median of {len(cds)}): {adopted.tolist()}")
-
-
-def adopted_cd(con) -> np.ndarray:
-    row = con.execute("""
-        SELECT cd1_1, cd1_2, cd2_1, cd2_2 FROM g_gate_calib
-        WHERE adopted = 1 ORDER BY calib_id DESC LIMIT 1""").fetchone()
-    if row is None:
-        raise SystemExit("no adopted CD — run --calibrate first")
-    return np.array(row, dtype=float).reshape(2, 2)
-
-
-# ---------------------------------------------------------------------------
-# The worklist: which frames, in which role
-# ---------------------------------------------------------------------------
-def target_reference(con, like: str) -> tuple[float, float]:
-    """A target's reference coordinates: the MEDIAN header pointing of its
-    canonical grism series.  The median shrugs off the 21 bad pointings
-    (they are < 10% of the series), so this stays honest without using
-    the outlier flag it is about to help judge."""
-    rows = con.execute("""
-        SELECT ra_deg, dec_deg FROM frames
-        WHERE is_canonical = 1 AND target_best LIKE ?
-          AND lower(coalesce(filter,'')) IN ('hrg','lrg') AND era_id = ?
-          AND ra_deg IS NOT NULL""", (like, ERA_ID)).fetchall()
-    ra = float(np.median([r[0] for r in rows]))
-    dec = float(np.median([r[1] for r in rows]))
-    return ra, dec
-
-
-BASE_COLS = ("obs_rowid, path, filter, night, jd, exptime, era_id, "
-             "ra_deg, dec_deg, pointing_offset_deg, target_best")
-
-
-def build_worklist(con) -> list[dict]:
-    """The full validation worklist, deterministic, with roles:
-
-    * gate_bad    — ALL 21 known-bad T CrB pointings (the mandated set).
-    * gate_good   — a matched good frame per bad one: same grism filter,
-                    nearest night, pointing offset < 0.1 deg.
-    * tcrb_sample — ~54 good frames stratified across nights, both grisms
-                    (alternating by night index so hrg and lrg both cover
-                    the season).
-    * calibrator  — 10 tet CrB era-76 frames across its exposure strata.
-    """
-    def rowdicts(sql, params=()):
-        cols = [c.strip() for c in BASE_COLS.split(",")]
-        return [dict(zip(cols, r)) for r in con.execute(sql, params)]
-
-    bad = rowdicts(f"""
-        SELECT {BASE_COLS} FROM frames
-        WHERE is_canonical = 1 AND target_best = 'T CrB'
-          AND lower(filter) IN ('hrg','lrg') AND pointing_offset_deg > 1
+def tcrb_rows(con, extra: str = "") -> list[dict]:
+    cur = con.execute(f"""
+        SELECT path, obs_rowid, sample, target, grism, night, mech_epoch,
+               jd, exptime, detector_key, focpos, ccd_temp, airmass,
+               pointing_offset_deg, snr_median, peak_adu, n_sat_cols,
+               fwhm_px, sky_adu, trace_x0, trace_x1, sat_cap_adu, hot_mask,
+               status
+        FROM g_frames WHERE sample = 'tcrb' {extra}
         ORDER BY night, path""")
-    good_all = rowdicts(f"""
-        SELECT {BASE_COLS} FROM frames
-        WHERE is_canonical = 1 AND target_best = 'T CrB'
-          AND lower(filter) IN ('hrg','lrg')
-          AND pointing_offset_deg < 0.1
-        ORDER BY night, path""")
-    work, seen = [], set()
+    cols = [c[0] for c in cur.description]
+    return [dict(zip(cols, r)) for r in cur]
 
-    def add(row, role):
-        if row["obs_rowid"] in seen:
-            return
-        seen.add(row["obs_rowid"])
-        row = dict(row)
-        row["role"] = role
-        work.append(row)
 
-    for r in bad:
-        add(r, "gate_bad")
-    # Matched good frame per bad frame: same filter, nearest night.
-    import datetime as dt
+def science_flux(spec: dict, key: str = "flux") -> np.ndarray:
+    """Flux inside the trace extent (NaN elsewhere)."""
+    return np.where(spec["inside"], spec[key], np.nan)
 
-    def night_num(n):
-        return dt.date.fromisoformat(n).toordinal()
 
-    for b in bad:
-        cands = [g for g in good_all if g["filter"] == b["filter"]
-                 and g["obs_rowid"] not in seen]
-        if not cands:
+def mad_sigma(v) -> float:
+    v = np.asarray(v, dtype=float)
+    return float(1.4826 * np.median(np.abs(v - np.median(v))))
+
+
+# ---------------------------------------------------------------------------
+# --zero (TCRB-A3)
+# ---------------------------------------------------------------------------
+def run_zero(con) -> None:
+    sols = gwave.load_solutions(con)
+    chosen = dict(con.execute("SELECT path, x_halpha FROM g_identity "
+                              "WHERE x_halpha IS NOT NULL"))
+    out = []
+    for r in tcrb_rows(con, "AND status = 'ok'"):
+        sol = gwave.solution_for(sols, r["grism"], r["night"])
+        spec = gstore.load_spec(r["path"])
+        row = {"path": r["path"], "sample": r["sample"],
+               "target": r["target"], "grism": r["grism"],
+               "mech_epoch": r["mech_epoch"], "night": r["night"],
+               "anchor": "none", "status": "no_solution"}
+        if sol is None or spec is None:
+            out.append(row)
             continue
-        cands.sort(key=lambda g: (abs(night_num(g["night"])
-                                      - night_num(b["night"])), g["path"]))
-        add(cands[0], "gate_good")
-    # Stratified season sample: group good frames by night, walk nights
-    # in order, alternate the preferred grism, one frame per night.
-    by_night: dict = {}
-    for g in good_all:
-        by_night.setdefault(g["night"], []).append(g)
-    nights = sorted(by_night)
-    picked = 0
-    for i, night in enumerate(nights):
-        if picked >= N_TCRB_SAMPLE:
-            break
-        pref = "hrg" if i % 2 == 0 else "lrg"
-        cands = ([g for g in by_night[night] if g["filter"] == pref
-                  and g["obs_rowid"] not in seen]
-                 or [g for g in by_night[night]
-                     if g["obs_rowid"] not in seen])
-        if cands:
-            add(sorted(cands, key=lambda g: g["path"])[0], "tcrb_sample")
-            picked += 1
-    # tet CrB calibrator sample: spread across its exposure strata (the
-    # target_best labels bin the series by exptime); shortest exposures
-    # first within each stratum — tet CrB is G ~ 4, saturation is the
-    # enemy, and short frames are the usable ones.  Frames whose header
-    # pointing is > POINTING_TOL_DEG off the tet CrB reference are
-    # EXCLUDED here: the first validation pass proved the March-2025
-    # header-pointing bug hit the tet CrB series too (150-162 deg off),
-    # and a calibrator sample must contain calibrator spectra — the
-    # bad-header frames are gate evidence, not calibration material.
-    tet_ref = target_reference(con, "tet CrB%")
-    strata = con.execute("""
-        SELECT DISTINCT target_best FROM frames
-        WHERE is_canonical = 1 AND target_best LIKE 'tet CrB%'
-          AND era_id = ? AND lower(filter) IN ('hrg','lrg')
-        ORDER BY target_best""", (ERA_ID,)).fetchall()
-    per = max(1, N_CALIBRATOR // max(1, len(strata)))
-    n_cal = 0
-    for (stratum,) in strata:
-        rows = rowdicts(f"""
-            SELECT {BASE_COLS} FROM frames
-            WHERE is_canonical = 1 AND target_best = ? AND era_id = ?
-              AND lower(filter) IN ('hrg','lrg')
-            ORDER BY exptime, night, path""", (stratum, ERA_ID))
-        n_stratum = 0
-        for r in rows:
-            if n_cal >= N_CALIBRATOR or n_stratum >= per:
-                break
-            if (r["ra_deg"] is None or ggate.angular_offset_deg(
-                    r["ra_deg"], r["dec_deg"], *tet_ref)
-                    > ggate.POINTING_TOL_DEG):
-                continue                       # header-bug frame: skip
-            add(r, "calibrator")
-            n_cal += 1
-            n_stratum += 1
-    return work
-
-
-# ---------------------------------------------------------------------------
-# Master darks (the comparison arm's calibration source)
-# ---------------------------------------------------------------------------
-class DarkLibrary:
-    """Era-76 master darks by exposure time, loaded lazily and kept.
-
-    ``nearest(exptime)`` returns (path, exptime, pixels) for the master
-    whose exposure is closest in LOG space — 2 s is 'nearer' to 4 s than
-    to 0.5 s where dark current is concerned."""
-
-    def __init__(self, con, archive: Path):
-        self.archive = archive
-        self.rows = con.execute("""
-            SELECT exptime, path FROM calib_frames
-            WHERE era_id = ? AND kind = 'dark' AND is_master = 1
-              AND exptime > 0 ORDER BY exptime""", (ERA_ID,)).fetchall()
-        self._cache: dict = {}
-
-    def nearest(self, exptime: float):
-        if not self.rows or not exptime or exptime <= 0:
-            return None
-        best = min(self.rows,
-                   key=lambda r: abs(np.log(r[0]) - np.log(exptime)))
-        if best[0] not in self._cache:
-            data, _, _ = load_frame(str(self.archive / best[1]))
-            self._cache[best[0]] = (best[1], data)
-        path, data = self._cache[best[0]]
-        return path, float(best[0]), data
-
-
-# ---------------------------------------------------------------------------
-# One frame, end to end
-# ---------------------------------------------------------------------------
-def process_frame(row: dict, cd: np.ndarray, refs: dict, darks: DarkLibrary,
-                  archive: Path, spectra_dir: Path, cache_dir: Path) -> list[dict]:
-    """Gate + double extraction + wavelength for one frame.  Returns the
-    two g_extractions row dicts (flanking, masterdark).  Any failure is
-    captured into ``status`` — a bad frame must produce a record, not a
-    crashed batch."""
-    base = {k: row.get(k) for k in ("obs_rowid", "path", "filter", "night",
-                                    "jd", "exptime", "era_id", "role")}
-    base["target"] = row["target_best"]
-    if row["target_best"].startswith("tet CrB"):
-        base["contamination_flag"] = C4_FLAG
-    try:
-        data, header, layout = load_frame(str(archive / row["path"]))
-    except (GrismLayoutError, OSError) as exc:
-        base.update(method="flanking", status=f"load_error: {exc}"[:300])
-        return [base]
-    base["layout"] = layout
-    ny, nx = data.shape
-
-    # ---- trace geometry -------------------------------------------------
-    xs, ys, amps = gtrace.chunk_peaks(data)
-    slope = gtrace.fit_slope(xs, ys, amps)
-    _, resid = gtrace.detilted_profile(data, slope)
-    u_obs, height = gtrace.main_trace_u(resid)
-    base.update(trace_slope=slope, trace_height=height, u_obs=float(u_obs))
-
-    # ---- identity gate --------------------------------------------------
-    ra0, dec0 = row.get("ra_deg"), row.get("dec_deg")
-    ref = refs["tet" if row["target_best"].startswith("tet") else "tcrb"]
-    offset = (ggate.angular_offset_deg(ra0, dec0, *ref)
-              if ra0 is not None and dec0 is not None else None)
-    stars = np.empty((0, 3))
-    if ra0 is not None:
-        try:
-            stars = ggate.gaia_cone(ra0, dec0, str(cache_dir))
-        except Exception as exc:                     # noqa: BLE001
-            base.update(method="flanking",
-                        status=f"gaia_error: {exc}"[:300])
-            return [base]
-    preds = (ggate.brightest_prediction(cd, ra0, dec0, stars, slope, ny, nx)
-             if len(stars) else {"A": None, "B": None})
-    g = ggate.gate_verdict(offset, height, float(u_obs), preds, len(stars))
-    base.update(gate_verdict=g.verdict, gate_reason=g.reason,
-                pointing_offset_deg=offset, u_pred=g.u_pred_best,
-                u_resid_px=g.u_resid_px, gate_parity=g.parity,
-                n_gaia=g.n_gaia, brightest_g=g.brightest_g)
-
-    # A frame with no usable trace cannot be extracted; record and stop.
-    if height < ggate.MIN_TRACE_HEIGHT_ADU:
-        base.update(method="flanking", status="ok_no_trace")
-        return [base]
-
-    # ---- extraction, both background methods ---------------------------
-    coeffs, n_cent, t_rms = gtrace.fit_trace_centers(data, slope, u_obs)
-    base.update(trace_c0=float(coeffs[0]), trace_c1=float(coeffs[1]),
-                trace_c2=float(coeffs[2]), trace_rms_px=t_rms,
-                trace_n_centroids=n_cent)
-    egain = float(header.get("EGAIN", gext.DEFAULT_EGAIN))
-    dark = darks.nearest(row.get("exptime"))
-    spectra, rows_out = {}, []
-    for method in ("flanking", "masterdark"):
-        r = dict(base)
-        r["method"] = method
-        if method == "masterdark":
-            if dark is None:
-                r["status"] = "no_master_dark"
-                rows_out.append(r)
-                continue
-            r.update(dark_path=dark[0], dark_exptime=dark[1],
-                     bg_method="masterdark+flanking")
-            spec = gext.extract_spectrum(data, coeffs, egain, dark=dark[2])
+        flux = science_flux(spec)
+        peak = None
+        if chosen.get(r["path"]) is not None:
+            # The Halpha identification of the gate (the candidate that
+            # matches T CrB's spectrum), re-centroided here.
+            for c in gwave.emission_candidates(flux):
+                if abs(c["x"] - chosen[r["path"]]) < 2.0:
+                    peak = c
+        z = gwave.halpha_zero_point(flux, spec["var"], peak=peak)
+        if z is None:
+            row["status"] = "no_halpha"
+            out.append(row)
+            continue
+        row.update(anchor="halpha_em", x_halpha=z["x"],
+                   x_halpha_err=z["x_err"], halpha_snr=z["snr"],
+                   halpha_fwhm_px=z["fwhm_px"],
+                   halpha_amp_frac=z["amp_frac"],
+                   disp_at_halpha=sol.local_disp(z["x"]), status="ok")
+        o = gwave.check_o2b(flux, z["x"], sol)
+        if o is None:
+            row["status"] = "ok_no_o2b"
         else:
-            r["bg_method"] = "flanking"
-            spec = gext.extract_spectrum(data, coeffs, egain)
-        spectra[method] = spec
-        flux = spec["flux"]
-        r.update(n_extracted=spec["n_extracted"],
-                 n_sat_cols=int((spec["n_sat"] > 0).sum()),
-                 peak_flux=float(np.nanmax(flux)),
-                 median_flux=float(np.nanmedian(flux)))
-        # ---- wavelength anchors (per method: the debt shows up here too)
-        w = gwave.solve_wavelength(flux)
-        r.update(anchor_status=w["anchor_status"], x_halpha=w["x_halpha"],
-                 halpha_snr=w["halpha_snr"],
-                 halpha_width_px=w["halpha_width_px"], x_o2b=w["x_o2b"],
-                 o2b_snr=w["o2b_snr"], x_o2a=w["x_o2a"],
-                 o2a_snr=w["o2a_snr"], disp_a_per_px=w["disp_a_per_px"],
-                 disp_source=w["disp_source"])
-        if w["x_halpha"] is not None:
-            r["snippet_json"] = json.dumps(
-                gwave.snippet(flux, w["x_halpha"]))
-        r["status"] = "ok"
-        rows_out.append(r)
-
-    # ---- the debt number + the FITS product -----------------------------
-    if "flanking" in spectra and "masterdark" in spectra:
-        debt = gext.median_relative_difference(
-            spectra["flanking"]["flux"], spectra["masterdark"]["flux"])
-        for r in rows_out:
-            r["debt_median_rel_diff"] = debt
-    fits_rel = write_spectrum_fits(row, base, rows_out, spectra,
-                                   spectra_dir)
-    for r in rows_out:
-        r["spectrum_fits"] = fits_rel
-    return rows_out
-
-
-def write_spectrum_fits(row, base, rows_out, spectra, spectra_dir: Path):
-    """One FITS per frame: a binary-table extension per method with
-    x / wavelength (when anchored) / flux / var / background / n_sat.
-    Written atomically (tmp + rename)."""
-    if not spectra:
-        return None
-    from astropy.io import fits as _fits
-    hdus = [_fits.PrimaryHDU()]
-    hdr0 = hdus[0].header
-    hdr0["SRCPATH"] = (row["path"], "archive frame (read-only)")
-    hdr0["TARGET"] = row["target_best"]
-    hdr0["NIGHT"] = row["night"]
-    hdr0["JDSTART"] = (row["jd"], "header JD, UTC exposure START")
-    hdr0["GATE"] = (base.get("gate_verdict") or "", "identity gate")
-    if base.get("contamination_flag"):
-        hdr0["C4FLAG"] = (base["contamination_flag"],
-                          "Be/shell calibrator: Halpha contaminated")
-    for r in rows_out:
-        m = r["method"]
-        if m not in spectra:
-            continue
-        spec = spectra[m]
-        nx = len(spec["flux"])
-        cols = [
-            _fits.Column(name="X_PX", format="J",
-                         array=np.arange(nx, dtype=np.int32)),
-            _fits.Column(name="FLUX_ADU", format="E", array=spec["flux"]),
-            _fits.Column(name="VAR_ADU2", format="E", array=spec["var"]),
-            _fits.Column(name="BOX_ADU", format="E", array=spec["box"]),
-            _fits.Column(name="BG_ADU", format="E", array=spec["bg"]),
-            _fits.Column(name="N_SAT", format="I",
-                         array=spec["n_sat"].astype(np.int16)),
-        ]
-        if r.get("x_halpha") is not None and r.get("disp_a_per_px"):
-            cols.insert(1, _fits.Column(
-                name="WAVE_A", format="E",
-                array=gwave.wavelength_axis(nx, r["x_halpha"],
-                                            r["disp_a_per_px"])))
-        t = _fits.BinTableHDU.from_columns(cols, name=m.upper())
-        t.header["BGMETHOD"] = r.get("bg_method") or ""
-        t.header["ANCHORS"] = r.get("anchor_status") or ""
-        if r.get("x_halpha") is not None:
-            t.header["XHALPHA"] = r["x_halpha"]
-        if r.get("disp_a_per_px"):
-            t.header["DISPAPX"] = (r["disp_a_per_px"],
-                                   "A/px, signed, per-frame O2 anchor")
-        hdus.append(t)
-    name = Path(row["path"]).stem.replace(".fts", "") + "_spec.fits"
-    out = spectra_dir / name
-    tmp = out.with_suffix(".tmp")
-    _fits.HDUList(hdus).writeto(tmp, overwrite=True)
-    os.replace(tmp, out)
-    return str(Path("spectra") / name)
-
-
-# ---------------------------------------------------------------------------
-# Parquet bundling
-# ---------------------------------------------------------------------------
-def run_parquet(con, products: Path) -> None:
-    """Long-format parquet over every product FITS.  Adds the per-grism
-    median dispersion as the fallback wavelength for halpha_only frames
-    (recorded as wave_source='grism_median')."""
-    import pandas as pd
-    from astropy.io import fits as _fits
-    # Per-grism median dispersion, computed in Python (SQLite has no
-    # median) from the flanking-method rows that carried an O2 anchor.
-    disp_rows = con.execute("""
-        SELECT filter, disp_a_per_px FROM g_extractions
-        WHERE disp_a_per_px IS NOT NULL AND method = 'flanking'""")
-    by_filt: dict = {}
-    for filt, disp in disp_rows:
-        by_filt.setdefault(filt, []).append(disp)
-    med = {filt: float(np.median(v)) for filt, v in by_filt.items()}
-    rows = con.execute("""
-        SELECT obs_rowid, method, target, filter, night, jd, role,
-               gate_verdict, contamination_flag, spectrum_fits,
-               anchor_status, x_halpha, disp_a_per_px
-        FROM g_extractions
-        WHERE spectrum_fits IS NOT NULL AND status = 'ok'""").fetchall()
-    frames = []
-    for (rowid, method, target, filt, night, jd, role, verdict, c4,
-         rel, anchor, x_ha, disp) in rows:
-        path = products / rel
-        if not path.exists():
-            continue
-        with _fits.open(path) as h:
-            if method.upper() not in h:
-                continue
-            t = h[method.upper()].data
-        df = pd.DataFrame({"x_px": t["X_PX"], "flux_adu": t["FLUX_ADU"],
-                           "var_adu2": t["VAR_ADU2"]})
-        wave_source = None
-        if "WAVE_A" in t.dtype.names:
-            df["wave_a"] = t["WAVE_A"]
-            wave_source = "frame_o2"
-        elif x_ha is not None and filt in med:
-            df["wave_a"] = gwave.wavelength_axis(len(df), x_ha, med[filt])
-            wave_source = "grism_median"
-        df["obs_rowid"] = rowid
-        df["method"] = method
-        df["target"] = target
-        df["filter"] = filt
-        df["night"] = night
-        df["jd_start_utc"] = jd
-        df["role"] = role
-        df["gate_verdict"] = verdict
-        df["contamination_flag"] = c4
-        df["wave_source"] = wave_source
-        frames.append(df)
-    out = products / "spectra_g_validation.parquet"
-    tmp = out.with_suffix(".tmp")
-    pd.concat(frames, ignore_index=True).to_parquet(tmp, index=False)
-    os.replace(tmp, out)
-    print(f"parquet: {out} ({sum(len(f) for f in frames):,} rows, "
-          f"{len(frames)} spectra)")
-
-
-# ---------------------------------------------------------------------------
-# main
-# ---------------------------------------------------------------------------
-def main(argv=None):
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--manifest", default=str(DEFAULT_MANIFEST))
-    ap.add_argument("--archive", default=str(DEFAULT_ARCHIVE))
-    ap.add_argument("--products", default=str(DEFAULT_PRODUCTS))
-    ap.add_argument("--calibrate", action="store_true")
-    ap.add_argument("--plan", action="store_true")
-    ap.add_argument("--run", action="store_true")
-    ap.add_argument("--limit", type=int, default=0,
-                    help="max frames this batch (0 = no limit)")
-    ap.add_argument("--parquet", action="store_true")
-    ap.add_argument("--report", action="store_true")
-    ap.add_argument("--all", action="store_true")
-    args = ap.parse_args(argv)
-
-    products = Path(args.products)
-    spectra_dir = products / "spectra"
-    cache_dir = products / "gaia_cache"
-    scratch = products / "scratch"
-    for d in (spectra_dir, cache_dir, scratch):
-        d.mkdir(parents=True, exist_ok=True)
-
-    con = sqlite3.connect(args.manifest)
-    gdb.ensure_schema(con)
-    gdb.set_meta(con, "code_version", ggate.G_CODE_VERSION)
+            row.update(x_o2b=o["x"], x_o2b_err=o["x_err"],
+                       o2b_depth=o["depth"], o2b_wave=o["wave"],
+                       o2b_wave_err=o["wave_err"], o2b_dwave=o["dwave"],
+                       sep_px=o["sep_px"], sep_pred_px=o["sep_pred_px"],
+                       sep_frac_dev=o["frac_dev"])
+        out.append(row)
+    con.execute("DELETE FROM g_zero_point WHERE sample = 'tcrb'")
+    for row in out:
+        gdb.upsert(con, "g_zero_point", row)
     con.commit()
+    print(f"zero points: {len(out)} frames")
 
-    if args.calibrate or args.all:
-        run_calibrate(con, Path(args.archive), scratch)
 
-    work = build_worklist(con)
-    if args.plan:
-        from collections import Counter
-        print(Counter(w["role"] for w in work))
-        for w in work:
-            print(f"  {w['role']:12s} {w['filter']:3s} {w['night']} "
-                  f"{w['path']}")
+# ---------------------------------------------------------------------------
+# --gate (G-3, TCRB-A0)
+# ---------------------------------------------------------------------------
+def _candidate_spectra(r: dict, sols: dict):
+    """Every Halpha hypothesis of one frame: for each of its strongest
+    sharp emission features (gwave.emission_candidates), the zero point
+    and the frame's spectrum on the fingerprint grid under the FIXED
+    dispersion of its (grism, epoch) — raw-normalised and high-passed.
+    Returns (grid, has_trace, [(zero_point, raw, highpassed), ...]).
+    Nothing here reads a header value."""
+    grid = np.arange(ggate.FP_WAVE[0], ggate.FP_WAVE[1],
+                     ggate.FP_STEP_A[r["grism"]])
+    if r["status"] != "ok":
+        return grid, False, []
+    sol = gwave.solution_for(sols, r["grism"], r["night"])
+    spec = gstore.load_spec(r["path"])
+    if sol is None or spec is None:
+        return grid, True, []
+    flux = np.where(spec["n_sat"] > 0, np.nan, science_flux(spec))
+    out = []
+    for cand in gwave.emission_candidates(flux):
+        z = gwave.halpha_zero_point(flux, spec["var"], peak=cand)
+        if z is None:
+            continue
+        wave = gwave.wavelength_axis(len(flux), z["x"], sol)
+        raw = ggate.normalise(ggate.resample(wave, flux, grid))
+        out.append((z, raw, ggate.highpass(grid, raw)))
+    return grid, True, out
 
-    if args.run or args.all:
-        cd = adopted_cd(con)
-        refs = {"tcrb": target_reference(con, "T CrB"),
-                "tet": target_reference(con, "tet CrB%")}
-        gdb.set_meta(con, "ref_tcrb", json.dumps(refs["tcrb"]))
-        gdb.set_meta(con, "ref_tet", json.dumps(refs["tet"]))
-        darks = DarkLibrary(con, Path(args.archive))
-        done = gdb.existing_keys(con)
-        todo = [w for w in work if (w["obs_rowid"], "flanking") not in done]
-        if args.limit:
-            todo = todo[:args.limit]
-        print(f"worklist {len(work)}, remaining {len(todo)}")
-        t0 = time.time()
-        for i, w in enumerate(todo):
-            rows = process_frame(w, cd, refs, darks, Path(args.archive),
-                                 spectra_dir, cache_dir)
-            for r in rows:
-                gdb.insert_extraction(con, r)
-            con.commit()                     # one frame = one transaction
-            v = rows[0].get("gate_verdict")
-            print(f"  [{i + 1}/{len(todo)}] {w['role']:11s} "
-                  f"{w['filter']:3s} {w['night']} {v} "
-                  f"({time.time() - t0:.0f}s)")
-        gdb.set_meta(con, "last_run_utc",
-                     time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
-        con.commit()
 
-    if args.parquet or args.all:
-        run_parquet(con, products)
+def _template(members, grism, exclude_night=None):
+    use = [f for n, f in members[grism] if n != exclude_night]
+    return np.nanmedian(np.array(use), axis=0) if use else None
 
+
+def run_gate(con) -> None:
+    """The pixel gate on every T CrB frame and every control frame, and
+    the Halpha identification it implies.
+
+    1. Halpha hypotheses: each frame's strongest sharp emission features
+       (on the lrg the zero-order image is often the strongest);
+    2. a first T CrB template from the strongest feature of every T CrB
+       frame (a median: a minority of wrong picks cannot shape it);
+    3. per frame — target or control alike — the hypothesis whose
+       spectrum best matches that template (leave-own-night-out for
+       T CrB), i.e. each control frame gets its best chance to mimic
+       T CrB;
+    4. thresholds from T CrB alone, per grism: two-fold cross-validated
+       by night parity (out-of-sample completeness), then from all T CrB
+       frames for the adopted verdicts;
+    5. the pre-registered thresholds applied as well, for the record.
+    The chosen Halpha pixel is stored (``x_halpha``) and ``--zero`` uses
+    it.
+    """
+    sols = gwave.load_solutions(con)
+    cur = con.execute("""
+        SELECT path, sample, target, grism, night, mech_epoch, status,
+               pointing_offset_deg FROM g_frames
+        WHERE sample IN ('tcrb', 'identity_control') AND grism IS NOT NULL
+        ORDER BY night, path""")
+    cols = [c[0] for c in cur.description]
+    rows = [dict(zip(cols, r)) for r in cur]
+    cands = {r["path"]: _candidate_spectra(r, sols) for r in rows}
+    v1 = {}
+    mcon = gdb.connect_manifest_ro(gstore.default_manifest())
+    for path, verdict, reason in mcon.execute(
+            "SELECT path, gate_verdict, gate_reason FROM g_extractions "
+            "WHERE method = 'flanking'"):
+        v1[path] = (verdict, reason)
+    # 2. first template: strongest feature of each T CrB frame.
+    first = defaultdict(list)
+    for r in rows:
+        grid, _has, cs = cands[r["path"]]
+        if r["sample"] == "tcrb" and cs:
+            first[r["grism"]].append((r["night"], cs[0][2]))
+    # 3. choose the hypothesis per frame.
+    chosen = {}
+    for r in rows:
+        grid, has, cs = cands[r["path"]]
+        if not cs:
+            chosen[r["path"]] = None
+            continue
+        excl = r["night"] if r["sample"] == "tcrb" else None
+        tpl = _template(first, r["grism"], excl)
+        scores = [ggate.fingerprint_r(grid, c[2], tpl) if tpl is not None
+                  else None for c in cs]
+        best = max(range(len(cs)), key=lambda i: -2.0 if scores[i] is None
+                   else scores[i])
+        chosen[r["path"]] = cs[best]
+    hp, raw = defaultdict(list), defaultdict(list)
+    for r in rows:
+        c = chosen[r["path"]]
+        if r["sample"] == "tcrb" and c is not None:
+            hp[r["grism"]].append((r["night"], c[2]))
+            raw[r["grism"]].append((r["night"], c[1]))
+    # Per-frame statistics against the final (leave-own-night-out)
+    # templates.
+    stats = {}
+    for r in rows:
+        grid, has, _cs = cands[r["path"]]
+        c = chosen[r["path"]]
+        excl = r["night"] if r["sample"] == "tcrb" else None
+        if c is None:
+            stats[r["path"]] = (has, None, None, None, None, None)
+            continue
+        z, fr, f = c
+        stats[r["path"]] = (
+            has, z["snr"],
+            ggate.fingerprint_r(grid, f, _template(hp, r["grism"], excl)),
+            ggate.fingerprint_r(grid, fr, _template(raw, r["grism"], excl)),
+            ggate.tio_step(grid, fr), z["x"])
+    # 4. thresholds from T CrB only.
+    thr, cv = {}, {}
+    for grism in ("hrg", "lrg"):
+        t = [(r, stats[r["path"]]) for r in rows if r["sample"] == "tcrb"
+             and r["grism"] == grism and stats[r["path"]][2] is not None]
+        thr[grism] = ggate.derive_thresholds([s[2] for _, s in t],
+                                             [s[4] for _, s in t])
+        k = n = 0
+        for parity in (0, 1):
+            train = [s for r, s in t if int(r["night"][-1]) % 2 == parity]
+            test = [s for r, s in t if int(r["night"][-1]) % 2 != parity]
+            rmin, smax = ggate.derive_thresholds([s[2] for s in train],
+                                                 [s[4] for s in train])
+            for s_ in test:
+                n += 1
+                k += ggate.fingerprint_verdict(True, s_[1], s_[2], s_[4],
+                                               rmin, smax)[0] == "ACCEPT"
+        cv[grism] = (k, n)
+        gdb.set_g_meta(con, f"gate_thresholds_{grism}", json.dumps(
+            {"r_min": thr[grism][0], "tio_step_max": thr[grism][1],
+             "cv_accept": k, "cv_n": n}))
+    out = []
+    for r in rows:
+        has, snr, rr, rr_raw, step, x_ha = stats[r["path"]]
+        rmin, smax = thr[r["grism"]]
+        verdict, reason = ggate.fingerprint_verdict(has, snr, rr, step,
+                                                    rmin, smax)
+        pre = ggate.fingerprint_verdict(has, snr, rr_raw, step)[0]
+        old = v1.get(r["path"], (None, None))
+        out.append({
+            "path": r["path"], "sample": r["sample"],
+            "claimed": r["target"], "grism": r["grism"],
+            "mech_epoch": r["mech_epoch"], "night": r["night"],
+            "pointing_offset_deg": r["pointing_offset_deg"],
+            "old_verdict": old[0], "old_reason": old[1],
+            "cc_peak": rr, "cc_raw": rr_raw, "halpha_em_snr": snr,
+            "x_halpha": x_ha, "n_candidates": len(cands[r["path"]][2]),
+            "tio_step": step, "verdict": verdict, "reason": reason,
+            "verdict_prereg": pre,
+            "truth": "target" if r["sample"] == "tcrb" else "non_target"})
+    con.execute("DELETE FROM g_identity")
+    for row in out:
+        gdb.upsert(con, "g_identity", row)
+    con.commit()
+    print(f"identity gate: {len(out)} frames; thresholds "
+          f"{ {g: tuple(round(v, 3) for v in t) for g, t in thr.items()} }; "
+          f"cross-validated T CrB acceptance {cv}")
+
+
+# ---------------------------------------------------------------------------
+# --variance (G-2)
+# ---------------------------------------------------------------------------
+def run_variance(con) -> None:
+    out = []
+    for r in tcrb_rows(con, "AND status = 'ok'"):
+        spec = gstore.load_spec(r["path"])
+        if spec is None or "skyvar" not in spec or len(spec["skyvar"]) < 5:
+            continue
+        sv = spec["skyvar"]
+        ratio = sv[:, 1] / sv[:, 2]
+        row = {"path": r["path"], "sample": r["sample"],
+               "grism": r["grism"], "mech_epoch": r["mech_epoch"],
+               "detector_key": r["detector_key"], "n_bins": int(len(sv)),
+               "level_lo": float(sv[:, 0].min()),
+               "level_hi": float(sv[:, 0].max()),
+               "var_ratio_median": float(np.median(ratio)),
+               "var_ratio_lo": float(np.percentile(ratio, 16)),
+               "var_ratio_hi": float(np.percentile(ratio, 84)),
+               "bins_json": json.dumps(np.round(sv, 2).tolist())}
+        if sv[:, 0].max() - sv[:, 0].min() > 30.0:
+            k, ke, rn, rne = ptc_fit(sv[:, 0], sv[:, 1])
+            row.update(ptc_gain=k, ptc_gain_err=ke, ptc_rn_adu=rn,
+                       ptc_rn_err=rne)
+        out.append(row)
+    con.execute("DELETE FROM g_variance_check WHERE sample = 'tcrb'")
+    for row in out:
+        gdb.upsert(con, "g_variance_check", row)
+    con.commit()
+    print(f"variance checks: {len(out)} frames")
+
+
+# ---------------------------------------------------------------------------
+# --null (G-4, TCRB-A2)
+# ---------------------------------------------------------------------------
+def run_null(con) -> None:
+    out, method_rows = [], []
+    for r in tcrb_rows(con, "AND status = 'ok'"):
+        spec = gstore.load_spec(r["path"])
+        if spec is None or "null_poly_p200" not in spec:
+            continue
+        inside = spec["inside"]
+        cont = float(np.nanmedian(spec["box"][inside]))
+        for method in ("poly", "flanking"):
+            for off in gext.NULL_OFFSETS:
+                tag = f"null_{method}_{'m' if off < 0 else 'p'}{abs(off)}"
+                b = spec[tag][inside]
+                b = b[np.isfinite(b)]
+                if len(b) < 100:
+                    continue
+                out.append({
+                    "path": r["path"], "method": method,
+                    "row_offset": int(off), "sample": r["sample"],
+                    "grism": r["grism"], "mech_epoch": r["mech_epoch"],
+                    "null_median_adu": float(np.median(b)),
+                    "null_p16": float(np.percentile(b, 16)),
+                    "null_p84": float(np.percentile(b, 84)),
+                    "cont_median_adu": cont,
+                    "null_frac": float(np.median(b) / cont) if cont else None,
+                    "n_cols": int(len(b))})
+        # Negative continuum and the two method differences.
+        f, v = spec["flux"], spec["var"]
+        sel = inside & np.isfinite(f) & np.isfinite(v) & (v > 0)
+        neg = {}
+        for name, flux in (("poly", f), ("flanking", spec["flux_flanking"])):
+            s = sel & np.isfinite(flux)
+            neg[name] = float(np.mean(flux[s] < -NEG_SIGMA * np.sqrt(v[s])))
+        method_rows.append({
+            "path": r["path"], "grism": r["grism"],
+            "neg_frac_poly": neg["poly"], "neg_frac_flanking": neg["flanking"],
+            "sky_method_diff": gext.median_relative_difference(
+                np.where(inside, f, np.nan),
+                np.where(inside, spec["flux_flanking"], np.nan)),
+            "box_opt_diff": gext.median_relative_difference(
+                np.where(inside, f, np.nan),
+                np.where(inside, spec["box"], np.nan))})
+    con.execute("DELETE FROM g_null_sky WHERE sample = 'tcrb'")
+    for row in out:
+        gdb.upsert(con, "g_null_sky", row)
+    con.execute("DELETE FROM g_method_diff")
+    for row in method_rows:
+        gdb.upsert(con, "g_method_diff", row)
+    con.commit()
+    print(f"null-aperture rows: {len(out)}; method rows {len(method_rows)}")
+
+
+# ---------------------------------------------------------------------------
+# --lsf (G-5)
+# ---------------------------------------------------------------------------
+def _lsf_row(r: dict, spec: dict, x_ha: float, disp: float,
+             line_fwhm, offset) -> Optional[dict]:
+    """The delivered LSF of one frame at its Halpha column.
+
+    For a point source a slitless spectrograph's line-spread function is
+    the stellar image along the dispersion; the image ACROSS the
+    dispersion is measured directly as the trace's cross-dispersion FWHM
+    (focus is chromatic: the trace is narrowest near the middle of the
+    chip and 2-3x broader at its ends, so the FWHM is interpolated to the
+    Halpha column).  It is converted with the LOCAL dispersion."""
+    fx, fw = spec["fwhm_x"], spec["fwhm_px"]
+    good = np.isfinite(fw)
+    if good.sum() < 2:
+        return None
+    xd = float(np.interp(x_ha, fx[good], fw[good]))
+    lsf_a = xd * disp
+    nominal = NOMINAL_FOCUS_OFFSET.get(r["grism"], 0.0)
+    return {"path": r["path"], "sample": r["sample"], "target": r["target"],
+            "grism": r["grism"], "mech_epoch": r["mech_epoch"],
+            "night": r["night"], "focpos": r["focpos"],
+            "focus_offset": offset, "ccd_temp": r["ccd_temp"],
+            "fwhm_xd_px": xd, "fwhm_xd_min_px": float(np.nanmin(fw)),
+            "line_fwhm_px": line_fwhm, "lsf_fwhm_px": xd,
+            "lsf_fwhm_a": lsf_a, "lsf_fwhm_kms": lsf_a / 6562.8 * C_KMS,
+            "resolving_power": 6562.8 / lsf_a,
+            "off_nominal": int(offset is not None
+                               and abs(offset - nominal) > FOCUS_TOL)}
+
+
+def nightly_lrg_focus(con) -> dict:
+    """Median lrg focuser position per night from every reduced frame —
+    the reference the hrg offset is measured from (TE.F4)."""
+    by = defaultdict(list)
+    for night, fp in con.execute(
+            "SELECT night, focpos FROM g_frames WHERE grism = 'lrg' "
+            "AND focpos IS NOT NULL"):
+        by[night].append(fp)
+    return {n: float(np.median(v)) for n, v in by.items()}
+
+
+def run_lsf(con) -> None:
+    sols = gwave.load_solutions(con)
+    ref = nightly_lrg_focus(con)
+    out = []
+    # T CrB: Halpha from the zero point.
+    zero = {r[0]: r[1:] for r in con.execute(
+        "SELECT path, x_halpha, halpha_fwhm_px FROM g_zero_point "
+        "WHERE x_halpha IS NOT NULL")}
+    for r in tcrb_rows(con, "AND status = 'ok'"):
+        if r["path"] not in zero:
+            continue
+        sol = gwave.solution_for(sols, r["grism"], r["night"])
+        spec = gstore.load_spec(r["path"])
+        x_ha, ha_fwhm = zero[r["path"]]
+        off = (r["focpos"] - ref[r["night"]]
+               if r["focpos"] is not None and r["night"] in ref else None)
+        row = _lsf_row(r, spec, x_ha, sol.local_disp(x_ha), ha_fwhm, off)
+        if row:
+            out.append(row)
+    # Calibrators: Halpha centre from the line measurements.
+    cur = con.execute("""
+        SELECT f.path, f.sample, f.star AS target, f.grism, f.night,
+               f.mech_epoch, f.focpos, f.ccd_temp, m.x
+        FROM g_frames f JOIN g_line_meas m USING (path)
+        WHERE f.sample = 'calibrator' AND m.line = 'Halpha'""")
+    cols = [c[0] for c in cur.description]
+    for vals in cur.fetchall():
+        r = dict(zip(cols, vals))
+        sol = gwave.solution_for(sols, r["grism"], r["night"])
+        spec = gstore.load_spec(r["path"])
+        if sol is None or spec is None:
+            continue
+        off = (r["focpos"] - ref[r["night"]]
+               if r["focpos"] is not None and r["night"] in ref else None)
+        row = _lsf_row(r, spec, r["x"], sol.local_disp(r["x"]), None, off)
+        if row:
+            out.append(row)
+    con.execute("DELETE FROM g_lsf")
+    for row in out:
+        gdb.upsert(con, "g_lsf", row)
+    con.commit()
+    print(f"LSF rows: {len(out)}")
+
+
+# ---------------------------------------------------------------------------
+# --sat (TCRB-A6)
+# ---------------------------------------------------------------------------
+def run_sat(con) -> None:
+    sols = gwave.load_solutions(con)
+    zero = {r[0]: r[1] for r in con.execute(
+        "SELECT path, x_halpha FROM g_zero_point WHERE x_halpha IS NOT NULL")}
+    out = []
+    for r in tcrb_rows(con, "AND status = 'ok'"):
+        spec = gstore.load_spec(r["path"])
+        inside = spec["inside"]
+        sat_cols = inside & (spec["n_sat"] > 0)
+        n_ap = int(inside.sum()) * (2 * gext.APERTURE_HALFWIN + 1)
+        hot_frac = float(spec["n_hot"][inside].sum() / n_ap) if n_ap else None
+        near = None
+        sol = gwave.solution_for(sols, r["grism"], r["night"])
+        if r["path"] in zero and sol is not None:
+            wave = gwave.wavelength_axis(len(inside), zero[r["path"]], sol)
+            near = int((sat_cols & (np.abs(wave - 6562.8)
+                                    <= SAT_DISCARD_HALFWIDTH_A)).sum())
+        verdict = ("discard" if near else
+                   "flag" if sat_cols.any() else "clean")
+        out.append({"path": r["path"], "grism": r["grism"],
+                    "night": r["night"], "peak_adu": r["peak_adu"],
+                    "sat_cap_adu": r["sat_cap_adu"],
+                    "n_sat_cols": int(sat_cols.sum()),
+                    "n_sat_cols_halpha": near, "hot_mask": r["hot_mask"],
+                    "masked_frac": hot_frac, "verdict": verdict})
+    con.execute("DELETE FROM g_saturation")
+    for row in out:
+        gdb.upsert(con, "g_saturation", row)
+    con.commit()
+    print(f"saturation triage: {len(out)} frames")
+
+
+# ---------------------------------------------------------------------------
+# --ew (old library vs new, one estimator)
+# ---------------------------------------------------------------------------
+def v1_rows(mcon) -> dict:
+    """The August library's flanking-method rows with an Halpha anchor."""
+    cur = mcon.execute("""
+        SELECT path, filter, x_halpha, disp_a_per_px, gate_verdict,
+               spectrum_fits, n_sat_cols
+        FROM g_extractions
+        WHERE method = 'flanking' AND target = 'T CrB'
+          AND spectrum_fits IS NOT NULL AND x_halpha IS NOT NULL""")
+    cols = [c[0] for c in cur.description]
+    return {r[0]: dict(zip(cols, r)) for r in cur}
+
+
+def run_ew(con, mcon) -> None:
+    from astropy.io import fits
+    sols = gwave.load_solutions(con)
+    zero = {r[0]: r[1] for r in con.execute(
+        "SELECT path, x_halpha FROM g_zero_point WHERE x_halpha IS NOT NULL")}
+    gate = {r[0]: r[1] for r in con.execute(
+        "SELECT path, verdict FROM g_identity")}
+    v1 = v1_rows(mcon)
+    # v1's fallback for frames without an O2 pair: the per-grism median of
+    # its own per-frame dispersions (as its parquet stage did).
+    v1_med = {}
+    for g in ("hrg", "lrg"):
+        d = [r["disp_a_per_px"] for r in v1.values()
+             if r["filter"] == g and r["disp_a_per_px"]]
+        if d:
+            v1_med[g] = float(np.median(d))
+    out = []
+    for r in tcrb_rows(con, "AND status = 'ok'"):
+        base = {"path": r["path"], "grism": r["grism"], "night": r["night"],
+                "jd": r["jd"], "mech_epoch": r["mech_epoch"]}
+        sol = gwave.solution_for(sols, r["grism"], r["night"])
+        if sol is not None and r["path"] in zero:
+            spec = gstore.load_spec(r["path"])
+            x_ha = zero[r["path"]]
+            wave = gwave.wavelength_axis(len(spec["flux"]), x_ha, sol)
+            flux = np.where(spec["n_sat"] > 0, np.nan, science_flux(spec))
+            m = gew.equivalent_width(wave, flux, spec["var"])
+            mb = gew.equivalent_width(wave, science_flux(spec, "box"),
+                                      spec["box_var"])
+            row = dict(base, library="v2", gate=gate.get(r["path"]),
+                       x_halpha=x_ha, disp_a_per_px=sol.local_disp(x_ha),
+                       disp_source="fixed (g_dispersion)",
+                       sky_method="poly", n_sat_cols=r["n_sat_cols"],
+                       status="ok" if m else "no_ew")
+            if m:
+                row.update(ew_a=m["ew_a"], ew_err_a=m["ew_err_a"],
+                           ew_px=m["ew_px"], cont_adu=m["cont"],
+                           cont_snr=m["cont_snr"], line_peak_adu=m["peak"],
+                           n_masked_line=m["n_masked"],
+                           ew_box_a=mb["ew_a"] if mb else None)
+            out.append(row)
+        if r["path"] in v1:
+            o = v1[r["path"]]
+            fpath = gconfig.PRODUCTS / o["spectrum_fits"]
+            disp = o["disp_a_per_px"] or v1_med.get(o["filter"])
+            if not fpath.exists() or not disp:
+                continue
+            with fits.open(fpath) as h:
+                t = h["FLANKING"].data
+                f1 = np.array(t["FLUX_ADU"], dtype=float)
+                var1 = np.array(t["VAR_ADU2"], dtype=float)
+                nsat = np.array(t["N_SAT"])
+            wave1 = 6562.8 + disp * (np.arange(len(f1)) - o["x_halpha"])
+            m = gew.equivalent_width(wave1, f1, var1)
+            row = dict(base, library="v1", gate=o["gate_verdict"],
+                       x_halpha=o["x_halpha"], disp_a_per_px=abs(disp),
+                       disp_source=("per-frame O2 pair"
+                                    if o["disp_a_per_px"] else
+                                    "v1 grism median"),
+                       sky_method="flanking", n_sat_cols=o["n_sat_cols"],
+                       status="ok" if m else "no_ew")
+            if m:
+                lo = int(max(0, o["x_halpha"] - 40))
+                row.update(ew_a=m["ew_a"], ew_err_a=m["ew_err_a"],
+                           ew_px=m["ew_px"], cont_adu=m["cont"],
+                           cont_snr=m["cont_snr"], line_peak_adu=m["peak"],
+                           n_masked_line=int((nsat[lo:lo + 80] > 0).sum()))
+            out.append(row)
+    con.execute("DELETE FROM g_ew")
+    for row in out:
+        gdb.upsert(con, "g_ew", row)
+    con.commit()
+    print(f"EW rows: {len(out)}")
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawTextHelpFormatter)
+    ap.add_argument("--db", default=str(gconfig.GRISM_DB))
+    ap.add_argument("--manifest", default=str(gstore.default_manifest()))
+    stages = ("zero", "gate", "variance", "null", "lsf", "sat", "ew",
+              "summary", "report")
+    for stage in stages + ("all",):
+        ap.add_argument(f"--{stage}", action="store_true")
+    args = ap.parse_args(argv)
+    con = gdb.connect_grism(args.db)
+    if args.gate or args.all:
+        run_gate(con)
+    if args.zero or args.all:
+        run_zero(con)
+    if args.variance or args.all:
+        run_variance(con)
+    if args.null or args.all:
+        run_null(con)
+    if args.lsf or args.all:
+        run_lsf(con)
+    if args.sat or args.all:
+        run_sat(con)
+    if args.ew or args.all:
+        run_ew(con, gdb.connect_manifest_ro(args.manifest))
+    if args.summary or args.all:
+        from macro_grism import summary_g
+        print(summary_g.text_summary(con))
     if args.report or args.all:
         from macro_grism.report_g import render_report
-        out = render_report(Path(args.manifest))
-        print(f"report: {out}")
+        print(f"report: {render_report()}")
+    gdb.set_g_meta(con, "validation_code", ggate.G_CODE_VERSION)
+    con.commit()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -1063,3 +1063,106 @@ def decide(g0: bool, g1: bool, g2: bool, g3: bool,
     if g1 or (g3 and g3_question_named):
         outcomes.append(OUTCOME_GO_CANDIDATE)
     return outcomes or [OUTCOME_RELEASE_ONLY]
+
+
+# ===========================================================================
+# 11. THE LEGACY FILENAME CONVENTION (RIG-L0-filename-parser)
+# ===========================================================================
+
+#: The scheduler's name for a frame: three lower-case letters, the
+#: three-digit day of year, two hexadecimal digits, then the FITS suffix —
+#: ``gbm10028.fts`` = request code ``gbm``, day 100, sequence 0x28.  Seen on
+#: every camera and both acquisition systems; ``foc`` is the autofocus
+#: request.
+_SCHED_NAME_RE = re.compile(
+    r"^([a-z]{3})(\d{3})([0-9a-f]{2})\.(?:fts|fit|fits)(?:\.fz)?$")
+CONV_SCHEDULER = "scheduler (ppp DDD ss)"
+CONV_OTHER = "other"
+
+
+@dataclass(frozen=True)
+class LegacyName:
+    """What a legacy file name says.  Fields are None when absent."""
+    convention: str
+    request: Optional[str]      #: three-letter request/user code
+    doy: Optional[int]          #: day of year (UT date of the night's start)
+    seq: Optional[int]          #: sequence number within the day (hex)
+
+
+def parse_legacy_filename(basename: str) -> LegacyName:
+    """Decode one legacy file name.
+
+    The convention carries a REQUEST CODE, a DAY OF YEAR and a SEQUENCE
+    NUMBER — and nothing else.  Target, filter and exposure are not in the
+    name (unlike the RLMT-era ``user_target_filter_exp_date`` names), so
+    they are read from the header for every frame; the parser's job is to
+    recover what the name does hold and let the build check it against the
+    header (day of year against DATE-OBS, request code against OBSERVER).
+    """
+    m = _SCHED_NAME_RE.match(basename.lower())
+    if not m:
+        return LegacyName(CONV_OTHER, None, None, None)
+    doy = int(m.group(2))
+    if not 1 <= doy <= 366:
+        return LegacyName(CONV_OTHER, None, None, None)
+    return LegacyName(CONV_SCHEDULER, m.group(1), doy, int(m.group(3), 16))
+
+
+# ===========================================================================
+# 12. MULTI-ARCHIVE KEYING (RIG-L0-multi-archive)
+# ===========================================================================
+
+#: Value of the ``archive_root`` column for every legacy row (the RLMT
+#: manifest's rows live under ``rlmt-archive``).
+ARCHIVE_ROOT = "legacy-archive"
+
+
+def legacy_era_key(camera: Optional[str], focallen_mm: Optional[float],
+                   telescop: Optional[str]) -> tuple[str, str]:
+    """``(camera, optics)`` — the legacy era key.
+
+    Keyed on CAMERA and FOCAL LENGTH, not on a telescope name: the 0.5 m
+    was called 'Gemini', 'Iowa Robotic Telescope' and 'Robert L. Mutel
+    Telescope' over the years without any optical change, and two names for
+    one configuration must not split it.  Talon headers carry no FOCALLEN;
+    for them the TELESCOP text stands in, labelled as such, so the Rigel
+    configuration can never share a key with the 0.5 m.
+    """
+    cam = camera or CAMERA_UNLABELLED
+    if not _missing(focallen_mm) and focallen_mm and focallen_mm > 0:
+        return cam, f"f = {int(round(float(focallen_mm)))} mm"
+    tel = "" if _missing(telescop) else str(telescop).strip()
+    return cam, f"telescope '{tel or 'unknown'}' (no FOCALLEN)"
+
+
+# ===========================================================================
+# 13. TRUNCATED-AT-SOURCE FRAMES (RIG-L0-dedup-reconcile)
+# ===========================================================================
+
+TRUNC_TWIN_ADOPTED = "truncated_twin_adopted"
+TRUNC_TWIN_MISMATCH = "truncated_twin_mismatch"
+TRUNC_LOST = "truncated_lost"
+TRUNC_UNREADABLE = "truncated_header_unreadable"
+
+
+def truncated_disposition(trunc_date_obs: Optional[str],
+                          twin_date_obs: Sequence[Optional[str]]) -> str:
+    """What happens to one frame that is truncated at the source.
+
+    A twin is an intact ``.fz`` of the SAME BASENAME elsewhere in the
+    archive (another year or tree).  The twin stands in for the truncated
+    frame only if it carries the identical ``DATE-OBS`` — same name alone is
+    not identity (the year-stripped crawl showed that names repeat across
+    years).  No twin with the same stamp ⇒ the exposure is lost; a twin
+    whose stamp differs is a different exposure and the truncated one is
+    still lost (recorded separately so the mismatch is visible).
+    """
+    if _missing(trunc_date_obs) or not str(trunc_date_obs).strip():
+        return TRUNC_UNREADABLE
+    stamp = str(trunc_date_obs).strip()
+    twins = [str(t).strip() for t in twin_date_obs if not _missing(t) and t]
+    if stamp in twins:
+        return TRUNC_TWIN_ADOPTED
+    if twins:
+        return TRUNC_TWIN_MISMATCH
+    return TRUNC_LOST

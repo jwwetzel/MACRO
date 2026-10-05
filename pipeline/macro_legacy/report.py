@@ -38,6 +38,7 @@ from macro_core.report_s0 import (                           # noqa: E402
     ACCENT, BAD, DPI, GOOD, INK, MUTED, STYLE, WARN,
     _figure, esc, fmt, q, q1, table)
 from . import census as lc                                   # noqa: E402
+from . import clock as lc_clock                              # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DOCS_DIR = REPO_ROOT / "docs" / "Legacy_Rigel"
@@ -524,6 +525,31 @@ def section_reconciliation(con, m: dict) -> str:
         FROM collision_audit ORDER BY n_manifest DESC, stripped_path LIMIT 6""")
     n_same = q1(con, """SELECT count(*) FROM collision_audit
                         WHERE n_distinct_date_obs < n_with_date""")
+    tr = q(con, """SELECT disposition, count(*) FROM truncated_frames
+                   GROUP BY 1 ORDER BY 2 DESC""") \
+        if has_table(con, "truncated_frames") else []
+    tr_obj = q(con, """
+        SELECT coalesce(object, '(header unreadable)'), count(*),
+               min(night), max(night) FROM truncated_frames
+        GROUP BY 1 ORDER BY 2 DESC LIMIT 12""") if tr else []
+    n_tr = sum(n for _d, n in tr)
+    n_twin = q1(con, "SELECT count(*) FROM truncated_frames "
+                     "WHERE n_twins > 0") if tr else 0
+    truncated_html = "" if not tr else f"""
+<p class="sub"><b>Frames truncated at the source.</b>  {fmt(n_tr)} files
+on Google Drive are shorter than a FITS file of their own header can be: a
+second, md5-verified download (2026-10-03) returned the same short bytes, so
+the damage is in the source, not the transfer.  The header survives and was
+read.  {fmt(n_twin)} of them share a file NAME with an intact frame elsewhere
+in the archive; a twin stands in for a truncated frame only if it carries the
+identical <code>DATE-OBS</code>:</p>
+{table(["disposition", "frames"], [[esc(d), fmt(n)] for d, n in tr])}
+<p class="sub">No same-name file is the same exposure: the names repeat
+because the scheduler restarts its day numbering every year (the very
+collision the year-stripped manifest would have caused).  Every truncated
+frame is therefore LOST, and named.  What they were (largest groups):</p>
+{table(["OBJECT", "lost frames", "first night", "last night"],
+       [[esc(o), fmt(n), esc(a), esc(b)] for o, n, a, b in tr_obj])}"""
     src = fig_accounting(con)
     fr = q(con, """
         SELECT coalesce(exclusion, 'science frame'), count(*) FROM frames
@@ -558,6 +584,8 @@ unreadable header and stay in the table with <code>error</code> set:</p>
        [[f"<code>{esc(e)}</code>", fmt(n)] for e, n in err_rows]) if err_rows
  else '<p class="sub"><i>None.</i></p>'}
 
+{truncated_html}
+
 <p class="sub"><b>The collision audit.</b>  The bad manifest holds
 {fmt(cm['collision_bad_rows'])} rows but only
 {fmt(cm['collision_bad_distinct_paths'])} distinct paths: stripping the year
@@ -590,7 +618,10 @@ carries one named reason for not being one:</p>
 <div class="decision"><b>The census population is the scanned
 <code>.fz</code> files; everything else on disk or in the manifest is a
 named exclusion, and both identities have zero residual.</b>  The download
-was made from the corrected manifest; the bad one overwrote nothing.</div>
+was made from the corrected manifest; the bad one overwrote nothing.  The
+frames truncated at the source cannot be recovered from this archive; a
+same-name file is adopted only on an identical <code>DATE-OBS</code>, and
+none qualifies.</div>
 
 <h3>Consequence</h3>
 <p class="sub">Counts below are counts of rows of
@@ -657,6 +688,109 @@ the (target, night, exposure) populations show no doubled cadence.</div>
 <h3>Consequence</h3>
 <p class="sub">Nights, runs, series and gates below are built from the
 canonical science frames.</p>
+</div></section>"""
+
+
+def section_names_eras(con) -> str:
+    """File-name convention, era keys, and the second archive."""
+    chk = q(con, """SELECT fn_convention, n_files, n_with_date, n_doy_equal,
+                           n_doy_plus1, n_doy_minus1, n_doy_other
+                    FROM filename_checks ORDER BY n_files DESC""")
+    n_req = q1(con, "SELECT count(*) FROM filename_requests")
+    req_one = q1(con, "SELECT count(*) FROM filename_requests "
+                      "WHERE n_observers = 1")
+    req_top = q(con, f"""SELECT request, n_files, n_observers, modal_observer,
+                               frac_modal, n_targets, first_night, last_night
+                        FROM filename_requests ORDER BY n_files DESC
+                        LIMIT 10""")
+    other = q(con, """SELECT basename FROM frames
+                      WHERE fn_convention = 'other' AND error IS NULL
+                      ORDER BY path LIMIT 6""")
+    eras = q(con, """SELECT legacy_era, era_camera, era_optics, n_files,
+                            n_science, first_night, last_night, telescop
+                     FROM legacy_eras ORDER BY legacy_era""")
+    shared = q(con, """SELECT rlmt_era, rlmt_readoutm, egain, geometry,
+                              rlmt_frames, rlmt_first, rlmt_last,
+                              legacy_frames, legacy_readoutm, legacy_first,
+                              legacy_last FROM rlmt_shared_eras
+                       ORDER BY rlmt_era""")
+    n_copy = q1(con, "SELECT count(*) FROM cross_archive_copies")
+    copy_rng = q(con, """SELECT min(date_obs), max(date_obs),
+                                sum(rlmt_canonical) FROM cross_archive_copies""")[0]
+    return f"""
+<section id="names">
+<div class="bhead"><h2>2b &middot; File names, era keys, and the other archive</h2>
+<span class="tag">what a name says &middot; camera + focal length &middot; no double counting</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Three things must be true before a legacy frame can sit
+beside an RLMT one: we know what its name encodes, its era is keyed on
+hardware rather than on a telescope's name, and it is not the same exposure
+as a frame the RLMT archive already holds.</p>
+
+<h3>Evidence</h3>
+<p class="sub"><b>The name.</b>  The scheduler named every file
+<code>pppDDDss</code>: a three-letter request code, the day of year, and a
+two-digit hexadecimal sequence.  Target, filter and exposure are NOT in the
+name &mdash; they come from the header for every frame.  The day in the name
+against the UT date of <code>DATE-OBS</code>:</p>
+{table(["convention", "files", "with a date", "day = UT day", "day = UT + 1",
+        "day = UT − 1", "off by more"],
+       [[esc(c[0]), fmt(c[1]), fmt(c[2]), fmt(c[3]), fmt(c[4]), fmt(c[5]),
+         fmt(c[6])] for c in chk])}
+<p class="sub">The &plusmn;1 cases are frames taken across 00:00 UT under a
+day number assigned when the night began.  Names outside the convention
+(first six): {", ".join(f"<code>{esc(o[0])}</code>" for o in other)}.
+Request codes: {fmt(n_req)}, of which {fmt(req_one)} were used by exactly one
+<code>OBSERVER</code> &mdash; a code is a request queue, not a person or a
+target (<code>foc</code> is the autofocus queue).  The ten largest:</p>
+{table(["code", "files", "observers", "most frequent observer", "share",
+        "targets", "first night", "last night"],
+       [[f"<code>{esc(r[0])}</code>", fmt(r[1]), fmt(r[2]), esc(r[3]),
+         f"{100 * r[4]:.0f}%", fmt(r[5]), esc(r[6]), esc(r[7])]
+        for r in req_top])}
+
+<p class="sub"><b>Era keys.</b>  A legacy era is (camera, focal length).
+The 0.5&nbsp;m was named 'Gemini', 'Iowa Robotic Telescope' and 'Robert L.
+Mutel Telescope' over these years with no optical change, so the name is
+recorded but does not key.  Every row also carries
+<code>archive_root = legacy-archive</code>.</p>
+{table(["era", "camera", "optics", "files", "science frames", "first night",
+        "last night", "TELESCOP as written"],
+       [[fmt(e[0]), esc(e[1]), esc(e[2]), fmt(e[3]), fmt(e[4]), esc(e[5]),
+         esc(e[6]), esc(e[7])] for e in eras])}
+<p class="sub">The one configuration shared with the RLMT archive is the
+AC4040 on the same telescope.  An RLMT era may lend its measured linearity
+and ceiling to legacy frames only where the camera, the EGAIN table
+(the driver changed it in 2023-10) and the full-frame geometry all
+match:</p>
+{table(["RLMT era", "readout mode", "EGAIN", "geometry", "RLMT frames",
+        "RLMT first", "RLMT last", "matching legacy frames",
+        "legacy readout modes", "legacy first", "legacy last"],
+       [[fmt(r[0]), esc(r[1]), f1(r[2], 3), esc(r[3]), fmt(r[4]), esc(r[5]),
+         esc(r[6]), fmt(r[7]), esc(r[8]), esc(r[9]), esc(r[10])]
+        for r in shared]) if shared else
+ '<p class="sub"><i>No RLMT era matches.</i></p>'}
+
+<p class="sub"><b>The second archive.</b>  <b>{fmt(n_copy)}</b> legacy frames
+are the same exposure (identical <code>DATE-OBS</code>, exposure and
+geometry) as a frame in the RLMT manifest &mdash; {esc(copy_rng[0])} to
+{esc(copy_rng[1])}, the first months of the RLMT era, copied into the
+legacy share as well.  {fmt(copy_rng[2])} of their RLMT twins are canonical
+there.</p>
+
+<h3>Decision</h3>
+<div class="decision"><b>The dedup rule spans both roots: a legacy frame
+that is an RLMT exposure is excluded from the legacy counts, named
+(<code>rlmt_archive_copy</code>), so no exposure is counted by two
+projects.</b>  Eras key on camera and focal length; detector
+characterisation crosses archives only through the matched-era table
+above, and header gain never does.</div>
+
+<h3>Consequence</h3>
+<p class="sub">The legacy census proper ends in 2022-12.  The AC4040's
+legacy frames (2021-11 to 2022-12) are the same camera RLMT eras 1&ndash;2
+measure, with the same EGAIN table.</p>
 </div></section>"""
 
 
@@ -825,7 +959,8 @@ def section_time(con) -> str:
                frac_lst_within_60s, frac_path_ut_date, n_path_offset_other,
                n_informative_pairs, viol_start, viol_mid, viol_end,
                n_overlapping_pairs, convention, first_night, last_night,
-               lst_slope_vs_exptime, lst_intercept_s, n_lst_fit
+               lst_slope_vs_exptime, lst_intercept_s, n_lst_fit,
+               jdhelio_ratio_median, n_jd_helio
         FROM time_audit ORDER BY first_night IS NULL, first_night""")
     src = fig_time(con)
     n_nodate = q1(con, "SELECT sum(n_no_usable_date) FROM time_audit")
@@ -851,12 +986,14 @@ def section_time(con) -> str:
         ["camera", "software", "first night", "last night", "DATE-OBS digits",
          "JD card within 2 s", "LST residual median (s)", "LST 5–95% (s)",
          "LST residual slope vs exposure", "intercept (s)",
+         "JD-HELIO probe (÷ EXPTIME)",
          "unequal-exposure pairs", "overlap if start", "if middle", "if end",
          "verdict (overlap test)"],
         [[esc(r[0]), esc(r[1]), esc(r[21]), esc(r[22]), fmt(r[4]),
           f"{fmt(r[5])} ({pct((r[6] or 0) * r[5], r[5])})",
           f1(r[9], 2), f"{f1(r[10], 1)} … {f1(r[11], 1)}",
-          f1(r[23], 3), f1(r[24], 2), fmt(r[15]), fmt(r[16]), fmt(r[17]),
+          f1(r[23], 3), f1(r[24], 2), f1(r[26], 3), fmt(r[15]), fmt(r[16]),
+          fmt(r[17]),
           fmt(r[18]), esc(r[20])] for r in rows],
         [None if r[20] == "start of exposure" else "warn" for r in rows])
     path_tbl = table(
@@ -929,7 +1066,12 @@ start in {fmt(sum(v[1] for v in not_start))}:
 &ldquo;middle&rdquo;, both independent tests say so: every unequal-exposure
 pair is consistent with a mid-exposure stamp, start and end are each
 refuted by hundreds of pairs, and the LST residual falls as half the
-exposure time.  Not established, and not establishable from headers: the
+exposure time &mdash; and section 5b's eclipses, timed against TESS, agree.
+S3's probe (MaxIm's JD-HELIO, column &lsquo;JD-HELIO probe&rsquo;) reads
+0.5 on these same frames: MaxIm computed its heliocentric time as if
+DATE-OBS were the start.  That probe records the software's assumption, so
+it cannot tell a start stamp from a mid stamp; only the spacing, LST and
+eclipse tests can.  Not established, and not establishable from headers: the
 absolute clock.  JD and LST derive from the same computers as
 <code>DATE-OBS</code>; a PC clock that was a minute slow would pass every
 test here.  The observational astronomer's criterion (O&minus;C of archived
@@ -948,6 +1090,150 @@ timing analysis for an independent check on the RLMT archive; this census
 does not assert it there.  Any absolute epoch from this archive remains
 conditional on a per-season clock measurement that has not been
 made.</p>
+</div></section>"""
+
+
+def fig_clock(con) -> str | None:
+    """O − C of every timed eclipse against the TESS reference, by date.
+
+    Filled: the reading the header audit adopted for that camera epoch.
+    Open (AC4040 only): the other reading.  The grey band is +-60 s, the
+    ledger's criterion.
+    """
+    rows = q(con, """
+        SELECT e.night, e.camera, f.oc_start_s, f.oc_mid_s, f.sig_stat_s,
+               t.convention
+        FROM clock_fits f JOIN clock_events e USING (event_id)
+        LEFT JOIN time_audit t ON t.camera = e.camera
+                              AND t.software = e.software
+        WHERE f.status = 'ok'""")
+    if not rows:
+        return None
+    style = camera_colors(con)
+    with plt.rc_context(STYLE):
+        fig, ax = plt.subplots(figsize=(8.8, 3.8))
+        ax.axhspan(-lc_clock.CLOCK_ACCEPT_S, lc_clock.CLOCK_ACCEPT_S,
+                   color=ps.GRID, zorder=0)
+        ax.axhline(0, **ps.reference_kw(MUTED))
+        seen = set()
+        for night, cam, ocs, ocm, sig, conv in rows:
+            st = style.get(cam, ps.series(0))
+            mid = (conv or "").startswith("MIDDLE")
+            adopted, other = (ocm, ocs) if mid else (ocs, ocm)
+            d = _date(night)
+            ax.errorbar([d], [adopted], yerr=[sig or 0], fmt=st["marker"],
+                        color=st["color"], ms=5, lw=0.8,
+                        label=None if cam in seen else cam)
+            seen.add(cam)
+            if mid:
+                ax.scatter([d], [other], s=26, facecolors="none",
+                           edgecolors=st["color"], linewidths=0.9)
+        ax.set_ylabel("O − C (s), our clock − TESS")
+        ax.set_xlabel("night")
+        ax.set_title("Eclipse timings against TESS: the clock, season by season")
+        ax.legend(fontsize=7, frameon=False, ncol=3)
+        fig.tight_layout()
+        fig.savefig(FIG_DIR / "legacy_clock.png", dpi=DPI)
+        plt.close(fig)
+    return f"{FIG_REL}/legacy_clock.png"
+
+
+def section_clock(con) -> str:
+    if not has_table(con, "clock_seasons"):
+        return """
+<section id="clock"><div class="bhead"><h2>5b &middot; Clock audit per
+season</h2><span class="tag">not evaluated</span></div><div class="stage">
+<p class="sub"><i>Run <code>build_legacy_clock.py</code>.</i></p></div>
+</section>"""
+    tess = q(con, """SELECT vsx_name, count(*), sum(t0_bjd IS NOT NULL),
+                            group_concat(DISTINCT sector), min(sig_s),
+                            max(sig_s) FROM clock_tess_times
+                     GROUP BY vsx_name ORDER BY vsx_name""")
+    ev = q(con, """SELECT status, count(*) FROM clock_events
+                   GROUP BY 1 ORDER BY 2 DESC""")
+    ser = q(con, """SELECT status, count(*) FROM clock_series
+                    GROUP BY 1 ORDER BY 2 DESC""")
+    fits = q(con, """SELECT status, count(*) FROM clock_fits
+                     GROUP BY 1 ORDER BY 2 DESC""")
+    seasons = q(con, """
+        SELECT camera, software, season, first_night, last_night, n_nights,
+               convention, n_events, oc_s, sigma_s, chi2, dof,
+               oc_other_reading_s, systems, verdict
+        FROM clock_seasons ORDER BY first_night, camera""")
+    n_meas = sum(1 for r in seasons if r[8] is not None)
+    # Standing rule 1: chi2_nu < 0.5 is a defect equal to chi2_nu > 2.
+    odd = [f"{r[0]} {r[2]} (χ²ν = {r[10] / r[11]:.2f})" for r in seasons
+           if r[10] is not None and r[11] and
+           not 0.5 <= r[10] / r[11] <= 2.0]
+    n_pass = sum(1 for r in seasons if r[14] == "PASS")
+    src = fig_clock(con)
+    m = dict(q(con, "SELECT key, value FROM clock_meta"))
+    return f"""
+<section id="clock">
+<div class="bhead"><h2>5b &middot; Clock audit per season</h2>
+<span class="tag">eclipse timings against TESS &middot; criterion &plusmn;{f1(lc_clock.CLOCK_ACCEPT_S, 0)} s</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Section 5 fixed what each stamp means.  Was the clock that
+wrote it right &mdash; season by season, to {f1(lc_clock.CLOCK_ACCEPT_S, 0)}
+seconds?</p>
+
+<h3>Evidence</h3>
+<p class="sub">The clocks are the primary eclipses of post-common-envelope
+binaries (HW Vir-type sdB&nbsp;+&nbsp;dM; WD&nbsp;+&nbsp;dM) in the archive.
+Their reference is not a literature ephemeris &mdash; every one of these
+stars wanders by tens of seconds or more about any linear ephemeris &mdash;
+but eclipse times MEASURED in TESS 2-min photometry of the same star
+(absolute BJD_TDB), one per half-sector, fitted locally.  A legacy eclipse is
+predicted only inside the TESS span or within
+{f1(float(m.get('extrap_max_d', 0)), 0)} days of it; beyond that the star's
+own timing variations, not our clock, would set the answer, and the eclipse
+is recorded as out of range.  TESS reference times:</p>
+{table(["star", "half-sectors", "timed", "sectors", "best σ (s)",
+        "worst σ (s)"],
+       [[esc(r[0]), fmt(r[1]), fmt(r[2]), esc(r[3]), f1(r[4], 1),
+         f1(r[5], 1)] for r in tess])}
+<p class="sub">Legacy eclipses: {"; ".join(f"{esc(a)} {fmt(b)}" for a, b in ev)}.
+Photometric series: {"; ".join(f"{esc(a)} {fmt(b)}" for a, b in ser)}.
+Fits: {"; ".join(f"{esc(a)} {fmt(b)}" for a, b in fits)}.  Photometry and
+fit are S3b's, unchanged (blind mid-time search, block bootstrap, analysis
+variants); the field is identified by a Gaia DR3 fit because legacy headers
+carry no plate scale; there is no master calibration (none is in the
+archive) and the saturation veto is a fixed {fmt(float(m.get('veto_adu', 0)))}
+ADU.</p>
+{_figure(src, "O − C of every timed legacy eclipse against its TESS "
+              "prediction.  Filled: the stamp reading the header audit "
+              "adopted for that camera epoch; open circles (AC4040): the "
+              "other reading.  Grey band: ±60 s.") if src else ""}
+{table(["camera", "software", "season", "first night", "last night",
+        "nights", "stamp reading", "eclipses", "O − C (s)", "σ (s)",
+        "χ² / dof", "other reading (s)", "stars", "verdict"],
+       [[esc(r[0]), esc(r[1]), esc(r[2]), esc(r[3]), esc(r[4]), fmt(r[5]),
+         esc(r[6]), fmt(r[7]), f1(r[8], 1), f1(r[9], 1),
+         "&mdash;" if r[10] is None else f"{r[10]:.1f} / {r[11]}",
+         f1(r[12], 1), esc(r[13]), esc(r[14])] for r in seasons],
+       ["ok" if r[14] == "PASS" else ("warn" if r[8] is None else None)
+        for r in seasons])}
+
+<h3>Decision</h3>
+<div class="decision"><b>{fmt(n_meas)} of {fmt(len(seasons))} camera-seasons
+have a clock measurement; {fmt(n_pass)} pass at
+&plusmn;{f1(lc_clock.CLOCK_ACCEPT_S, 0)} s.</b>  Every other season carries
+its offset as UNKNOWN, named in the table.  Where both stamp readings are
+shown, the eclipses decide between them independently of the header
+tests.  Seasons outside 0.5 &le; χ²ν &le; 2 (standing rule 1):
+{esc("; ".join(odd)) or "none"}.  A low χ²ν here means the per-eclipse
+errors are conservative: each carries its TESS prediction's systematic
+term, which is shared by every eclipse of the same star and so does not
+scatter them.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Absolute times from a measured season may be used with the
+O&minus;C and its error carried; times from an unmeasured season are
+relative only.  An eclipse-timing study of these same stars cannot use them
+as their own clock: per-season clock offsets would have to come from other
+targets in the same season (archived exoplanet transits), or the study's
+signal and the clock would be degenerate.</p>
 </div></section>"""
 
 
@@ -1409,9 +1695,9 @@ season (section 5).</p>
 
 def section_gates(con, m: dict) -> str:
     gates = q(con, "SELECT gate, clause, value, threshold, passed, detail "
-                   "FROM gates ORDER BY CASE gate WHEN 'G0' THEN 0 WHEN 'G1' "
-                   "THEN 1 WHEN 'G1*' THEN 2 WHEN 'G2' THEN 3 ELSE 4 END, "
-                   "rowid")
+                   "FROM gates ORDER BY CASE gate WHEN 'G0' THEN 0 WHEN 'G0''' "
+                   "THEN 1 WHEN 'G1' THEN 2 WHEN 'G1*' THEN 3 WHEN 'G2' "
+                   "THEN 4 ELSE 5 END, rowid")
     outcome = m.get("outcome", "")
     go = lc.OUTCOME_GO_CANDIDATE in outcome
     transfer = lc.OUTCOME_TRANSFER in outcome
@@ -1445,9 +1731,17 @@ def section_gates(con, m: dict) -> str:
             "data release only: this database, a Zenodo record and a short "
             "data note.  No strategy is commissioned.")
     amended = m.get("outcome_amended", "")
-    amended_html = ""
+    alt = m.get("outcome_alt_reading", "")
+    amended_html = ("<br><b>Second reading of G0 (row G0&prime;): " + esc(alt)
+                    + ".</b>  The pre-registered sentence asks that the "
+                    "header audit &lsquo;identifies what DATE-OBS means "
+                    "(start of exposure, UTC)&rsquo;; the code required the "
+                    "start.  Read as &lsquo;the meaning is identified&rsquo;, "
+                    "G0 holds, because the AC4040's mid-exposure stamp is "
+                    "identified by two independent tests (and, section 5b, "
+                    "by the eclipses).") if alt else ""
     if amended:
-        amended_html = (
+        amended_html += (
             "<br><b>Amended reading (a deviation, reported beside the written "
             f"one as pre-registration &sect;5 requires): {esc(amended)}.</b>  "
             "G0 fails only because camera epochs that feed G1 do not stamp "
@@ -1524,9 +1818,11 @@ def render_report(db_path: Path) -> Path:
             section_prereg(con, m),
             section_reconciliation(con, m),
             section_dedup(con),
+            section_names_eras(con),
             section_cameras(con),
             section_mech(con),
             section_time(con),
+            section_clock(con),
             section_targets(con),
             section_overlap(con),
             section_calibration(con),
@@ -1555,9 +1851,11 @@ def render_report(db_path: Path) -> Path:
   <a href="#rule">0 Rule</a> &middot;
   <a href="#recon">1 Reconciliation</a> &middot;
   <a href="#dedup">2 Dedup</a> &middot;
+  <a href="#names">2b Names &amp; eras</a> &middot;
   <a href="#cameras">3 Cameras</a> &middot;
   <a href="#mech">4 Timeline</a> &middot;
   <a href="#time">5 Time</a> &middot;
+  <a href="#clock">5b Clock</a> &middot;
   <a href="#targets">6 Targets</a> &middot;
   <a href="#overlap">7 Overlap</a> &middot;
   <a href="#calib">8a Calibration</a> &middot;

@@ -103,6 +103,11 @@ DEFAULT_MANIFEST = ARCHIVE_PARENT / "legacy_manifest.csv"
 DEFAULT_BAD_MANIFEST = ARCHIVE_PARENT / "legacy_manifest_BAD_collisions.csv"
 DEFAULT_RLMT = REPO_ROOT / "products" / "manifest" / "rlmt-manifest.sqlite"
 PREREG_NOTE = REPO_ROOT / "Legacy_Rigel" / "notes" / "GO_NOGO_PREREGISTERED.md"
+DEFAULT_ARCHIVE = ARCHIVE_PARENT / "legacy-archive"
+#: The list of frames found truncated AT THE SOURCE (Google Drive): written
+#: by the md5-verified re-fetch of 2026-10-03, which downloaded every one
+#: again and got the same short file.
+DEFAULT_TRUNCATED = ARCHIVE_PARENT / "legacy_refetch_truncated.txt"
 
 #: Position match radius for the overlap query — the S0 cone (0.2°), so the
 #: two archives agree on what "the same field" means.
@@ -250,6 +255,24 @@ def reconciliation_summary(rec: pd.DataFrame, con) -> pd.DataFrame:
         ("    of which header unreadable (named exclusion)", n_scan_err),
         ("  uncompressed twin of a scanned .fz (named exclusion)", n_twin),
         ("  uncompressed with no .fz twin (named exclusion)", n_fits_only),
+        ("    of which truncated at source, intact twin adopted "
+         "(same DATE-OBS)", int((rec.get("truncation") ==
+                                 lc.TRUNC_TWIN_ADOPTED).sum())
+         if "truncation" in rec else 0),
+        ("    of which truncated at source, LOST (no file of that name "
+         "elsewhere)", int((rec.get("truncation") == lc.TRUNC_LOST).sum())
+         if "truncation" in rec else 0),
+        ("    of which truncated at source, LOST (same-name file elsewhere "
+         "is a different exposure: other DATE-OBS)",
+         int((rec.get("truncation") == lc.TRUNC_TWIN_MISMATCH).sum())
+         if "truncation" in rec else 0),
+        ("    of which truncated at source, LOST (header itself cut short)",
+         int((rec.get("truncation") == lc.TRUNC_UNREADABLE).sum())
+         if "truncation" in rec else 0),
+        ("    of which not on the truncated-at-source list",
+         int(((rec["status"] == lc.REC_UNCOMPRESSED_ONLY)
+              & rec.get("truncation", pd.Series(index=rec.index)).isna()
+              ).sum())),
         ("  non-FITS files (named exclusion)", n_other),
         ("FILE IDENTITY residual (must be 0)",
          n_disk - (n_fz + n_twin + n_fits_only + n_other)),
@@ -334,8 +357,15 @@ def build_collision_audit(manifest, bad_manifest, frames: pd.DataFrame
 # ---------------------------------------------------------------------------
 # L0b — frames: everything derived from one header
 # ---------------------------------------------------------------------------
-def derive_frames(scan: pd.DataFrame) -> pd.DataFrame:
-    """Add the derived columns to the scan rows (no row is dropped)."""
+def derive_frames(scan: pd.DataFrame,
+                  rlmt_copies: frozenset = frozenset()) -> pd.DataFrame:
+    """Add the derived columns to the scan rows (no row is dropped).
+
+    ``rlmt_copies`` holds the paths of legacy frames that are the same
+    exposure as an RLMT-manifest frame (:func:`cross_archive_copies`); they
+    are excluded from the legacy science counts, named, so no exposure is
+    counted by two projects.
+    """
     f = scan.copy()
     # A column that is NULL on every row arrives from SQLite as dtype
     # object; force the numeric cards numeric so .round()/.median() work
@@ -373,6 +403,13 @@ def derive_frames(scan: pd.DataFrame) -> pd.DataFrame:
             f"do not guess: {unknown}")
     f["software"] = [software_family(s, t)
                      for s, t in zip(f["swcreate"], f["telescop"])]
+    # Multi-archive keying (RIG-L0-multi-archive): every row says which
+    # root it came from, and its era key is camera + focal length.
+    f["archive_root"] = lc.ARCHIVE_ROOT
+    keys = [lc.legacy_era_key(c, fl, t) for c, fl, t in
+            zip(f["camera"], f["focallen"], f["telescop"])]
+    f["era_camera"] = [k[0] for k in keys]
+    f["era_optics"] = [k[1] for k in keys]
 
     # --- time --------------------------------------------------------------
     f["jd_start"] = [lc.parse_date_obs(s) for s in f["date_obs"]]
@@ -439,6 +476,8 @@ def derive_frames(scan: pd.DataFrame) -> pd.DataFrame:
     reason[m.to_numpy()] = "no_usable_date_obs"
     m = pd.isna(pd.Series(reason)) & (f["is_canonical"] == 0).to_numpy()
     reason[m.to_numpy()] = "duplicate_copy"
+    m = pd.isna(pd.Series(reason)) & f["path"].isin(rlmt_copies).to_numpy()
+    reason[m.to_numpy()] = "rlmt_archive_copy"
     m = pd.isna(pd.Series(reason)) & (f["kind"] != lc.KIND_LIGHT).to_numpy()
     reason[m.to_numpy()] = "not_science:" + f.loc[m.to_numpy(), "kind"]
     m = pd.isna(pd.Series(reason)) & f["target_key"].isna().to_numpy()
@@ -446,6 +485,213 @@ def derive_frames(scan: pd.DataFrame) -> pd.DataFrame:
     f["exclusion"] = reason
     f["is_science"] = pd.isna(f["exclusion"]).astype(int)
     return f
+
+
+# ---------------------------------------------------------------------------
+# L0b' — frames truncated at the source; filename convention; eras
+# ---------------------------------------------------------------------------
+def read_truncated_headers(archive: Path, rel_paths: list[str]) -> dict:
+    """``{rel_path: header dict}`` for the truncated uncompressed frames.
+
+    Truncation cuts the DATA unit; the 2,880-byte header blocks come first
+    and survive, so the header — DATE-OBS above all — can still be read.
+    Only the primary header is parsed, from raw card blocks (astropy would
+    refuse the file).  A file whose header is itself cut short yields {}.
+    """
+    from macro_core import fitsgeom
+    out = {}
+    for rel in rel_paths:
+        try:
+            with open(archive / rel, "rb") as fh:
+                block = b""
+                while True:
+                    chunk = fh.read(2880)
+                    if len(chunk) < 2880:
+                        block = b""          # header itself truncated
+                        break
+                    block += chunk
+                    if b"END" + b" " * 77 in chunk:
+                        break
+            out[rel] = fitsgeom.parse_card_block(block) if block else {}
+        except OSError:
+            out[rel] = None                  # not on disk
+    return out
+
+
+def build_truncated(trunc_list: list[str], headers: dict,
+                    frames: pd.DataFrame) -> pd.DataFrame:
+    """One row per truncated-at-source frame with its disposition.
+
+    Twins are intact scanned ``.fz`` files with the same basename anywhere
+    else in the archive; :func:`macro_legacy.census.truncated_disposition`
+    decides adoption on an identical DATE-OBS.
+    """
+    by_base = frames.groupby(frames["basename"].str.replace(
+        r"\.fz$", "", regex=True))
+    groups = {k: g for k, g in by_base}
+    rows = []
+    for rel in trunc_list:
+        hdr = headers.get(rel)
+        base = rel.rsplit("/", 1)[-1]
+        twins = groups.get(base)
+        twins = twins[twins["logical_path"] != rel] if twins is not None \
+            else None
+        stamps = list(twins["date_obs"]) if twins is not None else []
+        date_obs = (hdr or {}).get("DATE-OBS")
+        disp = lc.truncated_disposition(date_obs, stamps)
+        jd = lc.parse_date_obs(date_obs)
+        adopted = (twins[twins["date_obs"] == str(date_obs).strip()]
+                   if disp == lc.TRUNC_TWIN_ADOPTED else None)
+        rows.append(dict(
+            path=rel, on_disk=int(hdr is not None), date_obs=date_obs,
+            night=lc.night_label(jd), object=(hdr or {}).get("OBJECT"),
+            filter=(hdr or {}).get("FILTER"),
+            instrume=(hdr or {}).get("INSTRUME"),
+            exptime=(hdr or {}).get("EXPTIME"),
+            n_twins=0 if twins is None else len(twins),
+            twin_paths="; ".join(twins["path"]) if twins is not None
+            and len(twins) else None,
+            adopted_path=adopted["path"].iloc[0] if adopted is not None
+            and len(adopted) else None,
+            disposition=disp))
+    return pd.DataFrame(rows, columns=[
+        "path", "on_disk", "date_obs", "night", "object", "filter",
+        "instrume", "exptime", "n_twins", "twin_paths", "adopted_path",
+        "disposition"])
+
+
+def add_filename_columns(f: pd.DataFrame) -> None:
+    """Parse every file name (in place) and check it against the header."""
+    parsed = [lc.parse_legacy_filename(b) for b in f["basename"]]
+    f["fn_convention"] = [p.convention for p in parsed]
+    f["fn_request"] = [p.request for p in parsed]
+    f["fn_doy"] = [p.doy for p in parsed]
+    f["fn_seq"] = [p.seq for p in parsed]
+    ut_doy = [lc.doy_of_jd(j)[1] if pd.notna(j) else None
+              for j in f["jd_start"]]
+    # Day-of-year difference, wrapped so a New-Year crossing reads +-1.
+    f["fn_doy_minus_ut"] = [
+        None if a is None or b is None else ((a - b + 182) % 365) - 182
+        for a, b in zip(f["fn_doy"], ut_doy)]
+
+
+def build_filename_checks(f: pd.DataFrame) -> tuple[pd.DataFrame,
+                                                     pd.DataFrame]:
+    """Two tables: the name-vs-header check, and request codes vs OBSERVER."""
+    ok = f[f["error"].isna()]
+    chk = ok.groupby("fn_convention", dropna=False).agg(
+        n_files=("path", "size"),
+        n_with_date=("jd_start", lambda s: int(s.notna().sum())),
+        n_doy_equal=("fn_doy_minus_ut", lambda s: int((s == 0).sum())),
+        n_doy_plus1=("fn_doy_minus_ut", lambda s: int((s == 1).sum())),
+        n_doy_minus1=("fn_doy_minus_ut", lambda s: int((s == -1).sum())),
+        n_doy_other=("fn_doy_minus_ut",
+                     lambda s: int((s.notna() & (s.abs() > 1)).sum())),
+    ).reset_index()
+    sch = ok[ok["fn_convention"] == lc.CONV_SCHEDULER]
+    req_rows = []
+    for code, g in sch.groupby("fn_request"):
+        obs = g["observer"].fillna("(none)")
+        top = obs.value_counts()
+        req_rows.append(dict(
+            request=code, n_files=len(g), n_observers=int(obs.nunique()),
+            modal_observer=top.index[0], frac_modal=float(top.iloc[0] / len(g)),
+            n_targets=int(g["target_key"].nunique()),
+            first_night=g["night"].dropna().min(),
+            last_night=g["night"].dropna().max()))
+    return chk, pd.DataFrame(req_rows).sort_values("n_files", ascending=False)
+
+
+def build_eras(f: pd.DataFrame) -> pd.DataFrame:
+    """The legacy era table: one row per (camera, optics) key."""
+    ok = f[f["error"].isna()]
+    rows = []
+    for (cam, optics), g in ok.groupby(["era_camera", "era_optics"]):
+        d = g[g["night"].notna()]
+        rows.append(dict(
+            era_camera=cam, era_optics=optics, n_files=len(g),
+            n_canonical=int(g["is_canonical"].sum()),
+            n_science=int(g["is_science"].sum()),
+            first_night=d["night"].min() if len(d) else None,
+            last_night=d["night"].max() if len(d) else None,
+            telescop=join_counts(g["telescop"].fillna("(none)")),
+            readoutm=join_counts(g["readoutm"].fillna("(none)")),
+            binning=join_counts(g["binning"])))
+    out = pd.DataFrame(rows).sort_values("first_night", na_position="last")
+    out.insert(0, "legacy_era", range(1, len(out) + 1))
+    return out
+
+
+def rlmt_shared_eras(rlmt_path: Path, f: pd.DataFrame) -> pd.DataFrame:
+    """RLMT eras that are the SAME detector configuration as legacy frames —
+    the one sanctioned sharing of detector characterisation (TE, SYNTHESIS
+    §4: the 2022 AC4040 frames with RLMT eras 1–2).
+
+    Same configuration means: the same camera (INSTRUME 'SBIG Aluma
+    AC4040', or 'DL Imaging', the name its driver reports from 2023), on
+    the same optics, with the same EGAIN — the driver's gain table, which
+    changed at the 2023-10 driver update — and the same full-frame
+    geometry and binning.  Linearity and ceiling may be inherited across
+    such a pair; header gain is never inherited (it is the thing S2
+    measures).  One row per RLMT era, with the legacy frames it matches.
+    """
+    con = sqlite3.connect(f"file:{rlmt_path}?mode=ro", uri=True)
+    try:
+        r = pd.read_sql_query("""
+            SELECT e.era_id, e.readoutm, e.naxis1, e.naxis2, e.xbinning,
+                   e.egain, e.n_canonical, e.first_night, e.last_night
+            FROM eras e WHERE e.era_id IN (
+                SELECT DISTINCT era_id FROM frames
+                WHERE instrume LIKE '%AC4040%' OR instrume = 'DL Imaging')
+            ORDER BY e.era_id""", con)
+    finally:
+        con.close()
+    leg = f[(f["camera"] == "SBIG Aluma AC4040") & f["error"].isna()
+            & (f["is_canonical"] == 1) & (f["exclusion"] != "rlmt_archive_copy")]
+    rows = []
+    for e in r.itertuples():
+        m = leg[(leg["egain"].round(3) == round(e.egain, 3))
+                & (leg["naxis1"] == e.naxis1) & (leg["naxis2"] == e.naxis2)
+                & (leg["binning"] == e.xbinning)] if pd.notna(e.egain) \
+            else leg.iloc[0:0]
+        if m.empty:
+            continue
+        rows.append(dict(
+            rlmt_era=e.era_id, rlmt_readoutm=e.readoutm, egain=e.egain,
+            geometry=f"{e.naxis1}x{e.naxis2} bin {e.xbinning}",
+            rlmt_frames=e.n_canonical, rlmt_first=e.first_night,
+            rlmt_last=e.last_night, legacy_frames=len(m),
+            legacy_readoutm=join_counts(m["readoutm"].fillna("(none)")),
+            legacy_first=m["night"].dropna().min(),
+            legacy_last=m["night"].dropna().max()))
+    return pd.DataFrame(rows)
+
+
+def cross_archive_copies(rlmt_path: Path, f: pd.DataFrame) -> pd.DataFrame:
+    """Legacy frames that are the SAME exposure as an RLMT-manifest frame.
+
+    The dedup rule (one exposure, one canonical frame) applied across the
+    two roots: same DATE-OBS text, same exposure (to 1 ms) and same
+    geometry.  Only the AC4040 period can overlap, so the RLMT side is read
+    from 2021-11 on.
+    """
+    con = sqlite3.connect(f"file:{rlmt_path}?mode=ro", uri=True)
+    try:
+        r = pd.read_sql_query("""
+            SELECT path AS rlmt_path, date_obs, round(exptime, 3) AS e,
+                   naxis1, naxis2, is_canonical AS rlmt_canonical
+            FROM frames WHERE night >= '2021-11-01' AND date_obs IS NOT NULL
+            """, con)
+    finally:
+        con.close()
+    leg = f[f["error"].isna() & f["date_obs"].notna()][
+        ["path", "date_obs", "exptime_s", "naxis1", "naxis2"]].copy()
+    leg["e"] = leg["exptime_s"].round(3)
+    r["date_obs"] = r["date_obs"].str.strip()
+    leg["date_obs"] = leg["date_obs"].str.strip()
+    m = leg.merge(r, on=["date_obs", "e", "naxis1", "naxis2"])
+    return m.drop_duplicates("path")[["path", "date_obs", "rlmt_path",
+                                      "rlmt_canonical"]]
 
 
 # ---------------------------------------------------------------------------
@@ -962,6 +1208,39 @@ def build_eclipsers(con, targets: pd.DataFrame, runs: pd.DataFrame,
 # ---------------------------------------------------------------------------
 # L1e — the header-time convention audit
 # ---------------------------------------------------------------------------
+def jdhelio_ratio(f: pd.DataFrame) -> pd.Series:
+    """Per frame: (JD-HELIO − JD − heliocentric correction) / EXPTIME.
+
+    S3's probe of the stamp convention: MaxIm computes JD-HELIO from its
+    own DATE-OBS at the moment it BELIEVES is mid-exposure, so a ratio of
+    0.5 says MaxIm treated DATE-OBS as the start.  It records the
+    software's assumption, not the instant the photons arrived — which is
+    why it is reported beside, never instead of, the two tests that can
+    see the difference (LST against exposure time; consecutive-frame
+    spacing).  NaN where a card or the pointing is missing.
+    """
+    from astropy.coordinates import EarthLocation, SkyCoord
+    from astropy.time import Time
+    import astropy.units as u
+    ok = (f["jd_helio"].notna() & f["jd"].notna() & f["ra_deg"].notna()
+          & f["dec_deg"].notna() & (f["exptime_s"] > 0))
+    out = pd.Series(np.nan, index=f.index)
+    if not ok.any():
+        return out
+    g = f[ok]
+    loc = EarthLocation.from_geodetic(lc.SITE_LONGITUDE_DEG * u.deg,
+                                      31.6656 * u.deg, 1515 * u.m)
+    t = Time(g["jd"].to_numpy(float), format="jd", scale="utc",
+             location=loc)
+    hc = t.light_travel_time(SkyCoord(g["ra_deg"].to_numpy(float),
+                                      g["dec_deg"].to_numpy(float),
+                                      unit="deg"),
+                             kind="heliocentric").to_value("d")
+    out[ok] = ((g["jd_helio"].to_numpy(float) - g["jd"].to_numpy(float) - hc)
+               * 86400.0 / g["exptime_s"].to_numpy(float))
+    return out
+
+
 def build_time_audit(f: pd.DataFrame) -> pd.DataFrame:
     """One row per camera × acquisition software.
 
@@ -971,7 +1250,8 @@ def build_time_audit(f: pd.DataFrame) -> pd.DataFrame:
     named for the UT date; and does the stamp mark the START of the
     exposure (the overlap test of ``stamp_hypothesis_violations``).
     """
-    ok = f[f["error"].isna()]
+    ok = f[f["error"].isna()].copy()
+    ok["jdhelio_ratio"] = jdhelio_ratio(ok)
     rows = []
     for (cam, sw), g in ok.groupby(["camera", "software"], dropna=False):
         dated = g[g["jd_start"].notna()]
@@ -989,6 +1269,7 @@ def build_time_audit(f: pd.DataFrame) -> pd.DataFrame:
         dec = dated["date_decimals"].dropna()
         slope, icpt, n_fit = lst_exposure_slope(dated["exptime_s"],
                                                 dated["lst_resid_s"])
+        jh = dated["jdhelio_ratio"].dropna()
         rows.append(dict(
             camera=cam, software=sw, n_files=len(g),
             n_usable_date=len(dated), n_no_usable_date=len(g) - len(dated),
@@ -1007,6 +1288,8 @@ def build_time_audit(f: pd.DataFrame) -> pd.DataFrame:
             lst_resid_p95_s=float(lst.quantile(0.95)) if len(lst) else None,
             frac_lst_within_60s=float((lst.abs() < 60).mean())
             if len(lst) else None,
+            n_jd_helio=len(jh),
+            jdhelio_ratio_median=float(jh.median()) if len(jh) else None,
             lst_slope_vs_exptime=None if np.isnan(slope) else slope,
             lst_intercept_s=None if np.isnan(icpt) else icpt,
             n_lst_fit=n_fit,
@@ -1261,6 +1544,22 @@ def evaluate_gates(summary: pd.DataFrame, stints: pd.DataFrame,
             "vacuous: the clause binds only epochs that feed a passing gate")
     g0 = files_ok and timeline_ok and time_ok
 
+    # The pre-registered TEXT asks that the audit "identifies what DATE-OBS
+    # means (start of exposure, UTC)"; the code above required START.  The
+    # other reading of the sentence — the convention is identified, whatever
+    # it is — is evaluated too, so the outcome is shown under both (§5).
+    g0_identified = None
+    if contrib:
+        ident = epochs["convention"].isin([CONV_START, CONV_MID])
+        g0_identified = (files_ok and timeline_ok and card_ok and utc_ok
+                         and bool(ident.all()) and n_dup == 0 and n_ov == 0)
+        add("G0'", "ALTERNATIVE READING: DATE-OBS convention IDENTIFIED "
+            "(start or middle, two independent tests agreeing) for every "
+            "contributing camera epoch", f"{int(ident.sum())} of "
+            f"{len(epochs)} epochs", "all", g0_identified,
+            "the pre-registered sentence reads 'identifies what DATE-OBS "
+            "means (start of exposure, UTC)'")
+
     undecided = g1 is None or g2 is None
     if undecided:
         outcomes = ["NOT YET EVALUATED — external catalogue tables absent"]
@@ -1271,7 +1570,10 @@ def evaluate_gates(summary: pd.DataFrame, stints: pd.DataFrame,
                 g3_question_named=int(bool(named)),
                 outcome=" + ".join(outcomes),
                 failing_time_epochs="; ".join(f"{a} / {b}"
-                                              for a, b in sorted(failing)))
+                                              for a, b in sorted(failing)),
+                outcome_alt_reading="" if g0_identified is None or undecided
+                else " + ".join(lc.decide(g0_identified, bool(g1), bool(g2),
+                                          bool(g3), bool(named))))
 
     # ---- The remedy the rule itself asks for ("fix the census"), reported
     # as an AMENDED reading beside the written one (pre-registration §5):
@@ -1353,9 +1655,17 @@ def main(argv=None) -> int:
     ap.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     ap.add_argument("--bad-manifest", type=Path, default=DEFAULT_BAD_MANIFEST)
     ap.add_argument("--rlmt-manifest", type=Path, default=DEFAULT_RLMT)
+    ap.add_argument("--archive", type=Path, default=DEFAULT_ARCHIVE)
+    ap.add_argument("--truncated", type=Path, default=DEFAULT_TRUNCATED)
     ap.add_argument("--skip-report", action="store_true")
+    ap.add_argument("--report-only", action="store_true",
+                    help="re-render the page from the database and stop")
     args = ap.parse_args(argv)
 
+    if args.report_only:
+        from macro_legacy import report
+        print(f"report: {report.render_report(args.db)}")
+        return 0
     con = sqlite3.connect(args.db, timeout=120)
     # Write-ahead logging: appends sequentially instead of journalling every
     # replaced page — on the spinning disk this database lives on, replacing
@@ -1369,14 +1679,43 @@ def main(argv=None) -> int:
         cols = ", ".join(f'"{c}"' for c in FRAME_SCAN_COLUMNS)
         scan = pd.read_sql_query(f"SELECT {cols} FROM scan", con)
         print(f"scan rows: {len(scan):,}", flush=True)
+        t_start = datetime.now()
+
+        def step(msg):
+            """Progress line with elapsed time (the build is long)."""
+            print(f"  [{(datetime.now() - t_start).seconds:5d} s] {msg}",
+                  flush=True)
 
         # ---- L0 -----------------------------------------------------------
-        frames = derive_frames(scan)
+        # Cross-archive copies are found on the raw scan (date, exposure,
+        # geometry), before derivation, so derive_frames can exclude them.
+        pre = scan.assign(exptime_s=pd.to_numeric(
+            scan["exptime"], errors="coerce").fillna(
+            pd.to_numeric(scan["exposure"], errors="coerce")),
+            naxis1=pd.to_numeric(scan["naxis1"], errors="coerce"),
+            naxis2=pd.to_numeric(scan["naxis2"], errors="coerce"))
+        copies = cross_archive_copies(args.rlmt_manifest, pre)
+        step(f"cross-archive copies: {len(copies):,}")
+        frames = derive_frames(scan, frozenset(copies["path"]))
+        step("frames derived")
+        add_filename_columns(frames)
         manifest = load_manifest_paths(args.manifest)
         bad = load_manifest_paths(args.bad_manifest)
         rec = build_reconciliation(con, manifest)
+        trunc_list = [ln.strip() for ln in
+                      args.truncated.read_text().splitlines() if ln.strip()]
+        truncated = build_truncated(
+            trunc_list, read_truncated_headers(args.archive, trunc_list),
+            frames)
+        rec = rec.merge(truncated[["path", "disposition"]].rename(
+            columns={"path": "logical_path", "disposition": "truncation"}),
+            on="logical_path", how="left")
         summary = reconciliation_summary(rec, con)
+        step("reconciliation and truncated frames")
         collisions, coll_meta = build_collision_audit(manifest, bad, frames)
+        fn_checks, fn_requests = build_filename_checks(frames)
+        eras = build_eras(frames)
+        shared = rlmt_shared_eras(args.rlmt_manifest, frames)
         cameras = build_cameras(frames)
         stints = build_stints(frames)
         mech = build_mech_epochs(frames, stints)
@@ -1406,7 +1745,10 @@ def main(argv=None) -> int:
             collision_audit=collisions, cameras=cameras,
             camera_stints=stints, mech_epochs=mech, calib_census=calib,
             flat_pairs=pairs, runs=runs, series=series, targets=targets,
-            time_audit=audit, overlap_all=overlap_all)
+            time_audit=audit, overlap_all=overlap_all,
+            truncated_frames=truncated, filename_checks=fn_checks,
+            filename_requests=fn_requests, legacy_eras=eras,
+            rlmt_shared_eras=shared, cross_archive_copies=copies)
 
         overlap_series = eclipsers = None
         if table_exists(con, "rlmt_targets"):
@@ -1450,6 +1792,9 @@ def main(argv=None) -> int:
             print(f"  {g.gate}: {g.clause} = {g.value} "
                   f"[{ {1: 'PASS', 0: 'FAIL'}.get(g.passed, 'n/a') }]")
         print(f"OUTCOME (as written): {gate_meta['outcome']}")
+        if gate_meta.get("outcome_alt_reading"):
+            print(f"OUTCOME (G0 read as 'convention identified'): "
+                  f"{gate_meta['outcome_alt_reading']}")
         if gate_meta.get("outcome_amended"):
             print(f"OUTCOME (amended, failing time epochs excluded): "
                   f"{gate_meta['outcome_amended']}")

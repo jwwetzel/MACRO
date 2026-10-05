@@ -1,0 +1,51 @@
+<!-- emitted by BeStar_Grism/scripts/be_numbers.py; do not edit -->
+### Frame QC log (BE-S1)
+
+| role | grism | qc | frames |
+|---|---|---|---|
+| null | hrg | pass | 805 |
+| null | hrg | no_trace | 89 |
+| null | hrg | focus_off | 63 |
+| null | hrg | wide_psf | 5 |
+| null | hrg | low_snr | 2 |
+| null | hrg | ew_window_off_spectrum | 1 |
+| null | hrg | airmass | 1 |
+| null | lrg | pass | 251 |
+| null | lrg | no_trace | 90 |
+| null | lrg | focus_off | 31 |
+| null | lrg | no_anchor | 3 |
+| null | lrg | low_snr | 1 |
+| null | lrg | airmass | 1 |
+| science | hrg | pass | 1401 |
+| science | hrg | saturated_in_window | 198 |
+| science | hrg | no_trace | 107 |
+| science | hrg | focus_off | 40 |
+| science | hrg | identity_reject | 25 |
+| science | hrg | wide_psf | 15 |
+| science | hrg | no_solution | 3 |
+| science | hrg | low_snr | 3 |
+| science | hrg | ew_window_off_spectrum | 1 |
+| science | lrg | pass | 257 |
+| science | lrg | no_trace | 51 |
+| science | lrg | identity_reject | 40 |
+| science | lrg | saturated_in_window | 33 |
+| science | lrg | ew_window_off_spectrum | 6 |
+| science | lrg | no_anchor | 5 |
+| science | lrg | focus_off | 3 |
+| science | lrg | low_snr | 2 |
+| standard | hrg | pass | 436 |
+| standard | hrg | focus_off | 128 |
+| standard | hrg | no_trace | 50 |
+| standard | hrg | wide_psf | 17 |
+| standard | hrg | no_solution | 16 |
+| standard | hrg | saturated_in_window | 10 |
+| standard | hrg | no_anchor | 2 |
+| standard | hrg | airmass | 1 |
+| standard | lrg | pass | 386 |
+| standard | lrg | focus_off | 124 |
+| standard | lrg | no_trace | 51 |
+| standard | lrg | saturated_in_window | 19 |
+| standard | lrg | wide_psf | 18 |
+| standard | lrg | no_anchor | 7 |
+| standard | lrg | airmass | 3 |
+| standard | lrg | ew_window_off_spectrum | 2 |

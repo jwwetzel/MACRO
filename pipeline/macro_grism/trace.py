@@ -53,7 +53,17 @@ COLLAPSE_STRIDE = 9
 #: Half-width of the window used for per-column flux-weighted trace
 #: centroids, and the degree of the polynomial fitted through them.
 CENTROID_HALFWIN = 12
-TRACE_POLY_DEG = 2
+TRACE_POLY_DEG = 3
+
+#: Column block of the centroid fit (median-combined) and the search
+#: half-windows of the first, wide passes (px).  The low-resolution trace
+#: departs from its chord by up to ~35 px, so the first pass must look
+#: +/-40 px; the passes then tighten onto the curve.
+TRACE_BLOCK = 8
+TRACE_PASS_HALFWINS = (40, 20)
+
+#: Largest fraction of centroid blocks one robust-fit pass may clip.
+TRACE_MAX_CLIP = 0.2
 
 #: A column whose background-subtracted window sum falls below this many
 #: times the local noise is excluded from the centroid fit (no signal — a
@@ -111,7 +121,20 @@ def fit_slope(xs: np.ndarray, ys: np.ndarray, amps: np.ndarray,
         # rather than a line through noise (the gate's height floor will
         # reject such a frame downstream anyway).
         return 0.0
-    return float(np.polyfit(xs[good], ys[good], 1)[0])
+    # Robust line: a single bright compact source off the trace (the
+    # low-resolution grism's zero-order image sits on the same detector
+    # rows' chunks at the far end) must not tilt it — clip chunks more
+    # than 3 MAD-sigma (floor 5 px) from the line and refit.
+    keep = good.copy()
+    for _ in range(5):
+        c = np.polyfit(xs[keep], ys[keep], 1)
+        r = ys - np.polyval(c, xs)
+        sig = 1.4826 * np.median(np.abs(r[keep] - np.median(r[keep])))
+        new = good & (np.abs(r) <= max(3.0 * sig, 5.0))
+        if new.sum() < 3 or (new == keep).all():
+            break
+        keep = new
+    return float(c[0])
 
 
 def detilted_profile(data: np.ndarray, slope: float,
@@ -151,46 +174,132 @@ def main_trace_u(halo_subtracted: np.ndarray) -> tuple[int, float]:
 def fit_trace_centers(data: np.ndarray, slope: float, u_main: float,
                       halfwin: int = CENTROID_HALFWIN,
                       deg: int = TRACE_POLY_DEG):
-    """Refine the main trace: per-column flux-weighted centroid inside a
-    window that follows the coarse (slope, u) line, then a deg-2
-    polynomial through the good centroids.
+    """Refine the main trace: block centroids inside a window that follows
+    the current trace model, then a polynomial through the good
+    centroids — ITERATED, so the window follows the curve it is fitting.
 
     Returns ``(poly_coeffs, n_used, rms_px)``; ``np.polyval(coeffs, x)``
-    is the trace center at column x.  Columns with window SNR below
-    ``CENTROID_MIN_SNR`` are excluded (an emission-line star's continuum
-    can vanish into the noise between features; fitting centroids there
-    would chase noise).  Falls back to the coarse line when fewer than 10
-    columns qualify.
+    is the trace center at column x.
+
+    Why it iterates (2026-10-03 revision).  The first version centroided
+    once, inside +/-``halfwin`` px of the coarse straight line.  A real
+    trace is curved: on the low-resolution grism it departs from the
+    chord by 30+ px toward the ends, so the centroid window slid off the
+    trace exactly where the curvature was largest, the polynomial was
+    fitted to sky, and the "extraction aperture" then sat beside the
+    spectrum (visible as trace peaks 10-35 px off the aperture center in
+    the rectified cutouts).  Now pass 1 uses a wide window
+    (``TRACE_SEARCH_HALFWIN``) around the straight line and each later
+    pass re-centroids in the narrow window around the previous
+    polynomial, with sigma clipping; the loop stops when the fit moves
+    by less than 0.05 px rms.
+
+    Blocks (``TRACE_BLOCK`` columns, median-combined so one cosmic ray
+    cannot move a centroid) with window S/N below ``CENTROID_MIN_SNR``
+    are excluded — a centroid of noise is a random number.  Falls back
+    to the coarse line when fewer than 10 blocks qualify (``rms_px`` is
+    then None, and the caller must treat the trace as unverified).
     """
     ny, nx = data.shape
-    xs = np.arange(0, nx, 4)                    # every 4th column: plenty
+    x_blk = np.arange(TRACE_BLOCK // 2, nx, TRACE_BLOCK)
+    line = np.zeros(deg + 1)
+    line[-1] = u_main - slope * (nx / 2)
+    line[-2] = slope
+    coeffs, n_used, rms = line, 0, None
+    passes = TRACE_PASS_HALFWINS + (halfwin,) * 3
+    for it, hw in enumerate(passes):
+        yc = np.polyval(coeffs, x_blk)
+        cx, cy = _block_centroids(data, x_blk, yc, hw)
+        if len(cx) < 10:
+            break
+        # The degree RAMPS UP pass by pass (1, 2, then ``deg``): a cubic
+        # fitted to the first, wide-window centroids can bend through
+        # the blocks of one half of the trace and run away over the
+        # other, and the next window then follows the runaway (seen on
+        # the 2025-04-20 T CrB lrg frame, 2026-10-05).
+        d_it = min(deg, it + 1)
+        # Robust polynomial: fit, clip at 3 sigma (MAD), refit — but
+        # never discard more than TRACE_MAX_CLIP of the blocks: clipping
+        # that wants to remove more is fitting the wrong curve, not
+        # removing outliers.
+        keep = np.ones(len(cx), dtype=bool)
+        for _ in range(4):
+            c = np.polyfit(cx[keep], cy[keep], d_it)
+            r = cy - np.polyval(c, cx)
+            sig = 1.4826 * np.median(np.abs(r[keep] - np.median(r[keep])))
+            new = np.abs(r) <= 3.0 * max(sig, 0.05)
+            if (new.sum() < max(10, (1 - TRACE_MAX_CLIP) * len(cx))
+                    or (new == keep).all()):
+                break
+            keep = new
+        c = np.concatenate([np.zeros(deg - d_it), c])   # common length
+        moved = np.sqrt(np.mean((np.polyval(c, x_blk)
+                                 - np.polyval(coeffs, x_blk)) ** 2))
+        coeffs, n_used = c, int(keep.sum())
+        rms = float(np.sqrt(np.mean(r[keep] ** 2)))
+        if it >= len(TRACE_PASS_HALFWINS) and moved < 0.05:
+            break
+    return coeffs, n_used, rms
+
+
+def _block_centroids(data: np.ndarray, x_blk: np.ndarray, yc: np.ndarray,
+                     halfwin: int):
+    """Flux-weighted cross-dispersion centroids of column blocks.
+
+    For each block center x (``TRACE_BLOCK`` columns, median-combined),
+    the window ``yc +/- halfwin`` is baseline-subtracted (median of the
+    window's outer quarter on each side — a local linear-free pedestal
+    that the trace core cannot bias) and centroided over its positive
+    part.  Returns (x, y) arrays of the blocks that pass the S/N cut.
+    """
+    ny, nx = data.shape
     cx, cy = [], []
-    for x in xs:
-        yc = u_main + slope * (x - nx / 2)      # coarse center here
-        lo, hi = int(yc) - halfwin, int(yc) + halfwin + 1
+    half_blk = TRACE_BLOCK // 2
+    for x, y in zip(x_blk, yc):
+        lo, hi = int(round(y)) - halfwin, int(round(y)) + halfwin + 1
         if lo < 0 or hi > ny:
             continue
-        win = data[lo:hi, x].astype(np.float64)
-        base = np.median(win)                    # local pedestal
+        seg = data[lo:hi, max(0, x - half_blk):x + half_blk + 1]
+        win = np.median(seg, axis=1).astype(np.float64)
+        q = max(2, len(win) // 4)
+        edge = np.concatenate([win[:q], win[-q:]])
+        base = np.median(edge)
+        noise = 1.4826 * np.median(np.abs(edge - base)) + 1e-3
         sig = win - base
-        noise = 1.4826 * np.median(np.abs(sig - np.median(sig))) + 1e-3
-        if sig.sum() < CENTROID_MIN_SNR * noise * np.sqrt(len(win)):
+        if sig.max() < CENTROID_MIN_SNR * noise:
             continue                             # no believable signal
-        w = np.clip(sig, 0, None)
-        if w.sum() <= 0:
+        w = np.clip(sig - 2.0 * noise, 0, None)   # core only: wings and
+        if w.sum() <= 0:                         # sky slope cannot pull
             continue
-        cx.append(x)
+        cx.append(float(x))
         cy.append(lo + float((w * np.arange(len(win))).sum() / w.sum()))
-    if len(cx) < 10:
-        # Coarse fallback: the straight line as a degree-``deg`` poly.
-        coeffs = np.zeros(deg + 1)
-        coeffs[-1] = u_main - slope * (nx / 2)
-        coeffs[-2] = slope
-        return coeffs, len(cx), None
-    cx, cy = np.array(cx, float), np.array(cy)
-    coeffs = np.polyfit(cx, cy, deg)
-    rms = float(np.sqrt(np.mean((np.polyval(coeffs, cx) - cy) ** 2)))
-    return coeffs, len(cx), rms
+    return np.array(cx), np.array(cy)
+
+
+def trace_extent(data: np.ndarray, coeffs: np.ndarray,
+                 halfwin: int = CENTROID_HALFWIN,
+                 min_snr: float = CENTROID_MIN_SNR):
+    """(x_first, x_last): the column range over which the trace actually
+    carries signal.
+
+    A slitless trace does not span the detector: the low-resolution grism
+    puts the whole 4000-9500 A spectrum on ~2700 of 4788 columns, and
+    past its ends the polynomial is an EXTRAPOLATION through empty sky.
+    Everything downstream (line search, sky-method statistics) must stay
+    inside this range.  Measured from the same block centroids as the
+    fit: the first and last block whose window passes the S/N cut and
+    whose centroid lies within 2 px of the polynomial.
+    """
+    ny, nx = data.shape
+    x_blk = np.arange(TRACE_BLOCK // 2, nx, TRACE_BLOCK)
+    cx, cy = _block_centroids(data, x_blk, np.polyval(coeffs, x_blk),
+                              halfwin)
+    if len(cx) == 0:
+        return None
+    on = np.abs(cy - np.polyval(coeffs, cx)) <= 2.0
+    if not on.any():
+        return None
+    return int(cx[on].min()), int(cx[on].max())
 
 
 def profile_noise(halo_subtracted: np.ndarray, exclude_u: int,

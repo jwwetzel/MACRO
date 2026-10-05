@@ -3,7 +3,7 @@
 <title>S3 &mdash; The Shared Time Axis (mid-exposure BJD_TDB)</title>
 <link rel="stylesheet" href="../assets/macro.css">
 </head><body>
-<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">10/10 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">48/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">22/25 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">11/11 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">39/41 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">48/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">22/25 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">28/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">24/26 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">15/15 done</span></a></nav></div>
 <div class="tabbar"><nav class="tabbar-inner" aria-label="Data &amp; Instrument Characterization views"><a class="tab" href="../pipeline/index.html">The Case</a><a class="tab" href="../pipeline/figures.html">Figures</a><a class="tab" href="../pipeline/pipeline_status.html">Freshness &amp; DAG</a><a class="tab" aria-current="page" href="../pipeline/evidence.html">Evidence Detail</a></nav></div>
 <div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../pipeline/index.html">Data &amp; Instrument Characterization</a></li><li><a href="../pipeline/evidence.html">Evidence Detail</a></li><li aria-current="page">S3 — The Shared Time Axis</li></ol></nav></div>
 <div class="layout">
@@ -16,9 +16,9 @@
   <p>169,102 header stamps audited &middot; 162,859 of
   164,188 canonical science frames with mid-exposure BJD_TDB
   (ephemeris <code>de440s</code>) &middot;
-  absolute clock consistent with zero at the ~75 min level set by AG LMi's ephemeris &middot; built 2026-10-04T00:07Z
-  (S3 v1.0 (2026-08-18),
-  commit <code>916243b</code>)
+  absolute clock consistent with zero at the ~75 min level set by AG LMi's ephemeris &middot; built 2026-10-05T05:32Z
+  (S3 v1.1 (2026-10-05, StackPro DATE-OBS is mid-exposure),
+  commit <code>b89290c</code>)
   &middot; <a href="../index.html">the front page</a></p>
 </header>
 
@@ -245,7 +245,7 @@ and span EXPTIME.  Worst case if dead time hides between sub-reads: the
 true midpoint shifts late by at most
 5.67&nbsp;s</b> — half the measured
 11.35&nbsp;s ceiling, recorded as
-<code>stackpro_sum_midpoint_half_exptime</code> in <code>frame_times.mid_method</code> so
+<code>stackpro_dateobs_is_mid</code> in <code>frame_times.mid_method</code> so
 any user can query which frames carry it.  That ceiling is honest but
 WEAK: the gap it measures is dominated by readout and file save, and
 cadence cannot separate those from anything happening between sub-reads.
@@ -257,7 +257,7 @@ It is an upper limit, not an estimate of the error.</div>
 5.67&nbsp;s, which is NOT below a
 sub-second target.</b>  A paper quoting sub-second absolute mid-times
 must either avoid the 20,361 frames carrying
-<code>stackpro_sum_midpoint_half_exptime</code>, or first close this bound with evidence
+<code>stackpro_dateobs_is_mid</code>, or first close this bound with evidence
 cadence cannot supply: the camera's sub-read readout time from a manual
 or a lab measurement.  Either would collapse the ceiling by orders of
 magnitude — and only this one constant changes, after which one re-run
@@ -282,7 +282,7 @@ its own time axis.</p>
 <table class="data">
 <tr><th>mid_method</th><th>bjd_method</th><th>frames</th><th>meaning</th></tr>
 <tr><td><code>start_plus_half_exptime</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>142,352</td><td>start + EXPTIME/2</td></tr>
-<tr><td><code>stackpro_sum_midpoint_half_exptime</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>20,361</td><td>start + EXPTIME/2 (StackPro sum; &le; 5.67 s worst case)</td></tr>
+<tr><td><code>stackpro_dateobs_is_mid</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>20,361</td><td>start + EXPTIME/2 (StackPro sum; &le; 5.67 s worst case)</td></tr>
 <tr class="warn"><td><code>start_plus_half_exptime</code></td><td><code>no_coords</code></td><td>1,278</td><td>start + EXPTIME/2; no BJD: frame has no cataloged sky position, so there is nothing to point the light-travel correction at (the UTC mid-time is still valid)</td></tr>
 <tr><td><code>exptime_nonpos_start_used</code></td><td><code>bary_de440s_winer_framecenter</code></td><td>146</td><td>EXPTIME &le; 0 or missing — start used</td></tr>
 <tr class="warn"><td><code>start_plus_half_exptime</code></td><td><code>jd_disagrees_with_raw_parent</code></td><td>46</td><td>start + EXPTIME/2; BJD WITHDRAWN: this copy's stamp disagrees with its raw parent by &gt; 10 s</td></tr>
@@ -348,7 +348,7 @@ UTC.  Does an external astrophysical clock confirm the time axis?</p>
 <p class="sub">AG LMi (type EA,
 V 10.55 - 11.16) is an eclipsing binary in the
 archive with P = 1.3590176&nbsp;d, minimum epoch HJD
-2458211.194 (VSX via Vizier B/vsx/vsx, fetched live 2026-10-04).  4 nights of it were
+2458211.194 (VSX via Vizier B/vsx/vsx, fetched live 2026-10-05).  4 nights of it were
 measured; 192 frames of those plus three baseline nights
 went through forced-aperture differential photometry against
 3 fixed comparison stars

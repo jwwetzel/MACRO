@@ -1,0 +1,1333 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Legacy archive — census (L0, L1) and go/no-go (L2)</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">11/11 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">39/41 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">48/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">22/25 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">28/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">24/26 done</span></a><a class="navitem" aria-current="page" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">15/15 done</span></a></nav></div>
+<div class="tabbar"><nav class="tabbar-inner" aria-label="Legacy Archive 2015–2022 (census only) views"><a class="tab" href="../Legacy_Rigel/case.html">The Case</a><a class="tab" href="../Legacy_Rigel/figures.html">Figures</a><span class="tab absent" title="no compiled draft yet — only the AASTeX skeleton; see Plan &amp; Status for the writing task and its blocker">Draft Paper — none yet</span><a class="tab" href="../Legacy_Rigel/index.html">Plan &amp; Status</a><a class="tab" aria-current="page" href="../Legacy_Rigel/evidence.html">Evidence Detail</a></nav></div>
+<div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../Legacy_Rigel/case.html">Legacy Archive 2015–2022 (census only)</a></li><li><a href="../Legacy_Rigel/evidence.html">Evidence Detail</a></li><li aria-current="page">Legacy archive — census and go/no-go</li></ol></nav></div>
+<div class="layout">
+<aside class="rail" aria-label="Questions in this view"><a class="railback" href="../Legacy_Rigel/case.html">&larr; Back to the case</a><h2>The questions</h2><p class="railnote">The questions this page answers, in order.</p><ol><li><a href="#rule"><span class="qn">1</span> A census can always be read as a reason to start a project. What would…</a></li><li><a href="#recon"><span class="qn">2</span> The archive was crawled from a shared Drive, downloaded, repaired…</a></li><li><a href="#dedup"><span class="qn">3</span> The referee asked that the go/no-go rest on a census with a stated dedup…</a></li><li><a href="#names"><span class="qn">4</span> Three things must be true before a legacy frame can sit beside an RLMT…</a></li><li><a href="#cameras"><span class="qn">5</span> The plan called this the “Rigel-era” archive: a different telescope with…</a></li><li><a href="#mech"><span class="qn">6</span> What physically changed, and when? A master frame or a comparison-star…</a></li><li><a href="#time"><span class="qn">7</span> Two acquisition systems and nine cameras wrote these headers. Is DATE-OBS…</a></li><li><a href="#clock"><span class="qn">8</span> Section 5 fixed what each stamp means. Was the clock that wrote it right…</a></li><li><a href="#targets"><span class="qn">9</span> Frame counts flatter an archive. Per target: how many nights, in which…</a></li><li><a href="#overlap"><span class="qn">10</span> Were T CrB, the polars, YZ Cnc, the Be stars or the dwarf-survey fields…</a></li><li><a href="#calib"><span class="qn">11</span> For each camera: are there bias, dark and flat frames in the archive at…</a></li><li><a href="#eclipsers"><span class="qn">12</span> A period change of 10 −7 d yr −1 accumulates about seven minutes of O−C…</a></li><li><a href="#gates"><span class="qn">13</span> Section 0 fixed what would count. Does the archive deliver it?</a></li></ol></aside>
+<div class="pane">
+<!--MACRO-SITE:CONTENT-->
+
+<header>
+  <h1>Legacy archive &mdash; census and go/no-go</h1>
+  <p>209,418 scanned files &rarr; 159,642 canonical science
+  frames &middot; 2,618 targets &middot; 1,085 nights
+  &middot; 9 identified cameras &middot; outcome:
+  <b>NOT DECIDABLE — fix the census</b> &middot;
+  built 2026-10-05T04:21Z
+  (L-census v1.1 (2026-10-04),
+  commit <code>b89290c+dirty</code>)
+  &middot; <a href="index.html">plan &amp; status</a></p>
+</header>
+
+<nav>
+  <a href="#rule">0 Rule</a> &middot;
+  <a href="#recon">1 Reconciliation</a> &middot;
+  <a href="#dedup">2 Dedup</a> &middot;
+  <a href="#names">2b Names &amp; eras</a> &middot;
+  <a href="#cameras">3 Cameras</a> &middot;
+  <a href="#mech">4 Timeline</a> &middot;
+  <a href="#time">5 Time</a> &middot;
+  <a href="#clock">5b Clock</a> &middot;
+  <a href="#targets">6 Targets</a> &middot;
+  <a href="#overlap">7 Overlap</a> &middot;
+  <a href="#calib">8a Calibration</a> &middot;
+  <a href="#eclipsers">8b Eclipsers</a> &middot;
+  <a href="#gates">9 Outcome</a>
+</nav>
+
+
+<section id="rule">
+<div class="bhead"><h2>0 &middot; The rule came first</h2>
+<span class="tag">go/no-go criteria pre-registered before any header was read</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">A census can always be read as a reason to start a project.
+What would have to be true of this archive for it to carry one — decided
+before looking?</p>
+
+<h3>Evidence</h3>
+<p class="sub">The criteria are in
+<code>Legacy_Rigel/notes/GO_NOGO_PREREGISTERED.md</code>, saved before the scan ran;
+its sha256 at build time is <code>454bc5f9f07a525b&hellip;</code> (stored
+in <code>census_meta.prereg_sha256</code>, so a later edit is detectable).
+The note discloses what was already known when it was written (the
+committee's file count and camera list, the ledger's short "first scan"
+target list) and what was not (nights, filters, run lengths, seasons and
+calibration for any target).</p>
+<table class="data">
+<tr><th>gate</th><th>what must hold</th><th>what it leads to</th></tr>
+<tr><td>G0</td><td>files-on-disk = rows + named exclusions; a camera timeline exists; the header-time convention is identified for every camera epoch feeding a passing gate</td><td>validity &mdash; without it the outcome is NOT DECIDABLE</td></tr>
+<tr><td>G1</td><td>&ge; 3 eclipsing/contact systems with minimum-bearing nights in &ge; 3 seasons</td><td>GO-CANDIDATE: period-change (O&minus;C) timing paper, JAAVSO class</td></tr>
+<tr><td>G2</td><td>an RLMT-era target with &ge; 10 nights over &ge; 2 seasons in one tieable series (timing targets: plus a run &ge; 1 h)</td><td>TRANSFER to the owning project &mdash; not a sixth paper</td></tr>
+<tr><td>G3</td><td>a series with &ge; 30 calibrated nights, and a question and reader that can be named</td><td>GO-CANDIDATE only if the question is named</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>The gates below are evaluated by script, exactly
+as written.</b>  No threshold, definition or question was changed after the
+census was seen; where a written definition met a fact it did not
+anticipate, the result is given under both readings and marked as a
+deviation (section 9).</div>
+
+<h3>Consequence</h3>
+<p class="sub">Sections 1&ndash;8 are the census; section 9 applies the
+rule.  Nothing in between is a reason for a go unless it is one of these
+gates.</p>
+</div></section>
+<section id="recon">
+<div class="bhead"><h2>1 &middot; Files on disk = rows + named exclusions</h2>
+<span class="tag">reconciled against both transfer manifests</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">The archive was crawled from a shared Drive, downloaded,
+repaired, compressed and is still being de-duplicated.  A first crawl
+manifest (<code>legacy_manifest_BAD_collisions.csv</code>) is known to have
+merged years.  Before any target is counted: is every file accounted for,
+and did the bad manifest damage anything?</p>
+
+<h3>Evidence</h3>
+<p class="sub">The walk found 210,726 files
+(2026-10-05T02:38Z).  Only <code>*.fz</code> files are
+opened; an uncompressed file is either the not-yet-deleted twin of a
+scanned <code>.fz</code> (the dedupe job's unfinished work, a snapshot
+count) or a frame that never compressed.  Both identities close:</p>
+<table class="data">
+<tr><th>quantity</th><th>n</th></tr>
+<tr><td>files on disk (walk)</td><td>210,726</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;.fz files = scan rows</td><td>209,418</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;of which header unreadable (named exclusion)</td><td>0</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;uncompressed twin of a scanned .fz (named exclusion)</td><td>461</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;uncompressed with no .fz twin (named exclusion)</td><td>828</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;of which truncated at source, intact twin adopted (same DATE-OBS)</td><td>0</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;of which truncated at source, LOST (no file of that name elsewhere)</td><td>584</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;of which truncated at source, LOST (same-name file elsewhere is a different exposure: other DATE-OBS)</td><td>242</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;of which truncated at source, LOST (header itself cut short)</td><td>2</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;of which not on the truncated-at-source list</td><td>0</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;non-FITS files (named exclusion)</td><td>19</td></tr>
+<tr class="ok"><td>FILE IDENTITY residual (must be 0)</td><td>0</td></tr>
+<tr class="ok"><td>scan rows minus .fz files on disk (must be 0)</td><td>0</td></tr>
+<tr><td>uncompressed files on disk (twins + twinless; check)</td><td>0</td></tr>
+<tr><td>manifest paths (crawl)</td><td>210,116</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;scanned</td><td>209,270</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;.fz unreadable</td><td>0</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;uncompressed only</td><td>828</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;not on disk</td><td>18</td></tr>
+<tr class="ok"><td>MANIFEST IDENTITY residual (must be 0)</td><td>0</td></tr>
+<tr><td>on disk but not in the manifest (FITS)</td><td>148</td></tr>
+</table>
+<p class="sub">Named exclusions at the path level, by status and tree
+(non-FITS files omitted):</p>
+<table class="data">
+<tr><th>status</th><th>tree</th><th>paths</th></tr>
+<tr><td>manifest_not_on_disk</td><td>2016/</td><td>1</td></tr>
+<tr><td>manifest_not_on_disk</td><td>2022/</td><td>16</td></tr>
+<tr><td>manifest_not_on_disk</td><td>archivar/</td><td>1</td></tr>
+<tr><td>uncompressed_only</td><td>2015/</td><td>1</td></tr>
+<tr><td>uncompressed_only</td><td>2016/</td><td>368</td></tr>
+<tr><td>uncompressed_only</td><td>2017/</td><td>382</td></tr>
+<tr><td>uncompressed_only</td><td>2018/</td><td>1</td></tr>
+<tr><td>uncompressed_only</td><td>archivar/</td><td>76</td></tr>
+</table>
+<p class="sub">0 of 209,418 scanned files have an
+unreadable header and stay in the table with <code>error</code> set:</p>
+<p class="sub"><i>None.</i></p>
+
+
+<p class="sub"><b>Frames truncated at the source.</b>  828 files
+on Google Drive are shorter than a FITS file of their own header can be: a
+second, md5-verified download (2026-10-03) returned the same short bytes, so
+the damage is in the source, not the transfer.  The header survives and was
+read.  243 of them share a file NAME with an intact frame elsewhere
+in the archive; a twin stands in for a truncated frame only if it carries the
+identical <code>DATE-OBS</code>:</p>
+<table class="data">
+<tr><th>disposition</th><th>frames</th></tr>
+<tr><td>truncated_lost</td><td>584</td></tr>
+<tr><td>truncated_twin_mismatch</td><td>242</td></tr>
+<tr><td>truncated_header_unreadable</td><td>2</td></tr>
+</table>
+<p class="sub">No same-name file is the same exposure: the names repeat
+because the scheduler restarts its day numbering every year (the very
+collision the year-stripped manifest would have caused).  Every truncated
+frame is therefore LOST, and named.  What they were (largest groups):</p>
+<table class="data">
+<tr><th>OBJECT</th><th>lost frames</th><th>first night</th><th>last night</th></tr>
+<tr><td>Focus</td><td>152</td><td>2016-10-25</td><td>2017-02-24</td></tr>
+<tr><td>1044 Teutonia</td><td>29</td><td>2016-10-26</td><td>2016-12-10</td></tr>
+<tr><td>WASP-50b</td><td>21</td><td>2016-10-19</td><td>2016-12-07</td></tr>
+<tr><td>Wolf 424</td><td>20</td><td>2016-12-09</td><td>2017-01-18</td></tr>
+<tr><td>226P/Pigott-L</td><td>18</td><td>2016-10-19</td><td>2016-12-04</td></tr>
+<tr><td>Field 1</td><td>13</td><td>2016-10-18</td><td>2017-01-18</td></tr>
+<tr><td>WASP-10 b</td><td>10</td><td>2016-10-29</td><td>2016-10-29</td></tr>
+<tr><td>HAT-P-32</td><td>10</td><td>2016-11-27</td><td>2016-11-27</td></tr>
+<tr><td>HAT-P-20</td><td>10</td><td>2016-11-15</td><td>2016-11-15</td></tr>
+<tr><td>WASP-52</td><td>9</td><td>2016-10-19</td><td>2016-10-19</td></tr>
+<tr><td>WASP-33b</td><td>8</td><td>2016-11-01</td><td>2016-11-01</td></tr>
+<tr><td>M1</td><td>8</td><td>2017-01-10</td><td>2017-01-17</td></tr>
+</table>
+
+<p class="sub"><b>The collision audit.</b>  The bad manifest holds
+210,120 rows but only
+180,035 distinct paths: stripping the year
+folded 51,999 files into
+21,914 colliding names, so
+30,085 files would have been overwritten.  The
+two manifests list the same Drive file ids
+(0 only in the good one,
+0 only in the bad one), so the crawl
+itself lost nothing.  And the files now on disk under those names are
+different exposures: in 21,910 of
+21,914 groups every member carries a different
+<code>DATE-OBS</code>; 4 groups contain members with an
+identical stamp (genuine duplicates the dedup rule of section 2 handles).
+The largest groups:</p>
+<table class="data">
+<tr><th>name after stripping the year</th><th>manifest paths</th><th>scanned</th><th>distinct DATE-OBS</th></tr>
+<tr><td><code>day040/foc04008.fts</code></td><td>7</td><td>7</td><td>7</td></tr>
+<tr><td><code>day028/foc0280c.fts</code></td><td>6</td><td>6</td><td>6</td></tr>
+<tr><td><code>day028/foc0280d.fts</code></td><td>6</td><td>6</td><td>6</td></tr>
+<tr><td><code>day028/foc0280e.fts</code></td><td>6</td><td>6</td><td>6</td></tr>
+<tr><td><code>day028/foc0280f.fts</code></td><td>6</td><td>6</td><td>6</td></tr>
+<tr><td><code>day028/foc02810.fts</code></td><td>6</td><td>5</td><td>5</td></tr>
+</table>
+
+<p class="sub">Inside the scan, every row is either a science frame or
+carries one named reason for not being one:</p>
+<table class="data">
+<tr><th>disposition</th><th>files</th></tr>
+<tr><td>science frame</td><td>159,642</td></tr>
+<tr><td>duplicate_copy</td><td>23,614</td></tr>
+<tr><td>not_science:focus</td><td>23,355</td></tr>
+<tr><td>rlmt_archive_copy</td><td>2,419</td></tr>
+<tr><td>not_science:test</td><td>201</td></tr>
+<tr><td>no_usable_date_obs</td><td>187</td></tr>
+</table>
+<figure><a href="figures/legacy/legacy_accounting.png"><img src="figures/legacy/legacy_accounting.png" alt=""></a><figcaption>Scanned files by year of night, split into science frames and each named exclusion.  &lsquo;no date&rsquo; collects frames whose DATE-OBS is absent or outside 2014&ndash;2023.</figcaption></figure>
+
+<h3>Decision</h3>
+<div class="decision"><b>The census population is the scanned
+<code>.fz</code> files; everything else on disk or in the manifest is a
+named exclusion, and both identities have zero residual.</b>  The download
+was made from the corrected manifest; the bad one overwrote nothing.  The
+frames truncated at the source cannot be recovered from this archive; a
+same-name file is adopted only on an identical <code>DATE-OBS</code>, and
+none qualifies.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Counts below are counts of rows of
+<code>products/legacy/legacy.sqlite</code>.  When the dedupe job finishes,
+re-run <code>build_legacy_scan.py --rewalk</code>: the twin count falls to
+zero and nothing else moves.</p>
+</div></section>
+<section id="dedup">
+<div class="bhead"><h2>2 &middot; The dedup rule</h2>
+<span class="tag">one exposure, one canonical frame</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">The referee asked that the go/no-go rest on a census with a
+stated dedup rule.  When are two files the same exposure, and which one
+counts?</p>
+
+<h3>Evidence</h3>
+<p class="sub">Identity key (pre-registered): camera, <code>DATE-OBS</code>
+exactly as recorded, exposure time, filter, image geometry.  Of the
+209,418 readable files, 185,804 are canonical;
+23,614 are copies, in 23,385 groups.</p>
+<table class="data">
+<tr><th>tree</th><th>readable files</th><th>canonical</th><th>copies</th></tr>
+<tr><td>dayNNN</td><td>183,431</td><td>183,198</td><td>233</td></tr>
+<tr><td>archivar</td><td>25,800</td><td>2,419</td><td>23,381</td></tr>
+<tr><td>old</td><td>187</td><td>187</td><td>0</td></tr>
+</table>
+<p class="sub">Where the copies sit (pairs of trees a duplicate group spans):</p>
+<table class="data">
+<tr><th>tree</th><th>tree</th><th>groups</th></tr>
+<tr><td>archivar</td><td>dayNNN</td><td>23,355</td></tr>
+<tr><td>dayNNN</td><td>dayNNN</td><td>30</td></tr>
+</table>
+<p class="sub">4 groups pair a raw file with a calibrated
+twin (non-blank <code>CALSTAT</code>); the raw one is canonical.
+187 frames have no usable <code>DATE-OBS</code>: they cannot be
+identified by this key, are never merged with anything, and are excluded
+from science counts by that clause (section 4 says which cameras).</p>
+
+<h3>Decision</h3>
+<div class="decision"><b>Canonical = raw over calibrated twin, then
+smallest path; every threshold counts canonical science frames only.</b>
+Known limit, stated: the key cannot see a copy whose header time was
+rewritten; none of the software in this archive is known to do that, and
+the (target, night, exposure) populations show no doubled cadence.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Nights, runs, series and gates below are built from the
+canonical science frames.</p>
+</div></section>
+<section id="names">
+<div class="bhead"><h2>2b &middot; File names, era keys, and the other archive</h2>
+<span class="tag">what a name says &middot; camera + focal length &middot; no double counting</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Three things must be true before a legacy frame can sit
+beside an RLMT one: we know what its name encodes, its era is keyed on
+hardware rather than on a telescope's name, and it is not the same exposure
+as a frame the RLMT archive already holds.</p>
+
+<h3>Evidence</h3>
+<p class="sub"><b>The name.</b>  The scheduler named every file
+<code>pppDDDss</code>: a three-letter request code, the day of year, and a
+two-digit hexadecimal sequence.  Target, filter and exposure are NOT in the
+name &mdash; they come from the header for every frame.  The day in the name
+against the UT date of <code>DATE-OBS</code>:</p>
+<table class="data">
+<tr><th>convention</th><th>files</th><th>with a date</th><th>day = UT day</th><th>day = UT + 1</th><th>day = UT − 1</th><th>off by more</th></tr>
+<tr><td>scheduler (ppp DDD ss)</td><td>198,726</td><td>198,540</td><td>193,638</td><td>2,005</td><td>2,299</td><td>598</td></tr>
+<tr><td>other</td><td>10,692</td><td>10,691</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+</table>
+<p class="sub">The &plusmn;1 cases are frames taken across 00:00 UT under a
+day number assigned when the night began.  Names outside the convention
+(first six): <code>xuc037102.fts.fz</code>, <code>xuc037103.fts.fz</code>, <code>xuc037104.fts.fz</code>, <code>xuc037105.fts.fz</code>, <code>xuc037106.fts.fz</code>, <code>xuc037107.fts.fz</code>.
+Request codes: 188, of which 68 were used by exactly one
+<code>OBSERVER</code> &mdash; a code is a request queue, not a person or a
+target (<code>foc</code> is the autofocus queue).  The ten largest:</p>
+<table class="data">
+<tr><th>code</th><th>files</th><th>observers</th><th>most frequent observer</th><th>share</th><th>targets</th><th>first night</th><th>last night</th></tr>
+<tr><td><code>foc</code></td><td>49,213</td><td>3</td><td>robert-mutel@uiowa.edu</td><td>97%</td><td>26</td><td>2015-12-30</td><td>2023-07-06</td></tr>
+<tr><td><code>xxm</code></td><td>21,170</td><td>1</td><td>xinyu-mai@uiowa.edu</td><td>100%</td><td>6</td><td>2018-10-25</td><td>2021-02-28</td></tr>
+<tr><td><code>frm</code></td><td>18,667</td><td>5</td><td>robert-mutel@uiowa.edu</td><td>56%</td><td>426</td><td>2015-01-03</td><td>2022-03-24</td></tr>
+<tr><td><code>xsd</code></td><td>17,344</td><td>7</td><td>DTallon</td><td>48%</td><td>167</td><td>2015-11-18</td><td>2019-06-28</td></tr>
+<tr><td><code>gbm</code></td><td>6,028</td><td>6</td><td>xinyu-mai@uiowa.edu</td><td>40%</td><td>163</td><td>2016-09-28</td><td>2018-04-27</td></tr>
+<tr><td><code>gam</code></td><td>5,896</td><td>4</td><td>mbparis</td><td>96%</td><td>39</td><td>2018-01-26</td><td>2020-04-30</td></tr>
+<tr><td><code>xjd</code></td><td>4,019</td><td>1</td><td>jonathan-dolde@uiowa.edu</td><td>100%</td><td>10</td><td>2016-02-02</td><td>2016-04-27</td></tr>
+<tr><td><code>xcm</code></td><td>3,905</td><td>3</td><td>christopher-michael@uiowa.edu</td><td>98%</td><td>64</td><td>2016-11-24</td><td>2019-11-18</td></tr>
+<tr><td><code>gbg</code></td><td>3,687</td><td>5</td><td>christopher-michael@uiowa.edu</td><td>50%</td><td>94</td><td>2016-10-19</td><td>2019-12-13</td></tr>
+<tr><td><code>xji</code></td><td>3,371</td><td>2</td><td>jacob-isbell@uiowa.edu</td><td>70%</td><td>23</td><td>2015-10-24</td><td>2016-04-27</td></tr>
+</table>
+
+<p class="sub"><b>Era keys.</b>  A legacy era is (camera, focal length).
+The 0.5&nbsp;m was named 'Gemini', 'Iowa Robotic Telescope' and 'Robert L.
+Mutel Telescope' over these years with no optical change, so the name is
+recorded but does not key.  Every row also carries
+<code>archive_root = legacy-archive</code>.</p>
+<table class="data">
+<tr><th>era</th><th>camera</th><th>optics</th><th>files</th><th>science frames</th><th>first night</th><th>last night</th><th>TELESCOP as written</th></tr>
+<tr><td>1</td><td>FLI PL16803</td><td>telescope 'Rigel System' (no FOCALLEN)</td><td>7,841</td><td>7,840</td><td>2015-01-03</td><td>2015-04-29</td><td>Rigel System (7,841)</td></tr>
+<tr><td>2</td><td>Apogee F47</td><td>f = 3454 mm</td><td>13,988</td><td>13,588</td><td>2015-10-24</td><td>2016-01-13</td><td>Gemini (13,988)</td></tr>
+<tr><td>3</td><td>KAF-6303 camera (model not in header)</td><td>f = 3454 mm</td><td>10,618</td><td>9,001</td><td>2016-01-17</td><td>2016-04-06</td><td>Gemini (10,618)</td></tr>
+<tr><td>4</td><td>SBIG 6303e</td><td>f = 3454 mm</td><td>27,762</td><td>22,392</td><td>2016-01-24</td><td>2017-01-12</td><td>Gemini (27,762)</td></tr>
+<tr><td>5</td><td>SBIG STXL-6303</td><td>f = 3454 mm</td><td>35,696</td><td>27,351</td><td>2016-03-10</td><td>2021-10-07</td><td>Gemini (18,185), Iowa Robotic Telescope (17,511)</td></tr>
+<tr><td>6</td><td>CCD42-40 camera (model not in header)</td><td>f = 3454 mm</td><td>15,966</td><td>10,017</td><td>2016-10-03</td><td>2020-02-18</td><td>Iowa Robotic Telescope (15,760), Gemini (206)</td></tr>
+<tr><td>7</td><td>Andor Aspen CG42</td><td>f = 3454 mm</td><td>18,097</td><td>14,461</td><td>2017-01-17</td><td>2017-06-18</td><td>Gemini (18,097)</td></tr>
+<tr><td>8</td><td>Andor iKon-L 936</td><td>f = 3454 mm</td><td>60,346</td><td>46,588</td><td>2018-02-04</td><td>2019-05-20</td><td>Iowa Robotic Telescope (60,328), Gemini (18)</td></tr>
+<tr><td>9</td><td>SBIG Aluma AC4040</td><td>f = 3454 mm</td><td>19,104</td><td>8,404</td><td>2021-11-11</td><td>2023-07-06</td><td>Iowa Robotic Telescope (16,757), Robert L. Mutel Telescope (2,347)</td></tr>
+</table>
+<p class="sub">The one configuration shared with the RLMT archive is the
+AC4040 on the same telescope.  An RLMT era may lend its measured linearity
+and ceiling to legacy frames only where the camera, the EGAIN table
+(the driver changed it in 2023-10) and the full-frame geometry all
+match:</p>
+<table class="data">
+<tr><th>RLMT era</th><th>readout mode</th><th>EGAIN</th><th>geometry</th><th>RLMT frames</th><th>RLMT first</th><th>RLMT last</th><th>matching legacy frames</th><th>legacy readout modes</th><th>legacy first</th><th>legacy last</th></tr>
+<tr><td>1</td><td>High Gain StackPro</td><td>1.054</td><td>4096x4096 bin 1</td><td>12,945</td><td>2023-02-06</td><td>2023-07-06</td><td>11,361</td><td>High StackPro (9,525), High (1,836)</td><td>2021-11-11</td><td>2022-12-21</td></tr>
+<tr><td>2</td><td>High Gain</td><td>1.054</td><td>4096x4096 bin 1</td><td>3,621</td><td>2023-02-06</td><td>2023-07-06</td><td>11,361</td><td>High StackPro (9,525), High (1,836)</td><td>2021-11-11</td><td>2022-12-21</td></tr>
+<tr><td>3</td><td>High Gain StackPro</td><td>1.054</td><td>2048x2048 bin 2</td><td>30</td><td>2023-04-06</td><td>2023-04-06</td><td>789</td><td>High StackPro (782), High (7)</td><td>2021-12-19</td><td>2022-02-24</td></tr>
+<tr><td>4</td><td>Low Gain</td><td>22.638</td><td>4096x4096 bin 1</td><td>17</td><td>2023-04-17</td><td>2023-07-05</td><td>478</td><td>Low (478)</td><td>2021-11-14</td><td>2022-01-25</td></tr>
+</table>
+
+<p class="sub"><b>The second archive.</b>  <b>2,419</b> legacy frames
+are the same exposure (identical <code>DATE-OBS</code>, exposure and
+geometry) as a frame in the RLMT manifest &mdash; 2023-02-09T05:49:50.159 to
+2023-07-07T11:07:01.429, the first months of the RLMT era, copied into the
+legacy share as well.  306 of their RLMT twins are canonical
+there.</p>
+
+<h3>Decision</h3>
+<div class="decision"><b>The dedup rule spans both roots: a legacy frame
+that is an RLMT exposure is excluded from the legacy counts, named
+(<code>rlmt_archive_copy</code>), so no exposure is counted by two
+projects.</b>  Eras key on camera and focal length; detector
+characterisation crosses archives only through the matched-era table
+above, and header gain never does.</div>
+
+<h3>Consequence</h3>
+<p class="sub">The legacy census proper ends in 2022-12.  The AC4040's
+legacy frames (2021-11 to 2022-12) are the same camera RLMT eras 1&ndash;2
+measure, with the same EGAIN table.</p>
+</div></section>
+<section id="cameras">
+<div class="bhead"><h2>3 &middot; Which telescope, which camera</h2>
+<span class="tag">camera identity before any target census</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">The plan called this the &ldquo;Rigel-era&rdquo; archive: a
+different telescope with an FLI PL16803.  The telescope engineer said that
+holds for only a few percent of it.  What do the headers say &mdash; and
+can the headers be trusted on which camera took a frame?</p>
+
+<h3>Evidence</h3>
+<p class="sub">Telescope and focal length as written in the headers
+(canonical frames):</p>
+<table class="data">
+<tr><th>TELESCOP</th><th>FOCALLEN (mm)</th><th>canonical frames</th><th>first night</th><th>last night</th></tr>
+<tr><td>Rigel System</td><td>&mdash;</td><td>7,841</td><td>2015-01-03</td><td>2015-04-29</td></tr>
+<tr><td>Gemini</td><td>3,454</td><td>80,965</td><td>2015-10-24</td><td>2018-02-04</td></tr>
+<tr><td>Iowa Robotic Telescope</td><td>3,454</td><td>94,651</td><td>2018-02-06</td><td>2023-02-09</td></tr>
+<tr><td>Robert L. Mutel Telescope</td><td>3,454</td><td>2,347</td><td>2023-02-10</td><td>2023-07-06</td></tr>
+</table>
+<p class="sub"><b>7,841</b> of 185,804 canonical frames
+(<b>4.2%</b>) carry <code>TELESCOP = Rigel System</code>;
+the last such night is 2015-04-29.  Everything after is the 0.5&nbsp;m
+(<code>FOCALLEN</code> 3454&nbsp;mm, <code>APTDIA</code> 508&nbsp;mm) under
+two names.</p>
+<p class="sub">Camera identity.  <code>INSTRUME</code> is a label the
+scheduler copies from its configuration; the pixel pitch and frame format
+come from the camera driver.  Where they disagree the sensor wins:
+<b>10,556</b> frames carry an <code>INSTRUME</code> that names a
+camera whose sensor cannot produce the recorded pixel pitch or frame width
+(a stale label across a camera swap), and 268 have no label at
+all.  Those are attributed by sensor signature &mdash; and because two
+cameras share each such sensor, the <i>model</i> is honestly unknown:</p>
+<table class="data">
+<tr><th>camera (as identified)</th><th>canonical frames</th><th>first night</th><th>last night</th><th>nights</th><th>native format</th><th>native pixel (µm)</th><th>identity basis</th><th>INSTRUME text</th></tr>
+<tr><td>FLI PL16803</td><td>7,841</td><td>2015-01-03</td><td>2015-04-29</td><td>67</td><td>4096x4096 (7,841)</td><td></td><td>label (7,841)</td><td>FLI ProLine PL16803 Rev 1.01 (7,841)</td></tr>
+<tr><td>Apogee F47</td><td>13,858</td><td>2015-10-24</td><td>2016-01-13</td><td>41</td><td>1024x1024 (13,988)</td><td>13 (13,988)</td><td>label (13,988)</td><td>Apogee F47 1Kx1K 13u pixel (13,988)</td></tr>
+<tr><td>KAF-6303 camera (model not in header)</td><td>9,773</td><td>2016-01-17</td><td>2016-04-06</td><td>47</td><td>3072x2046 (9,549), 3072x2047 (1,069)</td><td>9 (10,618)</td><td>sensor (label stale) (10,350), sensor (no label) (268)</td><td>Apogee F47 1Kx1K 13u pixel (10,350),  (268)</td></tr>
+<tr><td>SBIG 6303e</td><td>25,069</td><td>2016-01-24</td><td>2017-01-12</td><td>125</td><td>3072x2046 (24,511), 3072x2047 (3,251)</td><td>9 (27,762)</td><td>label (27,762)</td><td>SBIG 6303e (24,942), SBIG 6303e 3072x2047 9u pixels (2,610), SBIG6303e (210)</td></tr>
+<tr><td>SBIG STXL-6303</td><td>31,454</td><td>2016-03-10</td><td>2021-10-07</td><td>250</td><td>3072x2046 (18,161), 3072x2047 (17,535)</td><td>9 (35,696)</td><td>label (35,696)</td><td>SBIG STXL-6303 3 CCD Camera (18,224), SBIG STXL-6303e (17,472)</td></tr>
+<tr><td>CCD42-40 camera (model not in header)</td><td>12,990</td><td>2016-10-03</td><td>2020-02-18</td><td>97</td><td>2048x2048 (15,966)</td><td>13.5 (15,966)</td><td>label (15,760), sensor (label stale) (206)</td><td>Andor Tech (15,760), SBIG 6303e (161), SBIG STXL-6303e (45)</td></tr>
+<tr><td>Andor Aspen CG42</td><td>16,297</td><td>2017-01-17</td><td>2017-06-18</td><td>103</td><td>2048x2048 (17,942), 2047x2047 (155)</td><td>13.5 (18,097)</td><td>label (18,097)</td><td>Andor Aspen  CG42 (18,097)</td></tr>
+<tr><td>Andor iKon-L 936</td><td>53,458</td><td>2018-02-04</td><td>2019-05-20</td><td>232</td><td>2048x2048 (60,346)</td><td>13.5 (60,346)</td><td>label (60,346)</td><td>Andor IKON L 936 (60,328), IKON L936 (18)</td></tr>
+<tr><td>SBIG Aluma AC4040</td><td>15,064</td><td>2021-11-11</td><td>2023-07-06</td><td>241</td><td>4096x4096 (19,087), 4096x8192 (15), 512x512 (2)</td><td>9 (19,104)</td><td>label (19,104)</td><td>SBIG Aluma AC4040 (16,685), DL Imaging (2,419)</td></tr>
+</table>
+<p class="sub">Detector configuration cards, per camera.  No gain is
+asserted from these: 93,165 scanned headers carry
+<code>EGAIN</code> and 0 carry <code>GAIN</code>; a camera
+serial-number card (<code>CAMSN</code>/<code>SERIALNO</code>) appears in
+37 of the 217 distinct header keyword sets.</p>
+<table class="data">
+<tr><th>camera</th><th>binning</th><th>READOUTM</th><th>EGAIN (header)</th><th>GAIN card</th><th>SET-TEMP (°C)</th><th>software</th><th>CALSTAT</th><th>no usable date</th></tr>
+<tr><td>FLI PL16803</td><td>2 (7,841)</td><td></td><td></td><td></td><td></td><td>Talon (no SWCREATE) (7,841)</td><td>(none) (7,841)</td><td>0</td></tr>
+<tr><td>Apogee F47</td><td>1 (13,988)</td><td>Monochrome (11,508), Monochrome (Preflash) (2,480)</td><td></td><td></td><td>-30 (10,921), -20 (856)</td><td>MaxIm DL 6.08 (13,988)</td><td>(none) (13,988)</td><td>0</td></tr>
+<tr><td>KAF-6303 camera (model not in header)</td><td>2 (9,549), 1 (1,069)</td><td>Raw (10,618)</td><td>2.93 (9,549), 1.61 (1,069)</td><td></td><td>-30 (10,618)</td><td>MaxIm DL 6.08 (10,618)</td><td>(none) (10,618)</td><td>0</td></tr>
+<tr><td>SBIG 6303e</td><td>2 (24,511), 1 (3,251)</td><td>Raw (27,762)</td><td>2.93 (24,511), 1.61 (3,251)</td><td></td><td>-30 (25,753)</td><td>MaxIm DL 6.08 (27,762)</td><td>(none) (27,761), BDF (1)</td><td>0</td></tr>
+<tr><td>SBIG STXL-6303</td><td>2 (18,161), 1 (17,535)</td><td>Raw (35,696)</td><td>1.59 (17,511), 2.89 (17,472), 2.93 (689), 1.61 (24)</td><td></td><td>-30 (35,639), -20 (57)</td><td>MaxIm DL 6.21 (17,511), MaxIm DL 6.11 (17,472), MaxIm DL 6.08 (713)</td><td>BDF (32,297), (none) (3,399)</td><td>0</td></tr>
+<tr><td>CCD42-40 camera (model not in header)</td><td>1 (15,804), 2 (162)</td><td>Monochrome (161)</td><td></td><td></td><td>-40 (15,805), -30 (161)</td><td>MaxIm DL 6.10 (15,760), MaxIm DL 6.08 (161), MaxIm DL 6.11 (45)</td><td>BDF (14,463), (none) (1,503)</td><td>0</td></tr>
+<tr><td>Andor Aspen CG42</td><td>1 (18,087), 2 (10)</td><td>Monochrome (18,097)</td><td></td><td></td><td>-30 (17,956)</td><td>MaxIm DL 6.08 (18,097)</td><td>(none) (18,097)</td><td>0</td></tr>
+<tr><td>Andor iKon-L 936</td><td>1 (60,346)</td><td></td><td></td><td></td><td>-40 (60,331), -30 (15)</td><td>MaxIm DL 6.11 (60,346)</td><td>BDF (57,047), (none) (3,299)</td><td>0</td></tr>
+<tr><td>SBIG Aluma AC4040</td><td>1 (18,314), 2 (790)</td><td>High StackPro (14,077), High Gain StackPro (2,419), High (2,115), Low (478), HDR (15)</td><td>1.054 (18,611), 22.638 (478)</td><td></td><td>-20 (19,104)</td><td>MaxIm DL 6.30 (17,431), MaxIm DL 6.28 (1,080), MaxIm DL 6.29 (593)</td><td>DF (18,077), (none) (1,027)</td><td>187</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>The premise is corrected: this is the 0.5&nbsp;m's
+archive with a short Rigel prologue (4.2% of frames), and
+a camera is identified by its sensor signature, with INSTRUME as a label
+that is checked, not believed.</b>  The name &ldquo;Legacy_Rigel&rdquo;
+describes 4.2% of the data.</div>
+
+<h3>Consequence</h3>
+<p class="sub">A series never pools cameras.  The 2022 AC4040 frames are
+the RLMT-era detector on the same telescope and may share that camera's
+detector characterisation (linearity, ceiling) once S2's flat-pair
+measurements exist &mdash; but not its header gain.</p>
+</div></section>
+<section id="mech">
+<div class="bhead"><h2>4 &middot; Camera and mechanical timeline</h2>
+<span class="tag">stints by camera &middot; rotation epochs inside each</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">What physically changed, and when?  A master frame or a
+comparison-star solution must never be carried across a camera swap or a
+re-seated camera.</p>
+
+<h3>Evidence</h3>
+<figure><a href="figures/legacy/legacy_camera_timeline.png"><img src="figures/legacy/legacy_camera_timeline.png" alt=""></a><figcaption>Top: canonical frames per night, coloured by identified camera.  Bottom: nightly median field rotation from the scheduler's plate solutions (CROTA2, folded modulo 180° so a pier flip is not a step); grey lines are the derived mechanical-epoch boundaries.</figcaption></figure>
+<p class="sub">The camera timeline &mdash; 17 stints of
+9 identified cameras.  A stint is a maximal block of nights
+dominated by one camera; &lsquo;mixed nights&rsquo; had frames from more
+than one.</p>
+<table class="data">
+<tr><th>stint</th><th>camera</th><th>first night</th><th>last night</th><th>nights</th><th>canonical frames</th><th>mixed nights</th></tr>
+<tr><td>1</td><td>FLI PL16803</td><td>2015-01-03</td><td>2015-04-29</td><td>67</td><td>7,841</td><td>0</td></tr>
+<tr><td>2</td><td>Apogee F47</td><td>2015-10-24</td><td>2016-01-13</td><td>41</td><td>13,858</td><td>0</td></tr>
+<tr><td>3</td><td>KAF-6303 camera (model not in header)</td><td>2016-01-17</td><td>2016-01-17</td><td>1</td><td>58</td><td>0</td></tr>
+<tr><td>4</td><td>SBIG 6303e</td><td>2016-01-24</td><td>2016-02-05</td><td>10</td><td>2,636</td><td>0</td></tr>
+<tr><td>5</td><td>KAF-6303 camera (model not in header)</td><td>2016-02-07</td><td>2016-03-09</td><td>26</td><td>6,329</td><td>0</td></tr>
+<tr><td>6</td><td>SBIG STXL-6303</td><td>2016-03-10</td><td>2016-03-12</td><td>3</td><td>547</td><td>0</td></tr>
+<tr><td>7</td><td>KAF-6303 camera (model not in header)</td><td>2016-03-13</td><td>2016-04-06</td><td>20</td><td>3,386</td><td>0</td></tr>
+<tr><td>8</td><td>SBIG 6303e</td><td>2016-04-09</td><td>2016-09-29</td><td>59</td><td>9,639</td><td>0</td></tr>
+<tr><td>9</td><td>CCD42-40 camera (model not in header)</td><td>2016-10-03</td><td>2016-10-04</td><td>2</td><td>160</td><td>0</td></tr>
+<tr><td>10</td><td>SBIG 6303e</td><td>2016-10-10</td><td>2017-01-12</td><td>56</td><td>12,794</td><td>0</td></tr>
+<tr><td>11</td><td>Andor Aspen CG42</td><td>2017-01-17</td><td>2017-06-18</td><td>103</td><td>16,297</td><td>0</td></tr>
+<tr><td>12</td><td>SBIG STXL-6303</td><td>2017-10-07</td><td>2018-01-30</td><td>96</td><td>15,223</td><td>0</td></tr>
+<tr><td>13</td><td>CCD42-40 camera (model not in header)</td><td>2018-02-03</td><td>2018-02-04</td><td>2</td><td>38</td><td>1</td></tr>
+<tr><td>14</td><td>Andor iKon-L 936</td><td>2018-02-06</td><td>2019-05-20</td><td>231</td><td>53,444</td><td>0</td></tr>
+<tr><td>15</td><td>CCD42-40 camera (model not in header)</td><td>2019-05-23</td><td>2020-02-18</td><td>93</td><td>12,806</td><td>0</td></tr>
+<tr><td>16</td><td>SBIG STXL-6303</td><td>2020-02-26</td><td>2021-10-07</td><td>151</td><td>15,684</td><td>0</td></tr>
+<tr><td>17</td><td>SBIG Aluma AC4040</td><td>2021-11-11</td><td>2023-07-06</td><td>241</td><td>14,877</td><td>0</td></tr>
+</table>
+<p class="sub">Rotation epochs inside the stints: a new epoch where the
+nightly median rotation steps by more than 0.3&deg; and stays there
+(one-night excursions that return are counted, not promoted).
+56 epochs; 24 rest on a single measured night
+and are the least secure.</p>
+<table class="data">
+<tr><th>epoch</th><th>stint</th><th>camera</th><th>first night</th><th>last night</th><th>rotation (°)</th><th>nights measured</th><th>excursion nights</th></tr>
+<tr><td>1</td><td>1</td><td>FLI PL16803</td><td>2015-01-03</td><td>2015-04-29</td><td>1.82</td><td>59</td><td>0</td></tr>
+<tr><td>2</td><td>2</td><td>Apogee F47</td><td>2015-10-24</td><td>2015-11-17</td><td>0.93</td><td>6</td><td>0</td></tr>
+<tr><td>3</td><td>2</td><td>Apogee F47</td><td>2015-11-18</td><td>2015-11-18</td><td>1.31</td><td>1</td><td>0</td></tr>
+<tr><td>4</td><td>2</td><td>Apogee F47</td><td>2015-11-19</td><td>2016-01-13</td><td>3.69</td><td>30</td><td>2</td></tr>
+<tr><td>5</td><td>3</td><td>KAF-6303 camera (model not in header)</td><td>2016-01-17</td><td>2016-01-17</td><td>5.39</td><td>1</td><td>0</td></tr>
+<tr><td>6</td><td>4</td><td>SBIG 6303e</td><td>2016-01-24</td><td>2016-02-05</td><td>-0.02</td><td>9</td><td>0</td></tr>
+<tr><td>7</td><td>5</td><td>KAF-6303 camera (model not in header)</td><td>2016-02-07</td><td>2016-03-09</td><td>0.02</td><td>23</td><td>1</td></tr>
+<tr><td>8</td><td>6</td><td>SBIG STXL-6303</td><td>2016-03-10</td><td>2016-03-11</td><td>2.68</td><td>2</td><td>0</td></tr>
+<tr><td>9</td><td>6</td><td>SBIG STXL-6303</td><td>2016-03-12</td><td>2016-03-12</td><td>-0.42</td><td>1</td><td>0</td></tr>
+<tr><td>10</td><td>7</td><td>KAF-6303 camera (model not in header)</td><td>2016-03-13</td><td>2016-04-05</td><td>-0.38</td><td>19</td><td>0</td></tr>
+<tr><td>11</td><td>8</td><td>SBIG 6303e</td><td>2016-04-09</td><td>2016-09-24</td><td>0.38</td><td>53</td><td>0</td></tr>
+<tr><td>12</td><td>8</td><td>SBIG 6303e</td><td>2016-09-25</td><td>2016-09-25</td><td>10.51</td><td>1</td><td>0</td></tr>
+<tr><td>13</td><td>8</td><td>SBIG 6303e</td><td>2016-09-28</td><td>2016-09-28</td><td>-1.03</td><td>1</td><td>0</td></tr>
+<tr><td>14</td><td>9</td><td>CCD42-40 camera (model not in header)</td><td>2016-10-03</td><td>2016-10-03</td><td>8.75</td><td>1</td><td>0</td></tr>
+<tr><td>15</td><td>9</td><td>CCD42-40 camera (model not in header)</td><td>2016-10-04</td><td>2016-10-04</td><td>2.16</td><td>1</td><td>0</td></tr>
+<tr><td>16</td><td>10</td><td>SBIG 6303e</td><td>2016-10-10</td><td>2016-11-01</td><td>1.07</td><td>14</td><td>1</td></tr>
+<tr><td>17</td><td>10</td><td>SBIG 6303e</td><td>2016-11-12</td><td>2017-01-12</td><td>1.71</td><td>32</td><td>2</td></tr>
+<tr><td>18</td><td>11</td><td>Andor Aspen CG42</td><td>2017-01-17</td><td>2017-06-18</td><td>0.94</td><td>97</td><td>0</td></tr>
+<tr><td>19</td><td>12</td><td>SBIG STXL-6303</td><td>2017-10-07</td><td>2017-12-14</td><td>1.14</td><td>53</td><td>1</td></tr>
+<tr><td>20</td><td>12</td><td>SBIG STXL-6303</td><td>2017-12-15</td><td>2017-12-15</td><td>-17.44</td><td>1</td><td>0</td></tr>
+<tr><td>21</td><td>12</td><td>SBIG STXL-6303</td><td>2017-12-20</td><td>2018-01-30</td><td>-3.41</td><td>32</td><td>1</td></tr>
+<tr><td>22</td><td>13</td><td>CCD42-40 camera (model not in header)</td><td>2018-02-03</td><td>2018-02-04</td><td>&mdash;</td><td>0</td><td>0</td></tr>
+<tr><td>23</td><td>14</td><td>Andor iKon-L 936</td><td>2018-02-07</td><td>2018-05-16</td><td>1.82</td><td>77</td><td>1</td></tr>
+<tr><td>24</td><td>14</td><td>Andor iKon-L 936</td><td>2018-10-18</td><td>2018-10-18</td><td>-1.42</td><td>1</td><td>0</td></tr>
+<tr><td>25</td><td>14</td><td>Andor iKon-L 936</td><td>2018-10-19</td><td>2019-02-28</td><td>4.29</td><td>80</td><td>1</td></tr>
+<tr><td>26</td><td>14</td><td>Andor iKon-L 936</td><td>2019-03-01</td><td>2019-03-01</td><td>-10.24</td><td>1</td><td>0</td></tr>
+<tr><td>27</td><td>14</td><td>Andor iKon-L 936</td><td>2019-03-02</td><td>2019-03-02</td><td>-19.89</td><td>1</td><td>0</td></tr>
+<tr><td>28</td><td>14</td><td>Andor iKon-L 936</td><td>2019-03-03</td><td>2019-05-20</td><td>4.21</td><td>54</td><td>3</td></tr>
+<tr><td>29</td><td>15</td><td>CCD42-40 camera (model not in header)</td><td>2019-05-23</td><td>2019-12-13</td><td>5.88</td><td>64</td><td>1</td></tr>
+<tr><td>30</td><td>15</td><td>CCD42-40 camera (model not in header)</td><td>2020-01-28</td><td>2020-02-17</td><td>-11.72</td><td>4</td><td>0</td></tr>
+<tr><td>31</td><td>16</td><td>SBIG STXL-6303</td><td>2020-02-26</td><td>2020-02-26</td><td>-5.46</td><td>1</td><td>0</td></tr>
+<tr><td>32</td><td>16</td><td>SBIG STXL-6303</td><td>2020-03-13</td><td>2020-03-13</td><td>-4.12</td><td>1</td><td>0</td></tr>
+<tr><td>33</td><td>16</td><td>SBIG STXL-6303</td><td>2020-03-15</td><td>2020-04-02</td><td>-4.43</td><td>6</td><td>0</td></tr>
+<tr><td>34</td><td>16</td><td>SBIG STXL-6303</td><td>2020-04-04</td><td>2020-06-26</td><td>-0.87</td><td>54</td><td>3</td></tr>
+<tr><td>35</td><td>16</td><td>SBIG STXL-6303</td><td>2020-09-29</td><td>2021-02-08</td><td>-0.59</td><td>34</td><td>0</td></tr>
+<tr><td>36</td><td>16</td><td>SBIG STXL-6303</td><td>2021-02-09</td><td>2021-02-25</td><td>-0.61</td><td>9</td><td>5</td></tr>
+<tr><td>37</td><td>16</td><td>SBIG STXL-6303</td><td>2021-02-26</td><td>2021-02-26</td><td>-0.23</td><td>1</td><td>0</td></tr>
+<tr><td>38</td><td>16</td><td>SBIG STXL-6303</td><td>2021-05-07</td><td>2021-05-07</td><td>1.83</td><td>1</td><td>0</td></tr>
+<tr><td>39</td><td>16</td><td>SBIG STXL-6303</td><td>2021-05-08</td><td>2021-05-08</td><td>1.35</td><td>1</td><td>0</td></tr>
+<tr><td>40</td><td>16</td><td>SBIG STXL-6303</td><td>2021-05-10</td><td>2021-05-10</td><td>2.68</td><td>1</td><td>0</td></tr>
+<tr><td>41</td><td>16</td><td>SBIG STXL-6303</td><td>2021-05-15</td><td>2021-05-15</td><td>-2.55</td><td>1</td><td>0</td></tr>
+<tr><td>42</td><td>16</td><td>SBIG STXL-6303</td><td>2021-05-17</td><td>2021-05-17</td><td>9.08</td><td>1</td><td>0</td></tr>
+<tr><td>43</td><td>16</td><td>SBIG STXL-6303</td><td>2021-05-18</td><td>2021-05-18</td><td>-39.10</td><td>1</td><td>0</td></tr>
+<tr><td>44</td><td>16</td><td>SBIG STXL-6303</td><td>2021-05-19</td><td>2021-05-19</td><td>44.06</td><td>1</td><td>0</td></tr>
+<tr><td>45</td><td>16</td><td>SBIG STXL-6303</td><td>2021-06-02</td><td>2021-06-02</td><td>-17.48</td><td>1</td><td>0</td></tr>
+<tr><td>46</td><td>16</td><td>SBIG STXL-6303</td><td>2021-06-06</td><td>2021-06-08</td><td>1.83</td><td>2</td><td>0</td></tr>
+<tr><td>47</td><td>16</td><td>SBIG STXL-6303</td><td>2021-06-09</td><td>2021-06-09</td><td>38.22</td><td>1</td><td>0</td></tr>
+<tr><td>48</td><td>16</td><td>SBIG STXL-6303</td><td>2021-06-18</td><td>2021-06-18</td><td>3.83</td><td>1</td><td>0</td></tr>
+<tr><td>49</td><td>17</td><td>SBIG Aluma AC4040</td><td>2021-11-14</td><td>2022-03-12</td><td>-3.45</td><td>53</td><td>0</td></tr>
+<tr><td>50</td><td>17</td><td>SBIG Aluma AC4040</td><td>2022-03-24</td><td>2022-04-01</td><td>-0.13</td><td>3</td><td>0</td></tr>
+<tr><td>51</td><td>17</td><td>SBIG Aluma AC4040</td><td>2022-04-02</td><td>2022-04-04</td><td>-0.49</td><td>3</td><td>0</td></tr>
+<tr><td>52</td><td>17</td><td>SBIG Aluma AC4040</td><td>2022-04-05</td><td>2022-05-25</td><td>-0.40</td><td>8</td><td>0</td></tr>
+<tr><td>53</td><td>17</td><td>SBIG Aluma AC4040</td><td>2022-05-27</td><td>2022-05-28</td><td>-0.02</td><td>2</td><td>0</td></tr>
+<tr><td>54</td><td>17</td><td>SBIG Aluma AC4040</td><td>2022-05-30</td><td>2022-06-04</td><td>-0.51</td><td>5</td><td>0</td></tr>
+<tr><td>55</td><td>17</td><td>SBIG Aluma AC4040</td><td>2022-10-24</td><td>2022-12-01</td><td>-0.31</td><td>10</td><td>0</td></tr>
+<tr><td>56</td><td>17</td><td>SBIG Aluma AC4040</td><td>2022-12-06</td><td>2022-12-21</td><td>-0.40</td><td>11</td><td>0</td></tr>
+</table>
+<p class="sub">Flip state as recorded (<code>FLIPSTAT</code>):
+Flip/Mirror &times; 77,347,  &times; 66,398, Rotate 90 CCW &times; 20,116, Mirror &times; 14,102, (no card) &times; 7,841.</p>
+
+<h3>Decision</h3>
+<div class="decision"><b>The mechanical epoch of a legacy frame is
+(camera stint, rotation epoch).</b>  The table above is the census the
+telescope engineer asked for: camera timeline with first and last night.
+It is derived from headers only; filter-wheel maps and focus offsets are
+not recorded in these headers and are not claimed.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Any later photometry on a legacy series must split at these
+boundaries.  The 0.3&deg; rule is applied to the scheduler's own plate
+solutions, so an epoch is only as good as those solutions.</p>
+</div></section>
+<section id="time">
+<div class="bhead"><h2>5 &middot; The header-time convention</h2>
+<span class="tag">what DATE-OBS means, before any timing is believed</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Two acquisition systems and nine cameras wrote these
+headers.  Is <code>DATE-OBS</code> UTC?  Does it mark the start of the
+exposure?  Is it there at all?  And how much of that can a header census
+establish?</p>
+
+<h3>Evidence</h3>
+<figure><a href="figures/legacy/legacy_time_audit.png"><img src="figures/legacy/legacy_time_audit.png" alt=""></a><figcaption>Left: header LST minus the LST implied by DATE-OBS and the site longitude, against exposure time (medians of groups of ≥ 30 frames).  The scheduler samples LST as the exposure begins: a start stamp follows the flat line, a mid-exposure stamp the −t/2 line.  Right: consecutive exposures cannot overlap, so for pairs with unequal exposure times each convention predicts a different minimum spacing; bars show the share of such pairs that would overlap under each.</figcaption></figure>
+<table class="data">
+<tr><th>camera</th><th>software</th><th>first night</th><th>last night</th><th>DATE-OBS digits</th><th>JD card within 2 s</th><th>LST residual median (s)</th><th>LST 5–95% (s)</th><th>LST residual slope vs exposure</th><th>intercept (s)</th><th>JD-HELIO probe (÷ EXPTIME)</th><th>unequal-exposure pairs</th><th>overlap if start</th><th>if middle</th><th>if end</th><th>verdict (overlap test)</th></tr>
+<tr><td>FLI PL16803</td><td>Talon (no SWCREATE)</td><td>2015-01-03</td><td>2015-04-29</td><td>3</td><td>7,841 (100.0%)</td><td>0.26</td><td>-0.2 … 0.7</td><td>0.000</td><td>0.27</td><td>&mdash;</td><td>1,836</td><td>0</td><td>323</td><td>570</td><td>start of exposure</td></tr>
+<tr><td>Apogee F47</td><td>MaxIm DL 6.08</td><td>2015-10-24</td><td>2016-01-13</td><td>0</td><td>13,988 (100.0%)</td><td>-0.10</td><td>-0.1 … -0.0</td><td>0.000</td><td>-0.14</td><td>&mdash;</td><td>2,562</td><td>0</td><td>941</td><td>1,067</td><td>start of exposure</td></tr>
+<tr><td>KAF-6303 camera (model not in header)</td><td>MaxIm DL 6.08</td><td>2016-01-17</td><td>2016-04-06</td><td>0</td><td>10,618 (100.0%)</td><td>-0.09</td><td>-0.2 … -0.0</td><td>-0.000</td><td>-0.14</td><td>&mdash;</td><td>3,323</td><td>0</td><td>614</td><td>1,229</td><td>start of exposure</td></tr>
+<tr><td>SBIG 6303e</td><td>MaxIm DL 6.08</td><td>2016-01-24</td><td>2017-01-12</td><td>0</td><td>27,762 (100.0%)</td><td>-0.38</td><td>-0.5 … -0.0</td><td>0.000</td><td>-0.38</td><td>0.500</td><td>6,625</td><td>0</td><td>898</td><td>1,772</td><td>start of exposure</td></tr>
+<tr><td>SBIG STXL-6303</td><td>MaxIm DL 6.08</td><td>2016-03-10</td><td>2016-03-12</td><td>0</td><td>713 (100.0%)</td><td>-0.13</td><td>-1.1 … 15,410.9</td><td>0.000</td><td>-0.19</td><td>&mdash;</td><td>343</td><td>0</td><td>37</td><td>156</td><td>start of exposure</td></tr>
+<tr><td>CCD42-40 camera (model not in header)</td><td>MaxIm DL 6.08</td><td>2016-10-03</td><td>2016-10-04</td><td>0</td><td>161 (100.0%)</td><td>-0.41</td><td>-0.4 … -0.4</td><td>-0.000</td><td>-0.42</td><td>0.500</td><td>60</td><td>0</td><td>10</td><td>28</td><td>start of exposure</td></tr>
+<tr><td>Andor Aspen CG42</td><td>MaxIm DL 6.08</td><td>2017-01-17</td><td>2017-06-18</td><td>0</td><td>18,097 (100.0%)</td><td>-0.54</td><td>-0.6 … -0.4</td><td>-0.000</td><td>-0.54</td><td>0.500</td><td>4,175</td><td>0</td><td>653</td><td>962</td><td>start of exposure</td></tr>
+<tr><td>SBIG STXL-6303</td><td>MaxIm DL 6.11</td><td>2017-10-07</td><td>2018-01-30</td><td>0</td><td>17,472 (100.0%)</td><td>-0.74</td><td>-0.8 … -0.7</td><td>-0.000</td><td>-0.76</td><td>0.500</td><td>3,359</td><td>0</td><td>586</td><td>887</td><td>start of exposure</td></tr>
+<tr class="warn"><td>CCD42-40 camera (model not in header)</td><td>MaxIm DL 6.11</td><td>2018-02-03</td><td>2018-02-04</td><td>0</td><td>45 (100.0%)</td><td>-0.67</td><td>-1.7 … -0.7</td><td>0.001</td><td>-0.84</td><td>0.521</td><td>0</td><td>0</td><td>0</td><td>0</td><td>not identifiable from headers (no unequal consecutive exposures)</td></tr>
+<tr><td>Andor iKon-L 936</td><td>MaxIm DL 6.11</td><td>2018-02-04</td><td>2019-05-20</td><td>0</td><td>60,346 (100.0%)</td><td>-0.92</td><td>-1.1 … -0.7</td><td>0.000</td><td>-0.94</td><td>0.500</td><td>14,513</td><td>0</td><td>1,994</td><td>3,939</td><td>start of exposure</td></tr>
+<tr><td>CCD42-40 camera (model not in header)</td><td>MaxIm DL 6.10</td><td>2019-05-23</td><td>2020-02-18</td><td>0</td><td>15,760 (100.0%)</td><td>-1.06</td><td>-1.1 … -1.0</td><td>-0.000</td><td>-1.10</td><td>0.500</td><td>1,860</td><td>0</td><td>100</td><td>272</td><td>start of exposure</td></tr>
+<tr><td>SBIG STXL-6303</td><td>MaxIm DL 6.21</td><td>2020-02-26</td><td>2021-10-07</td><td>2</td><td>17,511 (100.0%)</td><td>-1.46</td><td>-2.1 … -1.1</td><td>-0.000</td><td>-1.52</td><td>-3.759</td><td>1,819</td><td>0</td><td>94</td><td>179</td><td>start of exposure</td></tr>
+<tr class="warn"><td>SBIG Aluma AC4040</td><td>MaxIm DL 6.28</td><td>2021-11-11</td><td>2021-12-07</td><td>3</td><td>893 (100.0%)</td><td>-31.91</td><td>-65.9 … -2.2</td><td>-0.500</td><td>-2.26</td><td>0.500</td><td>228</td><td>20</td><td>0</td><td>18</td><td>MIDDLE of exposure</td></tr>
+<tr class="warn"><td>SBIG Aluma AC4040</td><td>MaxIm DL 6.29</td><td>2021-12-11</td><td>2021-12-19</td><td>2</td><td>593 (100.0%)</td><td>-31.68</td><td>-129.7 … -2.1</td><td>-0.501</td><td>-1.65</td><td>-1.238</td><td>79</td><td>20</td><td>0</td><td>17</td><td>MIDDLE of exposure</td></tr>
+<tr class="warn"><td>SBIG Aluma AC4040</td><td>MaxIm DL 6.30</td><td>2021-12-20</td><td>2023-07-06</td><td>3</td><td>17,431 (100.0%)</td><td>-35.95</td><td>-257.5 … -11.1</td><td>-0.500</td><td>-3.89</td><td>0.500</td><td>2,540</td><td>580</td><td>0</td><td>690</td><td>MIDDLE of exposure</td></tr>
+</table>
+<p class="sub">Four tests, of different strengths.  (1) The
+<code>JD</code> card agrees with <code>DATE-OBS</code> on every frame
+&mdash; to within rounding, which means it is the same number written
+twice, not a second clock.  (2) The mount's <code>LST</code> agrees with
+the sidereal time computed from <code>DATE-OBS</code> to seconds: the
+stamp is UTC (a local-time stamp would sit seven hours away).  (3) The
+overlap test: a stamp convention is refuted by pairs of consecutive
+exposures that it would make overlap.  (4) The slope of the LST residual
+against exposure time: 0 for a start stamp, &minus;0.5 for a mid-exposure
+stamp, &minus;1 for an end stamp.  Tests 3 and 4 are independent of each
+other (frame spacing vs a second header card) and agree.  Verdicts:</p>
+<table class="data">
+<tr><th>verdict</th><th>camera epochs</th><th>files</th><th>first night</th><th>last night</th><th>cameras</th></tr>
+<tr><td>start of exposure</td><td>11</td><td>190,269</td><td>2015-01-03</td><td>2021-10-07</td><td>FLI PL16803,Apogee F47,KAF-6303 camera (model not in header),SBIG 6303e,SBIG STXL-6303,CCD42-40 camera (model not in header),Andor Aspen CG42,Andor iKon-L 936</td></tr>
+<tr class="warn"><td>MIDDLE of exposure</td><td>3</td><td>19,104</td><td>2021-11-11</td><td>2023-07-06</td><td>SBIG Aluma AC4040</td></tr>
+<tr class="warn"><td>not identifiable from headers (no unequal consecutive exposures)</td><td>1</td><td>45</td><td>2018-02-03</td><td>2018-02-04</td><td>CCD42-40 camera (model not in header)</td></tr>
+</table>
+<p class="sub">Other time cards in the 217 distinct
+keyword sets: JD-HELIO in 131, MJD-OBS in
+0, DATE-AVG in 0, TIME-OBS in
+22, TIMESYS in 22.  Directory names
+against the UT date of <code>DATE-OBS</code>, and frames with no usable
+stamp:</p>
+<table class="data">
+<tr><th>camera</th><th>software</th><th>files</th><th>no usable DATE-OBS</th><th>directory = UT date</th><th>off by &gt; 1 day</th></tr>
+<tr><td>FLI PL16803</td><td>Talon (no SWCREATE)</td><td>7,841</td><td>0</td><td>99.9%</td><td>0</td></tr>
+<tr><td>Apogee F47</td><td>MaxIm DL 6.08</td><td>13,988</td><td>0</td><td>92.6%</td><td>364</td></tr>
+<tr><td>KAF-6303 camera (model not in header)</td><td>MaxIm DL 6.08</td><td>10,618</td><td>0</td><td>100.0%</td><td>0</td></tr>
+<tr><td>SBIG 6303e</td><td>MaxIm DL 6.08</td><td>27,762</td><td>0</td><td>98.1%</td><td>311</td></tr>
+<tr><td>SBIG STXL-6303</td><td>MaxIm DL 6.08</td><td>713</td><td>0</td><td>99.6%</td><td>0</td></tr>
+<tr><td>CCD42-40 camera (model not in header)</td><td>MaxIm DL 6.08</td><td>161</td><td>0</td><td>100.0%</td><td>0</td></tr>
+<tr><td>Andor Aspen CG42</td><td>MaxIm DL 6.08</td><td>18,097</td><td>0</td><td>95.3%</td><td>65</td></tr>
+<tr><td>SBIG STXL-6303</td><td>MaxIm DL 6.11</td><td>17,472</td><td>0</td><td>98.8%</td><td>0</td></tr>
+<tr><td>CCD42-40 camera (model not in header)</td><td>MaxIm DL 6.11</td><td>45</td><td>0</td><td>100.0%</td><td>0</td></tr>
+<tr><td>Andor iKon-L 936</td><td>MaxIm DL 6.11</td><td>60,346</td><td>0</td><td>98.0%</td><td>4</td></tr>
+<tr><td>CCD42-40 camera (model not in header)</td><td>MaxIm DL 6.10</td><td>15,760</td><td>0</td><td>90.8%</td><td>5</td></tr>
+<tr><td>SBIG STXL-6303</td><td>MaxIm DL 6.21</td><td>17,511</td><td>0</td><td>99.0%</td><td>0</td></tr>
+<tr class="warn"><td>SBIG Aluma AC4040</td><td>MaxIm DL 6.28</td><td>1,080</td><td>187</td><td>100.0%</td><td>0</td></tr>
+<tr><td>SBIG Aluma AC4040</td><td>MaxIm DL 6.29</td><td>593</td><td>0</td><td>100.0%</td><td>0</td></tr>
+<tr><td>SBIG Aluma AC4040</td><td>MaxIm DL 6.30</td><td>17,431</td><td>0</td><td>100.0%</td><td>0</td></tr>
+</table>
+<p class="sub"><b>187</b> readable frames have no usable
+<code>DATE-OBS</code> (absent, or a year outside 2014&ndash;
+2023 &mdash; a camera clock that was never set).  They are
+named exclusions.  The largest groups:</p>
+<table class="data">
+<tr><th>camera</th><th>DATE-OBS date</th><th>frames</th><th>CALSTART min</th><th>CALSTART max</th><th>example path</th></tr>
+<tr><td>SBIG Aluma AC4040</td><td>1970-01-01</td><td>187</td><td>2021-12-02 07:30:04</td><td>2021-12-08 07:30:13</td><td><code>old/day336/foc33606.fts.fz</code></td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b><code>DATE-OBS</code> is UTC throughout.  It is
+the START of the exposure in 11 camera epochs; it is NOT the
+start in 4:
+MIDDLE of exposure &mdash; SBIG Aluma AC4040 (2021-11-11 to 2023-07-06); not identifiable from headers (no unequal consecutive exposures) &mdash; CCD42-40 camera (model not in header) (2018-02-03 to 2018-02-04).</b>  Where the verdict is
+&ldquo;middle&rdquo;, both independent tests say so: every unequal-exposure
+pair is consistent with a mid-exposure stamp, start and end are each
+refuted by hundreds of pairs, and the LST residual falls as half the
+exposure time &mdash; and section 5b's eclipses, timed against TESS, agree.
+S3's probe (MaxIm's JD-HELIO, column &lsquo;JD-HELIO probe&rsquo;) reads
+0.5 on these same frames: MaxIm computed its heliocentric time as if
+DATE-OBS were the start.  That probe records the software's assumption, so
+it cannot tell a start stamp from a mid stamp; only the spacing, LST and
+eclipse tests can.  Not established, and not establishable from headers: the
+absolute clock.  JD and LST derive from the same computers as
+<code>DATE-OBS</code>; a PC clock that was a minute slow would pass every
+test here.  The observational astronomer's criterion (O&minus;C of archived
+minima within 60&nbsp;s of the literature, per season) needs photometry
+and is outside a census; section 8b lists the nights that could carry
+it.</div>
+
+<h3>Consequence</h3>
+<p class="sub">A timing analysis must apply the convention of the camera
+epoch a frame belongs to; treating a mid-exposure stamp as a start stamp
+is an error of half the exposure time, with the sign of a late clock.
+The camera for which this is found is the SBIG Aluma AC4040 &mdash; the
+RLMT-era camera &mdash; under the same acquisition software family, so
+this finding is handed to the shared clock stage (F-8) and to the CV
+timing analysis for an independent check on the RLMT archive; this census
+does not assert it there.  Any absolute epoch from this archive remains
+conditional on a per-season clock measurement that has not been
+made.</p>
+</div></section>
+<section id="clock">
+<div class="bhead"><h2>5b &middot; Clock audit per season</h2>
+<span class="tag">eclipse timings against TESS &middot; criterion &plusmn;60 s</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Section 5 fixed what each stamp means.  Was the clock that
+wrote it right &mdash; season by season, to 60
+seconds?</p>
+
+<h3>Evidence</h3>
+<p class="sub">The clocks are the primary eclipses of post-common-envelope
+binaries (HW Vir-type sdB&nbsp;+&nbsp;dM; WD&nbsp;+&nbsp;dM) in the archive.
+Their reference is not a literature ephemeris &mdash; every one of these
+stars wanders by tens of seconds or more about any linear ephemeris &mdash;
+but eclipse times MEASURED in TESS 2-min photometry of the same star
+(absolute BJD_TDB), one per half-sector, fitted locally.  A legacy eclipse is
+predicted only inside the TESS span or within
+400 days of it; beyond that the star's
+own timing variations, not our clock, would set the answer, and the eclipse
+is recorded as out of range.  TESS reference times:</p>
+<table class="data">
+<tr><th>star</th><th>half-sectors</th><th>timed</th><th>sectors</th><th>best σ (s)</th><th>worst σ (s)</th></tr>
+<tr><td>ASAS J193833+4604.0</td><td>11</td><td>4</td><td>14,15,40,54,74,75,81,82</td><td>2.1</td><td>2.7</td></tr>
+<tr><td>HS 2231+2441</td><td>3</td><td>3</td><td>56,83</td><td>1.7</td><td>2.2</td></tr>
+<tr><td>HW Vir</td><td>2</td><td>2</td><td>46</td><td>2.0</td><td>2.3</td></tr>
+<tr><td>NN Ser</td><td>2</td><td>2</td><td>51</td><td>5.1</td><td>5.7</td></tr>
+<tr><td>NY Vir</td><td>8</td><td>8</td><td>23,46,50,91</td><td>1.4</td><td>1.9</td></tr>
+<tr><td>QS Vir</td><td>2</td><td>2</td><td>91</td><td>20.3</td><td>20.6</td></tr>
+<tr><td>SDSS J082053.53+000843.4</td><td>6</td><td>3</td><td>7,34,61</td><td>57.8</td><td>100.8</td></tr>
+<tr><td>V0470 Cam</td><td>10</td><td>10</td><td>20,47,60,73,74</td><td>0.7</td><td>1.4</td></tr>
+<tr><td>V1828 Aql</td><td>4</td><td>4</td><td>54,81</td><td>1.2</td><td>3.4</td></tr>
+</table>
+<p class="sub">Legacy eclipses: prediction out of range 135; admitted 62.
+Photometric series: ok 50; target not identified on the reference 4; Gaia fit did not converge 3; fewer than 8 sources on the reference 2.
+Fits: ok 50; photometry refused 11; too_few_points 1.  Photometry and
+fit are S3b's, unchanged (blind mid-time search, block bootstrap, analysis
+variants); the field is identified by a Gaia DR3 fit because legacy headers
+carry no plate scale; there is no master calibration (none is in the
+archive) and the saturation veto is a fixed 50,000
+ADU.</p>
+<figure><a href="figures/legacy/legacy_clock.png"><img src="figures/legacy/legacy_clock.png" alt=""></a><figcaption>O − C of every timed legacy eclipse against its TESS prediction.  Filled: the stamp reading the header audit adopted for that camera epoch; open circles (AC4040): the other reading.  Grey band: ±60 s.</figcaption></figure>
+<table class="data">
+<tr><th>camera</th><th>software</th><th>season</th><th>first night</th><th>last night</th><th>nights</th><th>stamp reading</th><th>eclipses</th><th>O − C (s)</th><th>σ (s)</th><th>χ² / dof</th><th>other reading (s)</th><th>stars</th><th>verdict</th></tr>
+<tr class="warn"><td>FLI PL16803</td><td>Talon (no SWCREATE)</td><td>2014/15</td><td>2015-01-03</td><td>2015-04-29</td><td>67</td><td>start of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="warn"><td>Apogee F47</td><td>MaxIm DL 6.08</td><td>2015/16</td><td>2015-10-24</td><td>2016-01-13</td><td>41</td><td>start of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="warn"><td>KAF-6303 camera (model not in header)</td><td>MaxIm DL 6.08</td><td>2015/16</td><td>2016-01-17</td><td>2016-04-06</td><td>47</td><td>start of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="warn"><td>SBIG 6303e</td><td>MaxIm DL 6.08</td><td>2015/16</td><td>2016-01-24</td><td>2016-06-17</td><td>64</td><td>start of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="warn"><td>SBIG STXL-6303</td><td>MaxIm DL 6.08</td><td>2015/16</td><td>2016-03-10</td><td>2016-03-12</td><td>3</td><td>start of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="warn"><td>SBIG 6303e</td><td>MaxIm DL 6.08</td><td>2016/17</td><td>2016-09-23</td><td>2017-01-12</td><td>61</td><td>start of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="warn"><td>CCD42-40 camera (model not in header)</td><td>MaxIm DL 6.08</td><td>2016/17</td><td>2016-10-03</td><td>2016-10-04</td><td>2</td><td>start of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="warn"><td>Andor Aspen CG42</td><td>MaxIm DL 6.08</td><td>2016/17</td><td>2017-01-17</td><td>2017-06-18</td><td>103</td><td>start of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="warn"><td>SBIG STXL-6303</td><td>MaxIm DL 6.11</td><td>2017/18</td><td>2017-10-07</td><td>2018-01-30</td><td>96</td><td>start of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="warn"><td>CCD42-40 camera (model not in header)</td><td>MaxIm DL 6.11</td><td>2017/18</td><td>2018-02-03</td><td>2018-02-04</td><td>2</td><td>not identifiable from headers (no unequal consecutive exposures)</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="warn"><td>Andor iKon-L 936</td><td>MaxIm DL 6.11</td><td>2017/18</td><td>2018-02-04</td><td>2018-05-16</td><td>83</td><td>start of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="ok"><td>Andor iKon-L 936</td><td>MaxIm DL 6.11</td><td>2018/19</td><td>2018-10-17</td><td>2019-05-20</td><td>147</td><td>start of exposure</td><td>6</td><td>-2.8</td><td>18.3</td><td>9.2 / 5.0</td><td>-22.8</td><td>V0470 Cam</td><td>PASS</td></tr>
+<tr class="warn"><td>CCD42-40 camera (model not in header)</td><td>MaxIm DL 6.10</td><td>2018/19</td><td>2019-05-23</td><td>2019-06-28</td><td>32</td><td>start of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="warn"><td>CCD42-40 camera (model not in header)</td><td>MaxIm DL 6.10</td><td>2019/20</td><td>2019-09-29</td><td>2020-02-18</td><td>55</td><td>start of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="ok"><td>SBIG STXL-6303</td><td>MaxIm DL 6.21</td><td>2019/20</td><td>2020-02-26</td><td>2020-06-26</td><td>70</td><td>start of exposure</td><td>1</td><td>6.2</td><td>18.6</td><td>0.0 / 0.0</td><td>-13.8</td><td>V0470 Cam</td><td>PASS</td></tr>
+<tr class="ok"><td>SBIG STXL-6303</td><td>MaxIm DL 6.21</td><td>2020/21</td><td>2020-09-29</td><td>2021-06-21</td><td>76</td><td>start of exposure</td><td>34</td><td>-0.8</td><td>1.5</td><td>39.9 / 33.0</td><td>-11.3</td><td>V0470 Cam</td><td>PASS</td></tr>
+<tr class="warn"><td>SBIG STXL-6303</td><td>MaxIm DL 6.21</td><td>2021/22</td><td>2021-10-05</td><td>2021-10-07</td><td>2</td><td>start of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="warn"><td>SBIG Aluma AC4040</td><td>MaxIm DL 6.28</td><td>2021/22</td><td>2021-11-14</td><td>2021-12-07</td><td>8</td><td>MIDDLE of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="warn"><td>SBIG Aluma AC4040</td><td>MaxIm DL 6.29</td><td>2021/22</td><td>2021-12-11</td><td>2021-12-19</td><td>3</td><td>MIDDLE of exposure</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NO CLOCK EVENT — offset not measured; carried as unknown</td></tr>
+<tr class="ok"><td>SBIG Aluma AC4040</td><td>MaxIm DL 6.30</td><td>2021/22</td><td>2021-12-20</td><td>2022-06-06</td><td>98</td><td>MIDDLE of exposure</td><td>7</td><td>0.1</td><td>2.0</td><td>1.6 / 6.0</td><td>16.1</td><td>HW Vir, NY Vir, V0470 Cam</td><td>PASS</td></tr>
+<tr class="ok"><td>SBIG Aluma AC4040</td><td>MaxIm DL 6.30</td><td>2022/23</td><td>2022-10-24</td><td>2022-12-21</td><td>26</td><td>MIDDLE of exposure</td><td>2</td><td>-8.7</td><td>3.7</td><td>0.6 / 1.0</td><td>7.3</td><td>V1828 Aql</td><td>PASS</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>5 of 21 camera-seasons
+have a clock measurement; 5 pass at
+&plusmn;60 s.</b>  Every other season carries
+its offset as UNKNOWN, named in the table.  Where both stamp readings are
+shown, the eclipses decide between them independently of the header
+tests.  Seasons outside 0.5 &le; χ²ν &le; 2 (standing rule 1):
+SBIG Aluma AC4040 2021/22 (χ²ν = 0.26).  A low χ²ν here means the per-eclipse
+errors are conservative: each carries its TESS prediction's systematic
+term, which is shared by every eclipse of the same star and so does not
+scatter them.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Absolute times from a measured season may be used with the
+O&minus;C and its error carried; times from an unmeasured season are
+relative only.  An eclipse-timing study of these same stars cannot use them
+as their own clock: per-season clock offsets would have to come from other
+targets in the same season (archived exoplanet transits), or the study's
+signal and the clock would be degenerate.</p>
+</div></section>
+<section id="targets">
+<div class="bhead"><h2>6 &middot; Targets, series, runs</h2>
+<span class="tag">nights &times; filters &times; longest same-filter run</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Frame counts flatter an archive.  Per target: how many
+nights, in which filter, on which camera, and how long is the longest
+uninterrupted run?</p>
+
+<h3>Evidence</h3>
+<p class="sub">159,642 canonical science frames on 1,085
+nights (2015-01-03 &rarr; 2022-12-21), 2,618
+alias-merged targets (162 merged more than one OBJECT spelling,
+by the same rules S0 uses for the RLMT archive), 8,062 series
+(target &times; filter &times; camera), 555 distinct OBSERVER
+values &mdash; this is a many-user teaching and research queue, not one
+programme.  Most targets were visited once or twice:</p>
+<table class="data">
+<tr><th>nights per target</th><th>targets</th><th>science frames</th></tr>
+<tr><td>1</td><td>630</td><td>10,687</td></tr>
+<tr><td>2</td><td>413</td><td>10,689</td></tr>
+<tr><td>3–4</td><td>433</td><td>11,278</td></tr>
+<tr><td>5–9</td><td>462</td><td>21,541</td></tr>
+<tr><td>10–29</td><td>550</td><td>51,995</td></tr>
+<tr><td>≥ 30</td><td>130</td><td>53,452</td></tr>
+</table>
+<figure><a href="figures/legacy/legacy_series.png"><img src="figures/legacy/legacy_series.png" alt=""></a><figcaption>Every series as one point: nights against longest same-filter run.  Stars are RLMT-era project targets, blue points are VSX eclipsing systems.  The 30-night line is gate G3's threshold, which additionally requires the nights to be calibrated (section 7).</figcaption></figure>
+<p class="sub">The 25 most-visited targets (all filters and cameras
+pooled &mdash; a visiting statistic, not a series):</p>
+<table class="data">
+<tr><th>target</th><th>nights</th><th>seasons</th><th>frames</th><th>first</th><th>last</th><th>longest run (h)</th><th>filters (frames)</th><th>cameras (frames)</th></tr>
+<tr><td>3C273</td><td>126</td><td>7</td><td>447</td><td>2016-03-10</td><td>2022-11-27</td><td>0.7</td><td>g (138), r (137), Blue (68), grism (62), Red (18), slot 6 (5), Visual (4), slot 8 (3), B (2), i (2), … +4 more</td><td>Andor iKon-L 936 (244), Andor Aspen CG42 (149), KAF-6303 camera (model not in header) (24), SBIG STXL-6303 (16), SBIG Aluma AC4040 (10), SBIG 6303e (4)</td></tr>
+<tr><td>Z Cam</td><td>115</td><td>5</td><td>531</td><td>2016-06-05</td><td>2019-12-04</td><td>1.1</td><td>r (244), g (218), Ha (59), Visual (7), Lum (2), Blue (1)</td><td>Andor iKon-L 936 (394), Andor Aspen CG42 (129), CCD42-40 camera (model not in header) (7), SBIG 6303e (1)</td></tr>
+<tr><td>2018gv</td><td>91</td><td>1</td><td>382</td><td>2018-01-17</td><td>2018-05-16</td><td>0.0</td><td>g (91), r (90), Visual (89), Blue (89), W (23)</td><td>Andor iKon-L 936 (317), SBIG STXL-6303 (65)</td></tr>
+<tr><td>2017fgc</td><td>87</td><td>2</td><td>649</td><td>2017-10-23</td><td>2018-11-03</td><td>1.2</td><td>r (186), W (172), g (100), Visual (96), Blue (75), B (20)</td><td>SBIG STXL-6303 (501), Andor iKon-L 936 (147), CCD42-40 camera (model not in header) (1)</td></tr>
+<tr><td>SU UMa</td><td>83</td><td>3</td><td>309</td><td>2016-04-04</td><td>2018-04-29</td><td>1.1</td><td>r (130), g (108), Ha (58), Visual (13)</td><td>Andor iKon-L 936 (175), Andor Aspen CG42 (121), SBIG 6303e (12), KAF-6303 camera (model not in header) (1)</td></tr>
+<tr><td>2018kp</td><td>81</td><td>1</td><td>337</td><td>2018-01-28</td><td>2018-05-16</td><td>0.0</td><td>g (81), r (81), Visual (81), Blue (81), W (13)</td><td>Andor iKon-L 936 (322), SBIG STXL-6303 (15)</td></tr>
+<tr><td>M51</td><td>79</td><td>9</td><td>709</td><td>2015-03-25</td><td>2022-10-25</td><td>1.5</td><td>Ha (136), Red (69), Blue (64), slot B (64), slot R (56), slot G (51), Lum (47), slot H (30), slot L (30), Visual (25), … +13 more</td><td>SBIG Aluma AC4040 (243), Apogee F47 (113), SBIG 6303e (103), KAF-6303 camera (model not in header) (80), SBIG STXL-6303 (48), FLI PL16803 (45), Andor Aspen CG42 (41), … +2 more</td></tr>
+<tr><td>ASASSN_18bt</td><td>78</td><td>1</td><td>322</td><td>2018-02-07</td><td>2018-05-16</td><td>0.0</td><td>g (78), r (78), Visual (78), Blue (78), W (10)</td><td>Andor iKon-L 936 (322)</td></tr>
+<tr><td>2018pc</td><td>76</td><td>1</td><td>312</td><td>2018-02-09</td><td>2018-05-16</td><td>0.0</td><td>g (76), r (76), Visual (76), Blue (76), W (8)</td><td>Andor iKon-L 936 (312)</td></tr>
+<tr><td>2017ixv</td><td>76</td><td>1</td><td>265</td><td>2017-12-20</td><td>2018-04-05</td><td>0.0</td><td>Blue (73), Visual (69), r (57), g (45), W (21)</td><td>Andor iKon-L 936 (139), SBIG STXL-6303 (126)</td></tr>
+<tr><td>SY Cnc</td><td>74</td><td>2</td><td>322</td><td>2017-02-16</td><td>2018-04-29</td><td>1.3</td><td>r (147), g (128), Ha (47)</td><td>Andor iKon-L 936 (220), Andor Aspen CG42 (102)</td></tr>
+<tr><td>Twin_Quasar</td><td>72</td><td>3</td><td>137</td><td>2017-01-31</td><td>2020-03-15</td><td>0.0</td><td>g (70), r (67)</td><td>Andor Aspen CG42 (128), SBIG STXL-6303 (5), Andor iKon-L 936 (4)</td></tr>
+<tr><td>ASASSN-15so</td><td>71</td><td>1</td><td>246</td><td>2015-11-18</td><td>2016-04-09</td><td>0.2</td><td>Red (67), Blue (63), W (51), Visual (43), Green (21), grism (1)</td><td>KAF-6303 camera (model not in header) (117), Apogee F47 (85), SBIG 6303e (40), SBIG STXL-6303 (4)</td></tr>
+<tr><td>BZ UMa</td><td>69</td><td>2</td><td>300</td><td>2017-02-16</td><td>2018-03-24</td><td>0.9</td><td>r (159), g (141)</td><td>Andor iKon-L 936 (184), Andor Aspen CG42 (116)</td></tr>
+<tr><td>YZ Cnc</td><td>68</td><td>2</td><td>263</td><td>2017-02-16</td><td>2018-04-29</td><td>1.6</td><td>r (113), g (96), Ha (54)</td><td>Andor iKon-L 936 (156), Andor Aspen CG42 (107)</td></tr>
+<tr><td>2018pv</td><td>65</td><td>1</td><td>260</td><td>2018-03-01</td><td>2018-05-16</td><td>0.0</td><td>g (65), r (65), Visual (65), Blue (65)</td><td>Andor iKon-L 936 (260)</td></tr>
+<tr><td>Clover-leaf</td><td>64</td><td>1</td><td>124</td><td>2017-01-31</td><td>2017-05-03</td><td>0.0</td><td>r (63), g (61)</td><td>Andor Aspen CG42 (124)</td></tr>
+<tr><td>AT Cnc</td><td>63</td><td>2</td><td>254</td><td>2017-02-16</td><td>2018-04-13</td><td>0.6</td><td>r (125), g (110), Ha (19)</td><td>Andor iKon-L 936 (149), Andor Aspen CG42 (105)</td></tr>
+<tr><td>HW Vir</td><td>61</td><td>5</td><td>7,560</td><td>2018-12-18</td><td>2022-12-21</td><td>4.1</td><td>r (7,015), slot G (493), slot L (52)</td><td>SBIG STXL-6303 (4,403), Andor iKon-L 936 (1,868), CCD42-40 camera (model not in header) (744), SBIG Aluma AC4040 (545)</td></tr>
+<tr><td>NGC 4666</td><td>59</td><td>1</td><td>1,774</td><td>2015-01-03</td><td>2015-04-29</td><td>1.2</td><td>clear (355), B (355), V (355), R (355), I (354)</td><td>FLI PL16803 (1,774)</td></tr>
+<tr><td>ASASSN_17pg</td><td>59</td><td>1</td><td>273</td><td>2017-12-04</td><td>2018-02-26</td><td>0.0</td><td>Blue (57), Visual (56), r (55), g (54), W (51)</td><td>SBIG STXL-6303 (211), Andor iKon-L 936 (62)</td></tr>
+<tr><td>ASASSN_18an</td><td>59</td><td>1</td><td>260</td><td>2018-01-15</td><td>2018-04-05</td><td>0.0</td><td>g (59), r (59), Visual (59), Blue (59), W (24)</td><td>Andor iKon-L 936 (190), SBIG STXL-6303 (70)</td></tr>
+<tr><td>alpha com</td><td>58</td><td>1</td><td>659</td><td>2015-01-06</td><td>2015-04-29</td><td>0.9</td><td>V (305), B (118), R (118), I (118)</td><td>FLI PL16803 (659)</td></tr>
+<tr><td>IU Leo</td><td>58</td><td>1</td><td>508</td><td>2018-02-20</td><td>2018-04-29</td><td>0.9</td><td>g (207), r (206), Ha (95)</td><td>Andor iKon-L 936 (508)</td></tr>
+<tr><td>M81</td><td>58</td><td>6</td><td>374</td><td>2015-04-14</td><td>2022-05-27</td><td>2.3</td><td>grism (73), clear (35), Ha (28), Blue (22), slot G (22), Lum (21), Visual (21), slot R (20), slot B (20), Red (19), … +9 more</td><td>Andor iKon-L 936 (154), SBIG Aluma AC4040 (91), SBIG 6303e (50), Andor Aspen CG42 (30), Apogee F47 (24), FLI PL16803 (20), SBIG STXL-6303 (5)</td></tr>
+</table>
+<p class="sub">The 25 longest series by nights (never pooled across
+cameras or filters).  &lsquo;Calibrated nights&rsquo; is the
+pre-registered availability test; &lsquo;CALSTAT nights&rsquo; counts
+nights whose frames the scheduler had already calibrated in place:</p>
+<table class="data">
+<tr><th>target</th><th>filter</th><th>camera</th><th>nights</th><th>seasons</th><th>calibrated nights</th><th>CALSTAT nights</th><th>longest run (h)</th><th>nights with run ≥ 3 h</th><th>frames</th><th>first</th><th>last</th></tr>
+<tr><td>2018gv</td><td>g</td><td>Andor iKon-L 936</td><td>78</td><td>1</td><td>0</td><td>77</td><td>0.0</td><td>0</td><td>78</td><td>2018-02-07</td><td>2018-05-16</td></tr>
+<tr><td>2018kp</td><td>Blue</td><td>Andor iKon-L 936</td><td>78</td><td>1</td><td>0</td><td>77</td><td>0.0</td><td>0</td><td>78</td><td>2018-02-07</td><td>2018-05-16</td></tr>
+<tr><td>2018kp</td><td>Visual</td><td>Andor iKon-L 936</td><td>78</td><td>1</td><td>0</td><td>77</td><td>0.0</td><td>0</td><td>78</td><td>2018-02-07</td><td>2018-05-16</td></tr>
+<tr><td>2018kp</td><td>g</td><td>Andor iKon-L 936</td><td>78</td><td>1</td><td>0</td><td>77</td><td>0.0</td><td>0</td><td>78</td><td>2018-02-07</td><td>2018-05-16</td></tr>
+<tr><td>2018kp</td><td>r</td><td>Andor iKon-L 936</td><td>78</td><td>1</td><td>0</td><td>77</td><td>0.0</td><td>0</td><td>78</td><td>2018-02-07</td><td>2018-05-16</td></tr>
+<tr><td>ASASSN_18bt</td><td>Blue</td><td>Andor iKon-L 936</td><td>78</td><td>1</td><td>0</td><td>77</td><td>0.0</td><td>0</td><td>78</td><td>2018-02-07</td><td>2018-05-16</td></tr>
+<tr><td>ASASSN_18bt</td><td>Visual</td><td>Andor iKon-L 936</td><td>78</td><td>1</td><td>0</td><td>77</td><td>0.0</td><td>0</td><td>78</td><td>2018-02-07</td><td>2018-05-16</td></tr>
+<tr><td>ASASSN_18bt</td><td>g</td><td>Andor iKon-L 936</td><td>78</td><td>1</td><td>0</td><td>77</td><td>0.0</td><td>0</td><td>78</td><td>2018-02-07</td><td>2018-05-16</td></tr>
+<tr><td>ASASSN_18bt</td><td>r</td><td>Andor iKon-L 936</td><td>78</td><td>1</td><td>0</td><td>77</td><td>0.0</td><td>0</td><td>78</td><td>2018-02-07</td><td>2018-05-16</td></tr>
+<tr><td>2018gv</td><td>r</td><td>Andor iKon-L 936</td><td>77</td><td>1</td><td>0</td><td>76</td><td>0.0</td><td>0</td><td>77</td><td>2018-02-07</td><td>2018-05-15</td></tr>
+<tr><td>2018gv</td><td>Blue</td><td>Andor iKon-L 936</td><td>76</td><td>1</td><td>0</td><td>75</td><td>0.0</td><td>0</td><td>76</td><td>2018-02-07</td><td>2018-05-14</td></tr>
+<tr><td>2018gv</td><td>Visual</td><td>Andor iKon-L 936</td><td>76</td><td>1</td><td>0</td><td>75</td><td>0.0</td><td>0</td><td>76</td><td>2018-02-07</td><td>2018-05-14</td></tr>
+<tr><td>2018pc</td><td>Blue</td><td>Andor iKon-L 936</td><td>76</td><td>1</td><td>0</td><td>75</td><td>0.0</td><td>0</td><td>76</td><td>2018-02-09</td><td>2018-05-16</td></tr>
+<tr><td>2018pc</td><td>Visual</td><td>Andor iKon-L 936</td><td>76</td><td>1</td><td>0</td><td>75</td><td>0.0</td><td>0</td><td>76</td><td>2018-02-09</td><td>2018-05-16</td></tr>
+<tr><td>2018pc</td><td>g</td><td>Andor iKon-L 936</td><td>76</td><td>1</td><td>0</td><td>75</td><td>0.0</td><td>0</td><td>76</td><td>2018-02-09</td><td>2018-05-16</td></tr>
+<tr><td>2018pc</td><td>r</td><td>Andor iKon-L 936</td><td>76</td><td>1</td><td>0</td><td>75</td><td>0.0</td><td>0</td><td>76</td><td>2018-02-09</td><td>2018-05-16</td></tr>
+<tr><td>2017fgc</td><td>W</td><td>SBIG STXL-6303</td><td>71</td><td>1</td><td>0</td><td>70</td><td>0.2</td><td>0</td><td>145</td><td>2017-10-23</td><td>2018-01-30</td></tr>
+<tr><td>2017fgc</td><td>r</td><td>SBIG STXL-6303</td><td>71</td><td>1</td><td>0</td><td>70</td><td>0.6</td><td>0</td><td>145</td><td>2017-10-23</td><td>2018-01-30</td></tr>
+<tr><td>2017fgc</td><td>g</td><td>SBIG STXL-6303</td><td>71</td><td>1</td><td>0</td><td>70</td><td>0.0</td><td>0</td><td>71</td><td>2017-10-23</td><td>2018-01-30</td></tr>
+<tr><td>2017fgc</td><td>Blue</td><td>SBIG STXL-6303</td><td>70</td><td>1</td><td>0</td><td>69</td><td>0.0</td><td>0</td><td>70</td><td>2017-10-23</td><td>2018-01-30</td></tr>
+<tr><td>2017fgc</td><td>Visual</td><td>SBIG STXL-6303</td><td>70</td><td>1</td><td>0</td><td>69</td><td>0.0</td><td>0</td><td>70</td><td>2017-10-23</td><td>2018-01-30</td></tr>
+<tr><td>Twin_Quasar</td><td>g</td><td>Andor Aspen CG42</td><td>66</td><td>1</td><td>0</td><td>0</td><td>0.0</td><td>0</td><td>66</td><td>2017-01-31</td><td>2017-05-03</td></tr>
+<tr><td>2018pv</td><td>Blue</td><td>Andor iKon-L 936</td><td>65</td><td>1</td><td>0</td><td>64</td><td>0.0</td><td>0</td><td>65</td><td>2018-03-01</td><td>2018-05-16</td></tr>
+<tr><td>2018pv</td><td>Visual</td><td>Andor iKon-L 936</td><td>65</td><td>1</td><td>0</td><td>64</td><td>0.0</td><td>0</td><td>65</td><td>2018-03-01</td><td>2018-05-16</td></tr>
+<tr><td>2018pv</td><td>g</td><td>Andor iKon-L 936</td><td>65</td><td>1</td><td>0</td><td>64</td><td>0.0</td><td>0</td><td>65</td><td>2018-03-01</td><td>2018-05-16</td></tr>
+</table>
+<p class="sub">Time-series material: 145 series have at least
+one night with a run &ge; 3&nbsp;h.  The 25 with the most such
+nights:</p>
+<table class="data">
+<tr><th>target</th><th>filter</th><th>camera</th><th>nights with run ≥ 3 h</th><th>nights</th><th>longest run (h)</th><th>seasons</th></tr>
+<tr><td>40 Harmonia</td><td>r</td><td>Andor iKon-L 936</td><td>18</td><td>26</td><td>10.5</td><td>1</td></tr>
+<tr><td>RS Cas</td><td>B</td><td>Andor iKon-L 936</td><td>18</td><td>29</td><td>6.7</td><td>1</td></tr>
+<tr><td>RS Cas</td><td>r</td><td>Andor iKon-L 936</td><td>18</td><td>29</td><td>6.7</td><td>1</td></tr>
+<tr><td>AS Cas</td><td>Visual</td><td>Andor iKon-L 936</td><td>18</td><td>26</td><td>6.7</td><td>1</td></tr>
+<tr><td>AS Cas</td><td>B</td><td>Andor iKon-L 936</td><td>18</td><td>29</td><td>6.6</td><td>1</td></tr>
+<tr><td>NY Vir</td><td>r</td><td>Andor iKon-L 936</td><td>8</td><td>35</td><td>5.0</td><td>2</td></tr>
+<tr><td>NY Vir</td><td>g</td><td>Andor iKon-L 936</td><td>8</td><td>8</td><td>5.0</td><td>1</td></tr>
+<tr><td>QS Vir</td><td>Lum</td><td>CCD42-40 camera (model not in header)</td><td>8</td><td>13</td><td>4.1</td><td>1</td></tr>
+<tr><td>55 Pandora</td><td>r</td><td>CCD42-40 camera (model not in header)</td><td>6</td><td>8</td><td>7.8</td><td>1</td></tr>
+<tr><td>511 Davida</td><td>r</td><td>CCD42-40 camera (model not in header)</td><td>6</td><td>6</td><td>5.7</td><td>1</td></tr>
+<tr><td>TVLM513-46</td><td>W</td><td>SBIG 6303e</td><td>6</td><td>6</td><td>5.5</td><td>1</td></tr>
+<tr><td>Wasp43b</td><td>Red</td><td>KAF-6303 camera (model not in header)</td><td>6</td><td>7</td><td>3.9</td><td>1</td></tr>
+<tr><td>1044 Teutonia</td><td>clear</td><td>SBIG 6303e</td><td>5</td><td>7</td><td>5.9</td><td>1</td></tr>
+<tr><td>7350 1993 VA</td><td>clear</td><td>SBIG 6303e</td><td>4</td><td>7</td><td>6.5</td><td>1</td></tr>
+<tr><td>HW Vir</td><td>r</td><td>Andor iKon-L 936</td><td>4</td><td>9</td><td>4.1</td><td>1</td></tr>
+<tr><td>WASP-50b</td><td>Red</td><td>SBIG 6303e</td><td>4</td><td>4</td><td>4.0</td><td>1</td></tr>
+<tr><td>HW Vir</td><td>r</td><td>SBIG STXL-6303</td><td>4</td><td>40</td><td>3.8</td><td>2</td></tr>
+<tr><td>QS Vir</td><td>r</td><td>CCD42-40 camera (model not in header)</td><td>4</td><td>5</td><td>3.7</td><td>1</td></tr>
+<tr><td>TYC355635681</td><td>r</td><td>Andor iKon-L 936</td><td>4</td><td>5</td><td>3.1</td><td>1</td></tr>
+<tr><td>WASP10b</td><td>Red</td><td>Apogee F47</td><td>3</td><td>3</td><td>5.7</td><td>1</td></tr>
+<tr><td>TU Boo</td><td>R</td><td>FLI PL16803</td><td>3</td><td>3</td><td>4.9</td><td>1</td></tr>
+<tr><td>HS0705+6700</td><td>r</td><td>Andor iKon-L 936</td><td>3</td><td>10</td><td>4.6</td><td>1</td></tr>
+<tr><td>NSVS 14256825</td><td>r</td><td>Andor iKon-L 936</td><td>3</td><td>14</td><td>4.3</td><td>1</td></tr>
+<tr><td>7 Iris</td><td>slot W</td><td>SBIG Aluma AC4040</td><td>3</td><td>4</td><td>4.0</td><td>2</td></tr>
+<tr><td>C/2011 KP36 (</td><td>Red</td><td>SBIG 6303e</td><td>3</td><td>9</td><td>3.8</td><td>1</td></tr>
+</table>
+<p class="sub">Filters as written, and how they are read.  Talon wrote
+single letters for a Johnson&ndash;Cousins wheel; MaxIm wrote
+<code>'slot - name'</code>.  A named colour (<code>R - Red</code>,
+<code>B - Blue</code>, <code>V - Visual</code>) does not say which glass
+was in the slot, so those bands are <b>not</b> counted as tieable to a
+standard system; only explicitly Johnson- or Sloan-named filters and the
+Talon letters are.</p>
+<table class="data">
+<tr><th>band (series key)</th><th>system as read</th><th>tieable</th><th>science frames</th><th>nights</th><th>header FILTER text</th></tr>
+<tr><td>r</td><td>Sloan</td><td>yes</td><td>44,989</td><td>589</td><td>R - Sloan_r,R - Sloan 'r'</td></tr>
+<tr><td>g</td><td>Sloan</td><td>yes</td><td>20,470</td><td>643</td><td>G - Sloan g,G - Sloang,G - Sloan_g,G - Sloan 'g'</td></tr>
+<tr><td>Red</td><td>named colour (glass not stated)</td><td>no</td><td>18,570</td><td>294</td><td>R - Red,X -Astrodon_ Red,X - Astrodon Red</td></tr>
+<tr><td>Lum</td><td>broadband</td><td>no</td><td>13,397</td><td>267</td><td>L - Luminance,L - Luminances,L- luminance</td></tr>
+<tr><td>clear</td><td>none</td><td>no</td><td>8,491</td><td>375</td><td>N,N - None</td></tr>
+<tr><td>Visual</td><td>named colour (glass not stated)</td><td>no</td><td>7,281</td><td>578</td><td>V - Visual,V - Astrodon  Visual,V - Astrodon Visual</td></tr>
+<tr><td>Blue</td><td>named colour (glass not stated)</td><td>no</td><td>7,202</td><td>434</td><td>B - Blue</td></tr>
+<tr><td>W</td><td>longpass</td><td>no</td><td>5,314</td><td>292</td><td>W - Longpass IR,W-  Longpass,W - LongpassIR</td></tr>
+<tr><td>Ha</td><td>narrow</td><td>no</td><td>5,137</td><td>286</td><td>H,H - Halpha,H - Hydrogen Alpha,H - HAlpha</td></tr>
+<tr><td>B</td><td>Johnson-Cousins</td><td>yes</td><td>4,935</td><td>325</td><td>B,B -J-C blue,B - J-C blue,B - JC Blue</td></tr>
+<tr><td>R</td><td>Johnson-Cousins</td><td>yes</td><td>4,809</td><td>64</td><td>R</td></tr>
+<tr><td>grism</td><td>dispersive</td><td>no</td><td>4,126</td><td>342</td><td>T - Transmission grism,G - GRISM,A - Grism300a,3- Grism300,6 - Grism600,3 - Grism300,S - spectrometer beamplitter,6 - 600 lpmm Grism,S - Beamsplitter</td></tr>
+<tr><td>slot L</td><td>slot letter (glass not stated)</td><td>no</td><td>1,610</td><td>74</td><td>L</td></tr>
+<tr><td>slot R</td><td>slot letter (glass not stated)</td><td>no</td><td>1,553</td><td>99</td><td>R</td></tr>
+<tr><td>slot G</td><td>slot letter (glass not stated)</td><td>no</td><td>1,527</td><td>74</td><td>G</td></tr>
+<tr><td>OIII</td><td>narrow</td><td>no</td><td>1,513</td><td>124</td><td>O - OIII,O - Oxygen,O - OxygenIII,O - Oxygen III</td></tr>
+<tr><td>i</td><td>Sloan</td><td>yes</td><td>1,509</td><td>242</td><td>I - Sloan_i,I - Sloan 'i'</td></tr>
+<tr><td>Green</td><td>named colour (glass not stated)</td><td>no</td><td>1,221</td><td>34</td><td>G - Green</td></tr>
+<tr><td>slot B</td><td>slot letter (glass not stated)</td><td>no</td><td>919</td><td>69</td><td>B</td></tr>
+<tr><td>slot H</td><td>slot letter (glass not stated)</td><td>no</td><td>888</td><td>81</td><td>H</td></tr>
+<tr><td>V</td><td>Johnson-Cousins</td><td>yes</td><td>829</td><td>61</td><td>V</td></tr>
+<tr><td>SII</td><td>narrow</td><td>no</td><td>547</td><td>42</td><td>S - SulphurII,D - SulphurII</td></tr>
+<tr><td>I</td><td>Johnson-Cousins</td><td>yes</td><td>491</td><td>59</td><td>I</td></tr>
+<tr><td>slot V</td><td>slot letter (glass not stated)</td><td>no</td><td>432</td><td>34</td><td>V</td></tr>
+<tr><td>slot 6</td><td>slot letter (glass not stated)</td><td>no</td><td>372</td><td>59</td><td>6</td></tr>
+<tr><td>slot O</td><td>slot letter (glass not stated)</td><td>no</td><td>359</td><td>45</td><td>O</td></tr>
+<tr><td>slot 9</td><td>slot letter (glass not stated)</td><td>no</td><td>322</td><td>70</td><td>9</td></tr>
+<tr><td>slot 8</td><td>slot letter (glass not stated)</td><td>no</td><td>306</td><td>68</td><td>8</td></tr>
+<tr><td>slot 1</td><td>slot letter (glass not stated)</td><td>no</td><td>283</td><td>35</td><td>1</td></tr>
+<tr><td>slot W</td><td>slot letter (glass not stated)</td><td>no</td><td>121</td><td>17</td><td>W</td></tr>
+<tr><td>slot I</td><td>slot letter (glass not stated)</td><td>no</td><td>64</td><td>14</td><td>I</td></tr>
+<tr><td>slot X</td><td>slot letter (glass not stated)</td><td>no</td><td>55</td><td>11</td><td>X</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>The unit of the census is the series (target
+&times; filter &times; camera) with its nights, seasons and longest
+run.</b>  A target with many frames on one night is one night.</div>
+
+<h3>Consequence</h3>
+<p class="sub">The gates read these tables.  Targets that look
+interesting here but pass no gate are <i>exploratory</i> and are, by the
+pre-registered rule, not a reason for a go.</p>
+</div></section>
+<section id="overlap">
+<div class="bhead"><h2>7 &middot; Overlap with the RLMT-era targets</h2>
+<span class="tag">the one place a legacy frame can extend a baseline</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Were T&nbsp;CrB, the polars, YZ&nbsp;Cnc, the Be stars or
+the dwarf-survey fields observed here in 2015&ndash;2022 &mdash; and if
+so, on enough nights, in a filter that can be tied to the RLMT-era
+photometry?</p>
+
+<h3>Evidence</h3>
+<p class="sub">Each project target is matched by alias key <i>and</i> by
+position (requested coordinates within 0.2&deg; of the catalogue
+position &mdash; the S0 cone), so a target observed under another name is
+found and a same-named field elsewhere is not.  Targets found:</p>
+<table class="data">
+<tr><th>project</th><th>target</th><th>science frames</th><th>by name</th><th>by position</th><th>name but not position</th><th>nights</th><th>first</th><th>last</th><th>names used in the legacy headers</th><th>filters</th><th>cameras</th><th>position from</th></tr>
+<tr><td>CV_TimeSeries</td><td>YZ Cnc</td><td>285</td><td>263</td><td>285</td><td>0</td><td>80</td><td>2017-01-31</td><td>2018-04-29</td><td>YZ Cnc (156), YZ_Cnc (107), V*_YZ_Cnc (16), V_YZ_Cnc (4), 9th (2)</td><td>r (124), g (107), Ha (54)</td><td>Andor iKon-L 936 (156), Andor Aspen CG42 (129)</td><td>SIMBAD via CDS Sesame: 'YZ Cnc'</td></tr>
+<tr><td>CV_TimeSeries</td><td>VV Pup</td><td>104</td><td>82</td><td>104</td><td>0</td><td>54</td><td>2017-01-31</td><td>2017-05-03</td><td>VV_Pup (82), V*_VV_Pup (14), 12th (4), V_VV_Pup (4)</td><td>r (59), g (45)</td><td>Andor Aspen CG42 (104)</td><td>SIMBAD via CDS Sesame: 'VV Pup'</td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>522</td><td>0</td><td>522</td><td>0</td><td>32</td><td>2015-11-22</td><td>2022-12-06</td><td>M101 (417), NGC 5457 (82), m101 (23)</td><td>Blue (78), Visual (61), Red (57), Ha (53), slot G (48), slot B (48), slot R (48), clear (44), slot L (23), g (16), … +7 more</td><td>SBIG Aluma AC4040 (182), KAF-6303 camera (model not in header) (175), SBIG 6303e (129), Apogee F47 (24), Andor iKon-L 936 (8), SBIG STXL-6303 (4)</td><td>SIMBAD via CDS Sesame: 'SN 2023ixf'</td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>522</td><td>522</td><td>522</td><td>0</td><td>32</td><td>2015-11-22</td><td>2022-12-06</td><td>M101 (417), NGC 5457 (82), m101 (23)</td><td>Blue (78), Visual (61), Red (57), Ha (53), slot G (48), slot B (48), slot R (48), clear (44), slot L (23), g (16), … +7 more</td><td>SBIG Aluma AC4040 (182), KAF-6303 camera (model not in header) (175), SBIG 6303e (129), Apogee F47 (24), Andor iKon-L 936 (8), SBIG STXL-6303 (4)</td><td>SIMBAD via CDS Sesame: 'M 101'</td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td>25</td><td>25</td><td>25</td><td>0</td><td>16</td><td>2016-10-21</td><td>2022-03-24</td><td>Vega (24), vega (1)</td><td>grism (16), Visual (3), Red (1), Ha (1), SII (1), W (1), Blue (1), slot 6 (1)</td><td>SBIG STXL-6303 (10), Andor Aspen CG42 (7), Andor iKon-L 936 (3), SBIG 6303e (2), CCD42-40 camera (model not in header) (2), SBIG Aluma AC4040 (1)</td><td>SIMBAD via CDS Sesame: 'Vega'</td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>NGC 5548</td><td>19</td><td>19</td><td>19</td><td>0</td><td>9</td><td>2019-04-04</td><td>2019-04-15</td><td>NGC 5548 (19)</td><td>grism (15), Visual (1), B (1), g (1), r (1)</td><td>Andor iKon-L 936 (19)</td><td>SIMBAD via CDS Sesame: 'NGC 5548'</td></tr>
+<tr><td>BeStar_Grism</td><td>PHECDA</td><td>4</td><td>3</td><td>4</td><td>0</td><td>3</td><td>2018-11-12</td><td>2019-11-16</td><td>Phecda (3), Gamma UMa (1)</td><td>grism (4)</td><td>Andor iKon-L 936 (3), CCD42-40 camera (model not in header) (1)</td><td>SIMBAD via CDS Sesame: 'gam UMa'</td></tr>
+<tr><td>BeStar_Grism</td><td>Spica</td><td>1</td><td>1</td><td>1</td><td>0</td><td>1</td><td>2019-01-03</td><td>2019-01-03</td><td>Spica (1)</td><td>grism (1)</td><td>Andor iKon-L 936 (1)</td><td>SIMBAD via CDS Sesame: 'Spica'</td></tr>
+</table>
+<p class="sub">Project targets with <b>no</b> legacy science frame:
+AN UMa, Dw1403+49, Dw1409+51, Dw1418+46, Dw1441+51, Dw1446+58, Dw1459+44, Dw1533+67, Dw1539+45, Dw1558+67, Dw1559+46, Dw1608+40, Dw1615+54, Dw1617+46, Dw1633+69, Dw1643+07, Dw1645+46, Dw1709+74, Dw1721+71, Dw1735+57, EU UMa, Lam Eri, NGC5238, ST LMi, T CrB, phi Leo, tet CrB.</p>
+<figure><a href="figures/legacy/legacy_overlap.png"><img src="figures/legacy/legacy_overlap.png" alt=""></a><figcaption>Nights on which each RLMT-era project target was observed in the legacy archive, one marker per night and filter.</figcaption></figure>
+<p class="sub">Per series, with the G2 clauses (10 nights,
+2 seasons, tieable filter; timing targets also a run
+&ge; 1&nbsp;h):</p>
+<table class="data">
+<tr><th>project</th><th>target</th><th>filter</th><th>camera</th><th>tieable</th><th>nights</th><th>seasons</th><th>first</th><th>last</th><th>longest run (h)</th><th>frames</th><th>median exposure (s)</th><th>G2</th></tr>
+<tr><td>CV_TimeSeries</td><td>YZ Cnc</td><td>r</td><td>Andor Aspen CG42</td><td>yes</td><td>54</td><td>1</td><td>2017-01-31</td><td>2017-05-03</td><td>0.00</td><td>74</td><td>90.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>CV_TimeSeries</td><td>VV Pup</td><td>r</td><td>Andor Aspen CG42</td><td>yes</td><td>50</td><td>1</td><td>2017-01-31</td><td>2017-05-02</td><td>0.00</td><td>59</td><td>90.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>CV_TimeSeries</td><td>VV Pup</td><td>g</td><td>Andor Aspen CG42</td><td>yes</td><td>36</td><td>1</td><td>2017-01-31</td><td>2017-05-03</td><td>0.00</td><td>45</td><td>90.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>CV_TimeSeries</td><td>YZ Cnc</td><td>g</td><td>Andor Aspen CG42</td><td>yes</td><td>35</td><td>1</td><td>2017-02-01</td><td>2017-05-03</td><td>0.00</td><td>55</td><td>90.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>CV_TimeSeries</td><td>YZ Cnc</td><td>g</td><td>Andor iKon-L 936</td><td>yes</td><td>24</td><td>1</td><td>2018-03-28</td><td>2018-04-29</td><td>1.62</td><td>52</td><td>10.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>CV_TimeSeries</td><td>YZ Cnc</td><td>Ha</td><td>Andor iKon-L 936</td><td>no (narrow)</td><td>23</td><td>1</td><td>2018-03-28</td><td>2018-04-29</td><td>1.22</td><td>54</td><td>135.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>CV_TimeSeries</td><td>YZ Cnc</td><td>r</td><td>Andor iKon-L 936</td><td>yes</td><td>23</td><td>1</td><td>2018-03-28</td><td>2018-04-28</td><td>0.89</td><td>50</td><td>10.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>slot B</td><td>SBIG Aluma AC4040</td><td>no (slot letter (glass not stated))</td><td>12</td><td>2</td><td>2022-02-17</td><td>2022-12-06</td><td>2.26</td><td>48</td><td>256.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>slot G</td><td>SBIG Aluma AC4040</td><td>no (slot letter (glass not stated))</td><td>12</td><td>2</td><td>2022-02-17</td><td>2022-12-06</td><td>2.26</td><td>48</td><td>256.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>slot R</td><td>SBIG Aluma AC4040</td><td>no (slot letter (glass not stated))</td><td>12</td><td>2</td><td>2022-02-17</td><td>2022-12-06</td><td>1.99</td><td>48</td><td>256.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>slot B</td><td>SBIG Aluma AC4040</td><td>no (slot letter (glass not stated))</td><td>12</td><td>2</td><td>2022-02-17</td><td>2022-12-06</td><td>2.26</td><td>48</td><td>256.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>slot G</td><td>SBIG Aluma AC4040</td><td>no (slot letter (glass not stated))</td><td>12</td><td>2</td><td>2022-02-17</td><td>2022-12-06</td><td>2.26</td><td>48</td><td>256.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>slot R</td><td>SBIG Aluma AC4040</td><td>no (slot letter (glass not stated))</td><td>12</td><td>2</td><td>2022-02-17</td><td>2022-12-06</td><td>1.99</td><td>48</td><td>256.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Blue</td><td>KAF-6303 camera (model not in header)</td><td>no (named colour (glass not stated))</td><td>7</td><td>1</td><td>2016-02-21</td><td>2016-03-27</td><td>1.65</td><td>49</td><td>40.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Blue</td><td>SBIG 6303e</td><td>no (named colour (glass not stated))</td><td>7</td><td>1</td><td>2016-04-19</td><td>2016-05-15</td><td>0.30</td><td>23</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Blue</td><td>KAF-6303 camera (model not in header)</td><td>no (named colour (glass not stated))</td><td>7</td><td>1</td><td>2016-02-21</td><td>2016-03-27</td><td>1.65</td><td>49</td><td>40.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Blue</td><td>SBIG 6303e</td><td>no (named colour (glass not stated))</td><td>7</td><td>1</td><td>2016-04-19</td><td>2016-05-15</td><td>0.30</td><td>23</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>NGC 5548</td><td>grism</td><td>Andor iKon-L 936</td><td>no (dispersive)</td><td>7</td><td>1</td><td>2019-04-04</td><td>2019-04-10</td><td>0.23</td><td>15</td><td>600.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Red</td><td>KAF-6303 camera (model not in header)</td><td>no (named colour (glass not stated))</td><td>6</td><td>1</td><td>2016-02-21</td><td>2016-03-19</td><td>1.13</td><td>35</td><td>40.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Red</td><td>SBIG 6303e</td><td>no (named colour (glass not stated))</td><td>6</td><td>1</td><td>2016-05-07</td><td>2016-05-15</td><td>0.45</td><td>16</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Visual</td><td>KAF-6303 camera (model not in header)</td><td>no (named colour (glass not stated))</td><td>6</td><td>1</td><td>2016-02-21</td><td>2016-03-19</td><td>0.60</td><td>33</td><td>40.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>clear</td><td>KAF-6303 camera (model not in header)</td><td>no (none)</td><td>6</td><td>1</td><td>2016-02-21</td><td>2016-03-19</td><td>0.66</td><td>34</td><td>40.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>clear</td><td>SBIG 6303e</td><td>no (none)</td><td>6</td><td>2</td><td>2016-05-07</td><td>2016-09-25</td><td>0.56</td><td>10</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>g</td><td>SBIG 6303e</td><td>yes</td><td>6</td><td>1</td><td>2016-05-07</td><td>2016-05-15</td><td>0.28</td><td>16</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Red</td><td>KAF-6303 camera (model not in header)</td><td>no (named colour (glass not stated))</td><td>6</td><td>1</td><td>2016-02-21</td><td>2016-03-19</td><td>1.13</td><td>35</td><td>40.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Red</td><td>SBIG 6303e</td><td>no (named colour (glass not stated))</td><td>6</td><td>1</td><td>2016-05-07</td><td>2016-05-15</td><td>0.45</td><td>16</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Visual</td><td>KAF-6303 camera (model not in header)</td><td>no (named colour (glass not stated))</td><td>6</td><td>1</td><td>2016-02-21</td><td>2016-03-19</td><td>0.60</td><td>33</td><td>40.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>clear</td><td>KAF-6303 camera (model not in header)</td><td>no (none)</td><td>6</td><td>1</td><td>2016-02-21</td><td>2016-03-19</td><td>0.66</td><td>34</td><td>40.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>clear</td><td>SBIG 6303e</td><td>no (none)</td><td>6</td><td>2</td><td>2016-05-07</td><td>2016-09-25</td><td>0.56</td><td>10</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>g</td><td>SBIG 6303e</td><td>yes</td><td>6</td><td>1</td><td>2016-05-07</td><td>2016-05-15</td><td>0.28</td><td>16</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td>grism</td><td>Andor Aspen CG42</td><td>no (dispersive)</td><td>5</td><td>1</td><td>2017-04-05</td><td>2017-05-26</td><td>0.04</td><td>7</td><td>0.1</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>slot H</td><td>SBIG Aluma AC4040</td><td>no (slot letter (glass not stated))</td><td>4</td><td>1</td><td>2022-03-01</td><td>2022-05-01</td><td>0.93</td><td>15</td><td>256.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>slot L</td><td>SBIG Aluma AC4040</td><td>no (slot letter (glass not stated))</td><td>4</td><td>2</td><td>2022-03-01</td><td>2022-12-06</td><td>1.53</td><td>23</td><td>256.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>slot H</td><td>SBIG Aluma AC4040</td><td>no (slot letter (glass not stated))</td><td>4</td><td>1</td><td>2022-03-01</td><td>2022-05-01</td><td>0.93</td><td>15</td><td>256.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>slot L</td><td>SBIG Aluma AC4040</td><td>no (slot letter (glass not stated))</td><td>4</td><td>2</td><td>2022-03-01</td><td>2022-12-06</td><td>1.53</td><td>23</td><td>256.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Ha</td><td>KAF-6303 camera (model not in header)</td><td>no (narrow)</td><td>3</td><td>1</td><td>2016-02-21</td><td>2016-03-27</td><td>0.67</td><td>24</td><td>180.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Ha</td><td>SBIG 6303e</td><td>no (narrow)</td><td>3</td><td>1</td><td>2016-04-19</td><td>2016-05-15</td><td>0.90</td><td>26</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Visual</td><td>SBIG 6303e</td><td>no (named colour (glass not stated))</td><td>3</td><td>1</td><td>2016-04-19</td><td>2016-05-15</td><td>0.34</td><td>26</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Ha</td><td>KAF-6303 camera (model not in header)</td><td>no (narrow)</td><td>3</td><td>1</td><td>2016-02-21</td><td>2016-03-27</td><td>0.67</td><td>24</td><td>180.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Ha</td><td>SBIG 6303e</td><td>no (narrow)</td><td>3</td><td>1</td><td>2016-04-19</td><td>2016-05-15</td><td>0.90</td><td>26</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Visual</td><td>SBIG 6303e</td><td>no (named colour (glass not stated))</td><td>3</td><td>1</td><td>2016-04-19</td><td>2016-05-15</td><td>0.34</td><td>26</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td>grism</td><td>Andor iKon-L 936</td><td>no (dispersive)</td><td>3</td><td>2</td><td>2018-11-19</td><td>2019-05-15</td><td>0.00</td><td>3</td><td>0.1</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>W</td><td>SBIG 6303e</td><td>no (longpass)</td><td>2</td><td>1</td><td>2016-05-12</td><td>2016-05-15</td><td>0.04</td><td>12</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>W</td><td>SBIG 6303e</td><td>no (longpass)</td><td>2</td><td>1</td><td>2016-05-12</td><td>2016-05-15</td><td>0.04</td><td>12</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>PHECDA</td><td>grism</td><td>Andor iKon-L 936</td><td>no (dispersive)</td><td>2</td><td>1</td><td>2018-11-12</td><td>2018-11-13</td><td>0.02</td><td>3</td><td>12.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td>Visual</td><td>SBIG STXL-6303</td><td>no (named colour (glass not stated))</td><td>2</td><td>2</td><td>2017-10-13</td><td>2020-10-06</td><td>0.01</td><td>3</td><td>3.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td>grism</td><td>CCD42-40 camera (model not in header)</td><td>no (dispersive)</td><td>2</td><td>1</td><td>2019-06-09</td><td>2019-09-29</td><td>0.00</td><td>2</td><td>0.1</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td>grism</td><td>SBIG 6303e</td><td>no (dispersive)</td><td>2</td><td>1</td><td>2016-10-21</td><td>2016-11-14</td><td>0.00</td><td>2</td><td>0.2</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td>grism</td><td>SBIG STXL-6303</td><td>no (dispersive)</td><td>2</td><td>1</td><td>2017-10-13</td><td>2017-10-16</td><td>0.00</td><td>2</td><td>0.1</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>B</td><td>Andor iKon-L 936</td><td>yes</td><td>1</td><td>1</td><td>2018-12-11</td><td>2018-12-11</td><td>0.12</td><td>2</td><td>90.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>B</td><td>SBIG STXL-6303</td><td>yes</td><td>1</td><td>1</td><td>2021-02-24</td><td>2021-02-24</td><td>0.00</td><td>1</td><td>120.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Blue</td><td>Apogee F47</td><td>no (named colour (glass not stated))</td><td>1</td><td>1</td><td>2015-11-22</td><td>2015-11-22</td><td>0.73</td><td>6</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Green</td><td>Apogee F47</td><td>no (named colour (glass not stated))</td><td>1</td><td>1</td><td>2015-11-22</td><td>2015-11-22</td><td>0.67</td><td>6</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Ha</td><td>Andor iKon-L 936</td><td>no (narrow)</td><td>1</td><td>1</td><td>2018-12-11</td><td>2018-12-11</td><td>0.09</td><td>2</td><td>90.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Ha</td><td>SBIG STXL-6303</td><td>no (narrow)</td><td>1</td><td>1</td><td>2021-02-24</td><td>2021-02-24</td><td>0.00</td><td>1</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Lum</td><td>Apogee F47</td><td>no (broadband)</td><td>1</td><td>1</td><td>2015-11-22</td><td>2015-11-22</td><td>0.54</td><td>6</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>OIII</td><td>Andor iKon-L 936</td><td>no (narrow)</td><td>1</td><td>1</td><td>2018-12-11</td><td>2018-12-11</td><td>0.11</td><td>2</td><td>90.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>OIII</td><td>SBIG STXL-6303</td><td>no (narrow)</td><td>1</td><td>1</td><td>2021-02-24</td><td>2021-02-24</td><td>0.00</td><td>1</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Red</td><td>Apogee F47</td><td>no (named colour (glass not stated))</td><td>1</td><td>1</td><td>2015-11-22</td><td>2015-11-22</td><td>0.60</td><td>6</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>Visual</td><td>Andor iKon-L 936</td><td>no (named colour (glass not stated))</td><td>1</td><td>1</td><td>2018-12-11</td><td>2018-12-11</td><td>0.14</td><td>2</td><td>90.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>2023ixf</td><td>r</td><td>SBIG STXL-6303</td><td>yes</td><td>1</td><td>1</td><td>2021-02-24</td><td>2021-02-24</td><td>0.00</td><td>1</td><td>120.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>B</td><td>Andor iKon-L 936</td><td>yes</td><td>1</td><td>1</td><td>2018-12-11</td><td>2018-12-11</td><td>0.12</td><td>2</td><td>90.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>B</td><td>SBIG STXL-6303</td><td>yes</td><td>1</td><td>1</td><td>2021-02-24</td><td>2021-02-24</td><td>0.00</td><td>1</td><td>120.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Blue</td><td>Apogee F47</td><td>no (named colour (glass not stated))</td><td>1</td><td>1</td><td>2015-11-22</td><td>2015-11-22</td><td>0.73</td><td>6</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Green</td><td>Apogee F47</td><td>no (named colour (glass not stated))</td><td>1</td><td>1</td><td>2015-11-22</td><td>2015-11-22</td><td>0.67</td><td>6</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Ha</td><td>Andor iKon-L 936</td><td>no (narrow)</td><td>1</td><td>1</td><td>2018-12-11</td><td>2018-12-11</td><td>0.09</td><td>2</td><td>90.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Ha</td><td>SBIG STXL-6303</td><td>no (narrow)</td><td>1</td><td>1</td><td>2021-02-24</td><td>2021-02-24</td><td>0.00</td><td>1</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Lum</td><td>Apogee F47</td><td>no (broadband)</td><td>1</td><td>1</td><td>2015-11-22</td><td>2015-11-22</td><td>0.54</td><td>6</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>OIII</td><td>Andor iKon-L 936</td><td>no (narrow)</td><td>1</td><td>1</td><td>2018-12-11</td><td>2018-12-11</td><td>0.11</td><td>2</td><td>90.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>OIII</td><td>SBIG STXL-6303</td><td>no (narrow)</td><td>1</td><td>1</td><td>2021-02-24</td><td>2021-02-24</td><td>0.00</td><td>1</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Red</td><td>Apogee F47</td><td>no (named colour (glass not stated))</td><td>1</td><td>1</td><td>2015-11-22</td><td>2015-11-22</td><td>0.60</td><td>6</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>Visual</td><td>Andor iKon-L 936</td><td>no (named colour (glass not stated))</td><td>1</td><td>1</td><td>2018-12-11</td><td>2018-12-11</td><td>0.14</td><td>2</td><td>90.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>SN2023ixf_LightCurve</td><td>M101</td><td>r</td><td>SBIG STXL-6303</td><td>yes</td><td>1</td><td>1</td><td>2021-02-24</td><td>2021-02-24</td><td>0.00</td><td>1</td><td>120.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>NGC 5548</td><td>B</td><td>Andor iKon-L 936</td><td>yes</td><td>1</td><td>1</td><td>2019-04-15</td><td>2019-04-15</td><td>0.00</td><td>1</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>NGC 5548</td><td>Visual</td><td>Andor iKon-L 936</td><td>no (named colour (glass not stated))</td><td>1</td><td>1</td><td>2019-04-13</td><td>2019-04-13</td><td>0.00</td><td>1</td><td>30.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>NGC 5548</td><td>g</td><td>Andor iKon-L 936</td><td>yes</td><td>1</td><td>1</td><td>2019-04-15</td><td>2019-04-15</td><td>0.00</td><td>1</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>DwarfGalaxy_AGN_Survey</td><td>NGC 5548</td><td>r</td><td>Andor iKon-L 936</td><td>yes</td><td>1</td><td>1</td><td>2019-04-15</td><td>2019-04-15</td><td>0.00</td><td>1</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>PHECDA</td><td>grism</td><td>CCD42-40 camera (model not in header)</td><td>no (dispersive)</td><td>1</td><td>1</td><td>2019-11-16</td><td>2019-11-16</td><td>0.00</td><td>1</td><td>0.1</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>Spica</td><td>grism</td><td>Andor iKon-L 936</td><td>no (dispersive)</td><td>1</td><td>1</td><td>2019-01-03</td><td>2019-01-03</td><td>0.00</td><td>1</td><td>3.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td>Blue</td><td>SBIG STXL-6303</td><td>no (named colour (glass not stated))</td><td>1</td><td>1</td><td>2017-10-13</td><td>2017-10-13</td><td>0.00</td><td>1</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td>Ha</td><td>SBIG STXL-6303</td><td>no (narrow)</td><td>1</td><td>1</td><td>2017-10-13</td><td>2017-10-13</td><td>0.00</td><td>1</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td>Red</td><td>SBIG STXL-6303</td><td>no (named colour (glass not stated))</td><td>1</td><td>1</td><td>2017-10-13</td><td>2017-10-13</td><td>0.00</td><td>1</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td>SII</td><td>SBIG STXL-6303</td><td>no (narrow)</td><td>1</td><td>1</td><td>2017-10-13</td><td>2017-10-13</td><td>0.00</td><td>1</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td>W</td><td>SBIG STXL-6303</td><td>no (longpass)</td><td>1</td><td>1</td><td>2017-10-13</td><td>2017-10-13</td><td>0.00</td><td>1</td><td>60.0</td><td><span class="bad">FAIL</span></td></tr>
+<tr><td>BeStar_Grism</td><td>Vega</td><td>slot 6</td><td>SBIG Aluma AC4040</td><td>no (slot letter (glass not stated))</td><td>1</td><td>1</td><td>2022-03-24</td><td>2022-03-24</td><td>0.00</td><td>1</td><td>0.0</td><td><span class="bad">FAIL</span></td></tr>
+</table>
+<p class="sub">Sensitivity to the filter reading: series that meet the
+night, season and run clauses but in a filter not counted as tieable:
+2023ixf slot B on SBIG Aluma AC4040 (12 nights, 2 seasons); 2023ixf slot G on SBIG Aluma AC4040 (12 nights, 2 seasons); 2023ixf slot R on SBIG Aluma AC4040 (12 nights, 2 seasons); M101 slot B on SBIG Aluma AC4040 (12 nights, 2 seasons); M101 slot G on SBIG Aluma AC4040 (12 nights, 2 seasons); M101 slot R on SBIG Aluma AC4040 (12 nights, 2 seasons).</p>
+<p class="sub">Wider, name-only view: 281 of the RLMT archive's
+science target names also name a legacy target.  The 25 with the most
+legacy nights (a candidate list &mdash; names, not positions):</p>
+<table class="data">
+<tr><th>legacy name</th><th>RLMT name</th><th>legacy nights</th><th>legacy seasons</th><th>legacy frames</th><th>RLMT nights</th><th>RLMT frames</th><th>legacy first</th><th>legacy last</th></tr>
+<tr><td>3C273</td><td>3C 273</td><td>126</td><td>7</td><td>447</td><td>10</td><td>42</td><td>2016-03-10</td><td>2022-11-27</td></tr>
+<tr><td>M51</td><td>M51</td><td>79</td><td>9</td><td>709</td><td>17</td><td>108</td><td>2015-03-25</td><td>2022-10-25</td></tr>
+<tr><td>YZ Cnc</td><td>YZ Cnc</td><td>68</td><td>2</td><td>263</td><td>28</td><td>1,935</td><td>2017-02-16</td><td>2018-04-29</td></tr>
+<tr><td>HW Vir</td><td>HW Vir</td><td>61</td><td>5</td><td>7,560</td><td>2</td><td>118</td><td>2018-12-18</td><td>2022-12-21</td></tr>
+<tr><td>M81</td><td>M81</td><td>58</td><td>6</td><td>374</td><td>9</td><td>53</td><td>2015-04-14</td><td>2022-05-27</td></tr>
+<tr><td>HS0705+6700</td><td>HS0705+6700</td><td>56</td><td>4</td><td>4,999</td><td>2</td><td>122</td><td>2017-10-16</td><td>2021-02-28</td></tr>
+<tr><td>NY Vir</td><td>NY Vir</td><td>55</td><td>5</td><td>7,253</td><td>8</td><td>300</td><td>2018-01-22</td><td>2022-12-21</td></tr>
+<tr><td>Mrk_421</td><td>Mrk 421</td><td>54</td><td>2</td><td>109</td><td>1</td><td>5</td><td>2017-02-16</td><td>2022-03-24</td></tr>
+<tr><td>3C279</td><td>3C 279</td><td>52</td><td>2</td><td>135</td><td>1</td><td>5</td><td>2018-03-26</td><td>2019-03-25</td></tr>
+<tr><td>PG_1351</td><td>PG1351</td><td>50</td><td>1</td><td>121</td><td>4</td><td>31</td><td>2017-02-16</td><td>2017-05-03</td></tr>
+<tr><td>M1</td><td>M1</td><td>49</td><td>10</td><td>786</td><td>22</td><td>135</td><td>2015-04-15</td><td>2022-12-14</td></tr>
+<tr><td>M42</td><td>M42</td><td>48</td><td>7</td><td>784</td><td>22</td><td>174</td><td>2015-11-20</td><td>2022-11-05</td></tr>
+<tr><td>CH UMa</td><td>CH UMa</td><td>45</td><td>1</td><td>307</td><td>10</td><td>1,295</td><td>2018-02-20</td><td>2018-04-25</td></tr>
+<tr><td>M27</td><td>M27</td><td>44</td><td>8</td><td>645</td><td>20</td><td>192</td><td>2015-04-14</td><td>2022-11-05</td></tr>
+<tr><td>OJ_287</td><td>OJ 287</td><td>44</td><td>2</td><td>111</td><td>1</td><td>4</td><td>2016-03-11</td><td>2017-04-24</td></tr>
+<tr><td>M82</td><td>M82</td><td>43</td><td>9</td><td>547</td><td>18</td><td>241</td><td>2015-03-10</td><td>2022-11-05</td></tr>
+<tr><td>VV_Pup</td><td>VV Pup</td><td>42</td><td>1</td><td>82</td><td>29</td><td>1,279</td><td>2017-02-16</td><td>2017-05-03</td></tr>
+<tr><td>AC_Cnc</td><td>AC cnc</td><td>41</td><td>1</td><td>103</td><td>5</td><td>852</td><td>2017-02-16</td><td>2017-05-03</td></tr>
+<tr><td>V1405 Cas</td><td>V1405 Cas</td><td>41</td><td>2</td><td>163</td><td>30</td><td>2,648</td><td>2021-11-14</td><td>2022-11-01</td></tr>
+<tr><td>M67</td><td>m67</td><td>39</td><td>6</td><td>214</td><td>4</td><td>16</td><td>2015-04-14</td><td>2022-02-17</td></tr>
+<tr><td>HD124320</td><td>HD124320</td><td>38</td><td>4</td><td>55</td><td>1</td><td>3</td><td>2016-03-16</td><td>2022-02-14</td></tr>
+<tr><td>Uranus</td><td>Uranus</td><td>38</td><td>6</td><td>280</td><td>3</td><td>14</td><td>2015-10-27</td><td>2022-12-08</td></tr>
+<tr><td>Jupiter</td><td>Jupiter</td><td>37</td><td>6</td><td>215</td><td>8</td><td>109</td><td>2015-03-10</td><td>2022-12-08</td></tr>
+<tr><td>HD116608</td><td>HD 116608</td><td>36</td><td>4</td><td>49</td><td>8</td><td>45</td><td>2016-01-29</td><td>2022-02-14</td></tr>
+<tr><td>SAO62808</td><td>SAO62808</td><td>33</td><td>3</td><td>50</td><td>1</td><td>3</td><td>2016-01-26</td><td>2022-03-24</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>The overlap is what the series table says and no
+more.</b>  A series that passes G2 is a <i>candidate</i> baseline
+extension handed to the owning project; it is conditional on a pixel test
+the census cannot make (saturation at the target, per frame, in native
+pixels &mdash; standing rule 4) and on the clock caveat of section 5.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Nothing here opens a sixth project.  What passes goes to
+T&nbsp;CrB or CV as a candidate; what does not pass is recorded so the
+question need not be asked again.</p>
+</div></section>
+<section id="calib">
+<div class="bhead"><h2>8a &middot; Calibration census, per camera</h2>
+<span class="tag">frames that exist &middot; flat pairs for a measured gain</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">For each camera: are there bias, dark and flat frames in
+the archive at all, are there flat <i>pairs</i> so that gain can be
+measured rather than read from a header, and were the science frames left
+raw?</p>
+
+<h3>Evidence</h3>
+<p class="sub">How frames were classified (IMAGETYP as written &rarr;
+kind).  49,230 frames are the scheduler's autofocus images
+(file prefix <code>foc</code>); they carry <code>Light Frame</code> and a
+star's name and would be counted as science by the header alone.</p>
+<table class="data">
+<tr><th>IMAGETYP</th><th>kind</th><th>files</th></tr>
+<tr><td>Light Frame</td><td>light</td><td>152,147</td></tr>
+<tr><td>Light Frame</td><td>focus</td><td>49,230</td></tr>
+<tr><td>(no IMAGETYP)</td><td>light</td><td>7,840</td></tr>
+<tr><td>Light Frame</td><td>test</td><td>200</td></tr>
+<tr><td>(no IMAGETYP)</td><td>test</td><td>1</td></tr>
+</table>
+<p class="sub">The archive holds <b>0</b> canonical
+calibration frames.  Per camera:</p>
+<table class="data">
+<tr><th>camera</th><th>science frames</th><th>science nights</th><th>bias</th><th>dark</th><th>flat</th><th>flat pairs</th><th>nights with a pair</th><th>max exposure levels with a pair in one night</th><th>science frames with CALSTAT</th><th>calibrated series-nights / series-nights</th></tr>
+<tr class="warn"><td>FLI PL16803</td><td>7,840</td><td>67</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0 / 1,006</td></tr>
+<tr class="warn"><td>Apogee F47</td><td>13,588</td><td>41</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0 / 2,191</td></tr>
+<tr class="warn"><td>KAF-6303 camera (model not in header)</td><td>9,001</td><td>47</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0 / 2,459</td></tr>
+<tr class="warn"><td>SBIG 6303e</td><td>22,392</td><td>125</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0 / 6,554</td></tr>
+<tr class="warn"><td>SBIG STXL-6303</td><td>27,351</td><td>247</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>24,877</td><td>0 / 8,699</td></tr>
+<tr class="warn"><td>CCD42-40 camera (model not in header)</td><td>10,017</td><td>91</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>9,103</td><td>0 / 1,529</td></tr>
+<tr class="warn"><td>Andor Aspen CG42</td><td>14,461</td><td>103</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0 / 10,569</td></tr>
+<tr class="warn"><td>Andor iKon-L 936</td><td>46,588</td><td>230</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>43,750</td><td>0 / 14,809</td></tr>
+<tr class="warn"><td>SBIG Aluma AC4040</td><td>8,404</td><td>135</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>7,910</td><td>0 / 2,009</td></tr>
+</table>
+<figure><a href="figures/legacy/legacy_calibration.png"><img src="figures/legacy/legacy_calibration.png" alt=""></a><figcaption>One lane per camera: science nights (grey ticks) and the nights on which bias, dark or flat frames exist in the archive.</figcaption></figure>
+<p class="sub"><b>No bias, dark or flat frame was found in the archive.</b></p>
+<p class="sub">In-place calibration.  The scheduler stamps
+<code>CALSTAT</code> (B, D, F) when it applies bias/dark/flat to a frame
+and overwrites it.  Science frames by <code>CALSTAT</code>:
+<code>BDF</code> &times; 77,730, <code>(none)</code> &times; 74,002, <code>DF</code> &times; 7,910.
+A frame with <code>CALSTAT</code> set is a reduced product whose raw
+original and master frames may not be in this archive.</p>
+
+<h3>Decision</h3>
+<div class="decision"><b>Calibration availability is reported as counted,
+and no gain is asserted.</b>  The pre-registered &ldquo;calibrated
+night&rdquo; (a same-filter flat and a bias or dark on the same camera and
+binning within &plusmn;30 nights, as frames in the
+archive) is met by at most 0 nights of any one series.  Flat
+pairs exist only where the table shows them; where it shows none, the
+camera's gain cannot be measured from this archive and the header
+<code>EGAIN</code> is a manufacturer's number.</div>
+
+<h3>Consequence</h3>
+<p class="sub">For cameras with no calibration frames the only route to
+calibrated photometry is frames the scheduler already calibrated
+(<code>CALSTAT</code>), with masters that cannot be audited &mdash; fine
+for differential timing, not for a calibrated flux series.  The request to
+the site for the server's <code>calibrations/</code> trees (synthesis
+&sect;6) covers exactly this gap.</p>
+</div></section>
+<section id="eclipsers">
+<div class="bhead"><h2>8b &middot; Eclipsing and contact systems</h2>
+<span class="tag">minima in &ge; 3 seasons &mdash; the physicist's criterion</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">A period change of 10<sup>&minus;7</sup>&nbsp;d&nbsp;yr<sup>&minus;1</sup>
+accumulates about seven minutes of O&minus;C in ten years, which
+one-minute timings detect.  How many systems in the archive have eclipse
+minima observed in at least 3 seasons?</p>
+
+<h3>Evidence</h3>
+<p class="sub">2,065 legacy targets (those with &ge;
+2 nights or a run &ge;
+1.0&nbsp;h) were cone-matched against VSX
+(<code>B/vsx/vsx</code>, queried
+2026-10-03);
+668 have a VSX counterpart, of which 98 are eclipsing or
+contact binaries (GCVS classes E, EA, EB, EW, EC) and 52 are
+planet-transit hosts (EP), listed separately.  A night is
+<i>minimum-bearing</i> if a run is at least P/2 long (a minimum is then
+certain whatever the ephemeris) or contains a predicted minimum with
+30&nbsp;min of data on each side (ephemeris-dependent).</p>
+<table class="data">
+<tr><th>seasons with a minimum-bearing night</th><th>systems</th><th>of which ≥ 3 seasons by run ≥ P/2 alone</th><th>of which ≥ 3 seasons by prediction alone</th></tr>
+<tr><td>4</td><td>3</td><td>3</td><td>3</td></tr>
+<tr><td>3</td><td>1</td><td>1</td><td>1</td></tr>
+<tr><td>2</td><td>2</td><td>0</td><td>0</td></tr>
+<tr><td>1</td><td>23</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>69</td><td>0</td><td>0</td></tr>
+</table>
+<figure><a href="figures/legacy/legacy_eclipsers.png"><img src="figures/legacy/legacy_eclipsers.png" alt=""></a><figcaption>The eclipsing systems with at least one minimum-bearing night, ordered by seasons covered.  Filled blue: a run ≥ P/2.  Open orange: only a predicted minimum inside the run.  Grey: other nights on the target.</figcaption></figure>
+<p class="sub">29 systems have at least one minimum-bearing
+night; the first 40 by seasons:</p>
+<table class="data">
+<tr><th>target</th><th>VSX name</th><th>type</th><th>P (d)</th><th>match</th><th>sep (″)</th><th>nights</th><th>seasons observed</th><th>nights run ≥ P/2</th><th>nights predicted min</th><th>seasons (run ≥ P/2)</th><th>seasons (predicted)</th><th>seasons (union)</th><th>first</th><th>last</th><th>filters</th></tr>
+<tr class="ok"><td>HS0705+6700</td><td>V0470 Cam</td><td>EA/HW</td><td>0.0956</td><td>position</td><td>0.3</td><td>56</td><td>4</td><td>52</td><td>50</td><td>3</td><td>4</td><td>4</td><td>2017-10-23</td><td>2021-02-28</td><td>Lum (3,898), r (1,069), clear (32)</td></tr>
+<tr class="ok"><td>HW Vir</td><td>HW Vir</td><td>EA/HW</td><td>0.1167</td><td>name</td><td>1.7</td><td>61</td><td>5</td><td>47</td><td>42</td><td>4</td><td>4</td><td>4</td><td>2018-12-18</td><td>2022-01-04</td><td>r (7,015), slot G (493), slot L (52)</td></tr>
+<tr class="ok"><td>NY Vir</td><td>NY Vir</td><td>EA/HW+V361HYA</td><td>0.1010</td><td>name</td><td>2.4</td><td>55</td><td>5</td><td>29</td><td>24</td><td>4</td><td>3</td><td>4</td><td>2018-01-22</td><td>2022-02-24</td><td>r (5,086), g (1,212), slot L (622), slot R (180), clear (153)</td></tr>
+<tr class="ok"><td>HS2231+2441</td><td>HS 2231+2441</td><td>EA/HW</td><td>0.1106</td><td>name</td><td>1.1</td><td>54</td><td>3</td><td>47</td><td>38</td><td>3</td><td>3</td><td>3</td><td>2018-12-18</td><td>2020-10-30</td><td>Lum (2,713), r (1,314)</td></tr>
+<tr><td>NSVS 14256825</td><td>V1828 Aql</td><td>EA/HW</td><td>0.1104</td><td>position</td><td>0.3</td><td>18</td><td>3</td><td>8</td><td>7</td><td>2</td><td>2</td><td>2</td><td>2018-10-25</td><td>2022-10-26</td><td>r (1,236), slot V (205)</td></tr>
+<tr><td>NN Ser</td><td>NN Ser</td><td>EA/WD</td><td>0.1301</td><td>name</td><td>2.9</td><td>14</td><td>2</td><td>7</td><td>6</td><td>2</td><td>2</td><td>2</td><td>2015-03-14</td><td>2018-04-23</td><td>clear (496), r (353), g (74)</td></tr>
+<tr><td>QS Vir</td><td>QS Vir</td><td>EA+UV</td><td>0.1508</td><td>name</td><td>1.2</td><td>19</td><td>2</td><td>17</td><td>17</td><td>1</td><td>1</td><td>1</td><td>2019-05-25</td><td>2019-06-27</td><td>Lum (2,910), r (824), slot L (38)</td></tr>
+<tr><td>TYC355635681</td><td>ASAS J193833+4604.0</td><td>EA/HW+V361HYA</td><td>0.1258</td><td>position</td><td>0.4</td><td>9</td><td>1</td><td>9</td><td>8</td><td>1</td><td>1</td><td>1</td><td>2018-12-22</td><td>2019-05-01</td><td>r (850), g (360)</td></tr>
+<tr><td>QW BOO</td><td>QW Boo</td><td>EW</td><td>0.2909</td><td>name</td><td>0.2</td><td>7</td><td>1</td><td>2</td><td>6</td><td>1</td><td>1</td><td>1</td><td>2018-03-16</td><td>2018-04-02</td><td>r (404)</td></tr>
+<tr><td>RW Com</td><td>RW Com</td><td>EW/KW</td><td>0.2373</td><td>name</td><td>9.7</td><td>3</td><td>1</td><td>2</td><td>3</td><td>1</td><td>1</td><td>1</td><td>2015-03-23</td><td>2015-04-15</td><td>R (267), B (4), V (2)</td></tr>
+<tr><td>TU Boo</td><td>TU Boo</td><td>EW/KW</td><td>0.3243</td><td>name</td><td>10.3</td><td>3</td><td>1</td><td>3</td><td>2</td><td>1</td><td>1</td><td>1</td><td>2015-03-09</td><td>2015-03-31</td><td>R (225)</td></tr>
+<tr><td>XY Leo</td><td>XY Leo</td><td>EW/KW</td><td>0.2841</td><td>name</td><td>5.1</td><td>4</td><td>1</td><td>2</td><td>3</td><td>1</td><td>1</td><td>1</td><td>2015-02-24</td><td>2015-03-31</td><td>R (231)</td></tr>
+<tr><td>HS0705+67</td><td>V0470 Cam</td><td>EA/HW</td><td>0.0956</td><td>position</td><td>0.8</td><td>2</td><td>1</td><td>2</td><td>2</td><td>1</td><td>1</td><td>1</td><td>2022-02-08</td><td>2022-02-09</td><td>slot G (216), slot R (216)</td></tr>
+<tr><td>QX BOO</td><td>QX Boo</td><td>EW</td><td>0.3605</td><td>name</td><td>0.3</td><td>3</td><td>1</td><td>1</td><td>2</td><td>1</td><td>1</td><td>1</td><td>2018-03-16</td><td>2018-03-17</td><td>r (74)</td></tr>
+<tr><td>QY BOO</td><td>QY Boo</td><td>EW</td><td>0.3419</td><td>name</td><td>0.4</td><td>6</td><td>1</td><td>2</td><td>2</td><td>1</td><td>1</td><td>1</td><td>2018-03-16</td><td>2018-03-17</td><td>r (304)</td></tr>
+<tr><td>V339 BOO</td><td>V0339 Boo</td><td>EW</td><td>0.3628</td><td>position</td><td>0.4</td><td>4</td><td>1</td><td>1</td><td>2</td><td>1</td><td>1</td><td>1</td><td>2018-03-16</td><td>2018-03-17</td><td>r (124)</td></tr>
+<tr><td>AD Cnc</td><td>AD Cnc</td><td>EW/KW</td><td>0.2827</td><td>name</td><td>15.8</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>2015-03-24</td><td>2015-03-24</td><td>R (28)</td></tr>
+<tr><td>AU Ser</td><td>AU Ser</td><td>EW</td><td>0.3865</td><td>name</td><td>21.1</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>2015-03-31</td><td>2015-03-31</td><td>R (74)</td></tr>
+<tr><td>BI CVn</td><td>BI CVn</td><td>EW/KW</td><td>0.3842</td><td>name</td><td>0.3</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>2015-03-31</td><td>2015-03-31</td><td>R (100)</td></tr>
+<tr><td>BW Dra</td><td>BW Dra</td><td>EW/KW</td><td>0.2922</td><td>name</td><td>9.2</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>2015-03-22</td><td>2015-03-22</td><td>R (97)</td></tr>
+<tr><td>CC Com</td><td>CC Com</td><td>EW</td><td>0.2207</td><td>name</td><td>6.2</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>2015-03-20</td><td>2015-03-20</td><td>R (95)</td></tr>
+<tr><td>EK Com</td><td>EK Com</td><td>EW</td><td>0.2667</td><td>name</td><td>7.3</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>2015-03-09</td><td>2015-03-09</td><td>R (82)</td></tr>
+<tr><td>EPIC 201488365</td><td>FM Leo</td><td>EA</td><td>6.7286</td><td>position</td><td>0.6</td><td>8</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>2019-05-04</td><td>2019-05-04</td><td>B (71), g (71), r (71)</td></tr>
+<tr><td>LU CNC</td><td>LU Cnc</td><td>EW</td><td>0.3986</td><td>name</td><td>0.3</td><td>3</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>2018-03-06</td><td>2018-03-06</td><td>r (76)</td></tr>
+<tr><td>NX BOO</td><td>NX Boo</td><td>EW</td><td>0.2511</td><td>name</td><td>0.2</td><td>3</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>2018-04-17</td><td>2018-04-17</td><td>r (270)</td></tr>
+<tr><td>QQ BOO</td><td>QQ Boo</td><td>EW</td><td>0.2765</td><td>name</td><td>0.4</td><td>2</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>2018-05-02</td><td>2018-05-02</td><td>r (180)</td></tr>
+<tr><td>RT LMi</td><td>RT LMi</td><td>EW/KW</td><td>0.3749</td><td>name</td><td>4.9</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>2015-03-26</td><td>2015-03-26</td><td>R (94)</td></tr>
+<tr><td>RZ Com</td><td>RZ Com</td><td>EW/KW</td><td>0.3385</td><td>name</td><td>10.6</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>2015-03-21</td><td>2015-03-21</td><td>R (95)</td></tr>
+<tr><td>TY BOO</td><td>TY Boo</td><td>EW/KW</td><td>0.3171</td><td>name</td><td>0.4</td><td>4</td><td>2</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>2015-03-23</td><td>2015-03-23</td><td>r (270), R (84)</td></tr>
+</table>
+<p class="sub">Of the 4 systems at or above
+3 seasons, 1 were matched to VSX by
+position only (the legacy name did not normalise to the VSX name).
+Minimum-bearing nights by camera and year &mdash; the nights a per-season
+clock measurement (O&minus;C within 60&nbsp;s of the literature) could be
+made on:</p>
+<table class="data">
+<tr><th>camera</th><th>year</th><th>systems</th><th>minimum-bearing nights</th></tr>
+<tr><td>FLI PL16803</td><td>2015</td><td>13</td><td>15</td></tr>
+<tr><td>SBIG STXL-6303</td><td>2017</td><td>1</td><td>1</td></tr>
+<tr><td>Andor iKon-L 936</td><td>2018</td><td>13</td><td>27</td></tr>
+<tr><td>SBIG STXL-6303</td><td>2018</td><td>1</td><td>7</td></tr>
+<tr><td>Andor iKon-L 936</td><td>2019</td><td>6</td><td>33</td></tr>
+<tr><td>CCD42-40 camera (model not in header)</td><td>2019</td><td>3</td><td>23</td></tr>
+<tr><td>SBIG STXL-6303</td><td>2020</td><td>3</td><td>66</td></tr>
+<tr><td>SBIG STXL-6303</td><td>2021</td><td>3</td><td>13</td></tr>
+<tr><td>SBIG Aluma AC4040</td><td>2022</td><td>4</td><td>14</td></tr>
+</table>
+<p class="sub">Planet-transit hosts (not counted by G1; relevant to the
+shared clock test F-8, which wants archived transits per era):</p>
+<table class="data">
+<tr><th>target</th><th>VSX name</th><th>P (d)</th><th>nights</th><th>seasons</th><th>nights with a predicted event or run ≥ P/2</th><th>seasons with one</th><th>filters</th><th>cameras</th></tr>
+<tr><td>Wasp43b</td><td>WASP-43</td><td>0.8135</td><td>8</td><td>1</td><td>7</td><td>1</td><td>Red (1,311)</td><td>KAF-6303 camera (model not in header) (1,137), SBIG 6303e (174)</td></tr>
+<tr><td>WASP-50b</td><td>WASP-50</td><td>1.9551</td><td>6</td><td>3</td><td>4</td><td>2</td><td>Red (1,024), r (70)</td><td>SBIG 6303e (869), Apogee F47 (155), SBIG STXL-6303 (70)</td></tr>
+<tr><td>HatP36b</td><td>HAT-P-36</td><td>1.3273</td><td>5</td><td>1</td><td>3</td><td>1</td><td>Red (558), g (366)</td><td>SBIG 6303e (723), KAF-6303 camera (model not in header) (201)</td></tr>
+<tr><td>WASP-33 b</td><td>V0807 And</td><td>1.2199</td><td>3</td><td>2</td><td>3</td><td>2</td><td>Red (510), g (140)</td><td>SBIG 6303e (510), SBIG STXL-6303 (140)</td></tr>
+<tr><td>WASP-36 b</td><td>WASP-36</td><td>1.5374</td><td>3</td><td>2</td><td>3</td><td>2</td><td>r (500)</td><td>Andor iKon-L 936 (425), SBIG STXL-6303 (75)</td></tr>
+<tr><td>WASP10b</td><td>WASP-10</td><td>3.0928</td><td>3</td><td>1</td><td>3</td><td>1</td><td>Red (1,041)</td><td>Apogee F47 (1,041)</td></tr>
+<tr><td>Wasp36b</td><td>WASP-36</td><td>1.5374</td><td>3</td><td>1</td><td>2</td><td>1</td><td>Red (281), g (99)</td><td>KAF-6303 camera (model not in header) (281), SBIG 6303e (99)</td></tr>
+<tr><td>HAT-P-20 b</td><td>HAT-P-20</td><td>2.8753</td><td>2</td><td>2</td><td>2</td><td>2</td><td>r (326)</td><td>Andor iKon-L 936 (250), SBIG STXL-6303 (76)</td></tr>
+<tr><td>HATP32b</td><td>HAT-P-32</td><td>2.1500</td><td>2</td><td>1</td><td>2</td><td>1</td><td>Red (676)</td><td>Apogee F47 (676)</td></tr>
+<tr><td>WASP-10b</td><td>WASP-10</td><td>3.0928</td><td>2</td><td>2</td><td>2</td><td>2</td><td>Red (507)</td><td>Apogee F47 (292), SBIG 6303e (215)</td></tr>
+<tr><td>WASP-11b</td><td>WASP-11</td><td>3.7225</td><td>2</td><td>2</td><td>2</td><td>2</td><td>Red (352), r (125)</td><td>SBIG 6303e (352), Andor iKon-L 936 (125)</td></tr>
+<tr><td>Wasp-1 b</td><td>WASP-1</td><td>2.5199</td><td>2</td><td>2</td><td>2</td><td>2</td><td>r (100), Red (98)</td><td>Andor iKon-L 936 (100), SBIG 6303e (98)</td></tr>
+<tr><td>WASP-52b</td><td>WASP-52</td><td>1.7498</td><td>2</td><td>1</td><td>2</td><td>1</td><td>Red (356)</td><td>SBIG 6303e (356)</td></tr>
+<tr><td>Wasp12b</td><td>WASP-12</td><td>1.0914</td><td>2</td><td>1</td><td>2</td><td>1</td><td>Red (610)</td><td>KAF-6303 camera (model not in header) (610)</td></tr>
+<tr><td>TrES-3b</td><td>V1434 Her</td><td>1.3062</td><td>3</td><td>2</td><td>1</td><td>1</td><td>r (140), Blue (3)</td><td>Andor iKon-L 936 (140), KAF-6303 camera (model not in header) (3)</td></tr>
+<tr><td>HAT-P-32</td><td>HAT-P-32</td><td>2.1500</td><td>2</td><td>1</td><td>1</td><td>1</td><td>Red (351), grism (1), clear (1)</td><td>SBIG 6303e (353)</td></tr>
+<tr><td>EPIC-2</td><td>EPIC 210957318</td><td>4.0985</td><td>1</td><td>1</td><td>1</td><td>1</td><td>r (157)</td><td>SBIG STXL-6303 (157)</td></tr>
+<tr><td>EPIC-210957318 b</td><td>EPIC 210957318</td><td>4.0985</td><td>1</td><td>1</td><td>1</td><td>1</td><td>r (150)</td><td>Andor iKon-L 936 (150)</td></tr>
+<tr><td>Hat-6b</td><td>HATS-6</td><td>3.3253</td><td>1</td><td>1</td><td>1</td><td>1</td><td>Red (56)</td><td>SBIG 6303e (56)</td></tr>
+<tr><td>HAT-P-18</td><td>HAT-P-18</td><td>5.5080</td><td>1</td><td>1</td><td>1</td><td>1</td><td>slot B (142)</td><td>SBIG Aluma AC4040 (142)</td></tr>
+<tr><td>HAT-P-28 b</td><td>HAT-P-28</td><td>3.2572</td><td>1</td><td>1</td><td>1</td><td>1</td><td>Red (142)</td><td>SBIG 6303e (142)</td></tr>
+<tr><td>HAT-P-32 b</td><td>HAT-P-32</td><td>2.1500</td><td>1</td><td>1</td><td>1</td><td>1</td><td>Red (206)</td><td>SBIG 6303e (206)</td></tr>
+<tr><td>HAT-P-44b</td><td>HAT-P-44</td><td>4.3012</td><td>1</td><td>1</td><td>1</td><td>1</td><td>r (200)</td><td>Andor iKon-L 936 (200)</td></tr>
+<tr><td>HAT-P-54 b</td><td>HAT-P-54</td><td>3.7999</td><td>1</td><td>1</td><td>1</td><td>1</td><td>Red (62)</td><td>SBIG 6303e (62)</td></tr>
+<tr><td>HatP43b</td><td>HAT-P-43</td><td>3.3327</td><td>1</td><td>1</td><td>1</td><td>1</td><td>Red (311)</td><td>KAF-6303 camera (model not in header) (311)</td></tr>
+</table>
+
+<h3>Decision</h3>
+<div class="decision"><b>The count the physicist asked for is
+4 systems with minimum-bearing nights in &ge;
+3 seasons.</b>  It is a count of nights on which a
+minimum <i>should be in the data</i>; no minimum has been measured, no
+light curve inspected, and the clause-(b) nights inherit the catalogue
+ephemeris error.</div>
+
+<h3>Consequence</h3>
+<p class="sub">Whether a timing paper exists depends on photometry that
+has not been done: are the minima actually sampled, unsaturated, with a
+usable comparison star &mdash; and is the clock right to a minute in each
+season (section 5).</p>
+</div></section>
+<section id="gates">
+<div class="bhead"><h2>9 &middot; The pre-registered rule, applied</h2>
+<span class="tag">NOT DECIDABLE — fix the census</span></div>
+
+<div class="stage"><h3>Question</h3>
+<p class="sub">Section 0 fixed what would count.  Does the archive
+deliver it?</p>
+
+<h3>Evidence</h3>
+<table class="data">
+<tr><th>gate</th><th>clause</th><th>value</th><th>threshold</th><th>result</th><th>detail</th></tr>
+<tr><td>G0</td><td>files-on-disk = rows + named exclusions (both identities)</td><td>file residual 0, manifest residual 0</td><td>0 and 0</td><td><span class="ok">PASS</span></td><td></td></tr>
+<tr><td>G0</td><td>camera/mechanical timeline with first/last night per camera</td><td>17 stints, 9 cameras</td><td>exists</td><td><span class="ok">PASS</span></td><td></td></tr>
+<tr><td>G0</td><td>time convention: JD card within 2 s of DATE-OBS on ≥ 99% (contributing camera epochs)</td><td>6 of 6 epochs</td><td>all</td><td><span class="ok">PASS</span></td><td></td></tr>
+<tr><td>G0</td><td>time convention: DATE-OBS identified as exposure START by the overlap test (contributing camera epochs)</td><td>4 of 6 epochs</td><td>all</td><td><span class="bad">FAIL</span></td><td>SBIG STXL-6303 / MaxIm DL 6.11: start of exposure; Andor iKon-L 936 / MaxIm DL 6.11: start of exposure; CCD42-40 camera (model not in header) / MaxIm DL 6.10: start of exposure; SBIG STXL-6303 / MaxIm DL 6.21: start of exposure; SBIG Aluma AC4040 / MaxIm DL 6.29: MIDDLE of exposure; SBIG Aluma AC4040 / MaxIm DL 6.30: MIDDLE of exposure</td></tr>
+<tr><td>G0</td><td>time convention: DATE-OBS is UTC (|median LST residual| &lt; 60 s; contributing camera epochs)</td><td>6 of 6 epochs</td><td>all</td><td><span class="ok">PASS</span></td><td></td></tr>
+<tr><td>G0</td><td>no duplicate timestamps within contributing series</td><td>0</td><td>0</td><td><span class="ok">PASS</span></td><td></td></tr>
+<tr><td>G0</td><td>no overlapping (non-monotonic) timestamps within contributing series</td><td>0</td><td>0</td><td><span class="ok">PASS</span></td><td>an overlap is the signature of a stamp that is not the start</td></tr>
+<tr><td>G0'</td><td>ALTERNATIVE READING: DATE-OBS convention IDENTIFIED (start or middle, two independent tests agreeing) for every contributing camera epoch</td><td>6 of 6 epochs</td><td>all</td><td><span class="ok">PASS</span></td><td>the pre-registered sentence reads 'identifies what DATE-OBS means (start of exposure, UTC)'</td></tr>
+<tr><td>G1</td><td>eclipsing systems with minimum-bearing nights in ≥ 3 seasons (union of clauses a, b)</td><td>4</td><td>≥ 3</td><td><span class="ok">PASS</span></td><td>clause (a) run ≥ P/2 alone: 4; clause (b) predicted minimum alone: 4; wider reading incl. planet transits: 4</td></tr>
+<tr><td>G1*</td><td>AMENDED: G1 re-evaluated without runs from camera epochs that fail the time-convention clause</td><td>4</td><td>≥ 3</td><td><span class="ok">PASS</span></td><td>excluded epochs: SBIG Aluma AC4040 / MaxIm DL 6.29; SBIG Aluma AC4040 / MaxIm DL 6.30; systems: HS0705+6700, HS2231+2441, HW Vir, NY Vir</td></tr>
+<tr><td>G2</td><td>RLMT-era target series with ≥ 10 nights over ≥ 2 seasons in a tieable filter (timing targets: + a run ≥ 1 h)</td><td>0</td><td>≥ 1</td><td><span class="bad">FAIL</span></td><td>targets: none — conditional on a pixel saturation test (standing rule 4)</td></tr>
+<tr><td>G3</td><td>series with ≥ 30 calibrated nights</td><td>0</td><td>≥ 1</td><td><span class="bad">FAIL</span></td><td>largest: (379)huenna / Visual / Andor Aspen CG42 = 0 calibrated of 1 nights</td></tr>
+<tr><td>G3</td><td>passing targets with a named question and reader</td><td>0</td><td>≥ 1 for a go under G3</td><td><span class="muted">not evaluated</span></td><td>G3_NAMED_QUESTIONS is empty by design; naming is a human decision</td></tr>
+</table>
+<p class="sub">Summary: G0 <span class="bad">FAIL</span> &middot;
+G1 <span class="ok">PASS</span> &middot;
+G2 <span class="bad">FAIL</span> &middot;
+G3 <span class="bad">FAIL</span>.</p>
+
+<h3>Decision</h3>
+<div class="decision"><b>Outcome as written: NOT DECIDABLE — fix the census.</b><br>
+<b>The rule cannot be applied yet</b>: a validity clause fails or an input table is absent.  Nothing below is a go.<br><b>Second reading of G0 (row G0&prime;): GO-CANDIDATE.</b>  The pre-registered sentence asks that the header audit &lsquo;identifies what DATE-OBS means (start of exposure, UTC)&rsquo;; the code required the start.  Read as &lsquo;the meaning is identified&rsquo;, G0 holds, because the AC4040's mid-exposure stamp is identified by two independent tests (and, section 5b, by the eclipses).<br><b>Amended reading (a deviation, reported beside the written one as pre-registration &sect;5 requires): GO-CANDIDATE.</b>  G0 fails only because camera epochs that feed G1 do not stamp the exposure start (SBIG Aluma AC4040 / MaxIm DL 6.29; SBIG Aluma AC4040 / MaxIm DL 6.30).  &ldquo;Fix the census&rdquo; has an obvious meaning here: drop the runs from those epochs and re-evaluate.  Row G1* does that; systems still passing: HS0705+6700, HS2231+2441, HW Vir, NY Vir.  Under that reading rule 4 applies &mdash; GO-CANDIDATE, with the named question, reader and venue of Q1 (period change from eclipse timings; ephemeris maintainers and eclipse-timing observers; JAAVSO/OEJV class).  It is a recommendation to commission a strategy, not a commitment; the decision is James's and must not compete with T&nbsp;CrB this autumn.  Before any strategy is written, a literature and novelty check on the passing systems comes first (the rule the committee set for the Be stars, U9): eclipse timing of short-period eclipsing binaries is an active field, and nights in this archive may already be published.</div>
+
+<h3>Consequence</h3>
+<p class="sub">This is a recommendation produced by a rule, not a
+commitment.  What the census cannot see is listed where it matters:
+saturation and comparison stars (pixels), the absolute clock (a measured
+event per season), gain (flat pairs).  Each of those is a short, bounded
+test on the specific nights the tables above name.</p>
+</div></section>
+
+<footer>Generated by <code>macro_legacy.report</code> from
+<code>products/legacy/legacy.sqlite</code> — every number on this page is
+the result of a SQL query; none is typed by hand.  Regenerate with
+<code>pipeline/scripts/build_legacy_census.py</code>.  This page is a
+census of headers: no pixel was opened.</footer>
+<!--/MACRO-SITE:CONTENT-->
+
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v2.0 (2026-10-03)), the provenance DAG (<code>macro_core.provenance</code>, P v1.1 (2026-10-03)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+</div>
+</div>
+</body></html>

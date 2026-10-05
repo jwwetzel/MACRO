@@ -580,9 +580,14 @@ def test_the_g_stage_command_actually_extracts():
     command must carry an action flag.
     """
     cmd = pv.STAGE_BY_KEY["G"].build_cmd
-    assert "run_g_tcrb_validation.py" in cmd
-    assert "--all" in cmd or "--run" in cmd, \
+    # v2 (2026-10-05): extraction is run_g_reduce.py (every frame into the
+    # spectrum cache) and run_g_dispersion.py --extract (calibrators); the
+    # validation runner must carry its producing flags.
+    assert "run_g_reduce.py --sample" in cmd, \
         "G's command performs no extraction; recording it would be a lie"
+    assert "run_g_dispersion.py" in cmd and "--solve" in cmd
+    for flag in ("--zero", "--gate", "--ew"):
+        assert flag in cmd
 
 
 def test_multi_command_stages_emit_every_command_they_need():
@@ -654,9 +659,6 @@ UNDECLARED_ON_PURPOSE: dict[str, str] = {
         "PARKED_partial_work.patch); no published number reads it",
     "products/grism/manifest_snapshot.sqlite":
         "a read-only snapshot the parked grism package took of the manifest",
-    "products/legacy/legacy.sqlite":
-        "the legacy census is unfinished and unpublished (its draft page is "
-        "parked in committee/work/legacy/)",
 }
 
 

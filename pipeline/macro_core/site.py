@@ -944,8 +944,7 @@ class Build:
         pdf, tex = folder / "main.pdf", folder / "main.tex"
         if not (pdf.exists() and tex.exists()):
             return ""
-        sections = tex_sections(tex.read_text(encoding="utf-8",
-                                              errors="replace"))
+        sections = tex_sections(manuscript_text(folder))
         return (f"manuscripts/{area.key}/main.pdf"
                 if any(s.written for s in sections) else "")
 
@@ -1393,6 +1392,35 @@ def _tex_clean(text: str) -> str:
     return text.replace("~", " ").replace("{", "").replace("}", "").strip()
 
 
+_TEX_INPUT_RE = re.compile(r"\\(?:input|include)\{([^}]+)\}")
+
+
+def manuscript_text(folder: Path, name: str = "main.tex",
+                    _depth: int = 0) -> str:
+    """A manuscript's full source with every ``\\input``/``\\include``
+    expanded in place.
+
+    Two drafts were invisible to :func:`tex_sections` until this existed:
+    T CrB keeps its prose in ``body.tex`` behind ``\\input{body}``, so the
+    1.8 kB ``main.tex`` looked like a skeleton.  Files that do not exist
+    (e.g. a generated table not yet built) are left as the command.
+    """
+    path = folder / name
+    if not path.exists() or _depth > 8:
+        return ""
+    text = path.read_text(encoding="utf-8", errors="replace")
+
+    def _expand(match: "re.Match[str]") -> str:
+        target = match.group(1).strip()
+        target = target if target.endswith(".tex") else target + ".tex"
+        child = folder / target
+        if not child.exists():
+            return match.group(0)
+        return manuscript_text(folder, target, _depth + 1)
+
+    return _TEX_INPUT_RE.sub(_expand, text)
+
+
 def tex_sections(tex: str) -> list[TexSection]:
     """The manuscript's sections, in order, each with its prose length.
 
@@ -1414,6 +1442,15 @@ def tex_sections(tex: str) -> list[TexSection]:
         if end_matter:
             chunk = chunk[:end_matter.start()]
         matches = list(_TEX_SECTION_RE.finditer(chunk))
+        if not matches and not is_app and "\\begin{document}" in chunk:
+            # A section-less note (an RNAAS research note has no
+            # \\section at all) is one section of prose: the document body.
+            prose = chunk.split("\\begin{document}", 1)[1]
+            prose = _TEX_COMMENT_RE.sub("", prose)
+            prose = _TEX_COMMAND_RE.sub(" ", prose)
+            out.append(TexSection("Text", False,
+                                  len(" ".join(prose.split()))))
+            continue
         for i, match in enumerate(matches):
             start = match.end()
             end = matches[i + 1].start() if i + 1 < len(matches) else len(chunk)

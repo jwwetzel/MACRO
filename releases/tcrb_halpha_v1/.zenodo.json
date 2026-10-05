@@ -1,0 +1,28 @@
+{
+  "title": "T CrB: RLMT slitless-grism H-alpha spectra and equivalent widths, 2025 February-June (MACRO Consortium release)",
+  "upload_type": "dataset",
+  "description": "Reduced 1-D slitless-grism spectra of the recurrent nova T CrB from the 0.5 m Robert L. Mutel Telescope, their H-alpha equivalent widths per frame and per night, line flux against orbital phase, the same-date ARAS cross-validation, and the archival 2024 B anchors. See README.md.",
+  "creators": [
+    {
+      "name": "Wetzel, James",
+      "affiliation": "Coe College"
+    }
+  ],
+  "license": "cc-by-4.0",
+  "keywords": [
+    "T CrB",
+    "recurrent nova",
+    "H-alpha",
+    "slitless spectroscopy",
+    "MACRO Consortium",
+    "RLMT"
+  ],
+  "notes": "Released on behalf of the MACRO Consortium. Code: pipeline/macro_tcrb, pipeline/scripts/run_tcrb.py.",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/jwwetzel/MACRO",
+      "relation": "isSupplementedBy",
+      "resource_type": "software"
+    }
+  ]
+}

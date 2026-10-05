@@ -1,63 +1,65 @@
-"""Per-frame self-anchored wavelength solution for the grism track.
+"""Wavelength scale of a science frame: FIXED dispersion, per-frame zero
+point (committee rulings U2 / G-1; findings OA.E1, PH.P7, TE.F3).
 
-There is no arc lamp and no absolute flux in season 1 — the wavelength
-scale must come from the spectra themselves.  Anchors, in order of trust:
+WHAT THIS MODULE USED TO DO, AND WHY IT WAS WITHDRAWN
+-----------------------------------------------------
+Version 1 solved a wavelength scale per frame from the frame itself: find
+Halpha, find a PAIR of telluric dips whose offsets sit in the O2 A/B
+lever ratio (3.387), read the dispersion off the pair.  Three reviewers
+independently showed the stored results were not measurements of a
+physical quantity: accepted T CrB frames carried dispersions from -1.8 to
++2.0 A/px on one grism, bimodal at 0.46 and 1.59 — the ratio of the two
+modes being exactly 3.39.  On an M giant, TiO band heads supply decoy
+dips at every spacing, and the pair test is satisfied by (TiO 6651, O2-B)
+as readily as by (O2-B, O2-A).  A grism at a fixed distance from a
+detector has ONE dispersion and ONE sign until someone moves the camera.
 
-1. **Halpha emission** (6562.8 A).  T CrB is a symbiotic recurrent nova:
-   its Halpha emission is the strongest sharp feature on every validation
-   frame (hrg peak SNR >> 10).  Its pixel position anchors the zero point
-   of the solution frame by frame — which also makes the anchor immune to
-   flexure between frames.
-2. **The telluric O2 PAIR** (B band 6867.2 A, A band 7593.7 A).  The
-   atmosphere imprints both at fixed wavelengths on every spectrum, so
-   their pixel offsets from Halpha must sit in the exact ratio
-   (7593.7-6562.8)/(6867.2-6562.8) = 3.387 — and that ratio is the
-   identification test.  The validation run PROVED a single-dip search is
-   ambiguous: the deepest dip near Halpha on the hrg frames (at +650 px)
-   was first read as O2-B (implying 0.47 A/px), but every high-SNR frame
-   shows a second dip at +193 px, and 654/193 = 3.39 — the +650 dip is
-   O2-A, the +193 dip is O2-B, and the true hrg dispersion is ~1.59 A/px.
-   A decoy dip has no partner at the exact ratio on the same side, so the
-   PAIR is required before any dispersion is claimed; the A band (3.4x
-   the lever arm) supplies the number.  The per-(grism) median across
-   pair-anchored frames is the adopted fallback, its robust scatter the
-   honest uncertainty.
-3. Frames where only Halpha is found get the per-grism FALLBACK dispersion
-   with anchor_status = 'halpha_only'; frames with neither anchor get
-   'none' and NO wavelength column — an unanchored scale is worse than an
-   absent one.
+WHAT IT DOES NOW
+----------------
+* The dispersion comes from ``g_dispersion``: one row per (grism,
+  mechanical epoch), solved on hot stars by ``run_g_dispersion.py``.
+  The scale is a polynomial in DETECTOR position (an optical distortion
+  of the grism-camera pair, the same for every star); this module never
+  fits a dispersion.
+* Per frame it measures exactly one number: the ZERO POINT — the pixel of
+  Halpha.  For an emission-line target that is the centroid of the Halpha
+  emission; for an absorption-line star, of the absorption core.
+* It then performs one CHECK, which is not allowed to change anything:
+  the blue edge of the telluric O2 B band must sit at the separation from
+  Halpha that the fixed solution predicts.  The measured separation is
+  stored per frame; its constancy across a series is the acceptance test
+  of the whole scheme (G-1: constant to 1-2%).
 
-Direction convention: on the era-76 frames red runs toward +x for both
-grisms (established by the O2 pair landing redward of Halpha on the
-validation frames); the search is symmetric and records the sign it found,
-so a future grism mounted the other way round is measured, not assumed.
-
-Precision statement (the report quotes it): the anchors are pixel
-positions of extrema; their frame-to-frame scatter (in px, converted
-through the dispersion) IS the wavelength precision — nothing finer is
-claimed.
+A caveat that belongs in every paper using this: a zero point taken from
+the target's own Halpha puts the wavelength scale in the TARGET's rest
+frame for that line.  Velocities of Halpha itself are therefore zero by
+construction; only the separation to a telluric feature (the O2-B check
+here) carries velocity information, and it is limited by the edge-
+position error stored beside it.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
 
+from . import config as gconfig
+from . import linecal as lc
 from .trace import running_median
 
 # --------------------------------------------------------------------------
 # Tunable constants (single source of truth — the report quotes these).
 # --------------------------------------------------------------------------
 
-#: Rest wavelengths (Angstrom, air) of the anchors.
-HALPHA_A = 6562.8
-O2_B_A = 6867.2          # telluric O2 B band head
-O2_A_A = 7593.7          # telluric O2 A band head
+#: Rest wavelength (Angstrom, air) of the zero-point anchor.
+HALPHA_A = lc.HALPHA_A
 
-#: Continuum window for the running-median continuum estimate (px).  Wide
-#: enough that Halpha (FWHM ~20 px on hrg) does not lift its own
-#: continuum; narrow enough to follow the TiO band structure.
+#: Continuum window for the running-median continuum estimate (px) of the
+#: emission-peak SEARCH.  Wide enough that Halpha (FWHM up to ~25 px on a
+#: defocused night) does not lift its own continuum; narrow enough to
+#: follow the TiO band structure of an M giant.
 CONT_WIN = 151
 
 #: Emission peak acceptance: minimum SNR of the continuum-subtracted peak
@@ -68,56 +70,155 @@ PEAK_MIN_SNR = 8.0
 PEAK_MIN_WIDTH = 3
 PEAK_MAX_WIDTH = 80
 
-#: Telluric dip acceptance: minimum depth SNR for a dip to enter the
-#: pair search at all, and the minimum contiguous pixels below half the
-#: acceptance threshold (a one-pixel negative excursion is not a band).
-DIP_MIN_SNR = 5.0
-DIP_MIN_PIXELS = 2
+#: Half-window (px) of the Gaussian refinement of the Halpha centre, in
+#: units of the search FWHM (floor ``FIT_MIN_HALFWIN``).
+FIT_HALFWIN_FWHM = 2.5
+FIT_MIN_HALFWIN = 14
 
-#: The O2 identification ratio: (A-Halpha)/(B-Halpha) separations.  Both
-#: dips of a candidate pair must sit at this ratio from Halpha, within
-#: O2_RATIO_TOL (fractional) — the measured pairs on the validation
-#: frames hit it to 0.1-2%, and no plausible decoy (TiO band heads,
-#: artifacts) lands a partner at the exact ratio on the same side.
-O2_RATIO = (O2_A_A - HALPHA_A) / (O2_B_A - HALPHA_A)      # = 3.387
-O2_RATIO_TOL = 0.06
+#: O2-B check: how far from the predicted position the band edge may be
+#: looked for — a constant plus a fraction of the predicted separation —
+#: and the minimum depth for the edge to count as measured.  The window
+#: is deliberately generous (several per cent): the check must be able to
+#: FAIL, i.e. to report a separation that disagrees with the solution.
+O2B_SEARCH_PX = 8.0
+O2B_SEARCH_FRAC = 0.04
+O2B_MIN_DEPTH = 0.03
 
-#: Physical dispersion bracket (|A/px|) a candidate pair must imply.
-#: Measured on the validation frames: hrg ~1.59, lrg ~1.9-2.2; the
-#: bracket brackets both with margin without allowing absurd solutions.
-DISP_BRACKET_A_PER_PX = (0.3, 3.0)
-
-#: Columns to keep either side of Halpha in the stored spectrum snippet
-#: (the g_extractions quick-look; full spectra live in the FITS/parquet).
+#: Columns to keep either side of Halpha in the stored spectrum snippet.
 SNIPPET_HALFWIN = 150
 SNIPPET_STRIDE = 3
 
 
+# --------------------------------------------------------------------------
+# The fixed solution
+# --------------------------------------------------------------------------
+@dataclass(frozen=True)
+class Solution:
+    """One fixed dispersion solution (a row of ``g_dispersion``).
+
+    The scale is a polynomial in DETECTOR position,
+    lambda(x) = const + P(x), P(x) = sum_k coeffs[k-1] ((x - x_ref)/1000)^k
+    (see ``linecal.solve_dispersion`` for why it is tied to the detector
+    and not to the star).  A frame contributes only the constant, fixed
+    by the pixel of Halpha.  ``o2b_wave`` is the measured effective
+    wavelength of the O2-B blue edge on this scale (None if not
+    calibrated).
+    """
+    grism: str
+    mech_epoch: str
+    coeffs: tuple
+    x_ref: float
+    disp_ref: float              # signed A/px at x_ref
+    disp_err: float
+    rms_px: Optional[float]
+    o2b_wave: Optional[float]
+    status: str
+
+    @property
+    def red_sign(self) -> int:
+        return 1 if self.disp_ref > 0 else -1
+
+    def wave_of(self, x, x_halpha: float):
+        return lc.wavelength_of(x, x_halpha, self.coeffs, self.x_ref)
+
+    def x_of(self, wave, x_halpha: float):
+        return lc.predict_x(wave, x_halpha, self.coeffs, self.x_ref)
+
+    def local_disp(self, x) -> float:
+        """|A/px| at a detector position (it varies across the chip: the
+        hrg runs from ~0.40 to ~0.51 A/px over the central 2000 px)."""
+        return float(abs(lc.local_dispersion(x, self.coeffs, self.x_ref)))
+
+
+def load_solutions(con) -> dict:
+    """{(grism, mech_epoch): Solution} from ``g_dispersion`` (rows with a
+    solved dispersion only)."""
+    import json
+    out = {}
+    for row in con.execute("""
+            SELECT grism, mech_epoch, coeffs_json, x_ref, disp_a_per_px,
+                   disp_err, rms_px, o2b_wave_eff, status
+            FROM g_dispersion WHERE coeffs_json IS NOT NULL"""):
+        out[(row[0], row[1])] = Solution(
+            grism=row[0], mech_epoch=row[1],
+            coeffs=tuple(json.loads(row[2])), x_ref=row[3],
+            disp_ref=row[4], disp_err=row[5], rms_px=row[6],
+            o2b_wave=row[7], status=row[8])
+    return out
+
+
+def solution_for(solutions: dict, grism: Optional[str],
+                 night: str) -> Optional[Solution]:
+    """The solution that applies to a frame, by grism unit and the
+    mechanical epoch of its night — None when that (grism, epoch) has no
+    solution.  There is deliberately NO fallback to another epoch: a
+    borrowed dispersion is how a re-seated grism goes unnoticed."""
+    if grism is None:
+        return None
+    return solutions.get((grism, gconfig.mech_epoch_id(night)))
+
+
+# --------------------------------------------------------------------------
+# The zero point
+# --------------------------------------------------------------------------
 def continuum_residual(flux: np.ndarray, win: int = CONT_WIN):
     """(residual, noise): flux minus its running-median continuum, and the
     robust (MAD) noise of that residual.  NaNs pass through as NaN."""
-    filled = np.where(np.isfinite(flux), flux, np.nanmedian(flux))
+    finite = np.isfinite(flux)
+    filled = np.where(finite, flux, np.nanmedian(flux) if finite.any()
+                      else 0.0)
     resid = flux - running_median(filled, win)
-    finite = resid[np.isfinite(resid)]
-    noise = float(1.4826 * np.median(np.abs(finite - np.median(finite))))
+    ok = resid[np.isfinite(resid)]
+    if len(ok) == 0:
+        return resid, 1e-9
+    noise = float(1.4826 * np.median(np.abs(ok - np.median(ok))))
     return resid, max(noise, 1e-9)
 
 
-def find_emission_peak(flux: np.ndarray) -> Optional[dict]:
-    """The strongest sharp emission feature: candidate Halpha.
+def emission_candidates(flux: np.ndarray, n: int = 3,
+                        min_sep: int = 40) -> list[dict]:
+    """Up to ``n`` distinct sharp emission features, strongest first
+    (each as :func:`find_emission_peak` returns it).
 
-    Returns {'x': subpixel position, 'snr', 'width_px'} or None.  The
-    subpixel position is the flux-weighted centroid over the peak's
-    half-maximum span — robust for asymmetric lines, and its stability
-    across frames is exactly what the anchor-precision figure measures.
+    Why more than one: on the low-resolution grism the target's ZERO-ORDER
+    image lies on the trace line, ~2,900 px from Halpha, and is often the
+    single brightest compact feature.  Choosing among candidates is the
+    caller's job (by the T CrB fingerprint, see the G runner)."""
+    resid, noise = continuum_residual(flux)
+    resid = np.where(np.isfinite(resid), resid, 0.0)
+    out = []
+    work = resid.copy()
+    for _ in range(n):
+        p = _peak_at(work, noise, int(np.argmax(work)))
+        if p is None:
+            break
+        out.append(p)
+        lo = max(0, int(p["x"]) - min_sep)
+        work[lo:int(p["x"]) + min_sep + 1] = -np.inf
+        if not np.isfinite(work).any():
+            break
+    return out
+
+
+def find_emission_peak(flux: np.ndarray) -> Optional[dict]:
+    """The strongest sharp emission feature: candidate Halpha (search
+    only — :func:`halpha_zero_point` refines it).
+
+    Returns {'x': centroid over the half-maximum span, 'snr',
+    'width_px'} or None.
     """
     resid, noise = continuum_residual(flux)
     resid = np.where(np.isfinite(resid), resid, 0.0)
-    i = int(np.argmax(resid))
+    return _peak_at(resid, noise, int(np.argmax(resid)))
+
+
+def _peak_at(resid: np.ndarray, noise: float, i: int) -> Optional[dict]:
+    """The emission feature whose maximum is at ``i``: None when it is
+    weaker than PEAK_MIN_SNR or its half-maximum width is outside the
+    allowed band (cosmic ray / molecular structure)."""
     height = resid[i]
-    if height < PEAK_MIN_SNR * noise:
+    if not np.isfinite(height) or height < PEAK_MIN_SNR * noise:
         return None
-    # Half-maximum span around the peak.
     half = height / 2.0
     lo = i
     while lo > 0 and resid[lo - 1] > half:
@@ -133,125 +234,82 @@ def find_emission_peak(flux: np.ndarray) -> Optional[dict]:
     return {"x": x, "snr": float(height / noise), "width_px": int(width)}
 
 
-def significant_dips(flux: np.ndarray, min_snr: float = DIP_MIN_SNR,
-                     min_pixels: int = DIP_MIN_PIXELS,
-                     gap: int = 5) -> list[dict]:
-    """Every significant absorption dip of a spectrum, as
-    [{'x', 'snr', 'width_px'}, ...] sorted deepest-first.
+def halpha_zero_point(flux: np.ndarray,
+                      var: Optional[np.ndarray] = None,
+                      peak: Optional[dict] = None) -> Optional[dict]:
+    """Zero point from Halpha EMISSION: the given candidate ``peak`` (or
+    the strongest sharp emission feature), refined with a Gaussian +
+    linear-continuum fit.
 
-    A dip = a run of pixels (gaps under ``gap`` px bridged) whose
-    continuum residual drops below ``-min_snr * noise``, at least
-    ``min_pixels`` long (a single-pixel excursion is not a band).  'x' is
-    the run's minimum (the band head's core), 'width_px' the span below
-    half the dip's own depth — the report's honesty check that a claimed
-    O2 band has band-like width.
+    Returns {'x', 'x_err', 'snr', 'fwhm_px', 'amp_frac'} or None.  When
+    the Gaussian fit fails or runs away from the search position, the
+    search centroid is returned with ``x_err`` = None (flagged, not
+    silently trusted).
     """
-    resid, noise = continuum_residual(flux)
-    resid = np.where(np.isfinite(resid), resid, 0.0)
-    idx = np.where(resid < -min_snr * noise)[0]
-    if len(idx) == 0:
-        return []
-    groups = np.split(idx, np.where(np.diff(idx) > gap)[0] + 1)
-    dips = []
-    for g in groups:
-        if len(g) < min_pixels:
-            continue
-        i = int(g[np.argmin(resid[g])])
-        depth = -resid[i]
-        lo = i
-        while lo > 0 and resid[lo - 1] < -depth / 2:
-            lo -= 1
-        hi = i
-        while hi < len(resid) - 1 and resid[hi + 1] < -depth / 2:
-            hi += 1
-        dips.append({"x": float(i), "snr": float(depth / noise),
-                     "width_px": int(hi - lo + 1)})
-    dips.sort(key=lambda d: -d["snr"])
-    return dips
-
-
-def find_o2_pair(flux: np.ndarray, x_ref: float,
-                 disp_bracket=DISP_BRACKET_A_PER_PX,
-                 ratio_tol: float = O2_RATIO_TOL) -> Optional[dict]:
-    """The self-validating O2 anchor: a PAIR of dips whose offsets from
-    Halpha sit in the exact A:B separation ratio (``O2_RATIO``), on the
-    same side, implying a dispersion inside the physical bracket.
-
-    Among valid pairs the highest combined SNR wins.  Returns
-    {'x_o2b', 'o2b_snr', 'x_o2a', 'o2a_snr', 'disp_a_per_px'} — the
-    dispersion signed (positive = red toward +x) and taken from the A
-    band (3.4x the lever arm of B) — or None when no pair qualifies.
-    """
-    dips = significant_dips(flux)
-    sep_a = O2_A_A - HALPHA_A
-    best, best_score = None, 0.0
-    for d_b in dips:
-        xb = d_b["x"] - x_ref
-        if xb == 0:
-            continue
-        for d_a in dips:
-            xa = d_a["x"] - x_ref
-            if xa == 0 or xb * xa <= 0:          # same side only
-                continue
-            ratio = xa / xb                      # sign cancels: both same side
-            if not (O2_RATIO * (1 - ratio_tol) <= ratio
-                    <= O2_RATIO * (1 + ratio_tol)):
-                continue
-            disp = sep_a / xa                    # signed A/px
-            if not (disp_bracket[0] <= abs(disp) <= disp_bracket[1]):
-                continue
-            score = d_b["snr"] + d_a["snr"]
-            if score > best_score:
-                best_score = score
-                best = {"x_o2b": d_b["x"], "o2b_snr": d_b["snr"],
-                        "x_o2a": d_a["x"], "o2a_snr": d_a["snr"],
-                        "disp_a_per_px": float(disp)}
-    return best
-
-
-def solve_wavelength(flux: np.ndarray) -> dict:
-    """Per-frame anchor hunt.  Returns a dict of everything found:
-
-    ``x_halpha`` / ``halpha_snr`` / ``halpha_width_px`` — the emission
-    anchor; ``x_o2b`` / ``x_o2a`` with SNRs (only ever set as a PAIR —
-    see ``find_o2_pair``); ``disp_a_per_px`` (signed: positive = red
-    toward +x, measured from the O2-A offset); ``disp_source`` in
-    {'o2_pair', None}; ``anchor_status`` in {'halpha+o2', 'halpha_only',
-    'none'}.
-    """
-    out = {"x_halpha": None, "halpha_snr": None, "halpha_width_px": None,
-           "x_o2b": None, "o2b_snr": None, "x_o2a": None, "o2a_snr": None,
-           "disp_a_per_px": None, "disp_source": None,
-           "anchor_status": "none"}
-    peak = find_emission_peak(flux)
     if peak is None:
-        return out
-    out.update(x_halpha=peak["x"], halpha_snr=peak["snr"],
-               halpha_width_px=peak["width_px"])
-    out["anchor_status"] = "halpha_only"
-    pair = find_o2_pair(flux, peak["x"])
-    if pair is not None:
-        out.update(pair)
-        out["disp_source"] = "o2_pair"
-        out["anchor_status"] = "halpha+o2"
-    return out
+        peak = find_emission_peak(flux)
+    if peak is None:
+        return None
+    hw = max(FIT_MIN_HALFWIN, int(round(FIT_HALFWIN_FWHM * peak["width_px"])))
+    fit = lc.fit_line(flux, peak["x"], hw,
+                      core_halfwin=max(3, peak["width_px"]), var=var)
+    if (fit is None or fit["amp_frac"] <= 0
+            or abs(fit["x"] - peak["x"]) > peak["width_px"]):
+        return {"x": peak["x"], "x_err": None, "snr": peak["snr"],
+                "fwhm_px": float(peak["width_px"]), "amp_frac": None}
+    return {"x": fit["x"], "x_err": fit["x_err"], "snr": peak["snr"],
+            "fwhm_px": fit["fwhm_px"], "amp_frac": fit["amp_frac"]}
 
 
-def wavelength_axis(nx: int, x_halpha: float,
-                    disp_a_per_px: float) -> np.ndarray:
-    """The wavelength column: lambda(x) = 6562.8 + disp * (x - x_Halpha).
-    Pure arithmetic, kept as a function so the FITS writer and the tests
-    share one definition."""
-    return HALPHA_A + disp_a_per_px * (np.arange(nx) - x_halpha)
+def check_o2b(flux: np.ndarray, x_halpha: float,
+              sol: Solution) -> Optional[dict]:
+    """Measure the O2-B blue edge where the fixed solution predicts it
+    and report where it actually is, in wavelength.
+
+    Returns {'x', 'x_err', 'depth', 'wave' (edge wavelength on this
+    frame's scale), 'wave_err', 'dwave' (wave - calibrated edge
+    wavelength), 'sep_px' (pixel distance from Halpha), 'sep_pred_px',
+    'frac_dev' ((sep - pred)/pred)} or None when the solution has no
+    calibrated edge, the edge falls off the spectrum, or no edge deeper
+    than ``O2B_MIN_DEPTH`` is found.  NOTHING here feeds back into the
+    wavelength scale.
+
+    Because the zero point is the TARGET's Halpha, ``dwave`` contains the
+    target's velocity relative to the observer (1 A = 45.7 km/s) as well
+    as any scale error; a series' SCATTER in ``dwave`` is the acceptance
+    statistic, its mean is not.
+    """
+    if sol.o2b_wave is None:
+        return None
+    xp = float(sol.x_of(sol.o2b_wave, x_halpha))
+    sep = abs(xp - x_halpha)
+    span = lc.EDGE_FLOOR_SPAN_A["O2B"] / sol.local_disp(xp)
+    m = lc.edge_position(flux, xp, sol.red_sign,
+                         search_px=O2B_SEARCH_PX + O2B_SEARCH_FRAC * sep,
+                         span_px=max(4.0, span))
+    if m is None or m["depth"] < O2B_MIN_DEPTH:
+        return None
+    wave = float(sol.wave_of(m["x"], x_halpha))
+    meas = abs(m["x"] - x_halpha)
+    return {"x": m["x"], "x_err": m["x_err"], "depth": m["depth"],
+            "wave": wave, "wave_err": m["x_err"] * sol.local_disp(m["x"]),
+            "dwave": wave - sol.o2b_wave,
+            "sep_px": meas, "sep_pred_px": sep,
+            "frac_dev": (meas - sep) / sep}
+
+
+def wavelength_axis(nx: int, x_halpha: float, sol: Solution) -> np.ndarray:
+    """The wavelength column of a frame under a fixed solution, given the
+    pixel of Halpha.  One definition shared by the FITS writer, the EW
+    code and the tests."""
+    return sol.wave_of(np.arange(nx), x_halpha)
 
 
 def snippet(flux: np.ndarray, x_center: float,
             halfwin: int = SNIPPET_HALFWIN,
             stride: int = SNIPPET_STRIDE) -> list:
-    """The Halpha-region quick-look stored in g_extractions: [x, flux]
-    pairs (JSON-ready floats, NaN -> None) every ``stride`` px within
-    ``halfwin`` of the line.  Small enough for a DB row, detailed enough
-    to eyeball a profile without opening the FITS."""
+    """The Halpha-region quick-look: [x, flux] pairs (JSON-ready floats,
+    NaN -> None) every ``stride`` px within ``halfwin`` of the line."""
     n = len(flux)
     lo = max(0, int(x_center) - halfwin)
     hi = min(n, int(x_center) + halfwin + 1)

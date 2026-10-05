@@ -351,14 +351,44 @@ def test_a_view_that_does_not_exist_is_named_rather_than_linked():
     """"Draft Paper — none yet" beats a link to a title page.  Linking a
     stub is the specific failure the brief called out."""
     build = site.Build(DOCS_DIR, REPO_ROOT, site.DEFAULT_MANIFEST)
+    # Every science project has a written draft since 2026-10-05; the
+    # Legacy archive (a census, no manuscript) is the area without one.
     tabs = {t.label: t for t in
-            build.tabs_for(build.area_by_key["TCrB_Monitoring"])}
+            build.tabs_for(build.area_by_key["Legacy_Rigel"])}
     assert tabs["Draft Paper"].rel == ""
     assert tabs["Draft Paper"].why_absent
     assert tabs["The Case"].rel and tabs["Plan & Status"].rel
-    cv = {t.label: t for t in
-          build.tabs_for(build.area_by_key["CV_TimeSeries"])}
-    assert cv["Draft Paper"].rel == "CV_TimeSeries/paper.html"
+    for key in WRITTEN_PROJECTS:
+        drafted = {t.label: t for t in
+                   build.tabs_for(build.area_by_key[key])}
+        assert drafted["Draft Paper"].rel == f"{key}/paper.html", key
+
+
+#: The AASTeX skeleton every project started from (six headings, a TODO in
+#: each, then acknowledgments and the bibliography call after the last
+#: section).  Kept verbatim here because no project still carries it.
+SKELETON_TEX = r"""\documentclass[twocolumn]{aastex701}
+\begin{document}
+\title{Skeleton}
+\section{Introduction}
+% TODO
+\section{Observations}
+% TODO
+\section{Data reduction}
+% TODO
+\section{Analysis}
+% TODO
+\section{Results}
+% TODO
+\section{Conclusions}
+% TODO
+\begin{acknowledgments}
+We thank the MACRO Consortium observers.
+\end{acknowledgments}
+\bibliography{references}{}
+\bibliographystyle{aasjournalv7}
+\end{document}
+"""
 
 
 #: Projects whose manuscript has been WRITTEN, as of the last time a person
@@ -366,7 +396,11 @@ def test_a_view_that_does_not_exist_is_named_rather_than_linked():
 #: that a project crossing the threshold is a deliberate, reviewed change here
 #: rather than a silent one on the site.  SN 2023ixf joined on 2026-10-04,
 #: when its five-page release paper was written (SN-draft).
-WRITTEN_PROJECTS = ["CV_TimeSeries", "SN2023ixf_LightCurve"]
+WRITTEN_PROJECTS = ["TCrB_Monitoring", "CV_TimeSeries",
+                    "SN2023ixf_LightCurve", "BeStar_Grism",
+                    "DwarfGalaxy_AGN_Survey"]
+# T CrB, Be-Star and Dwarf joined on 2026-10-05 (T CrB keeps its prose in
+# body.tex; the Dwarf paper is a section-less RNAAS note).
 
 
 def test_the_drafts_are_measured_not_declared():
@@ -383,23 +417,24 @@ def test_a_skeleton_and_a_draft_are_far_apart_not_near_the_threshold():
     sits in is enormous.  If that stops being true this test says so before
     a reader is told an outline is a paper."""
     def longest(key: str) -> int:
-        tex = (REPO_ROOT / "manuscripts" / key / "main.tex")
-        return max([s.chars for s in site.tex_sections(
-            tex.read_text(encoding="utf-8"))] or [0])
+        tex = site.manuscript_text(REPO_ROOT / "manuscripts" / key)
+        return max([s.chars for s in site.tex_sections(tex)] or [0])
+
+    # Every project now has a written draft, so the skeleton side of the
+    # gap is measured on the skeleton itself, as it was distributed.
+    skeleton = SKELETON_TEX
+    assert max(s.chars for s in site.tex_sections(skeleton)) \
+        < site.WRITTEN_CHARS / 4
 
     for key in WRITTEN_PROJECTS:
         assert longest(key) > 10 * site.WRITTEN_CHARS, key
-    for key in ("TCrB_Monitoring", "BeStar_Grism", "DwarfGalaxy_AGN_Survey"):
-        assert longest(key) < site.WRITTEN_CHARS / 4, key
 
 
 def test_the_end_matter_is_not_credited_to_the_last_section():
     """The T CrB skeleton's Conclusions measured 372 characters — the
     acknowledgments and the bibliography call, which sit after the last
     ``\\section`` — while its five siblings measured under 25."""
-    sections = site.tex_sections(
-        (REPO_ROOT / "manuscripts" / "TCrB_Monitoring"
-         / "main.tex").read_text(encoding="utf-8"))
+    sections = site.tex_sections(SKELETON_TEX)
     assert sections and max(s.chars for s in sections) < 50
 
 

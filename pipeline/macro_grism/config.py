@@ -17,24 +17,29 @@ from the code that used them:
 The fix is not three better constants.  It is that nothing downstream may
 hold a detector constant at all.  Every consumer in ``macro_grism`` asks
 :func:`detector_for` and gets a :class:`Detector` record that says where
-its numbers came from and whether they are still provisional.  When the
-``detector`` work package lands its measured photon-transfer table the
-numbers change HERE — either by editing :data:`DETECTOR_DEFAULTS` or,
-without touching code, by dropping a JSON override file at
-:data:`OVERRIDE_JSON` — and every variance, every saturation flag and every
-error bar downstream follows.
+its numbers came from and whether they are still provisional.  Since
+2026-10-05 those numbers are READ from the measured ``detector_params``
+table (the ``detector`` package's flat-pair photon-transfer gains, read
+noise from zero-signal pairs, measured clips and linearity caps — see
+:data:`PARAM_MAP`); :data:`DETECTOR_DEFAULTS` survives only as the
+fallback for a quantity the table does not hold, and every Detector says
+which of its numbers came from where.
 
 The same reasoning applies to the *mechanical* history.  A grism bolted at
 a fixed distance from a detector has one dispersion and one sign until
 somebody moves the camera or the wheel (TE.F1, TE.F3, PH.P7).  The unit a
 wavelength solution belongs to is therefore the **mechanical epoch**, not
 the header "era" (era 76 alone spans a 180-degree camera rotation).  The
-formal ``mech_epoch`` table is being built by the ``foundation-s0``
-package; until it lands, :data:`MECH_EPOCHS` below is this track's working
-copy of the same table, derived from the telescope engineer's evidence
-(TE.F1) plus the grism-trace position angles in ``frame_dispersion``.  It
-is keyed by NIGHT so the two can be reconciled by a join, and the report
-lists every boundary so a disagreement is visible.
+formal ``mech_epoch`` table (foundation-s0, F-3) splits the archive at
+every camera, flip, coarse rotation AND wheel-map change.  A grism's
+dispersion is changed by the first three but not by a wheel relabelling
+or a sub-degree re-seat (a 0.5 deg rotation changes the per-pixel
+dispersion by 4e-5), so :data:`MECH_EPOCHS` below is the GRISM epoch: the
+formal epochs merged across ``wheel_map`` / ``rotation_fine``
+boundaries, plus one boundary the formal table lacks (the AC4040 slot-6
+trace reversal over the 2023 monsoon, from ``frame_dispersion``).
+:func:`reconcile_epochs` checks the merge against the formal table and
+the report prints the result.
 
 Nothing here touches pixels or disk except :func:`load_overrides`, which
 reads one optional JSON file.
@@ -91,6 +96,7 @@ class Detector:
     pixel_um: float          # STORED pixel pitch (micron), binning included
     provenance: str
     provisional: bool
+    linearity_cap_adu: Optional[float] = None   # measured 1% cap (stored)
 
     def variance_adu2(self, counts_adu):
         """Per-pixel variance model in ADU^2 for raw stored counts:
@@ -117,13 +123,21 @@ class Detector:
         to ``peaking x S``; DE.F9 measured 1.07-1.16 for seeing of 6-4
         native pixels.  The cap is therefore ``clip / peaking`` with the
         worst measured peaking, :data:`NATIVE_PEAKING`.  For unbinned or
-        summed data the cap is the clip (less one ADU of headroom).
+        summed data the cap is the clip (less one ADU of headroom).  The
+        measured linearity cap, when known, is applied on top: the lower
+        of the two wins.
         """
         if self.binning != "average":
-            return self.native_clip_adu - 1.0
-        p = NATIVE_PEAKING if peaking is None else peaking
-        return (self.native_clip_adu
-                - self.pedestal_adu) / p + self.pedestal_adu
+            cap = self.native_clip_adu - 1.0
+        else:
+            p = NATIVE_PEAKING if peaking is None else peaking
+            cap = (self.native_clip_adu
+                   - self.pedestal_adu) / p + self.pedestal_adu
+        if self.linearity_cap_adu is not None:
+            # The measured 1% linearity cap (F-5) is the other ceiling:
+            # a pixel above it is unsaturated but no longer linear.
+            cap = min(cap, self.linearity_cap_adu)
+        return cap
 
 
 #: Stored pixel pitch the dispersion SEEDS are quoted for (the IMX455
@@ -158,6 +172,11 @@ DETECTOR_DEFAULTS = {
                    "s2 recon era 78; G-2 sky-PTC cross-check in "
                    "g_variance_check is the only measurement",
         provisional=True),
+    "QHY600-pyscope-bin2avg": Detector(
+        key="QHY600-pyscope-bin2avg", camera="QHY600M (IMX455), pyscope",
+        gain_e_per_adu=1.0, read_noise_adu=2.1, pedestal_adu=172.0,
+        native_clip_adu=65535.0, n_native=4, binning="average",
+        pixel_um=7.52, provenance="placeholder", provisional=True),
     "AC4040-HighGain": Detector(
         key="AC4040-HighGain", camera="SBIG AC4040M (GSENSE4040)",
         gain_e_per_adu=1.06, read_noise_adu=3.93, pedestal_adu=93.0,
@@ -182,19 +201,123 @@ DETECTOR_DEFAULTS = {
 }
 
 
+#: Where each Detector field comes from in ``detector_params``:
+#: key -> {field: (era_group, quantity)}.  A missing row leaves the
+#: DETECTOR_DEFAULTS value in place and marks the record provisional.
+PARAM_MAP = {
+    "ASI-Mode0-bin2avg": {
+        "gain_e_per_adu": ("ASI Mode0 2x2", "gain_e_per_adu"),
+        "read_noise_adu": ("ASI Mode0 2x2", "read_noise_adu"),
+        "pedestal_adu": ("ASI Mode0 2x2", "bias_level_adu"),
+        "native_clip_adu": ("Mode0", "ceiling_adu"),
+        "linearity_cap_adu": ("Mode0", "linearity_cap_adu")},
+    "QHY600-bin2avg": {
+        "gain_e_per_adu": ("QHY600 Fast 2x2", "gain_e_per_adu"),
+        # No zero-signal pair exists for the QHY: the measured noise
+        # FLOOR of science pairs (read + dark + bias structure) stands in
+        # as an upper bound on the read noise.
+        "read_noise_adu": ("Fast", "noise_floor_adu"),
+        "pedestal_adu": ("era 78", "recon_dark_median_adu"),
+        "native_clip_adu": ("Fast", "ceiling_adu"),
+        "linearity_cap_adu": ("Fast", "linearity_cap_adu")},
+    "QHY600-pyscope-bin2avg": {
+        "gain_e_per_adu": ("QHY600 pyscope 2x2", "gain_e_per_adu"),
+        "read_noise_adu": ("Fast", "noise_floor_adu"),
+        "pedestal_adu": ("era 78", "recon_dark_median_adu"),
+        "native_clip_adu": ("Fast", "ceiling_adu"),
+        "linearity_cap_adu": ("Fast", "linearity_cap_adu")},
+    "iKon-1MHz": {
+        "gain_e_per_adu": ("iKon 1MHz 4x", "gain_e_per_adu"),
+        "read_noise_adu": ("iKon 1MHz 4x", "read_noise_adu"),
+        "pedestal_adu": ("era 47", "recon_dark_median_adu"),
+        "native_clip_adu": ("1MHz High Sensitivity 16-bit", "ceiling_adu"),
+        "linearity_cap_adu": ("1MHz High Sensitivity 16-bit",
+                              "linearity_cap_adu")},
+    "AC4040-HighGain": {
+        "gain_e_per_adu": ("High Gain", "gain_e_per_adu"),
+        "read_noise_adu": ("High Gain", "read_noise_adu"),
+        "pedestal_adu": ("High Gain", "bias_offset_adu"),
+        "native_clip_adu": ("High Gain", "ceiling_adu"),
+        "linearity_cap_adu": ("High Gain", "linearity_cap_adu")},
+    "AC4040-StackPro": {
+        "gain_e_per_adu": ("High Gain StackPro", "gain_e_per_adu"),
+        "read_noise_adu": ("High Gain StackPro", "read_noise_adu"),
+        "pedestal_adu": ("High Gain StackPro", "bias_offset_adu"),
+        "native_clip_adu": ("High Gain StackPro", "ceiling_adu"),
+        "linearity_cap_adu": ("High Gain StackPro", "linearity_cap_adu")},
+}
+
+#: Fields whose absence from the table leaves a record PROVISIONAL (the
+#: QHY read noise is an upper bound by construction and says so in its
+#: provenance, but the record is still marked provisional).
+_ALWAYS_PROVISIONAL = {"QHY600-bin2avg", "QHY600-pyscope-bin2avg"}
+
+
 def load_overrides(path: Path = OVERRIDE_JSON) -> dict:
     """The optional override file, as ``{key: {field: value}}`` (empty
-    when the file is absent — absence is the normal state this wave)."""
+    when the file is absent — absence is the normal state)."""
     if not Path(path).exists():
         return {}
     return json.loads(Path(path).read_text())
 
 
-def detector_table(overrides: Optional[dict] = None) -> dict:
-    """The effective detector table: defaults with overrides applied
-    field by field.  An override for an unknown key is an error — a typo
-    must not silently leave a provisional number in force."""
-    table = dict(DETECTOR_DEFAULTS)
+def params_from_db(db_path) -> dict:
+    """{(era_group, quantity): value} from ``detector_params`` of a
+    manifest (or the grism snapshot), opened read-only."""
+    import sqlite3
+    con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=120)
+    try:
+        return {(g, q): v for g, q, v in con.execute(
+            "SELECT era_group, quantity, value FROM detector_params")}
+    finally:
+        con.close()
+
+
+def build_detector_table(params: dict) -> dict:
+    """The detector table from a ``params_from_db`` dict: every field in
+    :data:`PARAM_MAP` read from the measurements, the defaults kept only
+    where a measurement is missing (and then named in the provenance)."""
+    table = {}
+    for key, base in DETECTOR_DEFAULTS.items():
+        fields, used, missing = {}, [], []
+        for field, (grp, qty) in PARAM_MAP.get(key, {}).items():
+            v = params.get((grp, qty))
+            if v is None:
+                missing.append(field)
+            else:
+                fields[field] = float(v)
+                used.append(f"{field}={v:.4g} [{grp}/{qty}]")
+        prov = "detector_params: " + "; ".join(used)
+        if missing:
+            prov += "; DEFAULT for " + ", ".join(missing)
+        table[key] = replace(base, **fields, provenance=prov,
+                             provisional=bool(missing)
+                             or key in _ALWAYS_PROVISIONAL)
+    return table
+
+
+_TABLE_CACHE: dict = {}
+
+
+def detector_table(overrides: Optional[dict] = None,
+                   db_path=None) -> dict:
+    """The effective detector table: measured values from
+    ``detector_params`` (the grism snapshot by default, else the shared
+    manifest), then overrides applied field by field.  An override for an
+    unknown key is an error — a typo must not silently leave a
+    provisional number in force.  ``db_path=False`` skips the database
+    (unit tests)."""
+    if db_path is None:
+        snap = PRODUCTS / "manifest_snapshot.sqlite"
+        db_path = snap if snap.exists() else \
+            REPO_ROOT / "products" / "manifest" / "rlmt-manifest.sqlite"
+    if db_path is False:
+        table = dict(DETECTOR_DEFAULTS)
+    else:
+        if str(db_path) not in _TABLE_CACHE:
+            _TABLE_CACHE[str(db_path)] = build_detector_table(
+                params_from_db(db_path))
+        table = dict(_TABLE_CACHE[str(db_path)])
     ov = load_overrides() if overrides is None else overrides
     for key, fields in ov.items():
         if key not in table:
@@ -215,8 +338,11 @@ def detector_key(instrume: Optional[str], readoutm: Optional[str],
     rdm = (readoutm or "").lower()
     if "asi" in ins or rdm == "mode0":
         return "ASI-Mode0-bin2avg"
-    if "qhy" in ins or rdm == "fast":
+    if rdm == "fast":
         return "QHY600-bin2avg"
+    if "qhy" in ins:
+        # pyscope (blank READOUTM) has its own measured gain.
+        return "QHY600-pyscope-bin2avg"
     if "andor" in ins or "mhz" in rdm:
         return "iKon-1MHz"
     if "stackpro" in rdm:
@@ -234,9 +360,10 @@ def detector_key(instrume: Optional[str], readoutm: Optional[str],
 
 def detector_for(instrume: Optional[str], readoutm: Optional[str],
                  night: Optional[str] = None,
-                 overrides: Optional[dict] = None) -> Detector:
+                 overrides: Optional[dict] = None, db_path=None) -> Detector:
     """The :class:`Detector` record for a frame's header cards."""
-    return detector_table(overrides)[detector_key(instrume, readoutm, night)]
+    return detector_table(overrides, db_path)[
+        detector_key(instrume, readoutm, night)]
 
 
 # --------------------------------------------------------------------------
@@ -268,15 +395,17 @@ MECH_EPOCHS = (
               "AC4040-HighGain",
               "slot-6 trace PA 2.0 deg (2023-10..2024-03): dispersion "
               "direction reversed relative to AC4040-a"),
-    MechEpoch("ANDOR-1", "Andor iKon", "2024-04-01", "2024-10-31",
-              "iKon-1MHz", "rot 180.8 deg; HaGrism/OGGrism wheel names"),
+    MechEpoch("ANDOR-1", "Andor iKon", "2024-04-01", "2024-10-02",
+              "iKon-1MHz", "rot ~178 deg; HaGrism/OGGrism wheel names"),
+    MechEpoch("ANDOR-1b", "Andor iKon", "2024-10-03", "2024-10-31",
+              "iKon-1MHz", "coarse rotation step 3.1 deg (formal table)"),
     MechEpoch("ANDOR-2", "Andor iKon", "2024-11-01", "2024-11-07",
               "iKon-1MHz", "re-seated, rot 180.0 deg"),
     MechEpoch("ANDOR-3", "Andor iKon", "2024-11-08", "2024-11-29",
               "iKon-1MHz", "re-seated, rot 180.7; wheel renamed hrg/lrg"),
-    MechEpoch("ANDOR-4", "Andor iKon", "2024-11-30", "2024-12-13",
+    MechEpoch("ANDOR-4", "Andor iKon", "2024-11-30", "2024-12-12",
               "iKon-1MHz", "camera rotated, rot 204.3 deg"),
-    MechEpoch("ASI-pre", "ZWO ASI (IMX455)", "2024-12-14", "2025-09-30",
+    MechEpoch("ASI-pre", "ZWO ASI (IMX455)", "2024-12-13", "2025-09-30",
               "ASI-Mode0-bin2avg",
               "rot +0.43 deg, FLIPSTAT 'Flip/Mirror', MaxIm 6.40"),
     MechEpoch("ASI-post", "ZWO ASI (IMX455)", "2025-10-01", "2026-03-20",
@@ -304,6 +433,38 @@ def mech_epoch_for(night: str) -> Optional[MechEpoch]:
 def mech_epoch_id(night: str) -> Optional[str]:
     ep = mech_epoch_for(night)
     return ep.epoch_id if ep else None
+
+
+#: Formal-table boundary causes that do NOT change a grism's dispersion.
+MERGEABLE_CAUSES = {"wheel_map", "rotation_fine"}
+
+
+def reconcile_epochs(formal_rows) -> list[dict]:
+    """Check the grism epochs against the formal ``mech_epoch`` table.
+
+    ``formal_rows``: (mech_epoch, first_night, last_night, boundary_cause)
+    in time order.  For each formal epoch the verdict is 'ok' when either
+    a grism-epoch boundary separates it from its predecessor, or every
+    cause of the formal boundary is in :data:`MERGEABLE_CAUSES`;
+    'MERGED_OVER_HARDWARE' when a camera / flip / coarse-rotation
+    boundary was merged (an error); 'outside' when no grism epoch covers
+    its first night."""
+    out, prev_last = [], None
+    for formal, first, last, cause in formal_rows:
+        ep = mech_epoch_for(first)
+        causes = set((cause or "").split(","))
+        prev_ep = mech_epoch_id(prev_last) if prev_last else None
+        if ep is None:
+            verdict = "outside"
+        elif prev_ep != ep.epoch_id or causes <= MERGEABLE_CAUSES:
+            verdict = "ok"
+        else:
+            verdict = "MERGED_OVER_HARDWARE"
+        out.append({"formal": formal, "first_night": first,
+                    "cause": cause, "grism_epoch": ep.epoch_id if ep
+                    else None, "verdict": verdict})
+        prev_last = last
+    return out
 
 
 # --------------------------------------------------------------------------

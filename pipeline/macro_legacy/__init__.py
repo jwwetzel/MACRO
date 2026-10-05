@@ -23,6 +23,9 @@ clock and gain are all pixel questions the census cannot settle).
   rule, target aliases, runs / seasons, calibration availability, the
   time-convention audit and the pre-registered gates.  No file or database
   access; unit tests in ``pipeline/tests/test_legacy_census.py``.
+* ``macro_legacy.clock``   — the per-season clock audit's pure logic
+  (TESS reference ephemerides, prediction ranges, O − C under both stamp
+  readings, season verdicts).  Build: ``build_legacy_clock.py``.
 * ``macro_legacy.report``  — the evidence page
   ``docs/Legacy_Rigel/legacy_census.html`` in the house Socratic format
   (Question → Evidence → Decision → Consequence).
@@ -41,4 +44,7 @@ Nothing in this package writes under
 #: Recorded into ``scan_meta`` / ``census_meta`` so a reader of the database
 #: can tell which rules produced it.  Bump when the logic changes content.
 LEGACY_SCAN_VERSION = "L0-scan v1.0 (2026-10-03)"
-LEGACY_CENSUS_VERSION = "L-census v1.0 (2026-10-03)"
+# v1.1: truncated-at-source dispositions, filename parser, camera + focal
+# length era keys with the RLMT sharing table, cross-archive copies
+# excluded, per-season clock audit (macro_legacy.clock).
+LEGACY_CENSUS_VERSION = "L-census v1.1 (2026-10-04)"

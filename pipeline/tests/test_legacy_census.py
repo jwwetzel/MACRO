@@ -977,3 +977,79 @@ class TestVsxMatch:
 
     def test_no_candidates(self):
         assert external.choose_vsx_match("m31", []) == (None, None)
+
+
+# ---------------------------------------------------------------------------
+# 11–13. Filename parser, era keys, truncated-at-source frames
+# ---------------------------------------------------------------------------
+class TestFilenameParser:
+    def test_scheduler_name(self):
+        n = lc.parse_legacy_filename("gbm10028.fts.fz")
+        assert (n.convention, n.request, n.doy, n.seq) == \
+            (lc.CONV_SCHEDULER, "gbm", 100, 0x28)
+
+    def test_uncompressed_and_upper_case(self):
+        assert lc.parse_legacy_filename("FRM00400.FTS").doy == 4
+
+    @pytest.mark.parametrize("name", ["7_4abc.fts.fz", "gbm999zz.fts",
+                                      "mlw_V426_Oph_g_5s.fts", "gbm00000.fts",
+                                      "gbm40000.fts"])
+    def test_anything_else_is_other(self, name):
+        n = lc.parse_legacy_filename(name)
+        assert n.convention == lc.CONV_OTHER and n.request is None
+
+    def test_name_carries_no_target_filter_or_exposure(self):
+        # The point of the parser's docstring, pinned: those three come
+        # from the header, never from this convention.
+        assert set(lc.LegacyName.__dataclass_fields__) == \
+            {"convention", "request", "doy", "seq"}
+
+
+class TestEraKey:
+    def test_keyed_on_camera_and_focal_length_not_telescope_name(self):
+        a = lc.legacy_era_key("Andor iKon-L 936", 3454.0, "Gemini")
+        b = lc.legacy_era_key("Andor iKon-L 936", 3454.0,
+                              "Iowa Robotic Telescope")
+        assert a == b == ("Andor iKon-L 936", "f = 3454 mm")
+
+    def test_talon_frames_key_on_telescope_text(self):
+        k = lc.legacy_era_key("FLI PL16803", None, "Rigel System")
+        assert k[1].startswith("telescope 'Rigel System'")
+        assert k != lc.legacy_era_key("FLI PL16803", 3454.0, "Gemini")
+
+
+class TestTruncated:
+    def test_identical_stamp_twin_is_adopted(self):
+        assert lc.truncated_disposition(
+            "2016-10-26T07:54:00", ["2017-10-27T06:59:09",
+                                    "2016-10-26T07:54:00"]) \
+            == lc.TRUNC_TWIN_ADOPTED
+
+    def test_same_name_other_year_is_not_the_same_exposure(self):
+        # The observed case: foc3000f.fts exists in 2016 (truncated) and
+        # in 2017-2022 (intact) — the same day number, different nights.
+        assert lc.truncated_disposition(
+            "2016-10-26T07:54:00", ["2017-10-27T06:59:09"]) \
+            == lc.TRUNC_TWIN_MISMATCH
+
+    def test_no_twin_is_lost_and_no_header_is_named(self):
+        assert lc.truncated_disposition("2016-10-26T07:54:00", []) \
+            == lc.TRUNC_LOST
+        assert lc.truncated_disposition(None, ["2016-10-26T07:54:00"]) \
+            == lc.TRUNC_UNREADABLE
+
+    def test_truncated_header_reader(self, tmp_path):
+        fits = pytest.importorskip("astropy.io.fits")
+        import numpy as np
+        h = fits.Header()
+        h["DATE-OBS"] = "2016-10-26T07:54:00"
+        h["OBJECT"] = "Focus"
+        fits.PrimaryHDU(np.zeros((64, 64), dtype="int16"),
+                        header=h).writeto(tmp_path / "a.fts")
+        raw = (tmp_path / "a.fts").read_bytes()
+        (tmp_path / "cut.fts").write_bytes(raw[:2880 + 100])   # data cut
+        (tmp_path / "short.fts").write_bytes(raw[:1000])       # header cut
+        got = build.read_truncated_headers(
+            tmp_path, ["cut.fts", "short.fts", "absent.fts"])
+        assert got["cut.fts"]["DATE-OBS"] == "2016-10-26T07:54:00"
+        assert got["short.fts"] == {} and got["absent.fts"] is None

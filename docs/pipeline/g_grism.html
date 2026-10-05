@@ -1,0 +1,106 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>G — Grism calibration library</title>
+<link rel="stylesheet" href="../assets/macro.css">
+</head><body>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" aria-current="page" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">11/11 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">39/41 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">48/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">22/25 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">28/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">24/26 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">15/15 done</span></a></nav></div>
+<div class="tabbar"><nav class="tabbar-inner" aria-label="Data &amp; Instrument Characterization views"><a class="tab" href="../pipeline/index.html">The Case</a><a class="tab" href="../pipeline/figures.html">Figures</a><a class="tab" href="../pipeline/pipeline_status.html">Freshness &amp; DAG</a><a class="tab" aria-current="page" href="../pipeline/evidence.html">Evidence Detail</a></nav></div>
+<div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../pipeline/index.html">Data &amp; Instrument Characterization</a></li><li><a href="../pipeline/evidence.html">Evidence Detail</a></li><li aria-current="page">G — The grism calibration library</li></ol></nav></div>
+<div class="layout">
+<aside class="rail" aria-label="Questions in this view"><a class="railback" href="../pipeline/index.html">&larr; Back to the case</a><h2>The questions</h2><p class="railnote">The questions this page answers, in order.</p><ol><li><a href="#d1"><span class="qn">1</span> D1: what the high-resolution grism disperses</a></li><li><a href="#lsf"><span class="qn">2</span> G-5: delivered line-spread function</a></li><li><a href="#g2"><span class="qn">3</span> G-2: variance and saturation from the measured detector table</a></li><li><a href="#g3"><span class="qn">4</span> G-3: the pixel identity gate</a></li><li><a href="#g4"><span class="qn">5</span> G-4: the sky-lozenge background</a></li><li><a href="#a6"><span class="qn">6</span> TCRB-A6: saturation triage</a></li><li><a href="#ew"><span class="qn">7</span> How the T CrB Hα EW moved</a></li></ol></aside>
+<div class="pane">
+<!--MACRO-SITE:CONTENT-->
+<header><h1>G — The grism calibration library</h1>
+<p>G v2.6 (2026-10-05) &middot; built from
+<code>products/grism/grism.sqlite</code> &middot;
+<a href="../index.html">the front page</a></p></header>
+
+<section id="d1"><h2>1 &middot; D1: what the high-resolution grism
+disperses</h2>
+<p>Each calibrator frame's absorption features were identified twice with
+the same features and the same tolerance: once under the adopted
+dispersion and once under each value that was on file before 2026-10-03.
+On 398 hot-star hrg frames the adopted hypothesis
+matches a median of 4 lines against
+3 for 1.59&nbsp;&Aring;/px; it matches
+more on 189 frames and as many on
+169.  On the 202 B-star frames, whose
+narrow He&nbsp;I, Si&nbsp;II and Ne&nbsp;I lines no wrong scale can
+reproduce, the medians are 5 against
+3 (adopted better on
+163 frames, rival on
+5).  Where 1.59&nbsp;&Aring;/px places H&beta; the
+spectrum's median depth is 0.004
+(noise 0.003; deeper than 5&sigma; on
+21 of 397
+frames): H&beta; is not there.  The adopted hrg dispersion at the chip
+centre is 0.459 (ASI-post), 0.457 (ASI-pre), 0.465 (QHY)
+&Aring;/px; the delivered LSF at H&alpha; on the calibrators is
+2.88 &Aring; = 132 km/s, R 2280 (ASI-post), 2.05 &Aring; = 94 km/s, R 3199 (ASI-pre), 2.81 &Aring; = 129 km/s, R 2333 (QHY).</p>
+<figure><a href="figures/g/g_d1_line_ids.png"><img src="figures/g/g_d1_line_ids.png" alt="hot-star spectra with line identifications"></a><figcaption>Hot-star hrg spectra with the lines that fix the dispersion identified; where 1.59 &Aring;/px would put H&beta; there is no line.</figcaption></figure>
+
+<h3>The fixed dispersion per (grism, mechanical epoch) — G-1</h3>
+<p>Grism epochs are the formal mechanical epochs merged across
+wheel-relabelling and sub-degree re-seats only: 29 of 29 formal
+epochs reconcile (no hardware boundary is merged).</p>
+<p>Wavelength is a polynomial in DETECTOR position (the grism-camera
+distortion; one constant per frame).  Stellar lines define it; for the hrg
+the O<sub>2</sub>&gamma; and O<sub>2</sub>B band edges, calibrated on the
+adopted epochs, are added as secondary standards (two-pass solve).</p>
+<table><tr><th>grism</th><th>epoch</th><th>status</th><th>D at centre (Å/px)</th><th>±</th><th>|D| at −1000 / +1000 px</th><th>deg</th><th>lines</th><th>stars</th><th>frames</th><th>clipped</th><th>rms (px)</th><th>χ²/dof</th><th>O₂B edge (Å)</th><th>lines used</th></tr><tr><td>hrg</td><td>ASI-post</td><td>adopted</td><td>-0.4592</td><td>0.0001</td><td>0.506 / 0.405</td><td>3</td><td>7</td><td>3</td><td>44</td><td>9</td><td>0.828</td><td>425.4/108</td><td>6866.44</td><td>Halpha, HeI5876, HeI6678, HeI7065, NeI6402, SiII6347, SiII6371</td></tr><tr><td>hrg</td><td>ASI-pre</td><td>adopted</td><td>0.4567</td><td>0.0003</td><td>0.408 / 0.506</td><td>2</td><td>5</td><td>4</td><td>23</td><td>13</td><td>0.909</td><td>81.1/27</td><td>6865.74</td><td>Halpha, HeI6678, NeI6402, SiII6347, SiII6371</td></tr><tr><td>hrg</td><td>QHY</td><td>adopted</td><td>-0.4652</td><td>0.0002</td><td>0.509 / 0.413</td><td>3</td><td>7</td><td>2</td><td>24</td><td>3</td><td>0.793</td><td>270.1/59</td><td>6866.07</td><td>Halpha, HeI5876, HeI6678, HeI7065, NeI6402, SiII6347, SiII6371</td></tr><tr><td>lrg</td><td>ANDOR-1</td><td>adopted</td><td>-4.0993</td><td>0.0032</td><td>3.233 / 2.264</td><td>3</td><td>5</td><td>2</td><td>25</td><td>0</td><td>0.073</td><td>7.1/73</td><td>6857.42</td><td>Halpha, Hbeta, Hdelta, Hepsilon, Hgamma</td></tr><tr><td>lrg</td><td>ASI-post</td><td>adopted</td><td>2.2329</td><td>0.0027</td><td>2.002 / 2.494</td><td>3</td><td>5</td><td>6</td><td>71</td><td>20</td><td>0.736</td><td>1593.7/175</td><td>6869.83</td><td>Halpha, Hbeta, Hdelta, Hepsilon, Hgamma</td></tr><tr><td>lrg</td><td>ASI-pre</td><td>adopted</td><td>-2.2290</td><td>0.0006</td><td>2.461 / 1.997</td><td>2</td><td>4</td><td>5</td><td>44</td><td>15</td><td>0.982</td><td>1123.3/109</td><td>6874.13</td><td>Halpha, Hbeta, Hdelta, Hgamma</td></tr><tr><td>lrg</td><td>QHY</td><td>adopted</td><td>2.3009</td><td>0.0014</td><td>1.892 / 2.195</td><td>3</td><td>4</td><td>8</td><td>91</td><td>35</td><td>0.851</td><td>3032.3/245</td><td>6855.11</td><td>Halpha, Hbeta, Hdelta, Hgamma</td></tr></table>
+<p>On T&nbsp;CrB, with the fixed solution and a per-frame H&alpha; zero
+point, the O<sub>2</sub>B edge:</p>
+<table><tr><th>grism</th><th>frames</th><th>Hα found</th><th>O₂B measured</th><th>Hα–O₂B (px)</th><th>px scatter (%)</th><th>edge − standard (Å)</th><th>scatter (Å)</th><th>scatter / lever (%)</th><th>|dev| > 2%</th></tr><tr><td>hrg</td><td>85</td><td>83</td><td>83</td><td>637.6</td><td>0.51</td><td>-2.53</td><td>0.85</td><td>0.28</td><td>0</td></tr><tr><td>lrg</td><td>124</td><td>115</td><td>110</td><td>129.3</td><td>0.61</td><td>-5.79</td><td>2.03</td><td>0.67</td><td>50</td></tr></table>
+</section>
+
+<section id="lsf"><h2>2 &middot; G-5: delivered line-spread function</h2>
+<table><tr><th>grism</th><th>epoch</th><th>sample</th><th>n</th><th>FWHM (px)</th><th>FWHM (Å)</th><th>16–84% (Å)</th><th>km/s</th><th>R</th><th>off-nominal focus</th></tr><tr><td>hrg</td><td>ASI-post</td><td>calibrator</td><td>113</td><td>6.2</td><td>2.88</td><td>2.35–3.42</td><td>132</td><td>2280</td><td>25</td></tr><tr><td>hrg</td><td>ASI-pre</td><td>calibrator</td><td>112</td><td>4.5</td><td>2.05</td><td>1.85–2.45</td><td>94</td><td>3199</td><td>15</td></tr><tr><td>hrg</td><td>ASI-pre</td><td>tcrb</td><td>81</td><td>5.1</td><td>2.33</td><td>2.01–2.75</td><td>107</td><td>2812</td><td>6</td></tr><tr><td>hrg</td><td>QHY</td><td>calibrator</td><td>65</td><td>6.1</td><td>2.81</td><td>2.51–3.26</td><td>129</td><td>2333</td><td>60</td></tr><tr><td>lrg</td><td>ANDOR-1</td><td>calibrator</td><td>25</td><td>3.2</td><td>13.41</td><td>12.35–13.91</td><td>612</td><td>490</td><td>0</td></tr><tr><td>lrg</td><td>ASI-post</td><td>calibrator</td><td>55</td><td>5.7</td><td>13.38</td><td>11.94–16.97</td><td>611</td><td>490</td><td>10</td></tr><tr><td>lrg</td><td>ASI-pre</td><td>calibrator</td><td>53</td><td>6.0</td><td>14.15</td><td>13.03–17.19</td><td>646</td><td>464</td><td>9</td></tr><tr><td>lrg</td><td>ASI-pre</td><td>tcrb</td><td>113</td><td>6.1</td><td>14.39</td><td>12.14–17.15</td><td>657</td><td>456</td><td>1</td></tr><tr><td>lrg</td><td>QHY</td><td>calibrator</td><td>83</td><td>8.0</td><td>18.56</td><td>13.49–22.69</td><td>848</td><td>354</td><td>12</td></tr></table>
+<p>Regressors (T&nbsp;CrB frames; LSF in px):</p>
+<table><tr><th>grism</th><th>regressor</th><th>slope (px/unit)</th><th>r</th><th>n</th><th>range</th></tr><tr><td>hrg</td><td>focus_offset</td><td>-0.00377</td><td>-0.24</td><td>81</td><td>204.6 – 681.6</td></tr><tr><td>hrg</td><td>ccd_temp</td><td>+0.00824</td><td>0.04</td><td>81</td><td>-10.3 – 0.3</td></tr><tr><td>lrg</td><td>focus_offset</td><td>+0.00745</td><td>0.15</td><td>113</td><td>-167.0 – 120.0</td></tr><tr><td>lrg</td><td>ccd_temp</td><td>+0.0874</td><td>0.29</td><td>113</td><td>-10.3 – 0.3</td></tr></table>
+</section>
+
+<section id="g2"><h2>3 &middot; G-2: variance and saturation from the
+measured detector table</h2>
+<table><tr><th>key</th><th>camera</th><th>K (e⁻/ADU)</th><th>RN (ADU)</th><th>pedestal</th><th>clip</th><th>cap applied</th><th>provisional</th></tr><tr><td>ASI-Mode0-bin2avg</td><td>ZWO ASI (IMX455)</td><td>1.046</td><td>2.29</td><td>303.0</td><td>65,535</td><td>56,537</td><td>no</td></tr><tr><td>QHY600-bin2avg</td><td>QHY600M (IMX455)</td><td>1.288</td><td>3.54</td><td>172.0</td><td>65,534</td><td>26,300</td><td>yes</td></tr><tr><td>QHY600-pyscope-bin2avg</td><td>QHY600M (IMX455), pyscope</td><td>1.280</td><td>3.54</td><td>172.0</td><td>65,534</td><td>26,300</td><td>yes</td></tr><tr><td>AC4040-HighGain</td><td>SBIG AC4040M (GSENSE4040)</td><td>1.069</td><td>3.93</td><td>93.0</td><td>3,496</td><td>1,750</td><td>no</td></tr><tr><td>AC4040-StackPro</td><td>SBIG AC4040M (GSENSE4040)</td><td>1.069</td><td>15.59</td><td>1484.5</td><td>56,062</td><td>23,200</td><td>no</td></tr><tr><td>iKon-1MHz</td><td>Andor iKon CCD</td><td>0.940</td><td>7.39</td><td>304.8</td><td>64,674</td><td>38,900</td><td>no</td></tr></table>
+<p>Measured / predicted sky variance in the trace flanks, T&nbsp;CrB:</p>
+<table><tr><th>grism</th><th>frames</th><th>median ratio</th><th>16–84%</th><th>within 20%</th><th>pooled PTC K (e⁻/ADU)</th><th>floor (ADU)</th></tr><tr><td>hrg</td><td>85</td><td>1.127</td><td>1.084–1.295</td><td>58/85</td><td>1.009 ± 0.001</td><td>3.57</td></tr><tr><td>lrg</td><td>124</td><td>1.143</td><td>1.070–1.205</td><td>102/124</td><td>0.919 ± 0.041</td><td>8.01</td></tr></table>
+</section>
+
+<section id="g3"><h2>4 &middot; G-3: the pixel identity gate</h2>
+<p>T&nbsp;CrB: 181 of 247 frames accepted;
+reasons {'ok': 181, 'no_tio_step': 6, 'fingerprint_mismatch': 11, 'no_trace': 38, 'no_emission_line': 11}.  Of the 21 frames
+whose header pointing is &gt;1&deg; off, 8 are
+accepted on their pixels; the August gate rejected
+21 frames on the header alone, of which
+8 now pass.  No frame is
+rejected for a header value.</p>
+<table><tr><th>S2c verdict</th><th>accepted</th><th>rejected</th></tr><tr><td>dispersed</td><td>181</td><td>66</td></tr></table>
+<p>False-accept rate on 160 non-T&nbsp;CrB frames of the same
+grisms, camera state and exposure regime: 0/160
+(Wilson 95% 0.0–2.3%).</p>
+</section>
+
+<section id="g4"><h2>5 &middot; G-4: the sky-lozenge background</h2>
+<p>Empty-aperture sums &plusmn;200 px from the trace, as a fraction of the
+target continuum, and the share of trace columns below &minus;3&sigma;:</p>
+<table><tr><th>grism</th><th>sky model</th><th>frames×2</th><th>median (%)</th><th>scatter (%)</th><th>|frac| > 3%</th><th>neg. columns median (%)</th><th>max (%)</th></tr><tr><td>hrg</td><td>poly</td><td>170</td><td>0.29</td><td>0.90</td><td>2</td><td>0.00</td><td>0.09</td></tr><tr><td>hrg</td><td>flanking</td><td>170</td><td>0.88</td><td>0.66</td><td>5</td><td>0.00</td><td>0.22</td></tr><tr><td>lrg</td><td>poly</td><td>248</td><td>0.20</td><td>1.39</td><td>26</td><td>0.15</td><td>6.41</td></tr><tr><td>lrg</td><td>flanking</td><td>248</td><td>1.05</td><td>1.23</td><td>58</td><td>0.29</td><td>17.02</td></tr></table>
+<table><tr><th>grism</th><th>frames</th><th>sky-method diff. median (%)</th><th>84th pct (%)</th><th>boxcar vs optimal median (%)</th><th>84th pct (%)</th></tr><tr><td>hrg</td><td>85</td><td>1.70</td><td>3.31</td><td>0.99</td><td>1.58</td></tr><tr><td>lrg</td><td>124</td><td>1.49</td><td>3.76</td><td>1.08</td><td>2.65</td></tr></table>
+</section>
+
+<section id="a6"><h2>6 &middot; TCRB-A6: saturation triage</h2>
+<table><tr><th>grism</th><th>frames</th><th>clean</th><th>flag</th><th>discard</th><th>cap (ADU)</th><th>brightest good pixel</th><th>bad-pixel fraction of aperture (%)</th></tr><tr><td>hrg</td><td>85</td><td>85</td><td>0</td><td>0</td><td>56,537.49</td><td>16,850</td><td>0.53</td></tr><tr><td>lrg</td><td>124</td><td>124</td><td>0</td><td>0</td><td>56,537.49</td><td>17,307</td><td>0.50</td></tr></table>
+</section>
+
+<section id="ew"><h2>7 &middot; How the T&nbsp;CrB H&alpha; EW moved</h2>
+<table><tr><th>grism</th><th>paired frames</th><th>v1 EW (Å)</th><th>v2 EW (Å)</th><th>v2/v1</th><th>16–84%</th><th>v1 scatter (%)</th><th>v2 scatter (%)</th><th>v1 error (Å)</th><th>v2 error (Å)</th><th>v1 dispersions (Å/px)</th></tr><tr><td>hrg</td><td>26</td><td>27.5</td><td>22.2</td><td>1.03</td><td>0.42–1.10</td><td>49</td><td>18</td><td>0.72</td><td>0.37</td><td>0.45–1.80</td></tr><tr><td>lrg</td><td>32</td><td>15.2</td><td>21.5</td><td>1.21</td><td>0.31–2.30</td><td>96</td><td>18</td><td>1.21</td><td>0.79</td><td>0.28–2.00</td></tr></table>
+</section>
+
+<footer>Generated by <code>macro_grism.report_g</code>; every number is a
+query of the grism database. Regenerate with
+<code>python pipeline/scripts/run_g_tcrb_validation.py --report</code>.
+</footer><!--/MACRO-SITE:CONTENT-->
+<div class="prevnext"><a class="pv" href="../pipeline/s2c_filter_identity.html"><span class="dir">&larr; Previous</span>S2c — Filter Identity, Measured</a><a class="nx" href="../pipeline/s1_astrometry.html"><span class="dir">Next &rarr;</span>S1 — Astrometry Go/No-Go Experiment</a></div>
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v2.0 (2026-10-03)), the provenance DAG (<code>macro_core.provenance</code>, P v1.1 (2026-10-03)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+</div>
+</div>
+</body></html>

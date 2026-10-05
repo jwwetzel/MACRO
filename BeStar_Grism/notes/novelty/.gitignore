@@ -1,0 +1,6 @@
+# Raw BeSS/Sesame responses (210 MB) and the working database are regenerable:
+#   python bess_novelty_check.py all
+cache/
+novelty.sqlite
+__pycache__/
+.pytest_cache/

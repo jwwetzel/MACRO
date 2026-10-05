@@ -91,6 +91,8 @@ CALIBRATORS = (
     ("Algol",      "bet per%",      "B", "B8 V eclipsing"),
     ("Rigel",      "rigel%",        "B", "B8 Ia"),
     ("eta Ori",    "eta ori%",      "B", "B1 V + B2e"),
+    ("120 Tau",    "120 tau%",      "B", "B2 IV"),
+    ("19 Mon",     "19 mon%",       "B", "B1 V"),
     ("15 Mon",     "15 mon%",       "B", "O7 V"),
     ("zet Oph",    "zeta oph%",     "B", "O9.5 V"),
     ("tet CrB",    "tet crb%",      "B", "B6 Vnne Be/shell — Halpha "
@@ -99,7 +101,7 @@ CALIBRATORS = (
 )
 
 #: Frames per (star, grism, mechanical epoch).
-PER_STAR = 10
+PER_STAR = 16
 
 #: Exposure ceiling for a calibrator frame (s).  Longer exposures of
 #: these stars saturate; the short strata are the usable ones.
@@ -204,6 +206,7 @@ def calib_rows(con, where: str = "") -> list[dict]:
         SELECT path, star, grism, mech_epoch, night, jd, exptime,
                snr_median, n_sat_cols, peak_adu, fwhm_px, nx
         FROM g_frames WHERE sample = 'calibrator' AND status = 'ok'
+          AND code_version = '{gstore.REDUCE_VERSION}'
         {where} ORDER BY mech_epoch, grism, star, path""")
     cols = [c[0] for c in cur.description]
     return [dict(zip(cols, r)) for r in cur]
@@ -570,7 +573,10 @@ def run_solve(con) -> None:
     PASS 2 — high-resolution grism only: the O2-gamma and O2-B edge
     wavelengths, averaged over the epochs whose pass-1 solution was
     ADOPTED, become secondary standards and every epoch is re-fitted
-    with them added.  This is what lets the A stars contribute (on the
+    with them added.  The pass-2 solution is STORED only for an epoch
+    whose pass-1 solution failed acceptance (stellar lines are the
+    primary standard; telluric edges are a secondary standard whose
+    half-depth wavelength moves with airmass).  This is what lets the A stars contribute (on the
     hrg they show one stellar line, Halpha, but both edges), and it is
     what rescues an epoch with few B-star frames.  The pass-1 numbers
     are kept in ``g_meta`` ('solve_pass1') so the report can show that
@@ -579,7 +585,7 @@ def run_solve(con) -> None:
     stellar line, where the polynomial is an extrapolation and the edge
     wavelength at ~15 A resolution is not known a priori.
     """
-    summary1, tel1, _ = _solve_all(con, secondary=None)
+    summary1, tel1, writes1 = _solve_all(con, secondary=None)
     sec = {}
     for feat in ("O2gamma", "O2B"):
         vals = [(t["wave_eff"], t["wave_eff_err"]) for t in tel1
@@ -593,7 +599,25 @@ def run_solve(con) -> None:
                               / w.sum())
     print(f"  secondary standards (hrg): "
           f"{ {k: round(v, 2) for k, v in sec.items()} }")
-    summary2, _tel2, writes = _solve_all(con, secondary=sec)
+    summary2, _tel2, writes2 = _solve_all(con, secondary=sec)
+    # Per epoch: the stellar-only solution wherever it met acceptance (it
+    # is the primary standard); the telluric-assisted one only where it
+    # did not.
+    keep1 = {k for k, v in summary1.items() if v.get("status") == "adopted"}
+    writes = []
+    for (table, row) in writes1:
+        if (row["grism"], row["mech_epoch"]) in keep1:
+            if table == "g_dispersion":
+                row = dict(row, note=("pass 1: stellar lines only. "
+                                      + (row.get("note") or "")).strip())
+            writes.append((table, row))
+    for (table, row) in writes2:
+        if (row["grism"], row["mech_epoch"]) not in keep1:
+            if table == "g_dispersion":
+                row = dict(row, note=("pass 2: stellar lines + telluric "
+                                      "secondary standards. "
+                                      + (row.get("note") or "")).strip())
+            writes.append((table, row))
     for t in ("g_dispersion", "g_dispersion_resid", "g_telluric_lambda"):
         con.execute(f"DELETE FROM {t}")
     con.execute("UPDATE g_line_meas SET used = 0")

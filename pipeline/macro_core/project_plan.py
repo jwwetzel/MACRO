@@ -1793,26 +1793,31 @@ BESTAR_GRISM = Project(
     key="BeStar_Grism",
     title="Be-Star Grism Campaign",
     claim=(
-        "CONDITIONAL on the BeSS novelty check, which runs first and alone: "
-        "multi-season, ~3-day-cadence Hα equivalent-width monitoring of "
-        "bright emission-line stars with a 0.5 m slitless grism — a survey "
-        "blind spot, since every target saturates ZTF/ASAS-SN/ATLAS/Gaia — "
-        "validated one-to-one against BeSS and anchored to stability "
-        "standards. If fewer than two targets are verified-active emitters, "
-        "the science paper stops and its standards and precision material "
-        "moves to the instrument section. EW changes are claimed only from "
-        "the standards epoch (2025-12-05) onward; earlier seasons are "
-        "descriptive. Season 1 is EW only. The short-period search is "
-        "three stars with a global false-alarm probability. V/R is held "
-        "until the hrg dispersion disagreement (D1) is settled by test."),
-    venue="Decided by BE-N1-gate: ApJ if ≥4 BeSS-verified active emitters, "
-          "AJ/PASP for 2–3, no science paper below 2",
+        "RE-DRAWN by the chair's ruling on BE-N1-gate (2026-10-04): the "
+        "planned ten stars held no BeSS-verified active emitter, so the "
+        "paper is the 19 BeSS-verified active Be stars with ≥10 RLMT grism "
+        "nights in a season (QQ Gem among them). Multi-season Hα "
+        "equivalent-width monitoring of bright Be stars with a 0.5 m "
+        "slitless grism — a survey blind spot, since every target "
+        "saturates ZTF/ASAS-SN/ATLAS/Gaia — validated one-to-one against "
+        "BeSS and anchored to stability standards. EW changes are claimed "
+        "only from the standards epoch (2025-12-05) onward; earlier seasons "
+        "are descriptive. Season 1 is EW only. The short-period search runs "
+        "only for stars with ≥3 nights of >2 h span, with a global "
+        "false-alarm probability. V/R is held until the hrg dispersion "
+        "disagreement (D1) is settled by test."),
+    venue="Decided by the evidence after the re-draw: AJ/PASP "
+          "(methods-plus-monitoring) unless a standards-epoch event with a "
+          "TESS-coincident onset survives the detection rule",
     # Unchanged in wording by the review (it is conditional on BE-N1-gate
     # either way); re-emitted because the skeleton typed "\\alpha", which
     # LaTeX reads as a line break followed by the word "alpha".
-    paper_title=(r"H$\alpha$ Variability in Bright Be Stars from a "
-                 r"Multi-Semester Slitless Grism Campaign on the Robert L. "
-                 r"Mutel Telescope"),
+    # Retitled by seat 6 (2026-10-05, edit 7): "Multi-Semester" and
+    # "Variability" claimed more than one standards season and an unknown
+    # event count can support.
+    paper_title=(r"H$\alpha$ Equivalent-Width Monitoring of 19 Bright Be "
+                 r"Stars with a 0.5 m Slitless-Grism Telescope, Validated "
+                 r"against BeSS"),
     strategy=_BE,
     ruling=_ruled("§4 BeStar_Grism", "U9", "U2", "D1"),
     decisions=(
@@ -1831,6 +1836,17 @@ BESTAR_GRISM = Project(
          "global FAP; the λ Eri short search is dropped. (8) Season-2 "
          "observing and the dither test are the 2027 backlog. (9) Six "
          "figures, not twelve."),
+        ("Sample re-draw of 2026-10-04 — the chair's ruling on BE-N1-gate",
+         "The gate failed for the planned ten (0 BeSS-verified active "
+         "emitters) and passed for the campaign as observed. The paper is "
+         "re-drawn to the BeSS-verified active Be stars with ≥10 RLMT grism "
+         "nights in a season, taken from the novelty report's tables; QQ "
+         "Gem (HD 46264) is one of them. η Hya and θ Vir stay the "
+         "standards; the stars BeSS shows constant become null tests inside "
+         "the standards epoch. The camera now mounted has no grism flats: "
+         "BE-S2 states the method from the archive and the October "
+         "acquisition is the 2027 backlog (BE-X3). Strategy §10, Sample "
+         "re-draw."),
     ),
     phases=(
         Phase("Step −1 — Feasibility gates",
@@ -1857,11 +1873,14 @@ BESTAR_GRISM = Project(
                        accept="the decision and the count behind it are "
                               "recorded, with the venue that follows."),
                   Task("BE-S-1b-lameri-injection",
-                       "Injection–recovery for every star, through detrending",
-                       "A 90%-recovery contour per star on the real "
-                       "timestamps, through the full pipeline including "
-                       "detrending — λ Eri's first, as the completeness map "
-                       "that justifies its demotion to the slow tier.",
+                       "Injection–recovery for every sample star, through "
+                       "detrending",
+                       "A 90%-recovery contour per re-drawn sample star on "
+                       "its real nightly timestamps, through the detrending "
+                       "(free offset per mechanical epoch and the airmass, "
+                       "temperature and focus regressors), in units of the "
+                       "night-to-night scatter — slow tier for every star, "
+                       "short tier for the stars the admission rule admits.",
                        "S0c", _be_src("§4 Step −1(b)"), PENDING,
                        ruling=_ruled("§4 BE-S-1b", "DS"),
                        accept="a contour per star is published BEFORE any "
@@ -1892,8 +1911,11 @@ BESTAR_GRISM = Project(
               "state, then the gates every frame must pass.",
               (
                   Task("BE-S0-master-table", "Master frame table",
-                       "stage_bestar_grism: the grism-whitelisted science "
-                       "set with era, night and calibration family attached.",
+                       "be_frames: the grism-whitelisted frames of the "
+                       "re-drawn sample and its standards, with mechanical "
+                       "epoch, night, BJD_TDB and S2c verdict attached "
+                       "(re-issued 2026-10-05; stage_bestar_grism held the "
+                       "planned ten).",
                        "S0c", _be_src("§4 Step 0"), DONE,
                        evidence="docs/pipeline/s0c_staging.html"),
                   Task("BE-S0-cone-match",
@@ -1966,29 +1988,23 @@ BESTAR_GRISM = Project(
                        "G", _be_src("§4 Step 1"), PENDING,
                        depends_on=_BE_NOVELTY_GATE + ("G-2", "G-3"),
                        forbids=_BE_GATE_RULE),
-                  Task("BE-S2-calibration", "Calibration set for the camera "
-                                            "now mounted",
-                       "Biases, darks and flat pairs at six or more levels "
-                       "to ~60 kADU in the as-found QHY configuration — the "
-                       "same frames give gain and linearity — plus the "
-                       "answer on whether the ASI (era-B) camera survives. "
-                       "Era-B frames cannot be acquired on the QHY.",
-                       "OPS", _be_src("§4 Step 2"), BLOCKED,
+                  Task("BE-S2-calibration", "Calibration method from the "
+                                            "archive — no grism flats exist",
+                       "The calibration each frame actually receives, stated "
+                       "and applied: gain and saturation per mechanical "
+                       "state from detector_params, background from the "
+                       "flanking bands in place of darks, no flat-field "
+                       "division (the dither test is BE-X1), and the era-B "
+                       "label. The camera now mounted has no grism flat, "
+                       "bias or dark in the archive; the October "
+                       "acquisition is BE-X3.",
+                       "OPS", _be_src("§4 Step 2"), PENDING,
                        evidence="ops/2026-08_observatory_request.md",
-                       blocker="External: no frame can be taken until Winer "
-                               "re-opens, and the request that asks for "
-                               "these is being rewritten as rev. 3 for the "
-                               "camera actually mounted (U10) — James sends "
-                               "it. Clears when the calibration nights are "
-                               "in the manifest. Meanwhile era B is carried "
-                               "on surrogate darks and is labelled "
-                               "lower-bound-only unless its EW floor is "
-                               "measured from them.",
                        ruling=_ruled("§4 BeStar_Grism", "U10", "DE", "RF"),
-                       accept="flat pairs at ≥ 6 levels in the manifest; "
-                              "the era-B EW floor from surrogate darks is "
-                              "published, or era B is labelled "
-                              "lower-bound-only."),
+                       accept="the method is stated with the archive's "
+                              "calibration inventory per mechanical state; "
+                              "era B is labelled lower-bound-only unless its "
+                              "EW floor is measured from standards."),
               )),
         Phase("Steps 3–6 — Extraction and the calibration chain",
               "Trace, wavelength, delivered resolution, and the response "
@@ -2029,8 +2045,9 @@ BESTAR_GRISM = Project(
                               "table; off-nominal-focus nights flagged."),
                   Task("BE-VR-hold",
                        "V/R decomposition — held pending D1",
-                       "A two-component V/R series on λ Eri, if and only "
-                       "if the delivered hrg resolution supports it; "
+                       "A two-component V/R series on the strongest sample "
+                       "emitters, if and only if the delivered hrg "
+                       "resolution supports it; "
                        "otherwise the O₂-referenced asymmetry moment "
                        "stands in.",
                        "G", _be_src(f"{_AMENDMENTS} BE-VR-hold"), BLOCKED,
@@ -2118,12 +2135,12 @@ BESTAR_GRISM = Project(
               "completeness contours.",
               (
                   Task("BE-S11-timeseries", "Slow- and short-tier searches",
-                       "GLS + PDM on nightly medians for every target, and "
-                       "the 0.3–2 d search on the three qualifying stars "
-                       "(Phecda, Spica, φ Leo) only, with a GLOBAL "
-                       "false-alarm probability over the whole band and "
-                       "the focus regressor among the systematics. The "
-                       "λ Eri short search is dropped.",
+                       "GLS on nightly medians for every sample star, and "
+                       "the 0.3–2 d search only on sample stars with ≥3 "
+                       "nights of >2 h span, with a GLOBAL false-alarm "
+                       "probability over the whole band and the focus and "
+                       "H₂O regressors among the systematics. The λ Eri "
+                       "short search is dropped.",
                        "G", _be_src("§4 Step 11"), PENDING,
                        depends_on=_BE_NOVELTY_GATE
                        + ("BE-S-1b-lameri-injection",),
@@ -2142,7 +2159,9 @@ BESTAR_GRISM = Project(
                        forbids=_BE_GATE_RULE),
                   Task("BE-S13-external", "BeSS and TESS co-analysis",
                        "The resolution-matched one-to-one BeSS validation "
-                       "plot — the figure the paper stands on.",
+                       "plot on the re-drawn sample — the figure the paper "
+                       "stands on — and the TESS sectors (MAST) of every "
+                       "sample star.",
                        "G", _be_src("§4 Step 13"), PENDING,
                        depends_on=_BE_NOVELTY_GATE,
                        forbids=_BE_GATE_RULE),
@@ -2183,6 +2202,16 @@ BESTAR_GRISM = Project(
                  "from December). Carried in the rev. 3 observatory "
                  "request; none of it is on this paper's critical path.",
                  "OPS", _be_src(f"{_AMENDMENTS} BE-X2-season2-observing"),
+                 DEFERRED,
+                 ruling=_ruled("§4 BeStar_Grism DEFER", "U10", "OA")),
+            Task("BE-X3-calib-acquisition",
+                 "Calibration frames for the mounted camera (October)",
+                 "Biases, darks and flat pairs at six or more levels to "
+                 "~60 kADU in the as-found QHY configuration — the same "
+                 "frames give gain and linearity — and whether the ASI "
+                 "(era-B) camera survives. Era-B frames cannot be acquired "
+                 "on the QHY. Carried in the rev. 3 observatory request.",
+                 "OPS", _be_src(f"{_AMENDMENTS} BE-X3-calib-acquisition"),
                  DEFERRED,
                  ruling=_ruled("§4 BeStar_Grism DEFER", "U10", "OA")),
         ),
@@ -2631,9 +2660,11 @@ DWARF_AGN = Project(
     # Provisional, as the strategy requires: "the title is fixed only after
     # 3.1" (the literature cross-match).  What is settled is what it may no
     # longer say.
-    paper_title=(r"H$\alpha$ Imaging of Dwarf-Galaxy Candidates and NGC~5238 "
-                 r"with the Robert L. Mutel Telescope: Detections, "
-                 r"Non-Detections, and Depth"),
+    # Retitled by Seat 6 on 2026-10-05 (the candidates are faint
+    # HI-selected galaxies, 12 of 19 background; RNAAS note).
+    paper_title=(r"H$\alpha$ Imaging of Faint \ion{H}{1}-Selected Galaxies "
+                 r"and NGC~5238 with a 0.5\,m Telescope: Detections and "
+                 r"Limits"),
     strategy=_DW,
     ruling=_ruled("§4 DwarfGalaxy_AGN_Survey", "U1"),
     decisions=(
