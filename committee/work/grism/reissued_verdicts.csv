@@ -1,0 +1,168 @@
+target,filter,night,path,exptime,verdict_v1,verdict_v2,basis,morph_class,contrast,edge_ratio,area_frac
+NGC 5548,6,2023-03-23,macalester/mrf/2023/083/mrf08306.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,266.804,0.000,0.062
+NGC 5548,6,2023-03-23,macalester/mrf/2023/083/mrf08307.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,365.023,0.000,0.063
+NGC 5548,6,2023-03-23,macalester/mrf/2023/083/mrf08308.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,271.225,0.000,0.063
+NGC 5548,6,2023-03-23,macalester/mrf/2023/083/mrf08309.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,545.287,0.000,0.063
+NGC 5548,6,2023-03-23,macalester/mrf/2023/083/mrf0830c.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,274.006,0.000,0.062
+NGC 5548,6,2023-03-23,macalester/mrf/2023/083/mrf0830d.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,555.302,0.000,0.064
+NGC 5548,6,2023-03-23,macalester/mrf/2023/083/mrf0830e.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,560.027,0.000,0.064
+NGC 5548,6,2023-03-23,macalester/mrf/2023/083/mrf0830f.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,564.624,0.000,0.064
+NGC 5548,6,2023-03-24,macalester/mrf/2023/084/mrf08406.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,470.444,0.000,0.062
+NGC 5548,6,2023-03-24,macalester/mrf/2023/084/mrf08407.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,463.312,0.000,0.061
+NGC 5548,6,2023-03-24,macalester/mrf/2023/084/mrf08408.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,472.239,0.000,0.062
+NGC 5548,6,2023-03-24,macalester/mrf/2023/084/mrf0840a.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,475.541,0.000,0.062
+NGC 5548,6,2023-03-24,macalester/mrf/2023/084/mrf0840b.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,460.180,0.000,0.061
+NGC 5548,6,2023-03-24,macalester/mrf/2023/084/mrf0840c.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,474.874,0.000,0.062
+NGC 5548,6,2023-03-24,macalester/mrf/2023/084/mrf0840e.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,492.323,0.000,0.063
+NGC 5548,6,2023-03-25,macalester/mrf/2023/085/mrf08506.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,487.387,0.000,0.061
+NGC 5548,6,2023-03-25,macalester/mrf/2023/085/mrf08507.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,462.318,0.000,0.066
+NGC 5548,6,2023-03-25,macalester/mrf/2023/085/mrf08508.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,583.556,0.000,0.053
+NGC 5548,6,2023-03-25,macalester/mrf/2023/085/mrf08509.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,509.006,0.000,0.060
+NGC 5548,6,2023-03-25,macalester/mrf/2023/085/mrf0850a.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,513.630,0.000,0.064
+NGC 5548,6,2023-03-25,macalester/mrf/2023/085/mrf0850b.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,461.101,0.000,0.065
+NGC 5548,6,2023-03-25,macalester/mrf/2023/085/mrf0850c.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,478.069,0.000,0.063
+NGC 5548,6,2023-03-25,macalester/mrf/2023/085/mrf0850d.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,503.249,0.000,0.061
+NGC 5548,6,2023-03-25,macalester/mrf/2023/085/mrf0850e.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,476.894,0.000,0.066
+NGC 5548,6,2023-03-25,macalester/mrf/2023/085/mrf0850f.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,508.963,0.000,0.061
+NGC 5548,6,2023-03-27,macalester/mrf/2023/087/mrf08706.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,580.402,0.003,0.070
+NGC 5548,6,2023-03-27,macalester/mrf/2023/087/mrf08707.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,587.471,0.000,0.069
+NGC 5548,6,2023-03-27,macalester/mrf/2023/087/mrf08708.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,599.574,0.003,0.069
+NGC 5548,6,2023-03-27,macalester/mrf/2023/087/mrf08709.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,538.881,0.001,0.070
+NGC 5548,6,2023-03-27,macalester/mrf/2023/087/mrf0870a.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,613.090,0.002,0.069
+NGC 5548,6,2023-03-27,macalester/mrf/2023/087/mrf0870b.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,533.726,0.000,0.070
+NGC 5548,6,2023-03-27,macalester/mrf/2023/087/mrf0870c.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,605.207,0.003,0.070
+NGC 5548,6,2023-03-27,macalester/mrf/2023/087/mrf0870d.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,530.323,0.000,0.070
+NGC 5548,6,2023-03-27,macalester/mrf/2023/087/mrf0870e.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,628.498,0.003,0.069
+NGC 5548,6,2023-03-27,macalester/mrf/2023/087/mrf0870f.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,616.942,0.002,0.070
+NGC 5548,6,2023-03-28,macalester/mrf/2023/088/mrf08806.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,506.266,0.002,0.072
+NGC 5548,6,2023-03-28,macalester/mrf/2023/088/mrf08807.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,506.868,0.000,0.072
+NGC 5548,6,2023-03-28,macalester/mrf/2023/088/mrf08808.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,331.351,0.002,0.071
+NGC 5548,6,2023-03-28,macalester/mrf/2023/088/mrf08809.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,519.561,0.003,0.072
+NGC 5548,6,2023-03-28,macalester/mrf/2023/088/mrf0880a.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,241.791,0.004,0.071
+NGC 5548,6,2023-03-28,macalester/mrf/2023/088/mrf0880b.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,516.090,0.000,0.073
+NGC 5548,6,2023-03-28,macalester/mrf/2023/088/mrf0880c.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,524.900,0.000,0.072
+NGC 5548,6,2023-03-28,macalester/mrf/2023/088/mrf0880d.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,535.868,0.000,0.072
+NGC 5548,6,2023-03-28,macalester/mrf/2023/088/mrf0880e.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,475.291,0.000,0.071
+NGC 5548,6,2023-03-28,macalester/mrf/2023/088/mrf0880f.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,547.714,0.000,0.073
+NGC 5548,6,2023-03-29,macalester/mrf/2023/089/mrf08900.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,581.609,0.003,0.071
+NGC 5548,6,2023-03-29,macalester/mrf/2023/089/mrf08901.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,610.291,0.003,0.071
+NGC 5548,6,2023-03-29,macalester/mrf/2023/089/mrf08902.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,561.170,0.002,0.072
+NGC 5548,6,2023-03-29,macalester/mrf/2023/089/mrf08903.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,639.344,0.002,0.071
+NGC 5548,6,2023-03-29,macalester/mrf/2023/089/mrf08904.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,544.916,0.000,0.072
+NGC 5548,6,2023-03-29,macalester/mrf/2023/089/mrf08905.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,675.894,0.000,0.072
+NGC 5548,6,2023-03-29,macalester/mrf/2023/089/mrf08906.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,541.212,0.000,0.072
+NGC 5548,6,2023-03-29,macalester/mrf/2023/089/mrf08907.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,533.873,0.000,0.072
+NGC 5548,6,2023-03-29,macalester/mrf/2023/089/mrf08908.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,534.662,0.000,0.072
+NGC 5548,6,2023-03-29,macalester/mrf/2023/089/mrf08909.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,741.091,0.000,0.070
+NGC 5548,6,2023-03-31,macalester/mrf/2023/091/mrf09100.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1002.445,0.001,0.064
+NGC 5548,6,2023-03-31,macalester/mrf/2023/091/mrf09101.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1017.290,0.001,0.064
+NGC 5548,6,2023-03-31,macalester/mrf/2023/091/mrf09102.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,976.610,0.000,0.064
+NGC 5548,6,2023-03-31,macalester/mrf/2023/091/mrf09103.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1025.236,0.001,0.064
+NGC 5548,6,2023-03-31,macalester/mrf/2023/091/mrf09104.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,961.482,0.001,0.064
+NGC 5548,6,2023-03-31,macalester/mrf/2023/091/mrf09105.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,774.939,0.001,0.063
+NGC 5548,6,2023-03-31,macalester/mrf/2023/091/mrf09106.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,937.852,0.001,0.065
+NGC 5548,6,2023-03-31,macalester/mrf/2023/091/mrf09108.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1361.044,0.001,0.065
+NGC 5548,6,2023-03-31,macalester/mrf/2023/091/mrf09109.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,877.193,0.002,0.066
+NGC 5548,6,2023-04-01,macalester/mrf/2023/092/mrf09200.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1211.591,0.001,0.062
+NGC 5548,6,2023-04-01,macalester/mrf/2023/092/mrf09201.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1215.170,0.001,0.062
+NGC 5548,6,2023-04-01,macalester/mrf/2023/092/mrf09202.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1211.645,0.001,0.062
+NGC 5548,6,2023-04-01,macalester/mrf/2023/092/mrf09203.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1218.228,0.001,0.062
+NGC 5548,6,2023-04-01,macalester/mrf/2023/092/mrf09204.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1609.171,0.001,0.062
+NGC 5548,6,2023-04-01,macalester/mrf/2023/092/mrf09205.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1218.556,0.001,0.062
+NGC 5548,6,2023-04-01,macalester/mrf/2023/092/mrf09206.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1599.887,0.001,0.062
+NGC 5548,6,2023-04-01,macalester/mrf/2023/092/mrf09207.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1592.706,0.001,0.062
+NGC 5548,6,2023-04-01,macalester/mrf/2023/092/mrf09208.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1588.406,0.001,0.063
+NGC 5548,6,2023-04-01,macalester/mrf/2023/092/mrf09209.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1230.889,0.002,0.062
+NGC 5548,6,2023-04-02,macalester/mrf/2023/093/mrf09300.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1895.437,0.001,0.061
+NGC 5548,6,2023-04-02,macalester/mrf/2023/093/mrf09301.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1897.019,0.001,0.061
+NGC 5548,6,2023-04-02,macalester/mrf/2023/093/mrf09302.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1897.493,0.001,0.061
+NGC 5548,6,2023-04-02,macalester/mrf/2023/093/mrf09303.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1898.462,0.001,0.061
+NGC 5548,6,2023-04-02,macalester/mrf/2023/093/mrf09304.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1893.389,0.001,0.061
+NGC 5548,6,2023-04-02,macalester/mrf/2023/093/mrf09305.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1893.794,0.001,0.061
+NGC 5548,6,2023-04-02,macalester/mrf/2023/093/mrf09306.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1891.404,0.001,0.061
+NGC 5548,6,2023-04-02,macalester/mrf/2023/093/mrf09307.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1885.501,0.001,0.061
+NGC 5548,6,2023-04-02,macalester/mrf/2023/093/mrf09308.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,1905.762,0.002,0.061
+NGC 5548,6,2023-04-02,macalester/mrf/2023/093/mrf09309.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,2525.397,0.001,0.061
+NGC 5548,6,2023-04-05,macalester/mrf/2023/096/mrf09600.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,3457.178,0.001,0.060
+NGC 5548,6,2023-04-05,macalester/mrf/2023/096/mrf09601.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,3449.657,0.001,0.060
+NGC 5548,6,2023-04-05,macalester/mrf/2023/096/mrf09602.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,3450.784,0.001,0.060
+NGC 5548,6,2023-04-05,macalester/mrf/2023/096/mrf09603.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,3468.842,0.001,0.059
+NGC 5548,6,2023-04-05,macalester/mrf/2023/096/mrf09604.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,3474.035,0.001,0.059
+NGC 5548,6,2023-04-05,macalester/mrf/2023/096/mrf09605.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,3959.991,0.001,0.059
+NGC 5548,6,2023-04-05,macalester/mrf/2023/096/mrf09606.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,3953.525,0.001,0.059
+NGC 5548,6,2023-04-05,macalester/mrf/2023/096/mrf09607.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,3953.425,0.001,0.059
+NGC 5548,6,2023-04-05,macalester/mrf/2023/096/mrf09608.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,3955.149,0.001,0.059
+NGC 5548,6,2023-04-05,macalester/mrf/2023/096/mrf09609.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,3944.395,0.001,0.059
+NGC 5548,6,2023-04-17,macalester/mrf/2023/108/mrf1080a.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,373.942,0.000,0.055
+NGC 5548,6,2023-04-17,macalester/mrf/2023/108/mrf1080b.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,353.086,0.000,0.052
+NGC 5548,6,2023-04-17,macalester/mrf/2023/108/mrf1080c.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,374.551,0.000,0.054
+NGC 5548,6,2023-04-17,macalester/mrf/2023/108/mrf1080e.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,374.534,0.000,0.054
+NGC 5548,6,2023-04-17,macalester/mrf/2023/108/mrf1080f.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,385.826,0.000,0.055
+NGC 5548,6,2023-04-17,macalester/mrf/2023/108/mrf10811.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,405.519,0.000,0.056
+NGC 5548,6,2023-04-17,macalester/mrf/2023/108/mrf10813.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,368.111,0.000,0.055
+NGC 5548,6,2023-04-18,macalester/mrf/2023/109/mrf1090a.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,83.108,0.054,0.062
+NGC 5548,6,2023-04-18,macalester/mrf/2023/109/mrf1090d.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,79.183,0.055,0.065
+NGC 5548,6,2023-04-18,macalester/mrf/2023/109/mrf1090e.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,78.095,0.059,0.064
+NGC 5548,6,2023-04-18,macalester/mrf/2023/109/mrf1090f.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,77.390,0.058,0.065
+NGC 5548,6,2023-04-18,macalester/mrf/2023/109/mrf10910.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,78.375,0.055,0.065
+NGC 5548,6,2023-04-19,macalester/mrf/2023/110/mrf1100a.fts.fz,256.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,575.624,0.000,0.078
+NGC 5548,6,2023-04-19,macalester/mrf/2023/110/mrf1100b.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,581.534,0.000,0.080
+NGC 5548,6,2023-04-19,macalester/mrf/2023/110/mrf1100c.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,588.201,0.000,0.086
+NGC 5548,6,2023-04-19,macalester/mrf/2023/110/mrf1100d.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,592.736,0.000,0.087
+NGC 5548,6,2023-04-19,macalester/mrf/2023/110/mrf1100e.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,592.180,0.000,0.087
+NGC 5548,6,2023-04-19,macalester/mrf/2023/110/mrf1100f.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,594.111,0.000,0.087
+NGC 5548,6,2023-04-19,macalester/mrf/2023/110/mrf11010.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,595.201,0.000,0.089
+NGC 5548,6,2023-04-19,macalester/mrf/2023/110/mrf11011.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,597.090,0.000,0.091
+NGC 5548,6,2023-04-19,macalester/mrf/2023/110/mrf11012.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,602.201,0.000,0.094
+NGC 5548,6,2023-04-19,macalester/mrf/2023/110/mrf11013.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,608.804,0.000,0.100
+NGC 5548,6,2023-04-22,macalester/mrf/2023/113/mrf1130a.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,204.212,0.075,0.065
+NGC 5548,6,2023-04-22,macalester/mrf/2023/113/mrf1130b.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,214.691,0.068,0.063
+NGC 5548,6,2023-04-22,macalester/mrf/2023/113/mrf1130c.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,191.032,0.069,0.065
+NGC 5548,6,2023-04-22,macalester/mrf/2023/113/mrf1130d.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,176.376,0.074,0.066
+NGC 5548,6,2023-04-22,macalester/mrf/2023/113/mrf1130e.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,212.828,0.072,0.063
+NGC 5548,6,2023-04-22,macalester/mrf/2023/113/mrf11310.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,282.567,0.053,0.056
+NGC 5548,6,2023-04-22,macalester/mrf/2023/113/mrf11311.fts.fz,256.0,direct,dispersed,sky lozenge (no trace detected),lozenge,249.409,0.058,0.060
+NGC 5548,6,2023-04-22,macalester/mrf/2023/113/mrf11312.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,229.986,0.067,0.061
+NGC 5548,6,2023-04-22,macalester/mrf/2023/113/mrf11313.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,220.134,0.059,0.059
+NGC 5548,6,2023-04-23,macalester/mrf/2023/114/mrf1140a.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,184.936,0.070,0.060
+NGC 5548,6,2023-04-23,macalester/mrf/2023/114/mrf1140b.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,185.206,0.071,0.060
+NGC 5548,6,2023-04-23,macalester/mrf/2023/114/mrf1140c.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,187.058,0.072,0.059
+NGC 5548,6,2023-04-23,macalester/mrf/2023/114/mrf1140e.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,213.673,0.069,0.059
+NGC 5548,6,2023-04-23,macalester/mrf/2023/114/mrf1140f.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,171.486,0.069,0.059
+NGC 5548,6,2023-04-23,macalester/mrf/2023/114/mrf11410.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,191.956,0.071,0.060
+NGC 5548,6,2023-04-23,macalester/mrf/2023/114/mrf11411.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,189.319,0.070,0.060
+NGC 5548,6,2023-04-23,macalester/mrf/2023/114/mrf11412.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,189.922,0.068,0.060
+NGC 5548,6,2023-04-25,macalester/mrf/2023/116/mrf1160a.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,153.892,0.085,0.067
+NGC 5548,6,2023-04-25,macalester/mrf/2023/116/mrf1160b.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,156.420,0.085,0.067
+NGC 5548,6,2023-04-25,macalester/mrf/2023/116/mrf1160c.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,159.001,0.085,0.068
+NGC 5548,6,2023-04-25,macalester/mrf/2023/116/mrf1160d.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,161.322,0.082,0.068
+NGC 5548,6,2023-04-25,macalester/mrf/2023/116/mrf1160e.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,166.221,0.078,0.069
+NGC 5548,6,2023-04-25,macalester/mrf/2023/116/mrf1160f.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,165.252,0.077,0.070
+NGC 5548,6,2023-04-25,macalester/mrf/2023/116/mrf11610.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,148.307,0.084,0.070
+NGC 5548,6,2023-04-25,macalester/mrf/2023/116/mrf11611.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,188.449,0.077,0.069
+NGC 5548,6,2023-04-25,macalester/mrf/2023/116/mrf11612.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,168.553,0.078,0.069
+NGC 5548,6,2023-04-25,macalester/mrf/2023/116/mrf11613.fts.fz,256.0,dispersed,dispersed,traces + sky lozenge,lozenge,178.544,0.076,0.068
+T CrB,6,2023-05-11,rawimage/2023-05-12/mjc13203.fts.fz,32.0,dispersed,dispersed,traces (no sky evidence),ambiguous,36.192,0.180,0.122
+T CrB,6,2023-05-11,rawimage/2023-05-12/mjc13204.fts.fz,64.0,dispersed,dispersed,traces (no sky evidence),ambiguous,59.410,0.131,0.056
+T CrB,6,2023-05-11,rawimage/2023-05-12/mjc13205.fts.fz,64.0,dispersed,dispersed,traces (no sky evidence),ambiguous,57.654,0.118,0.056
+T CrB,6,2023-05-12,rawimage/2023-05-13/mjc13300.fts.fz,128.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,347.318,0.029,0.059
+T CrB,6,2023-05-13,rawimage/2023-05-14/mjc13400.fts.fz,128.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,410.249,0.024,0.059
+T CrB,6,2023-05-20,rawimage/2023-05-21/mjc14100.fts.fz,128.0,dispersed,dispersed,traces + sky lozenge,lozenge,20.222,0.099,0.054
+T CrB,6,2023-05-21,rawimage/2023-05-22/mjc14200.fts.fz,128.0,dispersed,dispersed,traces + sky lozenge,lozenge,21.333,0.094,0.058
+T CrB,6,2023-05-26,rawimage/2023-05-27/mjc14700.fts.fz,128.0,dispersed,dispersed,traces + sky lozenge,lozenge,18.180,0.110,0.050
+T CrB,6,2024-03-05,rawimage/2024-03-06/xwg06703.fts.fz,64.0,dispersed,dispersed,traces + sky lozenge,lozenge,356.556,0.020,0.052
+T CrB,W,2024-03-05,rawimage/2024-03-06/xwg06704.fts.fz,128.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,144.090,0.069,0.065
+T CrB,6,2024-03-09,rawimage/2024-03-10/xwg07009.fts.fz,64.0,dispersed,dispersed,traces + sky lozenge,lozenge,208.048,0.029,0.063
+T CrB,W,2024-03-09,rawimage/2024-03-10/xwg0700a.fts.fz,128.0,indeterminate,indeterminate,no trace verdict; sky not a lozenge,ambiguous,74.090,0.121,0.099
+T CrB,6,2024-03-11,rawimage/2024-03-12/xwg0720c.fts.fz,64.0,dispersed,dispersed,traces + sky lozenge,lozenge,180.444,0.039,0.060
+T CrB,W,2024-03-11,rawimage/2024-03-12/xwg0720d.fts.fz,128.0,indeterminate,indeterminate,no trace verdict; sky not a lozenge,ambiguous,64.027,0.141,0.101
+T CrB,6,2024-03-12,rawimage/2024-03-13/xwg0730c.fts.fz,64.0,dispersed,dispersed,traces + sky lozenge,lozenge,178.963,0.039,0.059
+T CrB,W,2024-03-12,rawimage/2024-03-13/xwg0730d.fts.fz,128.0,dispersed,dispersed,traces (no sky evidence),ambiguous,67.201,0.149,0.106
+T CrB,6,2024-03-16,rawimage/2024-03-17/xwg07712.fts.fz,64.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,229.339,0.026,0.053
+T CrB,W,2024-03-16,rawimage/2024-03-17/xwg07713.fts.fz,128.0,indeterminate,indeterminate,no trace verdict; sky not a lozenge,ambiguous,77.312,0.123,0.101
+T CrB,6,2024-03-18,rawimage/2024-03-19/xwg07912.fts.fz,64.0,indeterminate,dispersed,sky lozenge (no trace detected),lozenge,339.471,0.021,0.061
+T CrB,W,2024-03-18,rawimage/2024-03-19/xwg07913.fts.fz,128.0,dispersed,dispersed,traces + sky lozenge,lozenge,125.201,0.080,0.078
+T CrB,6,2024-03-21,rawimage/2024-03-22/xwg08215.fts.fz,4.0,dispersed,dispersed,traces + sky lozenge,lozenge,40.180,0.075,0.054
+T CrB,W,2024-03-21,rawimage/2024-03-22/xwg08216.fts.fz,32.0,dispersed,dispersed,traces + sky lozenge,lozenge,59.444,0.084,0.073
+T CrB,6,2024-03-25,rawimage/2024-03-26/xwg08615.fts.fz,4.0,dispersed,dispersed,traces + sky lozenge,lozenge,126.201,0.012,0.055
+T CrB,W,2024-03-25,rawimage/2024-03-26/xwg08616.fts.fz,32.0,dispersed,dispersed,traces + sky lozenge,lozenge,208.534,0.029,0.079

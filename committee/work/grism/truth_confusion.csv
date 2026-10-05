@@ -1,0 +1,19 @@
+classifier,truth,verdict,k,n,rate,wilson95_lo,wilson95_hi
+v1 (traces only),dispersed,dispersed,44,144,0.3056,0.2362,0.3850
+v1 (traces only),dispersed,indeterminate,53,144,0.3681,0.2937,0.4493
+v1 (traces only),dispersed,direct,47,144,0.3264,0.2552,0.4066
+v1 (traces only),direct,dispersed,12,42,0.2857,0.1717,0.4357
+v1 (traces only),direct,indeterminate,9,42,0.2143,0.1171,0.3594
+v1 (traces only),direct,direct,21,42,0.5000,0.3553,0.6447
+v1 (traces only),unusable,dispersed,7,14,0.5000,0.2680,0.7320
+v1 (traces only),unusable,indeterminate,4,14,0.2857,0.1172,0.5465
+v1 (traces only),unusable,direct,3,14,0.2143,0.0757,0.4759
+v2 (traces + sky),dispersed,dispersed,120,144,0.8333,0.7640,0.8854
+v2 (traces + sky),dispersed,indeterminate,22,144,0.1528,0.1031,0.2205
+v2 (traces + sky),dispersed,direct,2,144,0.0139,0.0038,0.0492
+v2 (traces + sky),direct,dispersed,4,42,0.0952,0.0377,0.2207
+v2 (traces + sky),direct,indeterminate,30,42,0.7143,0.5643,0.8283
+v2 (traces + sky),direct,direct,8,42,0.1905,0.0998,0.3330
+v2 (traces + sky),unusable,dispersed,6,14,0.4286,0.2138,0.6741
+v2 (traces + sky),unusable,indeterminate,5,14,0.3571,0.1634,0.6124
+v2 (traces + sky),unusable,direct,3,14,0.2143,0.0757,0.4759

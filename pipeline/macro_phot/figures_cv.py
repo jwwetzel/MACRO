@@ -91,6 +91,8 @@ in ``pipeline/scripts/run_cv_paper.py`` is I/O and bookkeeping only.
 
 from __future__ import annotations
 
+import re
+
 import math
 import sqlite3
 from dataclasses import dataclass, field
@@ -219,23 +221,65 @@ class FigureSpec:
 
     @property
     def full_caption(self) -> str:
-        """Caption plus the provenance clause every figure here carries.
+        """The caption as printed: the figure's own text, in sentence case.
 
-        The table names are wrapped in ``\\texttt`` with their underscores
-        escaped, because this string is pasted straight into a LaTeX
-        ``\\caption``: a bare ``cv_frames`` there is a subscript outside
-        maths mode and ends the ``tectonic`` run.
+        Revised 2026-10-05 (seat 6, CV-R13).  The caption used to carry a
+        "Drawn from \\texttt{...}" provenance clause, a "SUBSTITUTE FOR THE
+        PLANNED FIGURE" note and ALL-CAPS emphasis.  A journal reader
+        cannot use the first two and the third shouts.  The provenance is
+        not lost: ``tables`` is stored beside the caption (``p5_figure`` /
+        ``rv_figure.tables_used``) and the manuscript prints it as a
+        figure-to-table map in an appendix (:attr:`table_list`); the
+        substitute reason stays in ``substitute_reason``.
         """
-        parts = [self.caption.strip()]
-        if self.substitute:
-            reason = self.substitute_reason.strip().rstrip(".")
-            parts.append("SUBSTITUTE FOR THE PLANNED FIGURE: "
-                         + reason + ".")
-        if self.tables:
-            pretty = [f"\\texttt{{{t.replace('_', chr(92) + '_')}}}"
-                      for t in self.tables]
-            parts.append("Drawn from " + ", ".join(pretty) + ".")
-        return " ".join(p for p in parts if p)
+        return quiet_caps(self.caption.strip())
+
+    @property
+    def table_list(self) -> str:
+        """The source tables as LaTeX, for the appendix figure-to-table map.
+
+        Underscores are escaped because the string is pasted into LaTeX.
+        """
+        return ", ".join(f"\\texttt{{{t.replace('_', chr(92) + '_')}}}"
+                         for t in self.tables)
+
+
+#: Upper-case tokens that are names, not emphasis, and keep their case
+#: when :func:`quiet_caps` lowers the rest: target and survey names,
+#: header cards, units, time scales and band labels.
+CAPS_KEEP = frozenset({
+    "ST", "EU", "VV", "YZ", "AN", "AAVSO", "RLMT", "DATE-OBS", "ADU", "ZTF",
+    "JD", "CV", "ASAS-SN", "UTC", "TELUT", "TDB", "O-C", "HS", "BJD", "G-R",
+    "G-I", "R-I", "MAD", "FWHM", "PS1", "TESS", "ATLAS", "REFCAT2", "VSX",
+    "CV-S9", "CV-S11", "MHZ", "GSENSE", "ASI", "QHY", "CMOS", "CCD", "II",
+    "III", "IV"})
+
+_CAPS_WORD = re.compile(r"(?<![\\A-Za-z0-9_{])([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*)"
+                        r"(?![a-z0-9_])")
+
+
+def quiet_caps(text: str) -> str:
+    """Lower-case ALL-CAPS emphasis outside maths, keeping real acronyms.
+
+    A token of two or more capitals that is not in :data:`CAPS_KEEP` is
+    emphasis ("the SMALLEST amplitude") and is lowered; single capitals
+    (band names, "I"), mixed-case words and anything inside ``$...$`` are
+    left alone.
+    """
+    out, math = [], False
+    for i, chunk in enumerate(re.split(r"(\$)", text)):
+        if chunk == "$":
+            math = not math
+            out.append(chunk)
+            continue
+        if math:
+            out.append(chunk)
+            continue
+        out.append(_CAPS_WORD.sub(
+            lambda m: m.group(1) if (len(m.group(1).replace("-", "")) < 2
+                                     or m.group(1) in CAPS_KEEP)
+            else m.group(1).lower(), chunk))
+    return "".join(out)
 
 
 # ===========================================================================
@@ -850,7 +894,7 @@ def fig01_coverage(cv, ext_targets=("stlmi", "vvpup", "euuma",
             "time. This is a "
             "census of what was OBSERVED, so EU~UMa's 2026 Fast-mode "
             "nights appear here even though no measurement in this paper "
-            "uses them (Section~\\ref{sec:audit}); a coverage map "
+            "uses them (Appendix~\\ref{sec:audit}); a coverage map "
             "that omitted observed nights would be a different claim."),
         tables=("cv_frames", "cv_ext_nightly", "p3_ephemeris"),
         width_in=COL_DOUBLE)
@@ -1365,7 +1409,7 @@ def fig05_stlmi_folds(cv):
             "median phase bins with a median-absolute-deviation error on "
             "the median, and empty bins are left empty rather than "
             "interpolated. Colour separates the accretion states classified "
-            "in \\texttt{p3\\_state\\_night}, and that state palette is "
+            "in the nightly state classification (Sec.~3), and that state palette is "
             "the one thing the two columns do share. The two columns are "
             "NOT combined and share no MAGNITUDE axis, which is this "
             "figure's ordinate: the 2024 G/R/I and 2025 "

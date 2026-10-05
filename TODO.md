@@ -6,9 +6,9 @@ committee seat satisfied. Detail behind each line: [`committee/reviews/2026-10-0
 and the reports in `committee/work/<package>/REPORT.md`. Task-level status lives in the plan ledger
 (`python pipeline/scripts/update_project_plan.py show`).
 
-## 0. Goal status (2026-10-05): CV 47/49, SN 21/25 — every remaining task needs James or an outside party
+## 0. Goal status (2026-10-05): CV 48/49, SN 22/25 — every remaining task needs James or an outside party
 
-- [ ] **One journal-editor read of the two abstracts** (closes CV-R13 and SN-figures). Reviews are benched — say yes to this one exception.
+- [x] Journal-editor read of both abstracts done (2026-10-05): CV-R13 and SN-figures approved and closed. SN venue now PASP (ledger venue text still says AJ/PASP).
 - [ ] **CV-R15**: consortium authorship (`AUTHORSHIP.md`), real ORCIDs, Zenodo DOI, an outside polar reader.
 - [ ] **SN-S10**: publish the release tables (`products/sn/release/`, README written) to GitHub + Zenodo and record the DOI.
 - [ ] **SN narrowband curves + SN-S6 Hα curve**: need the filter transmission curve (Cannon / MACRO records); dropped by ruling if not in hand by **2026-11-15**.

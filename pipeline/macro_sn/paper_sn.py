@@ -361,6 +361,20 @@ def emit_numbers(man, sn) -> Path:
     a("SNTplGFoc", _q1(sn, "SELECT focus_offset FROM sn_template_table WHERE night='2023-05-04' AND filter='G'"), "{:+.0f}", S)
     a("SNNumTplEpochs", _q1(sn, "SELECT count(DISTINCT night) FROM sn_template_table"), "{}", S)
     a("SNNumRefcat", _q1(sn, "SELECT count(DISTINCT star_id) FROM sn_star_phot"), "{}", S)
+    # The residual DRIFT (seat 6): weighted straight line of RLMT - Li+25
+    # against phase; drift = slope x the span of the compared nights.
+    for code in ("G", "R", "I"):
+        r = np.array(_q(sn, "SELECT phase_d, resid, err FROM sn_resid WHERE code=?",
+                        code), dtype=float)
+        w = 1 / r[:, 2] ** 2
+        A = np.c_[np.ones(len(r)), r[:, 0]]
+        cov = np.linalg.inv(A.T @ (A * w[:, None]))
+        b = cov @ (A.T @ (w * r[:, 1]))
+        span = r[:, 0].max() - r[:, 0].min()
+        a(f"SNResDrift{code}", b[1] * span * 1e3, "{:+.0f}", S)
+        a(f"SNResDriftErr{code}", np.sqrt(cov[1, 1]) * span * 1e3, "{:.0f}", S)
+        a(f"SNResSpanLo{code}", r[:, 0].min(), "{:.0f}", S)
+        a(f"SNResSpanHi{code}", r[:, 0].max(), "{:.0f}", S)
     used = _q(sn, """SELECT c.code, c.exptime, c.ratio FROM sn_cal_scint c
         WHERE c.role='campaign' AND c.code IN ('G','R','I') AND c.n_points >= 30
         AND EXISTS (SELECT 1 FROM sn_phot p WHERE p.usable=1 AND p.code=c.code

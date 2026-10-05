@@ -262,17 +262,33 @@ def test_caption_escapes_table_names():
     mode and ends the tectonic run."""
     spec = fx.FigureSpec(fig_id="figXX", label="fig:x", title="t",
                          caption="Body.", tables=("cv_frames", "p3_period"))
-    cap = spec.full_caption
-    assert "\\texttt{cv\\_frames}" in cap
-    assert "cv_frames" not in cap.replace("cv\\_frames", "")
+    # Revised 2026-10-05 (seat 6): provenance left the caption for the
+    # appendix figure-to-table map, which ``table_list`` feeds; the
+    # escaping guard moves with it, and the caption must carry no table.
+    tl = spec.table_list
+    assert "\\texttt{cv\\_frames}" in tl
+    assert "cv_frames" not in tl.replace("cv\\_frames", "")
+    assert "cv" not in spec.full_caption
 
 
 def test_substitute_caption_states_the_substitution():
     spec = fx.FigureSpec(fig_id="figXX", label="fig:x", title="t",
                          caption="Body.", substitute=True,
                          substitute_reason="the nights do not exist")
-    assert "SUBSTITUTE" in spec.full_caption
-    assert "the nights do not exist." in spec.full_caption
+    # Revised 2026-10-05 (seat 6): the substitution note is internal
+    # language and is no longer printed; it must still be recorded.
+    assert "SUBSTITUTE" not in spec.full_caption
+    assert spec.substitute and spec.substitute_reason == \
+        "the nights do not exist"
+
+
+def test_captions_carry_no_shouting_but_keep_acronyms():
+    """Seat 6, 2026-10-05: ALL-CAPS emphasis is lowered; real acronyms,
+    header cards and anything in maths keep their case."""
+    out = fx.quiet_caps("the SMALLEST amplitude of ST LMi in ZTF and "
+                        "DATE-OBS, $G-R$ NOT ONE")
+    assert out == ("the smallest amplitude of ST LMi in ZTF and DATE-OBS, "
+                   "$G-R$ not one")
 
 
 def test_every_registered_builder_is_callable_and_declares_its_databases():

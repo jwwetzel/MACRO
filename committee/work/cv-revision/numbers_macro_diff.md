@@ -6,7 +6,7 @@ Emitted by `committee/work/cv-revision/diff_numbers.py`. Do not edit.
 - B: `committee/work/cv-revision/numbers.tex.before-cap` (1649 macros) — after the F-10 rebuild and the cv-stats emission
 - C: `manuscripts/CV_TimeSeries/numbers.tex` (1934 macros) — now
 
-Changed 47, added 1627, removed 0; unexplained steps: 0.
+Changed 48, added 1627, removed 0; unexplained steps: 0.
 
 ## Pre-existing macros that changed or disappeared
 
@@ -22,8 +22,9 @@ Changed 47, added 1627, removed 0; unexplained steps: 0.
 | `NumCompStarsMedian` | 228 | 228 | 225 | B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
 | `NumDetrendContourSeries` | 5 | 5 | 6 | B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
 | `NumDetrendContourSeriesBetter` | 4 | 4 | 5 | B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
-| `NumExtinctionBoundRangeMmag` | 1.2--36.2 | 1.1--40.3 | 1.2--22.0 | A->B: CV-S8 re-run in the clean rebuild on the re-tied series; B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
+| `NumExtinctionBoundRangeMmag` | 1.2--36.2 | 1.1--40.3 | 1.1--19.1 | A->B: CV-S8 re-run in the clean rebuild on the re-tied series; B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
 | `NumExtinctionMaxEffectMmag` | 1.9 | 1.9 | 1.6 | B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
+| `NumExtinctionSignificant` | 2 | 2 | 3 | B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
 | `NumHgReadNoiseE` | 4.15 | 4.15 | 4.18 | B->C: detector package re-emitted S2 tables |
 | `NumHgReadNoiseEErr` | 2.30 | 2.30 | 0.02 | B->C: detector package re-emitted S2 tables |
 | `NumHumpAmpRangeMmag` | 30--70 | 30--70 | 30--71 | B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
@@ -34,6 +35,7 @@ Changed 47, added 1627, removed 0; unexplained steps: 0.
 | `NumMacrosTotal` | 307 | 1\,649 | 1\,934 | A->B: count of macros: the revision added the NumRv set; B->C: count of macros: new checks stages (reduction, ramp, mech, clock, cap, detector) added macros |
 | `NumOutburstRateSignificant` | 8 | 8 | 7 | B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
 | `NumPrecisionSampleRange` | 20--815 | 20--815 | 20--824 | B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
+| `NumPrecisionScopeClause` | The crosses at the CV's own magnitude and the noise floor annotated on each panel are both LOCAL FITS over the ensemble and check stars together, not held-out statistics: the held-out quantities in this paper are the check-star scatter $\sigma_{\rm chk}$, the catalogue-tie accuracy and the error-bar inflation factor | The crosses at the CV's own magnitude and the noise floor annotated on each panel are both LOCAL FITS over the ensemble and check stars together, not held-out statistics: the held-out quantities in this paper are the check-star scatter $\sigma_{\rm chk}$, the catalogue-tie accuracy and the error-bar inflation factor | The crosses at the CV's own magnitude and the noise floor annotated on each panel are both local fits over the ensemble and check stars together, not held-out statistics: the held-out quantities in this paper are the check-star scatter $\sigma_{\rm chk}$, the catalogue-tie accuracy and the error-bar inflation factor | B->C: text only: emphasis lowered to sentence case (seat 6, 2026-10-05), so the clause matches its caption |
 | `NumStLmiEdgeFormalBarMinS` | 4.1 | 4.1 | 8.0 | B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
 | `NumStLmiFallRiseRatioRange` | 1.4--3.0 | 1.4--3.0 | 1.3--3.0 | B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
 | `NumStLmiFittedPeriodSigmaD` | 6.4 \times 10^{-8} | 6.0 \times 10^{-8} | 5.9 \times 10^{-8} | A->B: CV-S9 v1.1: the one-sided max(chi2_nu, 1) error rescaling was removed (standing rule 1); B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
@@ -57,8 +59,7 @@ Changed 47, added 1627, removed 0; unexplained steps: 0.
 | `NumTieMedianRatioToGoal` | 1.2 | 1.2 | 1.3 | B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
 | `NumTieSeries` | 26 | 27 | 27 | A->B: CV-S6 re-run in the clean rebuild: the 1 MHz y block now reaches the tie stage and fails it (counted as a primary block) |
 | `NumTieUntied` | 1 | 2 | 2 | A->B: same: that block is the second untied primary block |
-| `NumUntiedBlockNoTieStage` | ST~LMi's 1MHz HS 16-bit $y$ block | \NumMissing | \NumMissing | A->B: same: no block now fails BEFORE the tie stage, so the clause has no subject |
-| `NumUntiedBlockNoTieStageRows` | 10 | \NumMissing | \NumMissing | A->B: same |
+| `NumTieUntiedBlock` | EU~UMa's Fast $g$ block | EU~UMa's Fast $g$ block | EU~UMa's Fast $g$ block and ST~LMi's 1MHz HS 16-bit $y$ block | B->C: photometry chain re-run with the S2 1% linearity cap (run_cv_photometry.py recap): comparison and target measurements above the cap are withheld, so ensembles, ties and every downstream product move |
 
 ## Macros added by the revision
 

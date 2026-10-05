@@ -602,7 +602,7 @@ def dynamic_range_ratios(params: dict) -> tuple:
 #: :mod:`macro_phot.figures_cv` for the caption.  One string, two renderers.
 PRECISION_SCOPE_CLAUSE = (
     "The crosses at the CV's own magnitude and the noise floor annotated on "
-    "each panel are both LOCAL FITS over the ensemble and check stars "
+    "each panel are both local fits over the ensemble and check stars "
     "together, not held-out statistics: the held-out quantities in this "
     "paper are the check-star scatter $\\sigma_{\\rm chk}$, the "
     "catalogue-tie accuracy and the error-bar inflation factor")
@@ -3161,7 +3161,7 @@ def render_table_files(cv: sqlite3.Connection, man: sqlite3.Connection,
     return {"tab_instrument.tex": head + render_instrument_table(man),
             # Footnote size: at normal size the 25-row census plus its caption
             # overfills a page by 9 pt in the revised two-column paper.
-            "tab_series.tex": head + "\\tabletypesize{\\footnotesize}\n"
+            "tab_series.tex": head + "\\tabletypesize{\\scriptsize}\n"
             + render_series_table(cv),
             "tab_anuma.tex": head + render_anuma_table(cv),
             "tab_verdicts.tex": head + render_verdict_table(cv)}

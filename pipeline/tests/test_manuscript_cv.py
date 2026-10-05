@@ -165,7 +165,9 @@ class TestTheOCOffsetIsDisclosed:
     def test_figure_nine_does_not_claim_the_residuals_are_against_the_epoch(
             self, captions):
         cap = captions["CapFigZeroNine"]
-        assert "residuals against the catalogue PERIOD" in cap
+        # Revised 2026-10-05 (seat 6): captions are now emitted in sentence
+        # case, so the pinned emphasis is matched case-insensitively.
+        assert "residuals against the catalogue period" in cap.lower()
         assert "does not fall at the catalogue epoch's phase zero" in cap
 
     def test_the_reduced_chisq_loses_the_absorbed_constant(self, numbers,
@@ -239,7 +241,9 @@ class TestTheBandOffsetBoundMatchesItsQuantifier:
         bounds = [abs(d) + 2.0 * s for _, _, d, s in self._pooled(phot)]
         assert f"{max(bounds):.0f}~s" in cap
         assert f"{min(bounds):.0f}~s" in cap
-        assert "in EVERY pair" in cap
+        # Revised 2026-10-05 (seat 6): captions are now emitted in sentence
+        # case, so the pinned emphasis is matched case-insensitively.
+        assert "in every pair" in cap.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -257,7 +261,10 @@ class TestCaptionsAgreeWithTheBody:
         cap = captions["CapFigZeroTwo"]
         assert "permits only on the held-out check stars" not in cap, (
             "Figure 2's caption still carries the rule §3.1 retracts")
-        assert "LOCAL FITS over the ensemble and check stars together" in cap
+        # Revised 2026-10-05 (seat 6): captions are now emitted in sentence
+        # case, so the pinned emphasis is matched case-insensitively.
+        assert "local fits over the ensemble and check stars together" in \
+            cap.lower()
 
     def test_the_scope_clause_is_one_string_in_both_places(self, captions,
                                                            numbers, body):
@@ -309,7 +316,9 @@ class TestCaptionsAgreeWithTheBody:
         raw one, so the gap has the opposite sign from the asserted cost."""
         cap = captions["CapFigOneTwo"]
         assert "the detrending costs in sensitivity" not in cap
-        assert "NOT a sensitivity cost" in cap
+        # Revised 2026-10-05 (seat 6): captions are now emitted in sentence
+        # case, so the pinned emphasis is matched case-insensitively.
+        assert "not a sensitivity cost" in cap.lower()
         assert "sensitivity\ncost of detrending" not in body
         assert "shows the sensitivity" not in body
 
@@ -1266,7 +1275,9 @@ class TestFigureSevenNamesTheEraTheWayTheTablesDo:
         cap = captions["CapFigZeroSeven"]
         assert "iKon" not in cap
         assert self.ERA_LABEL_72 in cap
-        assert "split by READOUT MODE" in cap
+        # Revised 2026-10-05 (seat 6): captions are now emitted in sentence
+        # case, so the pinned emphasis is matched case-insensitively.
+        assert "split by readout mode" in cap.lower()
 
     def test_that_label_really_is_in_the_instrument_table(self):
         tables = _text("tables.tex")
@@ -1362,9 +1373,12 @@ class TestFigureThirteenDrawsAFloorAsAFloor:
         """It is the minimum across modes; each bar starts at its own."""
         cap = captions["CapFigOneThree"]
         assert "running from the timestamp resolution (dotted)" not in cap
-        assert "Each bar starts at THAT mode's own timestamp resolution" in cap
-        assert "the FINEST resolution across the" in cap
-        assert "An OPEN marker is a FLOOR and not a measurement" in cap
+        # Revised 2026-10-05 (seat 6): captions are now emitted in sentence
+        # case, so the pinned emphasis is matched case-insensitively.
+        low = cap.lower()
+        assert "each bar starts at that mode's own timestamp resolution" in low
+        assert "the finest resolution across the" in low
+        assert "an open marker is a floor and not a measurement" in low
 
     def test_the_floor_rule_is_the_one_the_panel_and_caption_share(self):
         """The pure helper both use, on rows chosen to sit either side of

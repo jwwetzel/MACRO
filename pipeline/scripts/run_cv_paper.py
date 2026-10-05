@@ -337,8 +337,6 @@ def cmd_numbers(args) -> None:
 
     # The captions the figure builders returned, as macros, so the paper's
     # \caption{} bodies are emitted by the same script that drew the panels.
-    figs = out.execute("""SELECT fig_id,label,title,caption FROM p5_figure
-                          ORDER BY fig_id""").fetchall()
     lines = [
         "%% captions.tex -- GENERATED FILE.  DO NOT EDIT.",
         "%% One macro per figure caption, emitted by the same script that "
@@ -348,9 +346,23 @@ def cmd_numbers(args) -> None:
         f"%% {stamp}",
         "",
     ]
+    figs = out.execute("""SELECT fig_id, label, title, caption, tables_used
+                          FROM p5_figure ORDER BY fig_id""").fetchall()
+
+    def tabs_macro(fig_id: str, tables_used: str) -> str:
+        """``\\TabsFig..``: the figure's source tables, for the appendix
+        figure-to-table map (the caption itself no longer carries them)."""
+        names = [t.strip() for t in (tables_used or "").split(",")
+                 if t.strip()]
+        body = ", ".join("\\texttt{" + t.replace("_", "\\_") + "}"
+                         for t in names) or "\\nodata"
+        return (f"\\newcommand{{\\{nx.tex_macro_name(fig_id, prefix='Tabs')}}}"
+                f"{{{body}}}")
+
     for r in figs:
         macro = nx.tex_macro_name(r["fig_id"], prefix="Cap")
         lines.append(f"\\newcommand{{\\{macro}}}{{{r['caption']}}}")
+        lines.append(tabs_macro(r["fig_id"], r["tables_used"]))
     # The revision figures (CV-R1...R7), drawn by run_cv_revision.py from
     # the rv_ tables, carry their captions in rv_figure; they are emitted
     # here beside the first set so every caption in the paper comes from
@@ -358,10 +370,11 @@ def cmd_numbers(args) -> None:
     have_rv = out.execute("SELECT count(*) FROM sqlite_master WHERE "
                           "name='rv_figure'").fetchone()[0]
     if have_rv:
-        for r in out.execute("SELECT fig_id, caption FROM rv_figure "
-                             "ORDER BY fig_id").fetchall():
+        for r in out.execute("SELECT fig_id, caption, tables_used FROM "
+                             "rv_figure ORDER BY fig_id").fetchall():
             macro = nx.tex_macro_name(r["fig_id"], prefix="Cap")
             lines.append(f"\\newcommand{{\\{macro}}}{{{r['caption']}}}")
+            lines.append(tabs_macro(r["fig_id"], r["tables_used"]))
     lines.append("")
     write_atomic(CAPTIONS_TEX, "\n".join(lines))
     print(f"  + {CAPTIONS_TEX.relative_to(REPO_ROOT)}: "

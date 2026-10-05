@@ -82,6 +82,9 @@ REASON_AB = {
 
 def reason_bc(name: str, prov: str) -> str:
     """Why a macro moved between B and C (the linearity-cap re-run)."""
+    if name == "NumPrecisionScopeClause":
+        return ("text only: emphasis lowered to sentence case (seat 6, "
+                "2026-10-05), so the clause matches its caption")
     if name.startswith("NumMacros"):
         return "count of macros: new checks stages (reduction, ramp, mech, " \
                "clock, cap, detector) added macros"
