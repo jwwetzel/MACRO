@@ -162,10 +162,20 @@ class TestSeriesSummariesMeanWhatTheySay:
         """n_target_saturated is 0 in every series, which reads as 'saturation
         never touched the targets'.  YZ Cnc's era-7 target reaches 98.8% of
         the applied veto on the block that carries the superhump amplitude."""
+        # Revised 2026-10-04: since the S2 1 per cent linearity cap is
+        # applied (run_cv_photometry.py recap), 32 YZ Cnc/ST LMi era-7
+        # target points sit above the applied threshold, so the flag is no
+        # longer zero.  The invariant is that the series summary counts
+        # exactly the flagged target rows, and that the near-threshold
+        # count still exists beside it.
         row = phot.execute(
             "SELECT sum(n_target_saturated), sum(n_target_near_veto_090) "
             "FROM cv_series WHERE status='solved'").fetchone()
-        assert row[0] == 0                    # the flag really is zero ...
+        flagged = phot.execute(
+            "SELECT count(*) FROM cv_lightcurve l JOIN cv_series s ON "
+            "s.series_key=l.series_key WHERE s.status='solved' AND "
+            "l.role='target' AND l.saturated=1").fetchone()[0]
+        assert row[0] == flagged              # the summary says what the flags say
         assert row[1] and row[1] > 0          # ... and it is not the whole story
 
     def test_calibration_age_is_recorded(self, phot):

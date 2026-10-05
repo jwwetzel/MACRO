@@ -508,7 +508,9 @@ def cmd_init(args) -> None:
     for key, (prov, _why) in provenance.items():
         era = key[1]
         mode = eras.get(era)
-        raw_veto = sr.veto_adu(mode)
+        # The lower of the S2 saturation veto and the S2 1 % linearity cap
+        # (the cap was added 2026-10-04; ``recap`` applies it in place).
+        raw_veto = sr.photometry_veto_adu(mode, era)
         if raw_veto is None:
             veto_for[key] = (None, f"no S2 ceiling measured for mode {mode!r}")
         elif prov == "server_reduced":
@@ -2120,6 +2122,82 @@ def cmd_status(args) -> None:
     con.close()
 
 
+def cmd_recap(args) -> None:
+    """Apply the S2 linearity cap to frames already extracted, in place.
+
+    The detector package (2026-10-04) measured where each readout mode
+    departs from linearity by 1 per cent.  In High Gain (era 7: 2,950 ADU),
+    StackPro (23,200), the iKon 1 MHz mode (38,900) and Fast (26,300) that
+    cap lies below the 0.92-of-clip saturation veto, so a star between the
+    two was being measured while non-linear by more than 1 per cent.  The
+    photometry now withholds anything at or above the LOWER of the two
+    (``series.photometry_veto_adu``), and ``init`` applies that rule to new
+    frames.  This stage brings the frames already extracted into line
+    WITHOUT re-reading a pixel, because every input is stored: the
+    detection's background-subtracted peak and the frame's background
+    (``cv_detections.peak``, ``cv_frames.bkg_adu``), and the mapping from a
+    raw threshold to the measured pixels -- the local dark median for
+    locally reduced frames, the S2 reconstruction for server-reduced ones,
+    exactly as ``init`` and ``extract`` apply them.  Every flag is then
+    re-derived from the new applied threshold.  Idempotent.
+
+    Run ``ensemble`` and ``errors`` (and ``audit`` for the series census)
+    afterwards: the comparison ensembles change wherever a comparison star
+    is newly withheld.
+    """
+    con = connect(args.db)
+    eras = {int(r[0]): r[1] for r in con.execute(
+        "SELECT DISTINCT era_id, readoutm FROM cv_frames "
+        "WHERE readoutm IS NOT NULL")}
+    upd = []
+    for era, mode in sorted(eras.items()):
+        new_raw = sr.photometry_veto_adu(mode, era)
+        old_raw = sr.veto_adu(mode)
+        if new_raw is None:
+            continue
+        cap = sr.linearity_cap_adu(mode, era)
+        basis_tail = (f"; S2 1% linearity cap {cap} ADU is below the "
+                      f"saturation veto {old_raw} ADU, so the cap is "
+                      f"applied" if (cap is not None and old_raw is not None
+                                     and cap < old_raw) else "")
+        tr = _recon_transform(args.recon_dir, era)
+        for fid, prov, dmed, vbasis in con.execute(
+                "SELECT frame_id, provenance, dark_median_adu, veto_basis "
+                "FROM cv_frames WHERE era_id=?", (era,)).fetchall():
+            if prov == "server_reduced":
+                if tr is None:
+                    applied = float(new_raw)
+                else:
+                    applied = sr.veto_in_reduced_adu(new_raw, *tr)
+            else:
+                applied = sr.applied_veto_adu(new_raw, dmed)
+            base = (vbasis or "").split("; S2 1% linearity cap")[0]
+            upd.append((float(new_raw) if prov != "server_reduced" or tr
+                        is None else sr.veto_in_reduced_adu(new_raw, *tr),
+                        fnum(applied), base + basis_tail, fid))
+    con.execute("BEGIN")
+    con.executemany("UPDATE cv_frames SET veto_adu=?, veto_applied_adu=?, "
+                    "veto_basis=? WHERE frame_id=?", upd)
+    before = con.execute("SELECT count(*) FROM cv_detections WHERE "
+                         "saturated=1").fetchone()[0]
+    con.execute("""UPDATE cv_detections SET saturated = (
+        SELECT CASE WHEN cv_detections.peak + coalesce(f.bkg_adu, 0.0)
+                    >= f.veto_applied_adu THEN 1 ELSE 0 END
+        FROM cv_frames f WHERE f.frame_id = cv_detections.frame_id)
+        WHERE peak IS NOT NULL AND frame_id IN (SELECT frame_id FROM
+        cv_frames WHERE veto_applied_adu IS NOT NULL)""")
+    after = con.execute("SELECT count(*) FROM cv_detections WHERE "
+                        "saturated=1").fetchone()[0]
+    con.commit()
+    meta_write(con, {"recap_utc": datetime.now(timezone.utc).isoformat(
+        timespec="seconds"), "s2_linearity_cap_adu": json.dumps(
+        sr.S2_MODE_LINEARITY_CAP_ADU), "s2_era_linearity_cap_adu":
+        json.dumps(sr.S2_ERA_LINEARITY_CAP_ADU)})
+    con.close()
+    print(f"recap: {len(upd)} frames re-thresholded; saturated detections "
+          f"{before} -> {after} (+{after - before})", flush=True)
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -2145,12 +2223,13 @@ def main() -> None:
                     help="also query Gaia for star identities on eras whose "
                          "reference is already plate-solved (optional; the "
                          "tie itself does not need it)")
-    for name in ("ensemble", "errors", "audit", "status"):
+    for name in ("ensemble", "errors", "audit", "recap", "status"):
         sub.add_parser(name)
     args = p.parse_args()
     {"init": cmd_init, "extract": cmd_extract, "match": cmd_match,
      "field": cmd_field, "ensemble": cmd_ensemble, "errors": cmd_errors,
-     "audit": cmd_audit, "status": cmd_status}[args.cmd](args)
+     "audit": cmd_audit, "recap": cmd_recap,
+     "status": cmd_status}[args.cmd](args)
 
 
 if __name__ == "__main__":

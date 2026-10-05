@@ -646,6 +646,17 @@ UNDECLARED_ON_PURPOSE: dict[str, str] = {
     "products/manifest/rlmt-manifest.sqlite":
         "the manifest itself — it is the database every table resource is "
         "fingerprinted INSIDE, not a resource within it",
+    "products/detector/detector.sqlite":
+        "the detector package's working copy; its S2 tables were promoted "
+        "into the manifest, where S2 fingerprints them",
+    "products/grism/grism.sqlite":
+        "the grism package's parked work (committee/work/grism/"
+        "PARKED_partial_work.patch); no published number reads it",
+    "products/grism/manifest_snapshot.sqlite":
+        "a read-only snapshot the parked grism package took of the manifest",
+    "products/legacy/legacy.sqlite":
+        "the legacy census is unfinished and unpublished (its draft page is "
+        "parked in committee/work/legacy/)",
 }
 
 

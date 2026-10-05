@@ -139,6 +139,61 @@ def veto_adu(readoutm: Optional[str]) -> Optional[int]:
     return S2_MODE_VETO_ADU.get(str(readoutm).strip())
 
 
+#: The S2 LINEARITY caps, raw ADU: the highest peak level below which the
+#: measured response departs from linear by no more than 1 per cent
+#: (``detector_params`` rows ``linearity_cap_adu``, table
+#: ``s2_linearity_caps``, detector package of 2026-10-04).  In three modes
+#: the cap lies BELOW the saturation veto, so a star between the two was
+#: unsaturated but non-linear by more than 1 per cent; the photometry now
+#: vetoes at the lower of the two (:func:`photometry_veto_adu`).  High Gain
+#: is measured per EGAIN epoch: 1,800 ADU for EGAIN 1.054 and 2,950 ADU for
+#: EGAIN 1.057; the mode-level figure (1,750) pools both.
+S2_MODE_LINEARITY_CAP_ADU: dict[str, int] = {
+    "Mode0": 62200,
+    "Fast": 26300,
+    "(blank 2026)": 26300,
+    "1MHz High Sensitivity 16-bit": 38900,
+    "High Gain": 1750,
+    "High Gain StackPro": 23200,
+}
+
+#: Era-specific linearity caps where S2 resolved the mode by EGAIN epoch.
+#: Every CV High Gain frame (era 7) and StackPro frame (era 6) is in the
+#: EGAIN 1.057 epoch (``s2_camera_configs``: 'AC4040 High Gain e1.057',
+#: eras '7'; 'AC4040 StackPro e1.057', eras '6').  StackPro inherits the
+#: mode-level cap because S2 measured no per-epoch StackPro cap.
+S2_ERA_LINEARITY_CAP_ADU: dict[int, int] = {
+    7: 2950,
+}
+
+
+def linearity_cap_adu(readoutm: Optional[str],
+                      era_id: Optional[int] = None) -> Optional[int]:
+    """The S2 1-per-cent linearity cap for a mode (and era), or None."""
+    if era_id is not None and int(era_id) in S2_ERA_LINEARITY_CAP_ADU:
+        return S2_ERA_LINEARITY_CAP_ADU[int(era_id)]
+    if readoutm is None:
+        return None
+    return S2_MODE_LINEARITY_CAP_ADU.get(str(readoutm).strip())
+
+
+def photometry_veto_adu(readoutm: Optional[str],
+                        era_id: Optional[int] = None) -> Optional[int]:
+    """The threshold the photometry applies: min(saturation veto, cap).
+
+    A measurement above the linearity cap is withheld exactly as a
+    saturated one is.  Where either number is unmeasured the other
+    stands; where both are, the lower wins.
+    """
+    v = veto_adu(readoutm)
+    c = linearity_cap_adu(readoutm, era_id)
+    if v is None:
+        return c
+    if c is None:
+        return v
+    return min(int(v), int(c))
+
+
 def veto_in_reduced_adu(veto_raw: Optional[float], flat_med: float,
                         dark_med: float, pedestal: float) -> Optional[float]:
     """Map a RAW-ADU saturation veto into SERVER-REDUCED ADU.

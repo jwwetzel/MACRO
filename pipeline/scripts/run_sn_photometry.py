@@ -71,7 +71,7 @@ OUT = REPO / "products" / "sn"
 DB = OUT / "sn2023ixf.sqlite"
 EXT = OUT / "external"
 
-SN_CODE_VERSION = "SN-PHOT v1.0 (2026-10-04)"
+from macro_sn import SN_PHOT_CODE_VERSION as SN_CODE_VERSION  # noqa: E402
 
 #: External sources — each is a public, citable product; the retrieval date
 #: is stored beside the cached copy (strategy §9: "cache with retrieval

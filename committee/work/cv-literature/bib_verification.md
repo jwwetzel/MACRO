@@ -1,8 +1,8 @@
 # Bibliography verification -- `manuscripts/CV_TimeSeries/references.bib`
 
-Emitted by `committee/work/cv-literature/verify_bib.py` on 2026-10-03 07:11 UTC. Do not edit by hand.
+Emitted by `committee/work/cv-literature/verify_bib.py` on 2026-10-04 23:03 UTC. Do not edit by hand.
 
-**113 entries**: 1 MANUAL, 112 VERIFIED. No duplicate keys.
+**115 entries**: 1 MANUAL, 114 VERIFIED. No duplicate keys.
 
 Method: DOI -> Crossref/DataCite record must match first author, year (+-1), volume, first page/article number and title; eprint -> arXiv record must match first author and title; ADS scan -> the bibcode's scan must be served as a PDF (a non-existent bibcode returns 403); publisher page -> page must contain the stated title; MANUAL -> evidence stated.
 
@@ -121,3 +121,5 @@ Method: DOI -> Crossref/DataCite record must match first author, year (+-1), vol
 | `bruch2021` | ARTICLE | 2021 | VERIFIED | Crossref | 10.1093/mnras/stab516 |
 | `dai2026` | ARTICLE | 2026 | VERIFIED | arXiv | arXiv:2609.06566 |
 | `sun2026` | ARTICLE | 2026 | VERIFIED | arXiv | arXiv:2609.12461 |
+| `kokori2023` | ARTICLE | 2023 | VERIFIED | Crossref | 10.3847/1538-4365/ac9da4 |
+| `basturk2026` | ARTICLE | 2026 | VERIFIED | arXiv | arXiv:2602.09925 |

@@ -155,8 +155,12 @@ class TestTheOCOffsetIsDisclosed:
             self, body):
         """The disclosure must be in §4.3, where the O-C is defined, and not
         only in a caption."""
-        assert "\\NumStLmiOcOffsetS" in body
-        assert "What the residuals are measured against" in body
+        # Revised 2026-10-04: the paragraph heading went with the
+        # restructure; the disclosure must still sit in the O-C subsection.
+        sub = body[body.index("\\label{sec:pdot}"):
+                   body.index("\\label{sec:spot}")]
+        assert "\\NumStLmiOcOffsetS" in sub
+        assert "trails the catalogue epoch" in " ".join(sub.split())
 
     def test_figure_nine_does_not_claim_the_residuals_are_against_the_epoch(
             self, captions):
@@ -208,6 +212,18 @@ class TestTheBandOffsetBoundMatchesItsQuantifier:
         carry only the weakest bound.  Every use of the TIGHTEST macro must
         therefore sit in a clause that names it as the tightest, or as its
         own pair; an unqualified one is the defect this test exists for."""
+        # Revised 2026-10-04 (CV-R1): the paper no longer reports the band
+        # offset as an upper limit; it reports a measured offset from a
+        # paired test.  The guard against an over-quantified null therefore
+        # becomes: the null wording is gone and the offset is quoted with
+        # its paired-test statistics.
+        flat = " ".join(body.split())
+        for phrase in ("we do not find it", "Not detectably",
+                       "likewise shows no offset", "none reaches even"):
+            assert phrase not in flat, f"the retracted null survives: {phrase}"
+        for macro in ("NumRvOffVTwoGiEraAllMeanS", "NumRvOffVTwoGiEraAllSeS",
+                      "NumRvOffVTwoGiEraAllPPermBonf"):
+            assert f"\\{macro}" in body
         for m in re.finditer(r"\\NumBandOffsetBoundS", body):
             window = body[max(0, m.start() - 320):m.end() + 200]
             window = window.replace("\n", " ")
@@ -216,9 +232,7 @@ class TestTheBandOffsetBoundMatchesItsQuantifier:
             assert named, (
                 "\\NumBandOffsetBoundS is quoted without naming it as the "
                 f"tightest pair, near: ...{window!r}")
-        # And the weakest macro must actually be used, or the fix is
-        # cosmetic: the paper would simply have stopped quantifying.
-        assert "\\NumBandOffsetWeakestBoundS" in body
+        # (The weakest-bound macro is no longer required: there is no bound.)
 
     def test_the_caption_gives_both_ends(self, captions, phot):
         cap = captions["CapFigZeroNine"]
@@ -252,8 +266,14 @@ class TestCaptionsAgreeWithTheBody:
         clause = numbers["NumPrecisionScopeClause"]
         assert clause in captions["CapFigZeroTwo"], (
             "Figure 2's caption no longer uses the emitted scope clause")
-        assert "\\NumPrecisionScopeClause" in body, (
-            "§3.1 no longer uses the emitted scope clause")
+        # Revised 2026-10-04: the revised paper does not print Figure 2,
+        # so the clause has no figure to agree with in the body; the body
+        # must instead say the precision is a local fit, not held out.
+        if "CapFigZeroTwo" in body:
+            assert "\\NumPrecisionScopeClause" in body
+        flat = " ".join(body.split())
+        assert "not a held-out statistic" in flat, (
+            "§3 no longer says the precision is a local fit")
 
     def test_figure_nine_never_asserts_the_epochs_lie_inside_the_envelope(
             self, captions):
@@ -359,8 +379,11 @@ class TestTheTwoCheckStarPopulationsAreDistinguished:
 
     def test_table_two_says_its_two_columns_count_different_stars(self):
         tables = _text("tables.tex")
-        assert "TWO COLUMNS OF THIS TABLE COUNT DIFFERENT HELD-OUT STARS" \
-            in tables
+        # Revised 2026-10-04: same statement, sentence case.
+        flat = " ".join(tables.split()).lower()
+        assert "two held-out columns count different stars" in flat
+        assert "withheld from the ensemble solve" in flat
+        assert "withheld from the tie fit" in flat
 
 
 # ---------------------------------------------------------------------------
@@ -373,7 +396,11 @@ class TestTheMinorInconsistencies:
         """§2.1 said 'nearly twenty', Figure 3 said 'a factor of 16'; the
         second is the nominal bit-depth ratio and not a measurement."""
         assert "factor of nearly twenty" not in body
-        assert "\\NumDynamicRangeRatioRange" in body
+        assert "factor of 16" not in body
+        # Revised 2026-10-04: the 12-bit/16-bit comparison left §2 with
+        # Table 1's rewrite; the macro is required wherever it is discussed.
+        if "dynamic range" in " ".join(body.split()):
+            assert "\\NumDynamicRangeRatioRange" in body
         lo = _num(numbers, "NumDynamicRangeRatioMin")
         hi = _num(numbers, "NumDynamicRangeRatioMax")
         assert f"{lo:.1f}--{hi:.1f}" in captions["CapFigZeroThree"], (
@@ -410,7 +437,16 @@ class TestTheMinorInconsistencies:
         """§3.2 said 'removing one star of 15--513', printing the whole-survey
         range where one block's own count belonged."""
         assert "of \\NumTieCheckStarsRange{}\nmoves the number" not in body
-        assert "\\NumTieWorstCheckStars" in body
+        # Revised 2026-10-04: the per-block worst-case sentence went with
+        # the tie section's condensation.  Equivalent invariant: wherever
+        # the survey-wide range is quoted, it is quoted per block.
+        for m in re.finditer(r"\\NumTieCheckStarsRange", body):
+            near = " ".join(body[m.end():m.end() + 30].split())
+            assert near.lstrip("{}").lstrip().startswith("per block"), (
+                f"the 15--513 range is used for something other than "
+                f"'per block': ...{near}")
+        if "\\NumTieWorstBlock" in body:
+            assert "\\NumTieWorstCheckStars" in body
         assert int(_num(numbers, "NumTieWorstCheckStars")) > 0
 
     def test_the_two_untied_blocks_are_named_and_are_different(self, numbers,
@@ -703,15 +739,22 @@ class TestTheTransferCheckIsDescribedAsWhatItIs:
     def test_the_body_no_longer_claims_a_per_era_measurement(self, body):
         assert "measured on each night in its own\nera" not in body
         assert "which are measured on each night in its own era" not in body
-        assert "\\NumStLmiEpochsEdgeFormal" in body, (
-            "§4.2 does not say how many epochs fall back to the formal bar")
-        assert "\\NumStLmiOcChisqEdgeMonteCarlo" in body, (
-            "§4.2 does not quote the part of the check that is what it "
-            "claims to be")
+        # Revised 2026-10-04 (CV-R2, RF.B3): the transported budget is gone,
+        # so there is no transfer to describe.  Equivalent invariant: no
+        # error is called a per-edge Monte-Carlo measurement, and the
+        # errors the O-C uses are said to be scatter-based.
+        flat = " ".join(body.split())
+        assert "Monte-Carlo error on every edge" not in flat
+        assert "scatter-based" in flat
+        assert "\\NumStLmiEpochsTransferredBudget" not in body
 
     def test_limitation_three_no_longer_calls_it_the_only_reason(self, body):
         assert "which is the only\n  reason we let it stand" not in body
-        assert "weaker\n  check than its name suggests" in body
+        # Revised 2026-10-04: the limitation list went; the claim it
+        # qualified (an independent check of a transported budget) may not
+        # return.
+        flat = " ".join(body.split())
+        assert "independent per-night measurement" not in flat
 
     def test_the_emitters_note_says_which_errors_the_check_uses(self, phot):
         note = phot.execute(
@@ -741,9 +784,13 @@ class TestThePerEraChiSquaredCountsCloseOnEveryEpoch:
         assert total == _num(numbers, "NumStLmiOcEpochs")
 
     def test_the_body_quotes_all_three(self, body):
-        for tag in ("HighGain", "ModeZero", "OneMhzHsZ"):
-            assert f"\\NumStLmiEpochs{tag}" in body
-            assert f"\\NumStLmiOcChisq{tag}" in body
+        # Revised 2026-10-04 (CV-R3, standing rule 1): the per-era chi2 of
+        # a transported budget is replaced by chi2 WITH its dof for every
+        # O-C model (Table 4); every quoted chi2 must carry its dof.
+        for model in ("Pooled", "Band", "Night", "BandPlusEra",
+                      "NightPlusEra"):
+            assert f"\\NumRvOcVTwoScatter{model}Chisq" in body
+            assert f"\\NumRvOcVTwoScatter{model}Dof" in body
 
 
 class TestTheRemainingReferee4Minors:
@@ -781,9 +828,14 @@ class TestTheRemainingReferee4Minors:
         assert bar_ratio < 10 <= st_ratio, (
             "the two comparisons no longer differ in order of magnitude; "
             "the sentence may be simplified deliberately")
-        assert "fail by an\norder of magnitude" not in body
-        assert "\\NumAnUmaPhaseSpreadOverBar" in body
-        assert "\\NumAnUmaPhaseSpreadOverStLmi" in body
+        flat = " ".join(body.split())
+        assert "fail by an order of magnitude" not in flat
+        # Revised 2026-10-04: the audit section quotes the spreads
+        # themselves beside ST LMi's, not the ratios; any ratio quoted must
+        # be the macro, and no 'order of magnitude' may be claimed.
+        assert "\\NumAnUmaPhaseSpread" in body
+        assert "\\NumStLmiPhaseSpread" in body
+        assert "order of magnitude against" not in flat
 
     def test_the_colour_census_partitions_the_tied_blocks(self, numbers,
                                                           phot):
@@ -1066,8 +1118,8 @@ class TestExternalConstantsAreSeparableWithOneQuery:
         assert "\\NumMacrosExternal" in body, (
             "§1 promises a reader can separate the constants but does not "
             "say how many there are to find")
-        assert "never with a products table" in " ".join(body.split()), (
-            "§1 no longer states the rule the flag enforces")
+        assert "never a products table" in " ".join(body.split()), (
+            "the paper no longer states the rule the flag enforces")
 
 
 class TestARangeIsQuotedOverThePopulationItsSentenceIsAbout:
@@ -1110,7 +1162,8 @@ class TestARangeIsQuotedOverThePopulationItsSentenceIsAbout:
             self, body):
         sentences = [s for s in re.split(r"(?<=[.;])\s", body)
                      if "\\NumStateSeriesBimodal" in s]
-        assert sentences, "§4.5's bimodal sentence has gone"
+        # Revised 2026-10-04: the state-classification section was cut; the
+        # invariant applies to any sentence that still quotes the count.
         for s in sentences:
             if "\\NumStateSeparability" not in s:
                 continue
@@ -1366,7 +1419,11 @@ class TestThePromiseIsWhatTheReleaseActuallyDelivers:
     def test_what_replaced_them_says_what_takes_one_query_and_what_does_not(
             self, body):
         flat = " ".join(body.split())
-        assert "not that one query settles everything" in flat
+        # Revised 2026-10-04: the introduction's version of this statement
+        # moved to Appendix C with the process prose (ED.E3); the three
+        # clauses that carry the content must survive there.
+        assert "one query settles everything" not in flat.replace(
+            "not that one query settles everything", "")
         assert "Not every one of them is then a single query" in flat
         assert "re-running the released emitter" in flat
         assert "trace every one that is to a named table in a named " \
@@ -1422,7 +1479,8 @@ class TestNoConstantIsTypedWhereAMacroHoldsIt:
     #: A macro whose unit is not here is not checked, because there is no
     #: reliable way to see it in a sentence.
     UNIT_IN_PROSE = {
-        "s": [r"\bs\b", r"\bseconds?\b"],
+        # (?<!') : the possessive "Pup's" is not a unit of seconds.
+        "s": [r"(?<!')\bs\b", r"\bseconds?\b"],
         "min": [r"\bmin\b", r"\bminutes?\b"],
         "mmag": [r"\bmmag\b"],
         "mag": [r"\bmag\b"],
@@ -1459,6 +1517,33 @@ class TestNoConstantIsTypedWhereAMacroHoldsIt:
                 re.finditer(r"\b(" + "|".join(cls.WORD_NUMBER) + r")\b", s)}
         return out
 
+    #: How far (characters) a unit may sit from the literal and still be
+    #: that literal's unit.  The revised paper has ~1,800 macros, many of
+    #: them small integers in seconds, so "same sentence" now flags
+    #: "the two seasons ... 120~s" (2 s) and calendar dates.  Forty
+    #: characters still reaches every one of the six original cases,
+    #: including "percentage points against a bar of 15" (35 characters).
+    UNIT_WINDOW = 40
+
+    MONTHS = ("January|February|March|April|May|June|July|August|September|"
+              "October|November|December")
+
+    @classmethod
+    def _literal_spans(cls, sentence: str) -> list:
+        """(value, start, end) of every literal, dates excluded."""
+        s = sentence.replace("$", "")
+        out = []
+        for m in cls.LITERAL.finditer(s):
+            before = s[max(0, m.start() - 12):m.start()]
+            if re.search(r"(" + cls.MONTHS + r")\s*$", before):
+                continue          # "2024 February 22": a date, not a value
+            if re.fullmatch(r"(19|20)\d\d", m.group(1)):
+                continue          # a calendar year
+            out.append((m.group(1), m.start(), m.end()))
+        for m in re.finditer(r"\b(" + "|".join(cls.WORD_NUMBER) + r")\b", s):
+            out.append((cls.WORD_NUMBER[m.group(1)], m.start(), m.end()))
+        return out
+
     @staticmethod
     def _prose(body: str) -> list:
         text = "\n".join(re.sub(r"(?<!\\)%.*$", "", ln)
@@ -1468,12 +1553,23 @@ class TestNoConstantIsTypedWhereAMacroHoldsIt:
         return re.split(r"(?<=[.;:])\s", text)
 
     def test_the_six_constants_are_macros_now(self, body, numbers):
-        for macro in ("NumFoldProfileBins", "NumAnUmaColourNightsBar",
-                      "NumAnUmaDutyHalfwidthBar", "NumColourPairWindowS",
-                      "NumPolarHalfExposureS", "NumOrbitalPeriodRangeMin"):
+        """Revised 2026-10-04 (CV-R13): the AN UMa grading and the
+        period-span sentence left the paper with the coverage-audit
+        collapse, so their macros are required only while their topic is
+        still discussed; the typed forms stay forbidden unconditionally."""
+        topic = {"NumFoldProfileBins": "folded profile",
+                 "NumColourPairWindowS": "within",
+                 "NumPolarHalfExposureS": "header JD",
+                 "NumAnUmaColourNightsBar": "qualifying nights against",
+                 "NumAnUmaDutyHalfwidthBar": "binomial half-width",
+                 "NumOrbitalPeriodRangeMin": "minute orbit"}
+        flat = " ".join(body.split())
+        for macro, words in topic.items():
             assert macro in numbers, f"{macro} is not emitted"
-            assert f"\\{macro}" in body, (
-                f"{macro} is emitted but the prose still types its value")
+            if words in flat:
+                assert f"\\{macro}" in body, (
+                    f"{macro} is emitted but the prose still types its "
+                    f"value")
         assert "in the 40-bin folded profile" not in body
         assert "against a bar of eight" not in body
         assert "percentage points against a bar of 15" not in body
@@ -1518,14 +1614,49 @@ class TestNoConstantIsTypedWhereAMacroHoldsIt:
                 if v and u in self.UNIT_IN_PROSE]
         offenders = []
         for sentence in self._prose(body):
-            lits = self._literals(sentence)
-            if not lits:
+            spans = self._literal_spans(sentence)
+            if not spans:
                 continue
+            flat = sentence.replace("$", "")
             for macro, value, unit in held:
-                if value not in lits:
-                    continue
-                if not any(re.search(p, sentence)
-                           for p in self.UNIT_IN_PROSE[unit]):
+                hit = False
+                for lit, a, b in spans:
+                    if lit != value:
+                        continue
+                    lo, hi = a - self.UNIT_WINDOW, b + self.UNIT_WINDOW
+                    for p in self.UNIT_IN_PROSE[unit]:
+                        # Search the WHOLE sentence and keep matches inside
+                        # the window: slicing first would cut "state" to
+                        # "s" at the window's edge.
+                        for u in re.finditer(p, flat):
+                            ua, ub = u.start(), u.end()
+                            if ub < lo or ua > hi:
+                                continue
+                            # A unit written straight after another value
+                            # ("\NumX~s", "5~s") is THAT value's unit when
+                            # the literal is a spelled-out word ("the two
+                            # bands"); a DIGIT literal after it is still
+                            # flagged ("... percentage points against a bar
+                            # of 15", one of the six original cases).
+                            lead = re.sub(r"[\s~{}()]+$", "", flat[:ua])
+                            if (flat[a:b].isalpha() and ua < a and
+                                    re.search(r"(\\Num[A-Za-z]+|\d)$",
+                                              lead)):
+                                continue
+                            gap = flat[b:ua] if ua >= b else flat[ub:a]
+                            # A unit is this literal's only if no other
+                            # value (a macro or a number) sits between
+                            # them: in "two bands within \Num...~s" the
+                            # seconds belong to the macro.
+                            if re.search(r"\\Num|\d", gap):
+                                continue
+                            hit = True
+                            break
+                        if hit:
+                            break
+                    if hit:
+                        break
+                if not hit:
                     continue
                 offenders.append(
                     f"{macro} ({value} {unit}) typed in: "

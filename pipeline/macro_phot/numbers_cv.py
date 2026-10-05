@@ -144,7 +144,12 @@ def fmt_float(value: Any, nd: int = 2) -> Optional[str]:
         return None
     if not math.isfinite(v):
         return None
-    return f"{v:.{nd}f}"
+    out = f"{v:.{nd}f}"
+    # A value that ROUNDS to zero prints without a sign ("-0" is a
+    # typesetting artefact, not a negative number).
+    if out.startswith("-") and float(out) == 0.0:
+        out = out[1:]
+    return out
 
 
 def fmt_sci(value: Any, nd: int = 2) -> Optional[str]:
@@ -159,6 +164,11 @@ def fmt_sci(value: Any, nd: int = 2) -> Optional[str]:
         return fmt_float(v, nd)
     exp = int(math.floor(math.log10(abs(v))))
     mant = v / (10.0 ** exp)
+    # A mantissa that ROUNDS to 10 (9.96 at nd=1) is renormalised, so the
+    # paper never prints "10.0 x 10^-9".
+    if abs(float(f"{mant:.{nd}f}")) >= 10.0:
+        exp += 1
+        mant = v / (10.0 ** exp)
     return f"{mant:.{nd}f} \\times 10^{{{exp}}}"
 
 
@@ -1189,30 +1199,39 @@ def collect(cv: sqlite3.Connection, ch: sqlite3.Connection,
     # already had to separate two senses of "full-orbit night".  Both are
     # named from the database here so neither sentence can float free.
     _blk_label = block_label          # one block-naming rule, module level
-    _unt = next((r for r in tie if r["verdict"] == "UNTIED"), None)
+    # Since the clean rebuild of 2026-10-04 the ST LMi y block reaches the
+    # tie stage too (and fails it: no clean tie star), so there can be more
+    # than one UNTIED primary block.  All of them are named.
+    _unt = [r["series_key"] for r in tie if r["verdict"] == "UNTIED"]
     add("tie untied block",
-        _blk_label(_unt["series_key"]) if _unt else "\\NumMissing",
+        blocks_phrase(_unt) if _unt else "\\NumMissing",
         source="cv_cattie",
-        note="THE primary block graded UNTIED, named: this is the block §3.2 "
-             "means by 'does not carry a usable tie'. It is not the ST LMi "
-             "block of §7, which never reached the tie stage and has no "
-             "cv_cattie row at all")
+        note="every primary block graded UNTIED, named: the blocks the "
+             "paper means by 'does not carry a usable tie'")
     # The solved block whose target IS detected but which produced no
     # catalogue-tied point, and so has no tie row: §7's block.
+    # The solved block whose target IS detected (it has instrumental
+    # magnitudes) but which carries no zero point and so no tied point.
+    # Whether it also has a cv_cattie row is not the defining property:
+    # since the 2026-10-04 rebuild it reaches the tie stage and is graded
+    # UNTIED there, which is why the query no longer requires the row to be
+    # absent.  A block whose target has NO instrumental magnitude is a
+    # non-detection and is excluded here.
     _nozp = rows(cv, """
         SELECT s.series_key, s.n_target_rows FROM cv_series s
-        LEFT JOIN cv_cattie c ON c.series_key = s.series_key
-                             AND c.is_primary = 1
         WHERE s.status='solved' AND s.n_target_points = 0
-          AND s.n_target_rows > 0 AND c.series_key IS NULL""")
+          AND s.n_target_rows > 0
+          AND EXISTS (SELECT 1 FROM cv_lightcurve l
+                      WHERE l.series_key = s.series_key
+                        AND l.role = 'target'
+                        AND l.inst_mag IS NOT NULL)""")
     _nz = _nozp[0] if len(_nozp) == 1 else None
     add("untied block no tie stage",
         _blk_label(_nz["series_key"]) if _nz else "\\NumMissing",
         source="cv_series",
-        note="the solved block in which the target IS detected but the "
-             "ensemble produced no zero point, so it carries no "
-             "natural-system magnitude and never entered the tie stage: "
-             "§7's 'block with no usable tie at all'")
+        note="the solved block in which the target IS detected (it has "
+             "instrumental magnitudes) but the ensemble produced no zero "
+             "point, so it carries no natural-system or tied magnitude")
     add("untied block no tie stage rows",
         fmt_int(_nz["n_target_rows"]) if _nz else None,
         source="cv_series",
@@ -2939,36 +2958,25 @@ def render_series_table(cv: sqlite3.Connection) -> str:
     _no_pts_txt = "; ".join(
         f"{_blk(r)} (" + (
             f"{r['n_target_rows']} instrumental target detections that the "
-            f"solve could not place on a zero point, so the block never "
-            f"reached the tie stage"
-            if (r["n_target_rows"] or 0) > 0 and not r["tie_verdict"]
+            f"solve could not place on a zero point"
+            if (r["n_target_rows"] or 0) > 0
             else "the target is not detected in it at all") + ")"
         for r in _no_pts)
     out = [
         "\\begin{deluxetable*}{llccrrrrrrl}",
         "\\tablecaption{Per-series photometric census: the "
         f"{len(rr)} target--era--filter blocks that produced target "
-        "photometry. Every column is a query against "
-        "\\texttt{cv\\_series} and \\texttt{cv\\_cattie}; nothing in this "
-        "table was typed. "
-        "TWO COLUMNS OF THIS TABLE COUNT DIFFERENT HELD-OUT STARS, and the "
-        "paper uses different names for them throughout. $N_{\\rm chk}$ is "
-        "the number of SOLVE check stars, withheld from the ensemble "
-        f"solution ({fmt_range(_sk_chk[0], _sk_chk[-1], 0) if _sk_chk else '?'}"
-        " in every block here), and $\\sigma_{\\rm chk}$ is their median "
-        "scatter. The `Tie acc.' column is not measured on those stars: it "
-        "is the SIGMA-CLIPPED residual RMS of the TIE check stars "
-        "(\\texttt{check\\_rms\\_clip}), the catalogue stars withheld from "
-        f"the tie fit, of which each block holds out "
-        f"{fmt_range(_tk_lo, _tk_hi, 0)}. Over the tied blocks its median is "
-        f"{1000 * _med_clip:.0f}~mmag against {1000 * _med_raw:.0f}~mmag "
-        "unclipped, and Section~\\ref{sec:tie} quotes both. $I$ is the "
-        "ratio of achieved scatter to the formal error bar. "
-        f"The release holds {n_all_series} series in all; the remaining "
-        f"{n_all_series - len(rr)} produced no catalogue-tied target "
-        f"measurement ({n_unsolved} ensemble solves that did not converge, "
-        f"and {len(_no_pts)} solved series: {_no_pts_txt}; "
-        "Section~\\ref{sec:vvpupeuuma}). "
+        "photometry (\\texttt{cv\\_series}, \\texttt{cv\\_cattie}). "
+        "$N_{\\rm chk}$ counts the check stars withheld from the ensemble "
+        "solve and $\\sigma_{\\rm chk}$ is their median scatter; $I$ is the "
+        "ratio of achieved scatter to formal error. The two held-out "
+        "columns count different stars: `Tie acc.' is measured "
+        "on a different set, the catalogue stars withheld from the tie fit "
+        f"({fmt_range(_tk_lo, _tk_hi, 0)} per block): their sigma-clipped "
+        "residual rms. "
+        f"The other {n_all_series - len(rr)} of the {n_all_series} series "
+        f"produced no tied target measurement ({n_unsolved} unconverged "
+        f"solves; {len(_no_pts)} solved: {_no_pts_txt}). "
         "\\label{tab:series}}",
         # "Readout mode", not "Camera": the cells are ERA_LABEL readout
         # modes -- 'Mode0', '1MHz HS 16-bit' -- and heading them 'Camera'
@@ -3069,35 +3077,94 @@ def render_verdict_table(cv: sqlite3.Connection) -> str:
     return "\n".join(out)
 
 
+#: Readout mode -> the S2 linearity-cap row that applies to THIS paper's
+#: frames.  High Gain is measured per EGAIN epoch, and every CV High Gain
+#: frame is in the EGAIN 1.057 epoch; every other mode has one cap.
+CV_CAP_ROW = {"High Gain": "AC4040 High Gain e1.057"}
+
+
 def render_instrument_table(man: sqlite3.Connection) -> str:
-    """The detector constants every veto and every error bar rests on."""
+    """The detector constants every veto and every error bar rests on.
+
+    One row per readout mode: frames whose pixel histograms measured the
+    clip, the clip, the 0.92 saturation veto, the 1 per cent linearity cap
+    and the worst linearity departure below it, the MEASURED gain and read
+    noise (flat-pair photon transfer, ``detector_params``), and the
+    threshold the photometry applied, which is the lower of veto and cap.
+    """
     rr = rows(man, """SELECT * FROM s2_ceiling_modes
                       WHERE clip_adu IS NOT NULL ORDER BY n_frames DESC""")
-    ratios = [r["veto_adu"] / r["clip_adu"] for r in rr
-              if r["clip_adu"] and r["veto_adu"]]
-    vlo, vhi = (min(ratios), max(ratios)) if ratios else (0.0, 0.0)
+    dp = {(r["era_group"], r["quantity"]): (r["value"], r["uncertainty"])
+          for r in rows(man, "SELECT era_group, quantity, value, uncertainty "
+                             "FROM detector_params")}
+    caps = {r["mode"]: r for r in rows(man, "SELECT * FROM s2_linearity_caps")}
     out = [
-        "\\begin{deluxetable}{lrrrr}",
-        "\\tablecaption{Measured detector limits per readout mode, from "
-        "\\texttt{s2\\_ceiling\\_modes}. The clip is the pileup edge of "
-        "the pixel histograms of the frames counted in column~2; the veto "
-        "is $0.92$ of that clip rounded DOWN to the nearest 100~ADU, so "
-        f"the realised ratio is {vlo:.3f}--{vhi:.3f}. No threshold in "
-        "this paper was chosen by eye. \\label{tab:instrument}}",
+        "\\begin{deluxetable*}{lrrrrrrr}",
+        "\\tablecaption{Measured detector constants per readout mode. "
+        "Clip: the pileup edge of the science-frame pixel histograms "
+        "(\\texttt{s2\\_ceiling\\_modes}); veto: 0.92 of the clip, "
+        "rounded down to 100~ADU; cap: the highest peak level below which "
+        "the measured response departs from linear by at most 1 per cent, "
+        "with the worst departure below it in the next column "
+        "(\\texttt{s2\\_linearity\\_caps}); applied: the threshold the "
+        "photometry withholds a measurement at, the lower of veto and cap. "
+        "$K$ and RN are the gain and read noise measured from flat-field "
+        "pairs (\\texttt{detector\\_params}). High Gain's cap is that of "
+        "the EGAIN~1.057 epoch, which contains every High Gain frame here. "
+        "\\label{tab:instrument}}",
         "\\tablehead{\\colhead{Readout mode} & \\colhead{Frames} & "
-        "\\colhead{Hard max} & \\colhead{Clip} & \\colhead{Veto}\\\\"
+        "\\colhead{Clip} & \\colhead{Veto} & \\colhead{Cap (dev.)} & "
+        "\\colhead{Applied} & \\colhead{$K$} & \\colhead{RN}\\\\"
         "\\colhead{} & \\colhead{} & \\colhead{(ADU)} & \\colhead{(ADU)} & "
-        "\\colhead{(ADU)}}",
+        "\\colhead{(ADU, \\%)} & \\colhead{(ADU)} & "
+        "\\colhead{(e$^-$/ADU)} & \\colhead{(e$^-$)}}",
         "\\startdata",
     ]
+
+    def pm(v, nd):
+        if v is None or v[0] is None:
+            return "\\nodata"
+        if v[1] is None:
+            return fmt_float(v[0], nd)
+        return f"${fmt_float(v[0], nd)} \\pm {fmt_float(v[1], nd)}$"
+
     for r in rr:
+        mode = r["mode"]
+        cr = caps.get(CV_CAP_ROW.get(mode, mode))
+        cap = cr["cap_adu"] if cr else None
+        dev = cr["worst_dev_pct"] if cr else None
+        applied = (min(r["veto_adu"], cap) if (cap and r["veto_adu"])
+                   else r["veto_adu"])
         out.append(" & ".join([
-            _esc(r["mode"]), fmt_int(r["n_frames"]) or "\\nodata",
-            fmt_int(r["hard_max_adu"]) or "\\nodata",
+            _esc(mode), fmt_int(r["n_frames"]) or "\\nodata",
             fmt_int(r["clip_adu"]) or "\\nodata",
-            fmt_int(r["veto_adu"]) or "\\nodata"]) + " \\\\")
-    out += ["\\enddata", "\\end{deluxetable}", ""]
+            fmt_int(r["veto_adu"]) or "\\nodata",
+            (f"{fmt_int(cap)} ({fmt_float(abs(dev), 1)})" if cap else
+             "\\nodata"),
+            fmt_int(applied) or "\\nodata",
+            pm(dp.get((mode, "gain_e_per_adu")), 3),
+            pm(dp.get((mode, "read_noise_e")), 2)]) + " \\\\")
+    out += ["\\enddata", "\\end{deluxetable*}", ""]
     return "\n".join(out)
+
+
+def render_table_files(cv: sqlite3.Connection, man: sqlite3.Connection,
+                       stamp: str = "") -> dict:
+    """The measured tables, one file each, so the paper places each one.
+
+    ``tables.tex`` still inputs all four (see :func:`render_tables`); the
+    revised manuscript inputs only the ones it uses, where it uses them.
+    """
+    head = ("%% GENERATED FILE.  DO NOT EDIT.  Emitted by "
+            "pipeline/macro_phot/numbers_cv.py.\n"
+            + (f"%% {stamp}\n" if stamp else ""))
+    return {"tab_instrument.tex": head + render_instrument_table(man),
+            # Footnote size: at normal size the 25-row census plus its caption
+            # overfills a page by 9 pt in the revised two-column paper.
+            "tab_series.tex": head + "\\tabletypesize{\\footnotesize}\n"
+            + render_series_table(cv),
+            "tab_anuma.tex": head + render_anuma_table(cv),
+            "tab_verdicts.tex": head + render_verdict_table(cv)}
 
 
 def render_tables(cv: sqlite3.Connection, man: sqlite3.Connection,

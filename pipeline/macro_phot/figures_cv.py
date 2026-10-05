@@ -850,7 +850,7 @@ def fig01_coverage(cv, ext_targets=("stlmi", "vvpup", "euuma",
             "time. This is a "
             "census of what was OBSERVED, so EU~UMa's 2026 Fast-mode "
             "nights appear here even though no measurement in this paper "
-            "uses them (Section~\\ref{sec:vvpupeuuma}); a coverage map "
+            "uses them (Section~\\ref{sec:audit}); a coverage map "
             "that omitted observed nights would be a different claim."),
         tables=("cv_frames", "cv_ext_nightly", "p3_ephemeris"),
         width_in=COL_DOUBLE)
@@ -1011,7 +1011,7 @@ def fig02_rms_vs_mag(ch, cv, man):
             "tied magnitude: EU~UMa's untied 2026 "
             "Fast-mode block therefore has no panel here, and the Fast "
             "readout mode no measured floor "
-            "(Section~\\ref{sec:vvpupeuuma})."),
+            "(Section~\\ref{sec:audit})."),
         tables=("ch_noise_stars", "ch_noise_series", "cv_cattie",
                 "detector_params"),
         width_in=COL_DOUBLE)
@@ -2687,11 +2687,11 @@ def fig13_timing_audit(man):
             "plotted at the resolution because that is the conservative "
             f"place to put it. {clock_floor_clause(drawn)} Medians are "
             "not plotted because they are exactly zero in every mode. (c) "
-            "The independent clock validator: eclipse timings of a detached "
-            "eclipsing binary observed with the same instrument. Its bound "
-            "is weak, and it is quoted as a bound rather than as a "
-            "correction for exactly that reason: the timing evidence this "
-            "paper relies on is panels (a) and (b)."),
+            "The one eclipse of a detached eclipsing binary observed with "
+            "the same instrument, against its catalogue ephemeris. Its "
+            "residual and what explains it are given in "
+            "Section~\\ref{sec:clock}; the absolute clock is tested on "
+            "exoplanet transits there."),
         tables=("s3_header_audit", "s3_dateobs_audit", "s3_clock_eclipses"),
         width_in=COL_DOUBLE)
     return fig, spec
@@ -2872,7 +2872,7 @@ def figR1_band_offset(cv):
     ax_forest.tick_params(axis="y", length=0)
     ax_forest.set_xlabel("mean same-cycle edge-time difference (s)")
     ax_forest.set_title("(c) all pairs: scatter-based errors (points); "
-                        "first draft's interval (grey)", fontsize=7,
+                        "budget interval (grey)", fontsize=7,
                         loc="left")
     ax_forest.legend(handles=[ps.measurement_handle(
         _REV_EST_LABEL[e], _REV_EST_COLOR[e], _REV_EST_MARKER[e])
@@ -2946,8 +2946,9 @@ def figR1_band_offset(cv):
             f"{num('rv off v1 gi era all se s')} s and "
             f"{num('rv off v2 gi era all mean s')} $\\pm$ "
             f"{num('rv off v2 gi era all se s')} s). (c) All three band "
-            "pairs under three estimators; the grey bars are the first "
-            "draft's budget-based intervals for the 2025 pairs. (d) The "
+            "pairs under three estimators; the grey bars are the "
+            "intervals a transported injection budget assigns to the 2025 "
+            "pairs, for comparison. (d) The "
             "difference each estimator returns when ONE instant is "
             "injected into both bands' real timestamps with each band's "
             "real depth and real residuals, against the injected ramp "
@@ -3026,9 +3027,10 @@ def figR2_injection_bias(cv):
             "epochs have. Error bars are standard errors over "
             "realisations. Open rings mark each band's matched cell (the "
             "injected width nearest the width the flux fit returns for "
-            "that band's real edges). The grey band is the "
-            f"$\\pm${floor_old:.1f} s `bias floor' the first draft "
-            "carried, a median of absolute values. The magnitude-space "
+            "that band's real edges). The grey band marks "
+            f"$\\pm${floor_old:.1f} s, the median of the ABSOLUTE bias "
+            "over all cells, for scale only: it is not a bias and is not "
+            "used. The magnitude-space "
             "estimators time a wide ramp late, and later in the deeper "
             "bands, because the magnitude midpoint of a linear flux ramp "
             "is not its flux midpoint; the flux-space estimator does not."
@@ -3094,7 +3096,7 @@ def figR3_oc_refit(cv):
     # Forest of the period derivative, every model, two estimators.
     order = ("pooled", "band", "night", "band+era", "night+era",
              "band no2024", "night no2024")
-    nice = {"pooled": "one constant (first draft's model)",
+    nice = {"pooled": "one constant (pooled bands)",
             "band": "per-band constants",
             "night": "night-level epochs",
             "band+era": "per-band constants + era offset",
@@ -3129,7 +3131,7 @@ def figR3_oc_refit(cv):
     if pub is not None and pub[0]:
         for sgn in (-1, 1):
             ax_f.axvline(sgn * pub[0] * 1e9, color=ps.WARN, lw=0.9, ls=":")
-        ax_f.text(pub[0] * 1e9, 0.55, " first draft's bound", fontsize=5.6,
+        ax_f.text(pub[0] * 1e9, 0.55, " pooled-band bound", fontsize=5.6,
                   color=ps.WARN, va="bottom", ha="left")
     ax_f.axvline(0.0, **ps.reference_kw())
     ax_f.set_yticks(yt)
@@ -3155,12 +3157,13 @@ def figR3_oc_refit(cv):
             "they fall in. Horizontal lines are the per-band constants of "
             "the fit with one constant per band; error bars are the "
             "scatter-based errors $s_{\\rm band}/\\sqrt{n}$ that fit "
-            "implies, not the first draft's transported budget. Bottom: "
+            "implies. Bottom: "
             "the period derivative from the quadratic term under every "
-            "model the committee asked for, with $1\\sigma$ (thick) and "
+            "model of Table~\\ref{tab:pdot}, with $1\\sigma$ (thick) and "
             "$3\\sigma$ (thin) scatter-based intervals, for the published "
-            "and the flux-space estimators. Dotted lines mark the first "
-            "draft's bound. Per-band constants and night-level epochs "
+            "and the flux-space estimators. Dotted lines mark the bound "
+            "from pooled bands and budget errors. Per-band constants and "
+            "night-level epochs "
             "leave the bound where it was; an era-offset nuisance term or "
             "dropping the 2024 season widens it severalfold, because the "
             "quadratic is then constrained only within one season."),
@@ -3341,7 +3344,7 @@ def figR5_colour_curves(cv):
         title="ST LMi colour curves under three pairing rules, two eras",
         caption=(
             "Median colour of ST LMi in twenty orbital-phase bins, in the "
-            "two instrument eras, built three ways: the first draft's "
+            "two instrument eras, built three ways: "
             "nearest-exposure pairing within 600 s, the same within "
             "120 s, and with the bluer band linearly interpolated to the "
             "redder band's exposure times, which removes the first-order "
@@ -3525,8 +3528,10 @@ def figR7_superhump(cv):
             "shaded range above each point is what a non-detection "
             "excludes in that run-filter and everything below it is not "
             "excluded. Crosses mark run-filters with no contour, which "
-            "carry no sensitivity statement. The dashed line is the "
-            "smallest published superhump semi-amplitude. (b) The number "
+            "carry no sensitivity statement. The dashed line is 50 mmag, "
+            "the semi-amplitude of a decayed late-plateau superhump; "
+            "freshly developed superhumps reach 125--150 mmag "
+            "(Section~\\ref{sec:yzcnc}). (b) The number "
             "of run-filters, of "
             f"{num('rv sh run filters')}, that exclude a signal of a given "
             f"semi-amplitude: {num('rv sh excluding 50 mmag')} at 50 mmag, "

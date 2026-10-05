@@ -1355,7 +1355,11 @@ def cmd_forced(args) -> None:
     print(f"  {len(jobs):,} frames to force-photometer "
           f"({len(done):,} already done), {workers} workers")
     if not jobs:
-        _summarise_limits(con)
+        # Nothing new to measure, but the per-series rows are rebuilt from
+        # scratch: they must carry the position closure computed above.
+        # Calling without pos_note here wrote n_closure = 0 for every series
+        # on every resumed run, and the limits gate then read as failed.
+        _summarise_limits(con, pos_note)
         con.close()
         mcon.close()
         return

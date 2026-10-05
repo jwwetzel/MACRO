@@ -3,6 +3,13 @@
 <title>SN 2023ixf — Gate 0</title>
 <link rel="stylesheet" href="../assets/macro.css">
 </head><body>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">10/10 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">46/49 done</span></a><a class="navitem" aria-current="page" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">21/25 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
+<div class="tabbar"><nav class="tabbar-inner" aria-label="SN 2023ixf: +5.4 to +50 d Validation and Limits Release views"><a class="tab" href="../SN2023ixf_LightCurve/case.html">The Case</a><a class="tab" href="../SN2023ixf_LightCurve/figures.html">Figures</a><a class="tab" href="../SN2023ixf_LightCurve/paper.html">Draft Paper</a><a class="tab" href="../SN2023ixf_LightCurve/index.html">Plan &amp; Status</a><a class="tab" aria-current="page" href="../SN2023ixf_LightCurve/evidence.html">Evidence Detail</a></nav></div>
+<div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../SN2023ixf_LightCurve/case.html">SN 2023ixf: +5.4 to +50 d Validation and Limits Release</a></li><li><a href="../SN2023ixf_LightCurve/evidence.html">Evidence Detail</a></li><li aria-current="page">SN 2023ixf — Gate 0, from the pixels</li></ol></nav></div>
+<div class="layout">
+<aside class="rail" aria-label="Questions in this view"><a class="railback" href="../SN2023ixf_LightCurve/case.html">&larr; Back to the case</a><h2>The questions</h2><p class="railnote">The questions this page answers, in order.</p><ol><li><a href="#freeze"><span class="qn">1</span> How many frames of this supernova does the archive actually hold — once…</a></li><li><a href="#screen"><span class="qn">2</span> At what pixel value does this detector stop telling the truth — and does…</a></li><li><a href="#census"><span class="qn">3</span> In which frames is the supernova itself measurable, and in which is it…</a></li><li><a href="#narrowband"><span class="qn">4</span> Is the slitless series really the archive's only unsaturated flash-phase…</a></li><li><a href="#astrometry"><span class="qn">5</span> The strategy inherited a NO-GO on this campaign's astrometry from the S1…</a></li><li><a href="#grism"><span class="qn">6</span> Is the slitless series a genuine flash-phase spectral record — and does…</a></li><li><a href="#verdicts"><span class="qn">7</span> Gate 0 exists to answer three questions and to set one posture. Each…</a></li></ol></aside>
+<div class="pane">
+<!--MACRO-SITE:CONTENT-->
 
 <header>
   <h1>SN 2023ixf — Gate 0, from the pixels</h1>
@@ -428,13 +435,11 @@ residue &mdash; the frames that PinPoint could not solve at the telescope
 <p>Its failures say the same thing in the machine's own words:</p>
 <table class="data">
 <tr><th>filter</th><th>S1 failure diagnosis</th><th>frames</th></tr>
-<tr><td>O</td><td>trailing (guiding/wind)</td><td>18</td></tr>
-<tr><td>G</td><td>starved (blank/clouds/hot-pixel-only)</td><td>4</td></tr>
-<tr><td>1</td><td>trailing (guiding/wind)</td><td>3</td></tr>
+<tr><td>1</td><td>trailing (guiding/wind)</td><td>5</td></tr>
+<tr><td>R</td><td>starved (blank/clouds/hot-pixel-only)</td><td>3</td></tr>
+<tr><td>G</td><td>starved (blank/clouds/hot-pixel-only)</td><td>2</td></tr>
 <tr><td>I</td><td>starved (blank/clouds/hot-pixel-only)</td><td>2</td></tr>
-<tr><td>6</td><td>defocused (giant blobs, no point sources)</td><td>1</td></tr>
-<tr><td>H</td><td>trailing (guiding/wind)</td><td>1</td></tr>
-<tr><td>R</td><td>starved (blank/clouds/hot-pixel-only)</td><td>1</td></tr>
+<tr><td>O</td><td>trailing (guiding/wind)</td><td>2</td></tr>
 </table>
 
 <h3>Decision</h3>
@@ -445,8 +450,8 @@ NO-GO.</b> 18/48 = 37.5% on the S1 stratum (unchanged verdict NO-GO); 553/629 = 
 exposures, not about the gri light curve.</b> Its unsolved population is
 217 narrowband frames against
 67 broadband, and
-18 of its
-30 autopsied failures are O-band frames
+2 of its
+14 autopsied failures are O-band frames
 diagnosed as trailed. The light curve's own astrometry is not a
 blind-batch problem at all: the solutions already exist, and this census
 independently corroborated them by finding the supernova within
@@ -597,4 +602,9 @@ is a literature constant (Itagaki discovery position, TNS AT 2023ixf (14:03:38.5
 epoch is 60082.79 MJD (Hosseinzadeh+23 (ApJL 953 L16); Li+24 (Nature 627 754)), used for display only — no
 verdict on this page is a function of phase. Regenerate with
 <code>pipeline/scripts/run_sn_gate0.py report</code>.</footer>
+<!--/MACRO-SITE:CONTENT-->
+<div class="prevnext"><a class="nx" href="../SN2023ixf_LightCurve/sn_release.html"><span class="dir">Next &rarr;</span>SN 2023ixf — validation and limits release: evidence</a></div>
+<footer><p>The navigation, the questions and the figure groupings on this page are generated by <code>macro_core.site</code> (SITE v1.0 (2026-08-21)) from the plan ledger (<code>macro_core.project_plan</code>, PLAN v2.0 (2026-10-03)), the provenance DAG (<code>macro_core.provenance</code>, P v1.1 (2026-10-03)), the products databases, and the evidence pages' own section headings — never hand-maintained. Built from live provenance verdicts and the recorded plan status.</p><p>Rebuild with <code>python pipeline/scripts/build_site.py</code>. Source: <a href="https://github.com/jwwetzel/MACRO">github.com/jwwetzel/MACRO</a>.</p></footer>
+</div>
+</div>
 </body></html>

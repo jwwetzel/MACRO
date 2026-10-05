@@ -351,6 +351,17 @@ def cmd_numbers(args) -> None:
     for r in figs:
         macro = nx.tex_macro_name(r["fig_id"], prefix="Cap")
         lines.append(f"\\newcommand{{\\{macro}}}{{{r['caption']}}}")
+    # The revision figures (CV-R1...R7), drawn by run_cv_revision.py from
+    # the rv_ tables, carry their captions in rv_figure; they are emitted
+    # here beside the first set so every caption in the paper comes from
+    # the script that drew its panels.
+    have_rv = out.execute("SELECT count(*) FROM sqlite_master WHERE "
+                          "name='rv_figure'").fetchone()[0]
+    if have_rv:
+        for r in out.execute("SELECT fig_id, caption FROM rv_figure "
+                             "ORDER BY fig_id").fetchall():
+            macro = nx.tex_macro_name(r["fig_id"], prefix="Cap")
+            lines.append(f"\\newcommand{{\\{macro}}}{{{r['caption']}}}")
     lines.append("")
     write_atomic(CAPTIONS_TEX, "\n".join(lines))
     print(f"  + {CAPTIONS_TEX.relative_to(REPO_ROOT)}: "
@@ -358,6 +369,9 @@ def cmd_numbers(args) -> None:
 
     write_atomic(TABLES_TEX, nx.render_tables(cv, man, stamp=stamp))
     print(f"  + {TABLES_TEX.relative_to(REPO_ROOT)}: measured tables")
+    for name, text in nx.render_table_files(cv, man, stamp=stamp).items():
+        write_atomic(MANUSCRIPT_DIR / name, text)
+    print("  + tab_*.tex: the same tables, one file each")
 
     set_meta(out, {"stage_numbers": utcnow(),
                    "paper_code_version": PAPER_CODE_VERSION,

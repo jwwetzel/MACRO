@@ -51,10 +51,10 @@ All rows regenerate from `make tables`; the Vega row was corrected in this revis
 | HR 4963 (θ Vir) | 368 | 33 | 2025-12-14 → 2026-06-13 | ESO standard — **stability monitor / constant-EW check star + Vega response-transfer star** (overlaps Vega) |
 | 53 Boo | 330 | 23 | 2025-02-27 → 04-18 | science, pending Step −1 BeSS emission-state check |
 | Phecda | 333 | 40 | 2024-12-20 → 2025-04-18 | A0 Ve, weak/disputed emission — null-test star; short-tier target |
-| 69 Ori | 288 | 51 | 2025-03-25 → 2026-04-12 | science; two seasons, 211 d gap; season 1 pre-dates standards coverage |
+| 69 Ori | 269 | 51 | 2025-03-25 → 2026-04-12 | science; two seasons, 211 d gap; season 1 pre-dates standards coverage |
 | φ Leo | 261 | 39 | 2024-12-20 → 2025-04-18 | A7 shell/δ Sct/exocomet host — shell-phase record; short-tier target |
-| λ Eri | 252 | 47 | 2025-11-13 → 2026-03-27 | **science core** (B2 IIIe); slow tier only (§2 rank 4) |
-| 5 Cnc | 194 | 45 | 2024-12-20 → 2026-05-19 | science; two seasons, 225 d gap |
+| λ Eri | 236 | 47 | 2025-11-13 → 2026-03-27 | **science core** (B2 IIIe); slow tier only (§2 rank 4) |
+| 5 Cnc | 191 | 45 | 2024-12-20 → 2026-05-19 | science; two seasons, 225 d gap |
 | HD 70340 | 181 | 30 | 2024-12-20 → 2025-04-10 | science, pending Step −1 emission-state check |
 | Alpha Lyr (Vega), era C | **367** | **18** | **2026-04-16 → 06-25** | spectrophotometric/telluric standard (343 of 367 frames carry the era-C repackaged FITS geometry — §3.5) |
 | Vega, era A ladder | **80** | 1 | **2024-05-20** | **era-A response + linearity anchor**: OGGrism/HaGrism exposure ladder 0.0001–0.1 s against a CALSPEC standard, recovered in this revision (was missed by LIKE-prefix matching on `Alpha Lyr`) |
@@ -398,3 +398,5 @@ Emitted from the plan ledger by `python pipeline/scripts/update_project_plan.py 
 | `BE-figures` | CHANGE | §4 BeStar_Grism Figures (ED) | The six-figure set | six figures or fewer; the ≤ 250-word abstract is approved by seat 6 before they are built (standing rule 5). |
 | `BE-X1-dither-test` | DEFER | §4 BeStar_Grism Dither (U9, OA) | Dither test in lieu of grism flats | The same star at three detector positions through each grism — the only flat-field test a slitless grism admits. Needs new frames. |
 | `BE-X2-season2-observing` | DEFER | §4 BeStar_Grism DEFER (U10, OA) | Season-2 observing: restart, nightly standards | λ Eri, 69 Ori and 5 Cnc from the autumn, with a standard on every science night (HR 1544 in the autumn, η Hya from December). Carried in the rev. 3 observatory request; none of it is on this paper's critical path. |
+
+> **Recount (2026-10-04).** 69 Ori, λ Eri and 5 Cnc frame counts above were re-measured on the S0c v1.1 staging: blank-FILTER frames no longer count as science.

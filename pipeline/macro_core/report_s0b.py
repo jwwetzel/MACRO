@@ -699,6 +699,64 @@ joins the matrix as first-class rows on the same re-run.</p>
 </div></section>"""
 
 
+def section_mech_epochs(con) -> str:
+    """Mechanical epochs: when the hardware physically changed.
+
+    The era registry keys on header strings; a calibration frame is only
+    valid inside the mechanical state it was taken in (camera, rotation,
+    flip, wheel map).  The figures are drawn by the S0b build
+    (``s0b_mech_epochs.png``) and by ``check_mech_flip.py``
+    (``s0b_mech_flip.png``); this section only shows what they found.
+    """
+    have = {r[0] for r in con.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'")}
+    if "mech_epoch" not in have:
+        return ""
+    n_ep, n_cam = con.execute(
+        "SELECT count(*), count(DISTINCT camera) FROM mech_epoch").fetchone()
+    flip = ""
+    if "mech_flip_test" in have:
+        row = con.execute(
+            "SELECT boundary, frac, verdict FROM mech_flip_test "
+            "WHERE transform='rot180' ORDER BY arm LIMIT 1").fetchone()
+        ctrl = con.execute(
+            "SELECT frac FROM mech_flip_test "
+            "WHERE transform='shift_control_mean' LIMIT 1").fetchone()
+        if row and ctrl:
+            flip = (f"At the {esc(row[0])} boundary, {row[1]:.1%} of the hot "
+                    f"pixels land on hot pixels after a 180&deg; rotation, "
+                    f"against {ctrl[0]:.1%} for random shifts: verdict "
+                    f"<b>{esc(row[2])}</b> &mdash; the same sensor read out "
+                    "rotated, so darks carry across the boundary and flats "
+                    "do not.")
+    figs = "".join(
+        _figure(f"figures/s0b/{name}", cap)
+        for name, cap in (
+            ("s0b_mech_epochs.png",
+             f"{fmt(n_ep)} mechanical epochs across {fmt(n_cam)} cameras, "
+             "from camera identity, plate-solve rotation steps, flip state "
+             "and wheel map."),
+            ("s0b_mech_flip.png",
+             "Hot-pixel persistence across the 2025 monsoon boundary under "
+             "each candidate transform."))
+        if (FIG_DIR / name).exists())
+    return f"""
+<section id="mech">
+<div class="bhead"><h2>5 &middot; Mechanical epochs</h2>
+<span class="tag">a master is valid only inside the hardware state it was taken in</span></div>
+<div class="stage"><h3>Question</h3>
+<p>When did the telescope physically change, and does any calibration
+cross such a boundary?</p>
+<h3>Evidence</h3>
+<div class="grid">{figs}</div>
+<p class="sub">{flip}</p>
+<h3>Decision</h3>
+<div class="decision"><b>Calibration matching is keyed on the mechanical
+epoch, beneath the era.</b> The <code>mech_epoch</code> table records
+{fmt(n_ep)} epochs; no master is applied across a boundary.</div>
+</div></section>"""
+
+
 # ---------------------------------------------------------------------------
 # Page assembly
 # ---------------------------------------------------------------------------
@@ -721,6 +779,7 @@ def render_report(manifest_path: Path) -> Path:
             section_census(con),
             section_matrix(con),
             section_shopping(con),
+            section_mech_epochs(con),
         ]
 
         html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">

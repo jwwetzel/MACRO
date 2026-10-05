@@ -422,6 +422,10 @@ def main() -> int:
            "%% of this programme.  Each line names its source, in the manner of numbers.tex."]
     tex += [f"\\newcommand{{\\{n}}}{{{val}}}  % [{src}]" for n, val, src in rows]
     (HERE / "literature_macros.tex").write_text("\n".join(tex) + "\n", encoding="utf-8")
+    # The manuscript inputs the same file from its own directory, so the
+    # paper builds from manuscripts/CV_TimeSeries/ alone (CV-R12/R13).
+    (NUMBERS_TEX.parent / "literature_macros.tex").write_text(
+        "\n".join(tex) + "\n", encoding="utf-8")
 
     md = ["# Literature constants and predicted scales (CV paper)", "",
           "Emitted by `committee/work/cv-literature/literature_scales.py`. Do not edit by hand.", "",

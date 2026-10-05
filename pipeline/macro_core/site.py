@@ -999,31 +999,37 @@ def _paper_figures(repo_root: Path, docs_dir: Path) -> list[Figure]:
     except sqlite3.Error:                                # pragma: no cover
         return []
     try:
-        rows = con.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' "
-            "AND name='p5_figure'").fetchall()
-        if not rows:
-            return []
+        have = {r[0] for r in con.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'")}
         out = []
-        for fig_id, title, caption, png in con.execute(
-                "SELECT fig_id, title, caption, png_path FROM p5_figure "
-                "ORDER BY fig_id"):
-            if not png:
+        # Two figure tables share one shape: the manuscript set (p5_figure)
+        # and the 2026-10-03 major-revision evidence set (rv_figure).  Both
+        # belong to no evidence page, so this is the only place either is
+        # shown; each keeps the caption its own table records.
+        for table, folder in (("p5_figure", "cv_paper"),
+                              ("rv_figure", "cv_revision")):
+            if table not in have:
                 continue
-            path = Path(png)
-            try:
-                rel = path.resolve().relative_to(docs_dir.resolve()).as_posix()
-            except (ValueError, OSError):
-                # png_path is recorded as an absolute build path; fall back
-                # to matching the file name inside the CV figure directory.
-                candidates = list(docs_dir.rglob(f"cv_paper/{path.name}"))
-                if not candidates:
+            for fig_id, title, caption, png in con.execute(
+                    f"SELECT fig_id, title, caption, png_path FROM {table} "
+                    "ORDER BY fig_id"):
+                if not png:
                     continue
-                rel = candidates[0].relative_to(docs_dir).as_posix()
-            out.append(Figure(
-                src=rel,
-                caption=f"<b>{esc(title)}</b> — {esc(caption)}",
-                page="", anchor="", category="cv_paper"))
+                path = Path(png)
+                try:
+                    rel = path.resolve().relative_to(
+                        docs_dir.resolve()).as_posix()
+                except (ValueError, OSError):
+                    # png_path is recorded as an absolute build path; fall
+                    # back to the file name inside that set's directory.
+                    candidates = list(docs_dir.rglob(f"{folder}/{path.name}"))
+                    if not candidates:
+                        continue
+                    rel = candidates[0].relative_to(docs_dir).as_posix()
+                out.append(Figure(
+                    src=rel,
+                    caption=f"<b>{esc(title)}</b> — {esc(caption)}",
+                    page="", anchor="", category=folder))
         return out
     except sqlite3.Error:                                # pragma: no cover
         return []

@@ -58,3 +58,6 @@ made one level up.
 # number, so a page built by the old rules can be told from one built by the
 # new ones without reading either.
 SN_G0_CODE_VERSION = "SN-G0 v1.3 (2026-10-04, linearity cap; census follows S2c)"
+
+#: Code version of the SN photometry stage (run_sn_photometry.py).
+SN_PHOT_CODE_VERSION = "SN-PHOT v1.0 (2026-10-04)"

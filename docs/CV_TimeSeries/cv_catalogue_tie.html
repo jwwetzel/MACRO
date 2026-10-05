@@ -3,7 +3,7 @@
 <title>CV Time Series &mdash; Catalogue Tie &amp; Absolute Calibration</title>
 <link rel="stylesheet" href="../assets/macro.css">
 </head><body>
-<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">9/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" aria-current="page" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">34/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">7/26 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">10/10 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" aria-current="page" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">46/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">21/25 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
 <div class="tabbar"><nav class="tabbar-inner" aria-label="Cataclysmic-Variable Time Series (reopened) views"><a class="tab" href="../CV_TimeSeries/case.html">The Case</a><a class="tab" href="../CV_TimeSeries/figures.html">Figures</a><a class="tab" href="../CV_TimeSeries/paper.html">Draft Paper</a><a class="tab" href="../CV_TimeSeries/index.html">Plan &amp; Status</a><a class="tab" aria-current="page" href="../CV_TimeSeries/evidence.html">Evidence Detail</a></nav></div>
 <div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../CV_TimeSeries/case.html">Cataclysmic-Variable Time Series (reopened)</a></li><li><a href="../CV_TimeSeries/evidence.html">Evidence Detail</a></li><li aria-current="page">Cataclysmic-Variable Time Series — the catalogue tie</li></ol></nav></div>
 <div class="layout">
@@ -17,9 +17,9 @@
   standard zero point &middot; 25 of 27 solved series tied
   &middot; primary catalogue
   <code>refcat2</code> &middot;
-  built 2026-10-04T05:21Z
+  built 2026-10-04T23:05Z
   (CV-S6 catalogue tie v1.1 (2026-08-19),
-  commit <code>71d42d2-dirty</code>)
+  commit <code>ceea0fa-dirty</code>)
   &middot; <a href="cv_characterization.html">the characterization that
   graded this NOT SUPPORTED</a> &middot;
   <a href="index.html">project hub</a> &middot;
@@ -51,7 +51,7 @@ is invariant under <code>M &rarr; M + c</code>, <code>ZP &rarr; ZP
 <code>mean(ZP) = 0</code>.  That choice is arithmetically convenient and
 physically empty: it puts every light curve on a gauge whose origin is
 &ldquo;whatever these particular comparison stars happened to average
-to&rdquo;.  3,174,618 light-curve rows were internally consistent and
+to&rdquo;.  3,158,147 light-curve rows were internally consistent and
 externally meaningless.</p>
 
 <p>The characterization page graded the strategy's calibration goal
@@ -61,7 +61,7 @@ is the repair.  It asks one question per section and refuses to move on
 until the question has a number attached.</p>
 
 <div class="decision"><b>What changed.</b> 25 of 27 solved
-series now carry a catalogue tie; 3,172,904 of 3,174,618 light-curve rows
+series now carry a catalogue tie; 3,156,409 of 3,158,147 light-curve rows
 carry a calibrated natural-system magnitude in the new column
 <code>cv_lightcurve.cal_mag</code>.  9 of the archive's
 14 (target, era) blocks now carry a catalogue tie, against
@@ -188,14 +188,14 @@ anything, but whether what it separates is <i>photometrically worse</i>.
 Every fitted tie star on this page, grouped by its own flag:</p>
 <table class="data">
 <tr><th>dupvar</th><th>fitted tie stars</th><th>clipped resid RMS (mmag)</th><th>median resid (mmag)</th></tr>
-<tr><td><code>1</code></td><td>23</td><td>55.6</td><td>-18.7</td></tr>
-<tr><td><code>2</code></td><td>8,434</td><td>43.0</td><td>3.1</td></tr>
-<tr><td><code>5</code></td><td>3</td><td>14.2</td><td>-4.1</td></tr>
-<tr><td><code>6</code></td><td>1,026</td><td>34.9</td><td>-6.8</td></tr>
+<tr><td><code>1</code></td><td>23</td><td>55.8</td><td>-18.7</td></tr>
+<tr><td><code>2</code></td><td>8,374</td><td>43.1</td><td>3.0</td></tr>
+<tr><td><code>5</code></td><td>3</td><td>14.2</td><td>-4.3</td></tr>
+<tr><td><code>6</code></td><td>995</td><td>35.4</td><td>-6.6</td></tr>
 </table>
 
 <div class="note"><b>The flag does not sort these stars into good and bad in
-a way that would justify a veto.</b>  The unflagged class (<code>dupvar</code>=2, 8,434 fitted tie stars) scatters 43.0 mmag about the tie.  The largest flagged class (<code>dupvar</code>=6, 1,026 stars) scatters 34.9 mmag &mdash; BETTER, so vetoing on the flag would have deleted good stars.  The classes that do fit worse are <code>1</code> (23 stars) &mdash; too few, across five fields, to carry a veto that would also throw out the large class above.  That is a stronger
+a way that would justify a veto.</b>  The unflagged class (<code>dupvar</code>=2, 8,374 fitted tie stars) scatters 43.1 mmag about the tie.  The largest flagged class (<code>dupvar</code>=6, 995 stars) scatters 35.4 mmag &mdash; BETTER, so vetoing on the flag would have deleted good stars.  The classes that do fit worse are <code>1</code> (23 stars) &mdash; too few, across five fields, to carry a veto that would also throw out the large class above.  That is a stronger
 statement than &ldquo;the flag is constant&rdquo;, and unlike that one it is
 the statement this data supports.  <code>dupvar</code> is still fetched and
 stored so a reader can redo this grouping.  The blend veto instead uses
@@ -219,26 +219,26 @@ corrupted star in twenty moves ZP0 by a fifth of its own error.</p>
 to the FIRST rule it broke, so the census partitions the sample exactly
 once:</p>
 <ul>
-<li><b>no catalogue magnitude or colour</b> (571
+<li><b>no catalogue magnitude or colour</b> (568
 stars) &mdash; an absence, not a veto, counted first so the numbers below
 describe stars that had photometry to lose.</li>
 <li><b>the catalogue distrusts its own photometry</b>
-(241) &mdash; REFCAT2's measured contamination
+(242) &mdash; REFCAT2's measured contamination
 radius <code>R1 &lt; 6&Prime;</code>, or Gaia's
 band validity flag and its <code>C*</code> colour-excess statistic.  Both
 catalogues are asked the same question in their own currency.</li>
-<li><b>saturated</b> (525) &mdash; ANY measurement in
+<li><b>saturated</b> (632) &mdash; ANY measurement in
 the series flagged against the era's own readout-mode ceiling.  Tolerance
-is zero: the tightest scale in the archive is <code>High Gain</code>, whose applied veto sits at 3,104&nbsp;ADU and which trips it on 7.2% of its 894,181 detections on matched frames, and there are always more candidates than the fit
+is zero: the tightest scale in the archive is <code>High Gain</code>, whose applied veto sits at 2,854&nbsp;ADU and which trips it on 8.9% of its 894,181 detections on matched frames, and there are always more candidates than the fit
 needs.</li>
-<li><b>in the non-linear shoulder</b> (92) &mdash;
+<li><b>in the non-linear shoulder</b> (47) &mdash;
 median peak above 90% of the applied veto.  A
 detector is non-linear before it clips, and nothing flags that.</li>
-<li><b>blended inside the aperture</b> (1,305)
+<li><b>blended inside the aperture</b> (1,300)
 &mdash; a catalogue neighbour within 6&Prime;
 and less than 2.5 mag fainter <b>in the band being tied</b>
 (a 10% flux contribution is 0.10 mag, five times the accuracy goal).</li>
-<li><b>blended in the sky annulus</b> (754)
+<li><b>blended in the sky annulus</b> (764)
 &mdash; a neighbour BRIGHTER in that same band inside the
 8&ndash;12&Prime; background annulus, which biases the subtracted sky and
 therefore the flux.</li>
@@ -257,27 +257,27 @@ match distance.  A coin-flip identity is worse than no tie star.</li>
 <tr><td>EU UMa e76 <i>g</i></td><td>126</td><td>119</td><td>83</td><td>36</td><td>6</td><td><code>wcs/ok</code></td></tr>
 <tr><td>EU UMa e76 <i>i</i></td><td>190</td><td>176</td><td>123</td><td>53</td><td>6</td><td><code>wcs/ok</code></td></tr>
 <tr><td>EU UMa e76 <i>r</i></td><td>166</td><td>146</td><td>96</td><td>50</td><td>15</td><td><code>wcs/ok</code></td></tr>
-<tr class="bad"><td>EU UMa e78 <i>g</i></td><td>5</td><td>0</td><td>0</td><td>0</td><td>0</td><td><code>gaia/target not in reference catalog (nearest star 4.8" away, tolerance 4")</code></td></tr>
-<tr><td>ST LMi e7 <i>G</i></td><td>172</td><td>97</td><td>64</td><td>33</td><td>5</td><td><code>gaia/ok</code></td></tr>
-<tr><td>ST LMi e7 <i>I</i></td><td>253</td><td>146</td><td>120</td><td>26</td><td>9</td><td><code>gaia/ok</code></td></tr>
-<tr><td>ST LMi e7 <i>R</i></td><td>238</td><td>139</td><td>104</td><td>35</td><td>11</td><td><code>gaia/ok</code></td></tr>
-<tr class="bad"><td>ST LMi e47 <i>y</i></td><td>41</td><td>0</td><td>0</td><td>0</td><td>0</td><td><code>gaia/ok</code></td></tr>
-<tr><td>ST LMi e47 <i>z</i></td><td>65</td><td>61</td><td>46</td><td>15</td><td>1</td><td><code>gaia/ok</code></td></tr>
+<tr class="bad"><td>EU UMa e78 <i>g</i></td><td>5</td><td>0</td><td>0</td><td>0</td><td>0</td><td><code>none/query_failed: HTTPError</code></td></tr>
+<tr><td>ST LMi e7 <i>G</i></td><td>170</td><td>82</td><td>53</td><td>29</td><td>5</td><td><code>gaia/ok</code></td></tr>
+<tr><td>ST LMi e7 <i>I</i></td><td>243</td><td>117</td><td>98</td><td>19</td><td>9</td><td><code>gaia/ok</code></td></tr>
+<tr><td>ST LMi e7 <i>R</i></td><td>229</td><td>124</td><td>94</td><td>30</td><td>10</td><td><code>gaia/ok</code></td></tr>
+<tr class="bad"><td>ST LMi e47 <i>y</i></td><td>40</td><td>0</td><td>0</td><td>0</td><td>0</td><td><code>gaia/ok</code></td></tr>
+<tr><td>ST LMi e47 <i>z</i></td><td>65</td><td>60</td><td>45</td><td>15</td><td>1</td><td><code>gaia/ok</code></td></tr>
 <tr><td>ST LMi e76 <i>g</i></td><td>145</td><td>128</td><td>95</td><td>33</td><td>6</td><td><code>wcs/ok</code></td></tr>
 <tr><td>ST LMi e76 <i>i</i></td><td>131</td><td>116</td><td>82</td><td>34</td><td>4</td><td><code>wcs/ok</code></td></tr>
 <tr><td>ST LMi e76 <i>r</i></td><td>162</td><td>138</td><td>102</td><td>36</td><td>5</td><td><code>wcs/ok</code></td></tr>
-<tr><td>VV Pup e72 <i>g</i></td><td>1818</td><td>1474</td><td>1112</td><td>362</td><td>19</td><td><code>wcs/ok</code></td></tr>
-<tr><td>VV Pup e72 <i>i</i></td><td>2229</td><td>1752</td><td>1319</td><td>433</td><td>42</td><td><code>wcs/ok</code></td></tr>
-<tr><td>VV Pup e72 <i>r</i></td><td>1960</td><td>1589</td><td>1197</td><td>392</td><td>32</td><td><code>wcs/ok</code></td></tr>
+<tr><td>VV Pup e72 <i>g</i></td><td>1811</td><td>1463</td><td>1103</td><td>360</td><td>19</td><td><code>wcs/ok</code></td></tr>
+<tr><td>VV Pup e72 <i>i</i></td><td>2220</td><td>1736</td><td>1308</td><td>428</td><td>41</td><td><code>wcs/ok</code></td></tr>
+<tr><td>VV Pup e72 <i>r</i></td><td>1942</td><td>1569</td><td>1183</td><td>386</td><td>32</td><td><code>wcs/ok</code></td></tr>
 <tr><td>VV Pup e76 <i>g</i></td><td>2690</td><td>2090</td><td>1577</td><td>513</td><td>67</td><td><code>wcs/ok</code></td></tr>
 <tr><td>VV Pup e76 <i>i</i></td><td>1561</td><td>1237</td><td>911</td><td>326</td><td>11</td><td><code>wcs/ok</code></td></tr>
 <tr><td>VV Pup e76 <i>r</i></td><td>2229</td><td>1745</td><td>1329</td><td>416</td><td>47</td><td><code>wcs/ok</code></td></tr>
-<tr><td>YZ Cnc e7 <i>G</i></td><td>241</td><td>133</td><td>106</td><td>27</td><td>0</td><td><code>gaia/ok</code></td></tr>
-<tr><td>YZ Cnc e7 <i>I</i></td><td>271</td><td>154</td><td>108</td><td>46</td><td>0</td><td><code>gaia/ok</code></td></tr>
-<tr><td>YZ Cnc e7 <i>R</i></td><td>295</td><td>158</td><td>131</td><td>27</td><td>0</td><td><code>gaia/ok</code></td></tr>
-<tr><td>YZ Cnc e72 <i>g</i></td><td>232</td><td>212</td><td>169</td><td>43</td><td>1</td><td><code>gaia/ok</code></td></tr>
-<tr><td>YZ Cnc e72 <i>i</i></td><td>268</td><td>242</td><td>176</td><td>66</td><td>4</td><td><code>gaia/ok</code></td></tr>
-<tr><td>YZ Cnc e72 <i>r</i></td><td>271</td><td>249</td><td>187</td><td>62</td><td>2</td><td><code>gaia/ok</code></td></tr>
+<tr><td>YZ Cnc e7 <i>G</i></td><td>239</td><td>127</td><td>102</td><td>25</td><td>0</td><td><code>gaia/ok</code></td></tr>
+<tr><td>YZ Cnc e7 <i>I</i></td><td>268</td><td>147</td><td>104</td><td>43</td><td>0</td><td><code>gaia/ok</code></td></tr>
+<tr><td>YZ Cnc e7 <i>R</i></td><td>292</td><td>151</td><td>127</td><td>24</td><td>0</td><td><code>gaia/ok</code></td></tr>
+<tr><td>YZ Cnc e72 <i>g</i></td><td>231</td><td>212</td><td>170</td><td>42</td><td>2</td><td><code>gaia/ok</code></td></tr>
+<tr><td>YZ Cnc e72 <i>i</i></td><td>267</td><td>240</td><td>175</td><td>65</td><td>4</td><td><code>gaia/ok</code></td></tr>
+<tr><td>YZ Cnc e72 <i>r</i></td><td>271</td><td>247</td><td>186</td><td>61</td><td>2</td><td><code>gaia/ok</code></td></tr>
 </table>
 
 <div class="note"><b>Which BAND the blend veto is taken in, and why it had
@@ -288,10 +288,10 @@ review, also the veto, while the fit itself ran against PS1
 <i>g</i>/<i>r</i>/<i>i</i>.  The two are not interchangeable: where Gaia
 resolves a pair that PS1 does not, the G-band contrast is large and the
 pair sails through a gate that the tie band would have caught.  Measured on
-this build, 1,504 candidate stars trip the
+this build, 1,506 candidate stars trip the
 aperture rule read in G against
-1,550 read in the band actually being
-tied &mdash; and <b>108 of them are
+1,552 read in the band actually being
+tied &mdash; and <b>107 of them are
 stars the tie band rejects that Gaia&nbsp;G would have waved straight
 through</b>, which is the number that matters and the population review
 found sitting inside the VV&nbsp;Pup fits.  Ruling&nbsp;4 asks whether the
@@ -387,26 +387,26 @@ the fit itself measured.</p>
 <tr class="warn"><td>EU UMa e76 <i>i</i></td><td><code>refcat2:imag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>123</td><td>+4.4130&thinsp;&plusmn;&thinsp;0.0028</td><td>-0.0452&thinsp;&plusmn;&thinsp;0.0074</td><td><code>r-i</code></td><td>0.362</td><td>29.8</td><td>6.24</td><td>0.07 &hellip; 1.44 (core 0.11&ndash;1.28)</td></tr>
 <tr class="warn"><td>EU UMa e76 <i>r</i></td><td><code>refcat2:rmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>96</td><td>+3.2579&thinsp;&plusmn;&thinsp;0.0028</td><td>-0.0116&thinsp;&plusmn;&thinsp;0.0083</td><td><code>g-r</code></td><td>0.825</td><td>24.7</td><td>4.07</td><td>-0.05 &hellip; 2.59 (core 0.27&ndash;1.24)</td></tr>
 <tr class="bad"><td>EU UMa e78 <i>g</i></td><td><code>refcat2:gmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td><code>g-r</code></td><td>0.515</td><td>&mdash;</td><td>&mdash;</td><td>&mdash; &hellip; &mdash; (core &mdash;&ndash;&mdash;)</td></tr>
-<tr class="ok"><td>ST LMi e7 <i>G</i></td><td><code>refcat2:gmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>64</td><td>+2.8613&thinsp;&plusmn;&thinsp;0.0028</td><td>+0.0581&thinsp;&plusmn;&thinsp;0.0088</td><td><code>g-r</code></td><td>0.670</td><td>18.6</td><td>2.14</td><td>-0.29 &hellip; 1.22 (core 0.20&ndash;1.16)</td></tr>
-<tr class="ok"><td>ST LMi e7 <i>I</i></td><td><code>refcat2:imag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>120</td><td>+3.6399&thinsp;&plusmn;&thinsp;0.0029</td><td>-0.0095&thinsp;&plusmn;&thinsp;0.0058</td><td><code>r-i</code></td><td>0.277</td><td>26.0</td><td>4.40</td><td>-1.31 &hellip; 1.96 (core 0.08&ndash;1.41)</td></tr>
-<tr class="warn"><td>ST LMi e7 <i>R</i></td><td><code>refcat2:rmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>104</td><td>+3.0217&thinsp;&plusmn;&thinsp;0.0023</td><td>-0.0174&thinsp;&plusmn;&thinsp;0.0062</td><td><code>g-r</code></td><td>0.670</td><td>22.1</td><td>2.94</td><td>-0.29 &hellip; 1.32 (core 0.24&ndash;1.22)</td></tr>
+<tr class="ok"><td>ST LMi e7 <i>G</i></td><td><code>refcat2:gmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>53</td><td>+2.8650&thinsp;&plusmn;&thinsp;0.0029</td><td>+0.0561&thinsp;&plusmn;&thinsp;0.0088</td><td><code>g-r</code></td><td>0.670</td><td>17.3</td><td>1.80</td><td>-0.29 &hellip; 1.22 (core 0.20&ndash;1.17)</td></tr>
+<tr class="warn"><td>ST LMi e7 <i>I</i></td><td><code>refcat2:imag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>98</td><td>+3.6445&thinsp;&plusmn;&thinsp;0.0027</td><td>-0.0192&thinsp;&plusmn;&thinsp;0.0051</td><td><code>r-i</code></td><td>0.277</td><td>21.2</td><td>2.91</td><td>-1.31 &hellip; 1.96 (core 0.08&ndash;1.47)</td></tr>
+<tr class="ok"><td>ST LMi e7 <i>R</i></td><td><code>refcat2:rmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>94</td><td>+3.0233&thinsp;&plusmn;&thinsp;0.0023</td><td>-0.0226&thinsp;&plusmn;&thinsp;0.0060</td><td><code>g-r</code></td><td>0.670</td><td>20.9</td><td>2.58</td><td>-0.29 &hellip; 1.32 (core 0.24&ndash;1.22)</td></tr>
 <tr class="bad"><td>ST LMi e47 <i>y</i></td><td><code>gaia_gspc:y_ps1_mag</code></td><td>PS1 AB (Gaia DR3 synthetic)</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td><code>i-z</code></td><td>0.100</td><td>&mdash;</td><td>&mdash;</td><td>&mdash; &hellip; &mdash; (core &mdash;&ndash;&mdash;)</td></tr>
-<tr class="warn"><td>ST LMi e47 <i>z</i></td><td><code>refcat2:zmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>46</td><td>+5.9274&thinsp;&plusmn;&thinsp;0.0044</td><td>+0.0330&thinsp;&plusmn;&thinsp;0.0290</td><td><code>i-z</code></td><td>0.066</td><td>26.9</td><td>5.21</td><td>0.00 &hellip; 0.64 (core 0.01&ndash;0.46)</td></tr>
+<tr class="warn"><td>ST LMi e47 <i>z</i></td><td><code>refcat2:zmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>45</td><td>+5.9273&thinsp;&plusmn;&thinsp;0.0044</td><td>+0.0330&thinsp;&plusmn;&thinsp;0.0294</td><td><code>i-z</code></td><td>0.066</td><td>27.1</td><td>5.34</td><td>0.00 &hellip; 0.64 (core 0.01&ndash;0.46)</td></tr>
 <tr class="warn"><td>ST LMi e76 <i>g</i></td><td><code>refcat2:gmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>95</td><td>+2.6316&thinsp;&plusmn;&thinsp;0.0025</td><td>+0.0529&thinsp;&plusmn;&thinsp;0.0081</td><td><code>g-r</code></td><td>0.671</td><td>22.8</td><td>3.27</td><td>0.15 &hellip; 1.22 (core 0.24&ndash;1.18)</td></tr>
 <tr class="warn"><td>ST LMi e76 <i>i</i></td><td><code>refcat2:imag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>82</td><td>+4.4701&thinsp;&plusmn;&thinsp;0.0040</td><td>-0.0107&thinsp;&plusmn;&thinsp;0.0112</td><td><code>r-i</code></td><td>0.281</td><td>33.8</td><td>8.33</td><td>-1.31 &hellip; 1.55 (core 0.08&ndash;1.16)</td></tr>
 <tr class="warn"><td>ST LMi e76 <i>r</i></td><td><code>refcat2:rmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>102</td><td>+3.3268&thinsp;&plusmn;&thinsp;0.0031</td><td>-0.0023&thinsp;&plusmn;&thinsp;0.0093</td><td><code>g-r</code></td><td>0.671</td><td>30.1</td><td>6.55</td><td>0.18 &hellip; 1.26 (core 0.26&ndash;1.20)</td></tr>
-<tr class="warn"><td>VV Pup e72 <i>g</i></td><td><code>refcat2:gmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>1112</td><td>+2.5305&thinsp;&plusmn;&thinsp;0.0013</td><td>+0.0007&thinsp;&plusmn;&thinsp;0.0072</td><td><code>g-r</code></td><td>0.476</td><td>43.9</td><td>13.44</td><td>-0.33 &hellip; 1.24 (core 0.24&ndash;0.84)</td></tr>
-<tr class="warn"><td>VV Pup e72 <i>i</i></td><td><code>refcat2:imag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>1319</td><td>+3.3598&thinsp;&plusmn;&thinsp;0.0015</td><td>-0.0743&thinsp;&plusmn;&thinsp;0.0080</td><td><code>r-i</code></td><td>0.183</td><td>54.7</td><td>16.95</td><td>-0.15 &hellip; 1.63 (core 0.06&ndash;0.66)</td></tr>
-<tr class="warn"><td>VV Pup e72 <i>r</i></td><td><code>refcat2:rmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>1197</td><td>+2.7840&thinsp;&plusmn;&thinsp;0.0014</td><td>-0.0451&thinsp;&plusmn;&thinsp;0.0070</td><td><code>g-r</code></td><td>0.476</td><td>49.5</td><td>16.83</td><td>-0.09 &hellip; 1.25 (core 0.25&ndash;0.90)</td></tr>
+<tr class="warn"><td>VV Pup e72 <i>g</i></td><td><code>refcat2:gmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>1103</td><td>+2.5299&thinsp;&plusmn;&thinsp;0.0013</td><td>+0.0031&thinsp;&plusmn;&thinsp;0.0072</td><td><code>g-r</code></td><td>0.476</td><td>44.6</td><td>13.75</td><td>-0.33 &hellip; 1.24 (core 0.25&ndash;0.85)</td></tr>
+<tr class="warn"><td>VV Pup e72 <i>i</i></td><td><code>refcat2:imag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>1308</td><td>+3.3602&thinsp;&plusmn;&thinsp;0.0015</td><td>-0.0729&thinsp;&plusmn;&thinsp;0.0081</td><td><code>r-i</code></td><td>0.183</td><td>55.3</td><td>17.16</td><td>-0.15 &hellip; 1.63 (core 0.06&ndash;0.65)</td></tr>
+<tr class="warn"><td>VV Pup e72 <i>r</i></td><td><code>refcat2:rmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>1183</td><td>+2.7842&thinsp;&plusmn;&thinsp;0.0014</td><td>-0.0446&thinsp;&plusmn;&thinsp;0.0070</td><td><code>g-r</code></td><td>0.476</td><td>49.7</td><td>16.97</td><td>-0.09 &hellip; 1.25 (core 0.25&ndash;0.90)</td></tr>
 <tr class="warn"><td>VV Pup e76 <i>g</i></td><td><code>refcat2:gmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>1577</td><td>+2.8312&thinsp;&plusmn;&thinsp;0.0011</td><td>+0.0584&thinsp;&plusmn;&thinsp;0.0056</td><td><code>g-r</code></td><td>0.513</td><td>42.6</td><td>11.99</td><td>-0.10 &hellip; 1.29 (core 0.27&ndash;0.90)</td></tr>
 <tr class="warn"><td>VV Pup e76 <i>i</i></td><td><code>refcat2:imag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>911</td><td>+4.7663&thinsp;&plusmn;&thinsp;0.0016</td><td>-0.0278&thinsp;&plusmn;&thinsp;0.0110</td><td><code>r-i</code></td><td>0.201</td><td>48.5</td><td>15.94</td><td>-0.15 &hellip; 1.38 (core 0.05&ndash;0.44)</td></tr>
 <tr class="warn"><td>VV Pup e76 <i>r</i></td><td><code>refcat2:rmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>1329</td><td>+3.6347&thinsp;&plusmn;&thinsp;0.0013</td><td>-0.0242&thinsp;&plusmn;&thinsp;0.0060</td><td><code>g-r</code></td><td>0.513</td><td>46.0</td><td>14.40</td><td>-0.10 &hellip; 1.29 (core 0.26&ndash;0.96)</td></tr>
-<tr class="warn"><td>YZ Cnc e7 <i>G</i></td><td><code>refcat2:gmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>106</td><td>+2.8642&thinsp;&plusmn;&thinsp;0.0024</td><td>+0.0615&thinsp;&plusmn;&thinsp;0.0102</td><td><code>g-r</code></td><td>0.613</td><td>19.9</td><td>3.60</td><td>0.11 &hellip; 1.19 (core 0.28&ndash;0.91)</td></tr>
-<tr class="warn"><td>YZ Cnc e7 <i>I</i></td><td><code>refcat2:imag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>108</td><td>+3.6328&thinsp;&plusmn;&thinsp;0.0023</td><td>-0.0167&thinsp;&plusmn;&thinsp;0.0102</td><td><code>r-i</code></td><td>0.240</td><td>22.9</td><td>4.63</td><td>0.07 &hellip; 1.52 (core 0.09&ndash;0.80)</td></tr>
-<tr class="warn"><td>YZ Cnc e7 <i>R</i></td><td><code>refcat2:rmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>131</td><td>+3.0274&thinsp;&plusmn;&thinsp;0.0019</td><td>-0.0347&thinsp;&plusmn;&thinsp;0.0082</td><td><code>g-r</code></td><td>0.613</td><td>19.5</td><td>3.45</td><td>0.11 &hellip; 1.23 (core 0.29&ndash;0.95)</td></tr>
-<tr class="warn"><td>YZ Cnc e72 <i>g</i></td><td><code>refcat2:gmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>169</td><td>+2.4088&thinsp;&plusmn;&thinsp;0.0017</td><td>+0.0176&thinsp;&plusmn;&thinsp;0.0081</td><td><code>g-r</code></td><td>0.562</td><td>20.8</td><td>3.44</td><td>0.10 &hellip; 1.23 (core 0.28&ndash;0.91)</td></tr>
-<tr class="ok"><td>YZ Cnc e72 <i>i</i></td><td><code>refcat2:imag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>176</td><td>+3.1453&thinsp;&plusmn;&thinsp;0.0016</td><td>-0.0726&thinsp;&plusmn;&thinsp;0.0061</td><td><code>r-i</code></td><td>0.217</td><td>20.1</td><td>3.22</td><td>-0.02 &hellip; 1.52 (core 0.09&ndash;0.95)</td></tr>
-<tr class="warn"><td>YZ Cnc e72 <i>r</i></td><td><code>refcat2:rmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>187</td><td>+2.6144&thinsp;&plusmn;&thinsp;0.0016</td><td>-0.0349&thinsp;&plusmn;&thinsp;0.0066</td><td><code>g-r</code></td><td>0.562</td><td>22.4</td><td>4.12</td><td>0.10 &hellip; 1.23 (core 0.29&ndash;1.19)</td></tr>
+<tr class="warn"><td>YZ Cnc e7 <i>G</i></td><td><code>refcat2:gmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>102</td><td>+2.8671&thinsp;&plusmn;&thinsp;0.0023</td><td>+0.0571&thinsp;&plusmn;&thinsp;0.0099</td><td><code>g-r</code></td><td>0.613</td><td>19.1</td><td>3.31</td><td>0.11 &hellip; 1.19 (core 0.28&ndash;0.92)</td></tr>
+<tr class="warn"><td>YZ Cnc e7 <i>I</i></td><td><code>refcat2:imag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>104</td><td>+3.6336&thinsp;&plusmn;&thinsp;0.0023</td><td>-0.0162&thinsp;&plusmn;&thinsp;0.0102</td><td><code>r-i</code></td><td>0.240</td><td>22.7</td><td>4.56</td><td>0.07 &hellip; 1.52 (core 0.09&ndash;0.83)</td></tr>
+<tr class="warn"><td>YZ Cnc e7 <i>R</i></td><td><code>refcat2:rmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>127</td><td>+3.0297&thinsp;&plusmn;&thinsp;0.0019</td><td>-0.0339&thinsp;&plusmn;&thinsp;0.0083</td><td><code>g-r</code></td><td>0.613</td><td>19.4</td><td>3.39</td><td>0.11 &hellip; 1.23 (core 0.29&ndash;0.95)</td></tr>
+<tr class="ok"><td>YZ Cnc e72 <i>g</i></td><td><code>refcat2:gmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>170</td><td>+2.4088&thinsp;&plusmn;&thinsp;0.0017</td><td>+0.0176&thinsp;&plusmn;&thinsp;0.0081</td><td><code>g-r</code></td><td>0.562</td><td>20.8</td><td>3.44</td><td>0.10 &hellip; 1.23 (core 0.28&ndash;0.91)</td></tr>
+<tr class="ok"><td>YZ Cnc e72 <i>i</i></td><td><code>refcat2:imag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>175</td><td>+3.1454&thinsp;&plusmn;&thinsp;0.0016</td><td>-0.0729&thinsp;&plusmn;&thinsp;0.0061</td><td><code>r-i</code></td><td>0.217</td><td>19.8</td><td>3.21</td><td>0.06 &hellip; 1.52 (core 0.09&ndash;0.95)</td></tr>
+<tr class="warn"><td>YZ Cnc e72 <i>r</i></td><td><code>refcat2:rmag</code></td><td>PS1 AB (ATLAS-REFCAT2)</td><td>186</td><td>+2.6144&thinsp;&plusmn;&thinsp;0.0017</td><td>-0.0349&thinsp;&plusmn;&thinsp;0.0066</td><td><code>g-r</code></td><td>0.562</td><td>22.5</td><td>4.14</td><td>0.10 &hellip; 1.23 (core 0.29&ndash;1.19)</td></tr>
 </table>
 
 <figure><a href="figures/cv_catalogue_tie/colour_fits.png"><img src="figures/cv_catalogue_tie/colour_fits.png" alt=""></a><figcaption>The fits themselves.  Filled points entered the fit; open circles were held out for section 5 and never influenced the line.  The red line is the fitted relation over the colour range it actually interpolates; the dashed yellow line is the science target's own colour, where that is measurable (section 7).</figcaption></figure>
@@ -438,9 +438,9 @@ ones.</p>
 
 <table class="data">
 <tr><th>filter pair</th><th>n (lower)</th><th>median k (lower)</th><th>n (upper)</th><th>median k (upper)</th><th>difference of medians</th></tr>
-<tr><td><code>g</code> vs <code>G</code></td><td>6</td><td>0.0437</td><td>2</td><td>0.0598</td><td>0.0161</td></tr>
-<tr><td><code>r</code> vs <code>R</code></td><td>6</td><td>-0.0179</td><td>2</td><td>-0.0260</td><td>-0.0081</td></tr>
-<tr><td><code>i</code> vs <code>I</code></td><td>6</td><td>-0.0365</td><td>2</td><td>-0.0131</td><td>0.0234</td></tr>
+<tr><td><code>g</code> vs <code>G</code></td><td>6</td><td>0.0437</td><td>2</td><td>0.0566</td><td>0.0129</td></tr>
+<tr><td><code>r</code> vs <code>R</code></td><td>6</td><td>-0.0179</td><td>2</td><td>-0.0282</td><td>-0.0103</td></tr>
+<tr><td><code>i</code> vs <code>I</code></td><td>6</td><td>-0.0365</td><td>2</td><td>-0.0177</td><td>0.0188</td></tr>
 </table>
 
 <p>A difference of medians is a summary, not a bound &mdash; it can hide
@@ -450,16 +450,16 @@ target, the same filter letter, one uppercase era against one lowercase
 era.</p>
 <table class="data">
 <tr><th>target</th><th>uppercase block</th><th>lowercase block</th><th>k (upper)</th><th>k (lower)</th><th>difference (mmag/mag)</th></tr>
-<tr><td>ST LMi</td><td><code>G</code> e7</td><td><code>g</code> e76</td><td>0.0581</td><td>0.0529</td><td>5.2</td></tr>
-<tr><td>ST LMi</td><td><code>I</code> e7</td><td><code>i</code> e76</td><td>-0.0095</td><td>-0.0107</td><td>1.2</td></tr>
-<tr><td>ST LMi</td><td><code>R</code> e7</td><td><code>r</code> e76</td><td>-0.0174</td><td>-0.0023</td><td>-15.0</td></tr>
-<tr><td>YZ Cnc</td><td><code>G</code> e7</td><td><code>g</code> e72</td><td>0.0615</td><td>0.0176</td><td>43.9</td></tr>
-<tr><td>YZ Cnc</td><td><code>I</code> e7</td><td><code>i</code> e72</td><td>-0.0167</td><td>-0.0726</td><td>55.9</td></tr>
-<tr><td>YZ Cnc</td><td><code>R</code> e7</td><td><code>r</code> e72</td><td>-0.0347</td><td>-0.0349</td><td>0.3</td></tr>
+<tr><td>ST LMi</td><td><code>G</code> e7</td><td><code>g</code> e76</td><td>0.0561</td><td>0.0529</td><td>3.2</td></tr>
+<tr><td>ST LMi</td><td><code>I</code> e7</td><td><code>i</code> e76</td><td>-0.0192</td><td>-0.0107</td><td>-8.5</td></tr>
+<tr><td>ST LMi</td><td><code>R</code> e7</td><td><code>r</code> e76</td><td>-0.0226</td><td>-0.0023</td><td>-20.3</td></tr>
+<tr><td>YZ Cnc</td><td><code>G</code> e7</td><td><code>g</code> e72</td><td>0.0571</td><td>0.0176</td><td>39.5</td></tr>
+<tr><td>YZ Cnc</td><td><code>I</code> e7</td><td><code>i</code> e72</td><td>-0.0162</td><td>-0.0729</td><td>56.6</td></tr>
+<tr><td>YZ Cnc</td><td><code>R</code> e7</td><td><code>r</code> e72</td><td>-0.0339</td><td>-0.0349</td><td>1.1</td></tr>
 </table>
 
 <div class="decision"><b>No uppercase colour term sits more than
-55.9 mmag per magnitude of colour from its lowercase
+56.6 mmag per magnitude of colour from its lowercase
 counterpart</b> &mdash; that is the LARGEST per-pair disagreement, not an
 average, and it is still one to two ORDERS OF MAGNITUDE smaller than the
 0.2&ndash;0.5 mag/mag a genuine Johnson&ndash;Cousins bandpass would produce
@@ -505,38 +505,38 @@ stars and is therefore the more dangerous half.</p>
 <tr class="warn"><td>EU UMa e76 <i>i</i></td><td>53</td><td>40.0</td><td>94.5</td><td>1 / 53</td><td>6.6</td><td>41.4</td><td>29.8</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>EU UMa e76 <i>r</i></td><td>50</td><td>24.2</td><td>175.0</td><td>2 / 50</td><td>-6.2</td><td>23.2</td><td>24.7</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="bad"><td>EU UMa e78 <i>g</i></td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td><b>UNTIED</b></td></tr>
-<tr class="ok"><td>ST LMi e7 <i>G</i></td><td>33</td><td>17.5</td><td>26.9</td><td>2 / 33</td><td>-3.0</td><td>17.8</td><td>18.6</td><td><b>TIED-GOAL</b></td></tr>
-<tr class="ok"><td>ST LMi e7 <i>I</i></td><td>26</td><td>19.6</td><td>23.4</td><td>1 / 26</td><td>-4.4</td><td>13.9</td><td>26.0</td><td><b>TIED-GOAL</b></td></tr>
-<tr class="warn"><td>ST LMi e7 <i>R</i></td><td>35</td><td>21.6</td><td>51.0</td><td>2 / 35</td><td>-0.5</td><td>15.1</td><td>22.1</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="ok"><td>ST LMi e7 <i>G</i></td><td>29</td><td>17.7</td><td>28.2</td><td>2 / 29</td><td>-6.0</td><td>18.7</td><td>17.3</td><td><b>TIED-GOAL</b></td></tr>
+<tr class="warn"><td>ST LMi e7 <i>I</i></td><td>19</td><td>25.5</td><td>25.5</td><td>0 / 19</td><td>-10.6</td><td>26.1</td><td>21.2</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="ok"><td>ST LMi e7 <i>R</i></td><td>30</td><td>16.8</td><td>52.8</td><td>3 / 30</td><td>-2.3</td><td>11.0</td><td>20.9</td><td><b>TIED-GOAL</b></td></tr>
 <tr class="bad"><td>ST LMi e47 <i>y</i></td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td><b>UNTIED</b></td></tr>
-<tr class="warn"><td>ST LMi e47 <i>z</i></td><td>15</td><td>42.9</td><td>320.3</td><td>1 / 15</td><td>20.8</td><td>46.2</td><td>26.9</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>ST LMi e47 <i>z</i></td><td>15</td><td>43.0</td><td>320.3</td><td>1 / 15</td><td>20.9</td><td>46.2</td><td>27.1</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>ST LMi e76 <i>g</i></td><td>33</td><td>24.4</td><td>172.9</td><td>1 / 33</td><td>-8.0</td><td>28.2</td><td>22.8</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>ST LMi e76 <i>i</i></td><td>34</td><td>24.8</td><td>37.7</td><td>2 / 34</td><td>-13.2</td><td>18.6</td><td>33.8</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>ST LMi e76 <i>r</i></td><td>36</td><td>28.2</td><td>101.4</td><td>2 / 36</td><td>4.5</td><td>28.1</td><td>30.1</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>VV Pup e72 <i>g</i></td><td>362</td><td>39.3</td><td>53.0</td><td>9 / 362</td><td>2.1</td><td>35.8</td><td>43.9</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>VV Pup e72 <i>i</i></td><td>433</td><td>57.8</td><td>86.1</td><td>16 / 433</td><td>-2.3</td><td>48.0</td><td>54.7</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>VV Pup e72 <i>r</i></td><td>392</td><td>47.0</td><td>77.6</td><td>11 / 392</td><td>0.6</td><td>45.2</td><td>49.5</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>VV Pup e72 <i>g</i></td><td>360</td><td>39.3</td><td>53.1</td><td>9 / 360</td><td>1.5</td><td>35.5</td><td>44.6</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>VV Pup e72 <i>i</i></td><td>428</td><td>58.6</td><td>86.5</td><td>15 / 428</td><td>-0.9</td><td>48.3</td><td>55.3</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>VV Pup e72 <i>r</i></td><td>386</td><td>47.1</td><td>78.1</td><td>11 / 386</td><td>0.5</td><td>44.7</td><td>49.7</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>VV Pup e76 <i>g</i></td><td>513</td><td>48.6</td><td>63.8</td><td>15 / 513</td><td>7.7</td><td>39.0</td><td>42.6</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>VV Pup e76 <i>i</i></td><td>326</td><td>48.0</td><td>50.6</td><td>2 / 326</td><td>0.4</td><td>43.1</td><td>48.5</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>VV Pup e76 <i>r</i></td><td>416</td><td>49.1</td><td>66.3</td><td>12 / 416</td><td>2.1</td><td>40.4</td><td>46.0</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>YZ Cnc e7 <i>G</i></td><td>27</td><td>23.5</td><td>23.5</td><td>0 / 27</td><td>-1.2</td><td>23.9</td><td>19.9</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>YZ Cnc e7 <i>I</i></td><td>46</td><td>24.9</td><td>24.9</td><td>0 / 46</td><td>2.3</td><td>19.0</td><td>22.9</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>YZ Cnc e7 <i>R</i></td><td>27</td><td>23.7</td><td>23.7</td><td>0 / 27</td><td>6.2</td><td>31.3</td><td>19.5</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>YZ Cnc e72 <i>g</i></td><td>43</td><td>20.8</td><td>20.8</td><td>0 / 43</td><td>-0.6</td><td>21.4</td><td>20.8</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="ok"><td>YZ Cnc e72 <i>i</i></td><td>66</td><td>18.6</td><td>18.6</td><td>0 / 66</td><td>5.4</td><td>15.7</td><td>20.1</td><td><b>TIED-GOAL</b></td></tr>
-<tr class="warn"><td>YZ Cnc e72 <i>r</i></td><td>62</td><td>22.7</td><td>22.7</td><td>0 / 62</td><td>4.1</td><td>23.0</td><td>22.4</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>YZ Cnc e7 <i>G</i></td><td>25</td><td>23.0</td><td>23.0</td><td>0 / 25</td><td>-0.2</td><td>19.0</td><td>19.1</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>YZ Cnc e7 <i>I</i></td><td>43</td><td>22.9</td><td>22.9</td><td>0 / 43</td><td>5.2</td><td>20.9</td><td>22.7</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>YZ Cnc e7 <i>R</i></td><td>24</td><td>22.7</td><td>22.7</td><td>0 / 24</td><td>7.9</td><td>30.5</td><td>19.4</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="ok"><td>YZ Cnc e72 <i>g</i></td><td>42</td><td>19.9</td><td>19.9</td><td>0 / 42</td><td>-0.3</td><td>21.2</td><td>20.8</td><td><b>TIED-GOAL</b></td></tr>
+<tr class="ok"><td>YZ Cnc e72 <i>i</i></td><td>65</td><td>18.7</td><td>18.7</td><td>0 / 65</td><td>5.4</td><td>15.8</td><td>19.8</td><td><b>TIED-GOAL</b></td></tr>
+<tr class="warn"><td>YZ Cnc e72 <i>r</i></td><td>61</td><td>22.9</td><td>22.9</td><td>0 / 61</td><td>4.7</td><td>22.6</td><td>22.5</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 </table>
 
-<div class="decision"><b>3 of 25 tied blocks meet the
+<div class="decision"><b>4 of 25 tied blocks meet the
 20 mmag goal on independent check stars; the
-median achieved accuracy is 24.9 mmag after clipping, and
+median achieved accuracy is 25.4 mmag after clipping, and
 63.8 mmag before it.</b>  A block graded TIED-ABOVE-GOAL is not a
 failure &mdash; its magnitudes are on a standard system and their accuracy
 is measured and stated.  It is a block whose error bar is larger than the
 strategy hoped, which is a fact about the data and not about the tie.</div>
 
 <div class="note"><b>The clip, stated rather than absorbed.</b>
-86 of 3154 held-out stars (2.7%)
+85 of 3114 held-out stars (2.7%)
 sit beyond 4 robust sigma of their block's own check
 distribution, some of them by more than a magnitude.  They are not
 calibration error: they are variables, blends the veto in section 2 did not
@@ -565,9 +565,9 @@ significance over 0.2 mag is nothing.</p>
 <figure><a href="figures/cv_catalogue_tie/resid_mag.png"><img src="figures/cv_catalogue_tie/resid_mag.png" alt=""></a><figcaption>Left: every fitted tie star of every block, residual against catalogue magnitude, with the binned median in white. Right: the distribution of per-block trend swings, split by whether the trend is formally significant.</figcaption></figure>
 <table class="data">
 <tr><th>era</th><th>readout mode</th><th>pixel provenance</th><th>fields</th><th>blocks</th><th>significant at 3&sigma;</th><th>mean swing (mmag)</th><th>range (mmag)</th></tr>
-<tr><td>7</td><td><code>High Gain</code></td><td>local_master</td><td>2</td><td>6</td><td>6</td><td>51.8</td><td>42.1 &hellip; 58.1</td></tr>
-<tr><td>47</td><td><code>1MHz High Sensitivity 16-bit</code></td><td>local_master</td><td>1</td><td>1</td><td>0</td><td>-0.8</td><td>-0.8 &hellip; -0.8</td></tr>
-<tr><td>72</td><td><code>1MHz High Sensitivity 16-bit</code></td><td>server_reduced</td><td>2</td><td>12</td><td>4</td><td>12.1</td><td>-20.8 &hellip; 47.2</td></tr>
+<tr><td>7</td><td><code>High Gain</code></td><td>local_master</td><td>2</td><td>6</td><td>4</td><td>43.4</td><td>15.4 &hellip; 57.0</td></tr>
+<tr><td>47</td><td><code>1MHz High Sensitivity 16-bit</code></td><td>local_master</td><td>1</td><td>1</td><td>0</td><td>3.0</td><td>3.0 &hellip; 3.0</td></tr>
+<tr><td>72</td><td><code>1MHz High Sensitivity 16-bit</code></td><td>server_reduced</td><td>2</td><td>12</td><td>4</td><td>13.0</td><td>-21.4 &hellip; 44.4</td></tr>
 <tr><td>76</td><td><code>Mode0</code></td><td>server_reduced</td><td>4</td><td>18</td><td>7</td><td>20.1</td><td>-29.9 &hellip; 61.9</td></tr>
 <tr><td>78</td><td><code>Fast</code></td><td>server_reduced</td><td>1</td><td>1</td><td>0</td><td>16.5</td><td>16.5 &hellip; 16.5</td></tr>
 </table>
@@ -580,7 +580,7 @@ show up as a tilt of the tie residual across the chip.  A plane is fitted
 in (x,&nbsp;y) per block and reported as its corner-to-corner swing, which
 is the systematic a star suffers for being on the wrong side of the
 detector.</p>
-<figure><a href="figures/cv_catalogue_tie/resid_xy.png"><img src="figures/cv_catalogue_tie/resid_xy.png" alt=""></a><figcaption>Tie residuals in detector coordinates for the best-populated block of each target &mdash; AN UMa e76 <i>r</i>, EU UMa e76 <i>i</i>, ST LMi e7 <i>I</i>, VV Pup e76 <i>g</i>, YZ Cnc e72 <i>r</i> &mdash; plus the radial profile and the distribution of corner-to-corner plane swings over every block.  One panel per TARGET, not the largest blocks outright: a flat-field residual should repeat across FIELDS on the same detector, and only a panel per field can show whether it does.</figcaption></figure>
+<figure><a href="figures/cv_catalogue_tie/resid_xy.png"><img src="figures/cv_catalogue_tie/resid_xy.png" alt=""></a><figcaption>Tie residuals in detector coordinates for the best-populated block of each target &mdash; AN UMa e76 <i>r</i>, EU UMa e76 <i>i</i>, ST LMi e76 <i>r</i>, VV Pup e76 <i>g</i>, YZ Cnc e72 <i>r</i> &mdash; plus the radial profile and the distribution of corner-to-corner plane swings over every block.  One panel per TARGET, not the largest blocks outright: a flat-field residual should repeat across FIELDS on the same detector, and only a panel per field can show whether it does.</figcaption></figure>
 
 <p>The maps were drawn expecting a TILT and showed a BULLSEYE: positive
 residuals in the middle of the frame, negative at the corners, in four
@@ -590,14 +590,14 @@ regressed on RADIUS from the detector centre as well, and that is the test
 that carries the finding.</p>
 <table class="data">
 <tr><th>era</th><th>readout mode</th><th>pixel provenance</th><th>fields</th><th>blocks</th><th>significant at 3&sigma;</th><th>mean swing (mmag)</th><th>range (mmag)</th></tr>
-<tr><td>7</td><td><code>High Gain</code></td><td>local_master</td><td>2</td><td>6</td><td>0</td><td>10.3</td><td>-4.1 &hellip; 17.8</td></tr>
-<tr><td>47</td><td><code>1MHz High Sensitivity 16-bit</code></td><td>local_master</td><td>1</td><td>1</td><td>0</td><td>-11.0</td><td>-11.0 &hellip; -11.0</td></tr>
-<tr><td>72</td><td><code>1MHz High Sensitivity 16-bit</code></td><td>server_reduced</td><td>2</td><td>12</td><td>1</td><td>-12.2</td><td>-25.4 &hellip; 17.3</td></tr>
+<tr><td>7</td><td><code>High Gain</code></td><td>local_master</td><td>2</td><td>6</td><td>0</td><td>3.9</td><td>-7.4 &hellip; 8.6</td></tr>
+<tr><td>47</td><td><code>1MHz High Sensitivity 16-bit</code></td><td>local_master</td><td>1</td><td>1</td><td>0</td><td>-10.5</td><td>-10.5 &hellip; -10.5</td></tr>
+<tr><td>72</td><td><code>1MHz High Sensitivity 16-bit</code></td><td>server_reduced</td><td>2</td><td>12</td><td>2</td><td>-12.2</td><td>-25.4 &hellip; 21.2</td></tr>
 <tr><td>76</td><td><code>Mode0</code></td><td>server_reduced</td><td>4</td><td>18</td><td>17</td><td>-70.4</td><td>-107.8 &hellip; 15.2</td></tr>
 <tr><td>78</td><td><code>Fast</code></td><td>server_reduced</td><td>1</td><td>1</td><td>0</td><td>10.5</td><td>10.5 &hellip; 10.5</td></tr>
 </table>
 
-<div class="decision"><b>Era 76 (Mode0, server_reduced pixels) carries a radial residual of -70.4 mmag from centre to corner, significant in 17 of its 18 blocks across 4 independent fields.  Every other era averages 11.0 mmag.</b>
+<div class="decision"><b>Era 76 (Mode0, server_reduced pixels) carries a radial residual of -70.4 mmag from centre to corner, significant in 17 of its 18 blocks across 4 independent fields.  Every other era averages 9.3 mmag.</b>
 A systematic that repeats across four unrelated star fields, in one camera
 era and one pixel provenance and not in the others, is not a property of
 any field: it is a property of the reduction that made those pixels.  The
@@ -627,11 +627,11 @@ is the magnitude one; several of the per-axis x and y results, taken
 individually, might be.</p>
 <table class="data">
 <tr><th>axis</th><th>regressions</th><th>significant at 3&sigma;</th><th>largest swing (mmag)</th><th>mean |swing| (mmag)</th></tr>
-<tr><td><code>cat_mag</code></td><td>38</td><td>17</td><td>61.9</td><td>26.8</td></tr>
-<tr><td><code>plane_xy</code></td><td>38</td><td>15</td><td>239.1</td><td>77.6</td></tr>
-<tr><td><code>radius</code></td><td>38</td><td>18</td><td>107.8</td><td>41.3</td></tr>
-<tr><td><code>x</code></td><td>38</td><td>18</td><td>66.9</td><td>29.5</td></tr>
-<tr><td><code>y</code></td><td>38</td><td>15</td><td>71.4</td><td>26.7</td></tr>
+<tr><td><code>cat_mag</code></td><td>38</td><td>15</td><td>61.9</td><td>25.8</td></tr>
+<tr><td><code>plane_xy</code></td><td>38</td><td>14</td><td>239.1</td><td>78.3</td></tr>
+<tr><td><code>radius</code></td><td>38</td><td>19</td><td>107.8</td><td>40.7</td></tr>
+<tr><td><code>x</code></td><td>38</td><td>19</td><td>66.9</td><td>29.2</td></tr>
+<tr><td><code>y</code></td><td>38</td><td>15</td><td>77.6</td><td>26.6</td></tr>
 </table>
 
 <h3>6.3 &mdash; do two independent catalogues agree?</h3>
@@ -650,22 +650,22 @@ pipelines.</p>
 <tr><td>AN UMa e76 <i>g</i></td><td>12</td><td>-51.3</td><td>32.5</td><td>77.2</td><td>87.2</td><td>0.1851</td></tr>
 <tr><td>AN UMa e76 <i>i</i></td><td>15</td><td>28.1</td><td>7.3</td><td>28.5</td><td>-6.2</td><td>0.0182</td></tr>
 <tr><td>AN UMa e76 <i>r</i></td><td>11</td><td>14.3</td><td>4.0</td><td>14.3</td><td>4.9</td><td>0.0786</td></tr>
-<tr><td>VV Pup e72 <i>g</i></td><td>43</td><td>-30.4</td><td>32.0</td><td>57.4</td><td>40.7</td><td>0.1245</td></tr>
-<tr><td>VV Pup e72 <i>i</i></td><td>45</td><td>44.3</td><td>7.8</td><td>45.7</td><td>-30.8</td><td>-0.0275</td></tr>
-<tr><td>VV Pup e72 <i>r</i></td><td>46</td><td>21.9</td><td>5.9</td><td>23.1</td><td>-13.5</td><td>-0.0074</td></tr>
+<tr><td>VV Pup e72 <i>g</i></td><td>39</td><td>-32.8</td><td>35.2</td><td>60.1</td><td>41.2</td><td>0.1336</td></tr>
+<tr><td>VV Pup e72 <i>i</i></td><td>40</td><td>44.5</td><td>7.3</td><td>45.7</td><td>-29.4</td><td>-0.0302</td></tr>
+<tr><td>VV Pup e72 <i>r</i></td><td>39</td><td>21.6</td><td>6.5</td><td>22.9</td><td>-13.8</td><td>-0.0144</td></tr>
 <tr><td>VV Pup e76 <i>g</i></td><td>50</td><td>-33.0</td><td>33.3</td><td>59.7</td><td>52.0</td><td>0.1486</td></tr>
 <tr><td>VV Pup e76 <i>i</i></td><td>61</td><td>42.4</td><td>8.9</td><td>42.7</td><td>-31.8</td><td>0.0457</td></tr>
 <tr><td>VV Pup e76 <i>r</i></td><td>50</td><td>22.0</td><td>6.1</td><td>23.1</td><td>-15.2</td><td>0.0049</td></tr>
-<tr><td>YZ Cnc e72 <i>g</i></td><td>26</td><td>-34.2</td><td>13.3</td><td>63.6</td><td>67.3</td><td>0.1533</td></tr>
-<tr><td>YZ Cnc e72 <i>i</i></td><td>25</td><td>29.1</td><td>5.5</td><td>29.4</td><td>-29.7</td><td>-0.0072</td></tr>
-<tr><td>YZ Cnc e72 <i>r</i></td><td>25</td><td>21.0</td><td>5.1</td><td>22.1</td><td>-20.5</td><td>-0.0027</td></tr>
+<tr><td>YZ Cnc e72 <i>g</i></td><td>25</td><td>-33.7</td><td>12.3</td><td>56.3</td><td>67.3</td><td>0.1533</td></tr>
+<tr><td>YZ Cnc e72 <i>i</i></td><td>24</td><td>28.9</td><td>4.9</td><td>28.7</td><td>-29.5</td><td>-0.0075</td></tr>
+<tr><td>YZ Cnc e72 <i>r</i></td><td>23</td><td>20.0</td><td>6.5</td><td>22.0</td><td>-19.4</td><td>-0.0024</td></tr>
 </table>
 
 <div class="decision"><b>The
 systematic floor from catalogue choice: median |offset|
-29.8 mmag across
+30.9 mmag across
 12 blocks measured on common stars, and
-30.2 mmag as a
+29.5 mmag as a
 difference of fitted zero points.</b>  Any absolute magnitude published
 from this archive carries that term whether or not it is written down, so
 it is written down.</div>
@@ -698,7 +698,7 @@ with their date and provenance.</p>
 <tr class="warn"><td>EU UMa e76 <i>r</i></td><td>45</td><td>20.57</td><td><b>near</b></td><td>1.07 mag above the published 15.6-19.5 (AAVSO VSX, EU UMa (AM Her type))</td></tr>
 <tr class="ok"><td>ST LMi e7 <i>G</i></td><td>278</td><td>16.63</td><td><b>inside</b></td><td>15.0-18.0 (AAVSO VSX, ST LMi (AM Her type))</td></tr>
 <tr class="ok"><td>ST LMi e7 <i>I</i></td><td>315</td><td>16.07</td><td><b>inside</b></td><td>15.0-18.0 (AAVSO VSX, ST LMi (AM Her type))</td></tr>
-<tr class="ok"><td>ST LMi e7 <i>R</i></td><td>308</td><td>16.42</td><td><b>inside</b></td><td>15.0-18.0 (AAVSO VSX, ST LMi (AM Her type))</td></tr>
+<tr class="ok"><td>ST LMi e7 <i>R</i></td><td>308</td><td>16.41</td><td><b>inside</b></td><td>15.0-18.0 (AAVSO VSX, ST LMi (AM Her type))</td></tr>
 <tr class="ok"><td>ST LMi e47 <i>z</i></td><td>57</td><td>15.40</td><td><b>inside</b></td><td>15.0-18.0 (AAVSO VSX, ST LMi (AM Her type))</td></tr>
 <tr class="ok"><td>ST LMi e76 <i>g</i></td><td>720</td><td>16.50</td><td><b>inside</b></td><td>15.0-18.0 (AAVSO VSX, ST LMi (AM Her type))</td></tr>
 <tr class="ok"><td>ST LMi e76 <i>i</i></td><td>513</td><td>16.13</td><td><b>inside</b></td><td>15.0-18.0 (AAVSO VSX, ST LMi (AM Her type))</td></tr>
@@ -781,9 +781,9 @@ would otherwise read as more definite than it is.</p>
 <tr class="warn"><td>EU UMa e76 <i>g</i></td><td>&mdash;</td><td>1</td><td>&mdash;</td><td>g-r: only 1 epoch pair(s) within 7 min (need 5) — the two filters did not sample the same time, so this target has no measured colour in this era</td><td>-0.05 &hellip; 2.59</td><td><b>unknown</b></td><td>&mdash;</td></tr>
 <tr class="warn"><td>EU UMa e76 <i>i</i></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>r-i: only 0 epoch pair(s) within 7 min (need 5) — the two filters did not sample the same time, so this target has no measured colour in this era</td><td>0.07 &hellip; 1.44</td><td><b>unknown</b></td><td>&mdash;</td></tr>
 <tr class="warn"><td>EU UMa e76 <i>r</i></td><td>&mdash;</td><td>1</td><td>&mdash;</td><td>g-r: only 1 epoch pair(s) within 7 min (need 5) — the two filters did not sample the same time, so this target has no measured colour in this era</td><td>-0.05 &hellip; 2.59</td><td><b>unknown</b></td><td>&mdash;</td></tr>
-<tr class="ok"><td>ST LMi e7 <i>G</i></td><td>0.215</td><td>243</td><td>0.188</td><td>G-R: median of 243 epoch pairs within 7 min (median separation 2.5 min); pair-to-pair scatter 0.188 mag; natural-system +0.180 inverted through k(G)=+0.058, k(R)=-0.017</td><td>-0.29 &hellip; 1.22</td><td><b>inside-core</b></td><td>0.0</td></tr>
-<tr class="ok"><td>ST LMi e7 <i>I</i></td><td>0.377</td><td>272</td><td>0.152</td><td>R-I: median of 272 epoch pairs within 7 min (median separation 2.2 min); pair-to-pair scatter 0.152 mag; natural-system +0.376 inverted through k(R)=-0.017, k(I)=-0.010</td><td>-1.31 &hellip; 1.96</td><td><b>inside-core</b></td><td>0.0</td></tr>
-<tr class="warn"><td>ST LMi e7 <i>R</i></td><td>0.215</td><td>243</td><td>0.188</td><td>G-R: median of 243 epoch pairs within 7 min (median separation 2.5 min); pair-to-pair scatter 0.188 mag; natural-system +0.180 inverted through k(G)=+0.058, k(R)=-0.017</td><td>-0.29 &hellip; 1.32</td><td><b>inside-span</b></td><td>0.0</td></tr>
+<tr class="ok"><td>ST LMi e7 <i>G</i></td><td>0.216</td><td>243</td><td>0.187</td><td>G-R: median of 243 epoch pairs within 7 min (median separation 2.5 min); pair-to-pair scatter 0.187 mag; natural-system +0.180 inverted through k(G)=+0.056, k(R)=-0.023</td><td>-0.29 &hellip; 1.22</td><td><b>inside-core</b></td><td>0.0</td></tr>
+<tr class="ok"><td>ST LMi e7 <i>I</i></td><td>0.379</td><td>272</td><td>0.152</td><td>R-I: median of 272 epoch pairs within 7 min (median separation 2.2 min); pair-to-pair scatter 0.152 mag; natural-system +0.379 inverted through k(R)=-0.023, k(I)=-0.019</td><td>-1.31 &hellip; 1.96</td><td><b>inside-core</b></td><td>0.0</td></tr>
+<tr class="warn"><td>ST LMi e7 <i>R</i></td><td>0.216</td><td>243</td><td>0.187</td><td>G-R: median of 243 epoch pairs within 7 min (median separation 2.5 min); pair-to-pair scatter 0.187 mag; natural-system +0.180 inverted through k(G)=+0.056, k(R)=-0.023</td><td>-0.29 &hellip; 1.32</td><td><b>inside-span</b></td><td>0.0</td></tr>
 <tr class="warn"><td>ST LMi e47 <i>z</i></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>single filter in this era — colour not measurable</td><td>0.00 &hellip; 0.64</td><td><b>unknown</b></td><td>&mdash;</td></tr>
 <tr class="warn"><td>ST LMi e76 <i>g</i></td><td>0.175</td><td>597</td><td>0.166</td><td>g-r: median of 597 epoch pairs within 7 min (median separation 1.2 min); pair-to-pair scatter 0.166 mag; natural-system +0.147 inverted through k(g)=+0.053, k(r)=-0.002</td><td>0.15 &hellip; 1.22</td><td><b>inside-span</b></td><td>0.0</td></tr>
 <tr class="ok"><td>ST LMi e76 <i>i</i></td><td>0.296</td><td>414</td><td>0.120</td><td>r-i: median of 414 epoch pairs within 7 min (median separation 1.2 min); pair-to-pair scatter 0.120 mag; natural-system +0.296 inverted through k(r)=-0.002, k(i)=-0.011</td><td>-1.31 &hellip; 1.55</td><td><b>inside-core</b></td><td>0.0</td></tr>
@@ -794,11 +794,11 @@ would otherwise read as more definite than it is.</p>
 <tr class="warn"><td>VV Pup e76 <i>g</i></td><td>0.049</td><td>82</td><td>0.147</td><td>g-r: median of 82 epoch pairs within 7 min (median separation 4.2 min); pair-to-pair scatter 0.147 mag; natural-system +0.011 inverted through k(g)=+0.058, k(r)=-0.024</td><td>-0.10 &hellip; 1.29</td><td><b>inside-span</b></td><td>0.0</td></tr>
 <tr class="warn"><td>VV Pup e76 <i>i</i></td><td>-0.031</td><td>26</td><td>0.152</td><td>r-i: median of 26 epoch pairs within 7 min (median separation 4.4 min); pair-to-pair scatter 0.152 mag; natural-system -0.031 inverted through k(r)=-0.024, k(i)=-0.028</td><td>-0.15 &hellip; 1.38</td><td><b>inside-span</b></td><td>0.0</td></tr>
 <tr class="warn"><td>VV Pup e76 <i>r</i></td><td>0.049</td><td>82</td><td>0.147</td><td>g-r: median of 82 epoch pairs within 7 min (median separation 4.2 min); pair-to-pair scatter 0.147 mag; natural-system +0.011 inverted through k(g)=+0.058, k(r)=-0.024</td><td>-0.10 &hellip; 1.29</td><td><b>inside-span</b></td><td>0.0</td></tr>
-<tr class="bad"><td>YZ Cnc e7 <i>G</i></td><td>-0.103</td><td>391</td><td>0.081</td><td>G-R: median of 391 epoch pairs within 7 min (median separation 1.1 min); pair-to-pair scatter 0.081 mag; natural-system -0.172 inverted through k(G)=+0.061, k(R)=-0.035</td><td>0.11 &hellip; 1.19</td><td><b>extrapolated</b></td><td>15.6</td></tr>
-<tr class="bad"><td>YZ Cnc e7 <i>I</i></td><td>-0.122</td><td>393</td><td>0.058</td><td>R-I: median of 393 epoch pairs within 7 min (median separation 1.2 min); pair-to-pair scatter 0.058 mag; natural-system -0.115 inverted through k(R)=-0.035, k(I)=-0.017</td><td>0.07 &hellip; 1.52</td><td><b>extrapolated</b></td><td>5.1</td></tr>
-<tr class="bad"><td>YZ Cnc e7 <i>R</i></td><td>-0.103</td><td>391</td><td>0.081</td><td>G-R: median of 391 epoch pairs within 7 min (median separation 1.1 min); pair-to-pair scatter 0.081 mag; natural-system -0.172 inverted through k(G)=+0.061, k(R)=-0.035</td><td>0.11 &hellip; 1.23</td><td><b>extrapolated</b></td><td>9.3</td></tr>
+<tr class="bad"><td>YZ Cnc e7 <i>G</i></td><td>-0.102</td><td>391</td><td>0.082</td><td>G-R: median of 391 epoch pairs within 7 min (median separation 1.1 min); pair-to-pair scatter 0.082 mag; natural-system -0.167 inverted through k(G)=+0.057, k(R)=-0.034</td><td>0.11 &hellip; 1.19</td><td><b>extrapolated</b></td><td>14.6</td></tr>
+<tr class="bad"><td>YZ Cnc e7 <i>I</i></td><td>-0.124</td><td>393</td><td>0.057</td><td>R-I: median of 393 epoch pairs within 7 min (median separation 1.2 min); pair-to-pair scatter 0.057 mag; natural-system -0.117 inverted through k(R)=-0.034, k(I)=-0.016</td><td>0.07 &hellip; 1.52</td><td><b>extrapolated</b></td><td>5.0</td></tr>
+<tr class="bad"><td>YZ Cnc e7 <i>R</i></td><td>-0.102</td><td>391</td><td>0.082</td><td>G-R: median of 391 epoch pairs within 7 min (median separation 1.1 min); pair-to-pair scatter 0.082 mag; natural-system -0.167 inverted through k(G)=+0.057, k(R)=-0.034</td><td>0.11 &hellip; 1.23</td><td><b>extrapolated</b></td><td>9.1</td></tr>
 <tr class="warn"><td>YZ Cnc e72 <i>g</i></td><td>0.120</td><td>113</td><td>0.057</td><td>g-r: median of 113 epoch pairs within 7 min (median separation 0.8 min); pair-to-pair scatter 0.057 mag; natural-system +0.097 inverted through k(g)=+0.018, k(r)=-0.035</td><td>0.10 &hellip; 1.23</td><td><b>inside-span</b></td><td>0.0</td></tr>
-<tr class="warn"><td>YZ Cnc e72 <i>i</i></td><td>0.064</td><td>113</td><td>0.040</td><td>r-i: median of 113 epoch pairs within 7 min (median separation 0.8 min); pair-to-pair scatter 0.040 mag; natural-system +0.059 inverted through k(r)=-0.035, k(i)=-0.073</td><td>-0.02 &hellip; 1.52</td><td><b>inside-span</b></td><td>0.0</td></tr>
+<tr class="warn"><td>YZ Cnc e72 <i>i</i></td><td>0.064</td><td>113</td><td>0.040</td><td>r-i: median of 113 epoch pairs within 7 min (median separation 0.8 min); pair-to-pair scatter 0.040 mag; natural-system +0.059 inverted through k(r)=-0.035, k(i)=-0.073</td><td>0.06 &hellip; 1.52</td><td><b>inside-span</b></td><td>0.0</td></tr>
 <tr class="warn"><td>YZ Cnc e72 <i>r</i></td><td>0.120</td><td>113</td><td>0.057</td><td>g-r: median of 113 epoch pairs within 7 min (median separation 0.8 min); pair-to-pair scatter 0.057 mag; natural-system +0.097 inverted through k(g)=+0.018, k(r)=-0.035</td><td>0.10 &hellip; 1.23</td><td><b>inside-span</b></td><td>0.0</td></tr>
 </table>
 
@@ -827,8 +827,8 @@ can accidentally read a relative magnitude as an absolute one.</p>
 
 <table class="data">
 <tr><th>series</th><th>frames used</th><th>target points</th><th>why it is still RELATIVE</th></tr>
-<tr class="bad"><td>EU UMa e78 <i>g</i></td><td>208</td><td>0</td><td>not one of its 5 comparison stars found a catalogue counterpart within 1.2&Prime;, out of 2,746 reference detections.  Its measured displacement from the catalogue is 5.27&Prime; with 0.32&Prime; of scatter over 49 paired stars, so this is scatter rather than a removable offset</td></tr>
-<tr class="bad"><td>ST LMi e47 <i>y</i></td><td>35</td><td>0</td><td>not one of its 41 comparison stars found a catalogue counterpart within 1.2&Prime;, out of 203 reference detections.  Its measured displacement from the catalogue is 0.20&Prime; with 0.77&Prime; of scatter over 106 paired stars, so this is scatter rather than a removable offset</td></tr>
+<tr class="bad"><td>EU UMa e78 <i>g</i></td><td>208</td><td>0</td><td>the (target, era) field tie did not solve &mdash; <code>query_failed: HTTPError</code>; with no sky positions for its reference stars the block cannot be matched to any catalogue</td></tr>
+<tr class="bad"><td>ST LMi e47 <i>y</i></td><td>35</td><td>0</td><td>not one of its 40 comparison stars found a catalogue counterpart within 1.2&Prime;, out of 203 reference detections.  Its measured displacement from the catalogue is 0.20&Prime; with 0.77&Prime; of scatter over 106 paired stars, so this is scatter rather than a removable offset</td></tr>
 </table>
 
 <div class="decision"><b>The two EU&nbsp;UMa blocks that failed on archive
@@ -848,7 +848,7 @@ it has no sky positions at all, so no offset refinement can reach it.  The
 honest next action there is a different reference frame for that era, not
 another query.</div>
 
-<p><b>EU UMa era&nbsp;78 was not untieable; it was displaced.</b>  Its reference solution puts every star 5.27&Prime; from where the catalogue does, coherently &mdash; 0.32&Prime; of scatter over 49 vetted stars, which is a translation and not a failure.  Inside the 1.2&Prime; photometric tolerance that displacement is fatal and invisible at the same time: 45 of its reference stars matched the catalogue before the offset was removed and 87 after.  The block now ties: EU UMa e78 <i>g</i> &rarr; <b>UNTIED</b> on 0 tie stars (&mdash; mmag check).</p><p>The same displacement is why this era has no target light curve.  The field-tie stage looks for the science target as the nearest reference star to its catalogue position and recorded <code>target not in reference catalog (nearest star 4.8" away, tolerance 4")</code> &mdash; a near miss of exactly this size.  That stage owns <code>cv_field_tie</code> and <code>cv_ref_stars</code> and this one does not write them, so the tie above serves the comparison stars and the science point is still missing.  Recovering it is a specific, bounded job and it is named here rather than implied: apply the same offset refinement inside the field-tie stage, re-identify the target, and re-solve that one ensemble.  Both halves need the ESA Gaia archive, which was unreachable throughout this build.</p>
+<p><b>EU UMa era&nbsp;78 was not untieable; it was displaced.</b>  Its reference solution puts every star 5.27&Prime; from where the catalogue does, coherently &mdash; 0.32&Prime; of scatter over 49 vetted stars, which is a translation and not a failure.  Inside the 1.2&Prime; photometric tolerance that displacement is fatal and invisible at the same time: 45 of its reference stars matched the catalogue before the offset was removed and 87 after.  The block now ties: EU UMa e78 <i>g</i> &rarr; <b>UNTIED</b> on 0 tie stars (&mdash; mmag check).</p><p>The same displacement is why this era has no target light curve.  The field-tie stage looks for the science target as the nearest reference star to its catalogue position and recorded <code>query_failed: HTTPError</code> &mdash; a near miss of exactly this size.  That stage owns <code>cv_field_tie</code> and <code>cv_ref_stars</code> and this one does not write them, so the tie above serves the comparison stars and the science point is still missing.  Recovering it is a specific, bounded job and it is named here rather than implied: apply the same offset refinement inside the field-tie stage, re-identify the target, and re-solve that one ensemble.  Both halves need the ESA Gaia archive, which was unreachable throughout this build.</p>
 
 <div class="note"><b>Why an offset this large could sit undetected in a
 finished product.</b> Every check available upstream is INTERNAL: the
@@ -883,32 +883,32 @@ without being met.</p>
 <tr class="warn"><td>EU UMa e76 <i>i</i></td><td>123</td><td>+4.4130&thinsp;&plusmn;&thinsp;0.0028</td><td>-0.0452&thinsp;&plusmn;&thinsp;0.0074</td><td>29.8</td><td>40.0</td><td>53&minus;1</td><td>unknown</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>EU UMa e76 <i>r</i></td><td>96</td><td>+3.2579&thinsp;&plusmn;&thinsp;0.0028</td><td>-0.0116&thinsp;&plusmn;&thinsp;0.0083</td><td>24.7</td><td>24.2</td><td>50&minus;2</td><td>unknown</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="bad"><td>EU UMa e78 <i>g</i></td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td><b>UNTIED</b></td></tr>
-<tr class="ok"><td>ST LMi e7 <i>G</i></td><td>64</td><td>+2.8613&thinsp;&plusmn;&thinsp;0.0028</td><td>+0.0581&thinsp;&plusmn;&thinsp;0.0088</td><td>18.6</td><td>17.5</td><td>33&minus;2</td><td>inside-core</td><td><b>TIED-GOAL</b></td></tr>
-<tr class="ok"><td>ST LMi e7 <i>I</i></td><td>120</td><td>+3.6399&thinsp;&plusmn;&thinsp;0.0029</td><td>-0.0095&thinsp;&plusmn;&thinsp;0.0058</td><td>26.0</td><td>19.6</td><td>26&minus;1</td><td>inside-core</td><td><b>TIED-GOAL</b></td></tr>
-<tr class="warn"><td>ST LMi e7 <i>R</i></td><td>104</td><td>+3.0217&thinsp;&plusmn;&thinsp;0.0023</td><td>-0.0174&thinsp;&plusmn;&thinsp;0.0062</td><td>22.1</td><td>21.6</td><td>35&minus;2</td><td>inside-span</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="ok"><td>ST LMi e7 <i>G</i></td><td>53</td><td>+2.8650&thinsp;&plusmn;&thinsp;0.0029</td><td>+0.0561&thinsp;&plusmn;&thinsp;0.0088</td><td>17.3</td><td>17.7</td><td>29&minus;2</td><td>inside-core</td><td><b>TIED-GOAL</b></td></tr>
+<tr class="warn"><td>ST LMi e7 <i>I</i></td><td>98</td><td>+3.6445&thinsp;&plusmn;&thinsp;0.0027</td><td>-0.0192&thinsp;&plusmn;&thinsp;0.0051</td><td>21.2</td><td>25.5</td><td>19&minus;0</td><td>inside-core</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="ok"><td>ST LMi e7 <i>R</i></td><td>94</td><td>+3.0233&thinsp;&plusmn;&thinsp;0.0023</td><td>-0.0226&thinsp;&plusmn;&thinsp;0.0060</td><td>20.9</td><td>16.8</td><td>30&minus;3</td><td>inside-span</td><td><b>TIED-GOAL</b></td></tr>
 <tr class="bad"><td>ST LMi e47 <i>y</i></td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td><b>UNTIED</b></td></tr>
-<tr class="warn"><td>ST LMi e47 <i>z</i></td><td>46</td><td>+5.9274&thinsp;&plusmn;&thinsp;0.0044</td><td>+0.0330&thinsp;&plusmn;&thinsp;0.0290</td><td>26.9</td><td>42.9</td><td>15&minus;1</td><td>unknown</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>ST LMi e47 <i>z</i></td><td>45</td><td>+5.9273&thinsp;&plusmn;&thinsp;0.0044</td><td>+0.0330&thinsp;&plusmn;&thinsp;0.0294</td><td>27.1</td><td>43.0</td><td>15&minus;1</td><td>unknown</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>ST LMi e76 <i>g</i></td><td>95</td><td>+2.6316&thinsp;&plusmn;&thinsp;0.0025</td><td>+0.0529&thinsp;&plusmn;&thinsp;0.0081</td><td>22.8</td><td>24.4</td><td>33&minus;1</td><td>inside-span</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>ST LMi e76 <i>i</i></td><td>82</td><td>+4.4701&thinsp;&plusmn;&thinsp;0.0040</td><td>-0.0107&thinsp;&plusmn;&thinsp;0.0112</td><td>33.8</td><td>24.8</td><td>34&minus;2</td><td>inside-core</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>ST LMi e76 <i>r</i></td><td>102</td><td>+3.3268&thinsp;&plusmn;&thinsp;0.0031</td><td>-0.0023&thinsp;&plusmn;&thinsp;0.0093</td><td>30.1</td><td>28.2</td><td>36&minus;2</td><td>extrapolated</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>VV Pup e72 <i>g</i></td><td>1112</td><td>+2.5305&thinsp;&plusmn;&thinsp;0.0013</td><td>+0.0007&thinsp;&plusmn;&thinsp;0.0072</td><td>43.9</td><td>39.3</td><td>362&minus;9</td><td>unknown</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>VV Pup e72 <i>i</i></td><td>1319</td><td>+3.3598&thinsp;&plusmn;&thinsp;0.0015</td><td>-0.0743&thinsp;&plusmn;&thinsp;0.0080</td><td>54.7</td><td>57.8</td><td>433&minus;16</td><td>unknown</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>VV Pup e72 <i>r</i></td><td>1197</td><td>+2.7840&thinsp;&plusmn;&thinsp;0.0014</td><td>-0.0451&thinsp;&plusmn;&thinsp;0.0070</td><td>49.5</td><td>47.0</td><td>392&minus;11</td><td>unknown</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>VV Pup e72 <i>g</i></td><td>1103</td><td>+2.5299&thinsp;&plusmn;&thinsp;0.0013</td><td>+0.0031&thinsp;&plusmn;&thinsp;0.0072</td><td>44.6</td><td>39.3</td><td>360&minus;9</td><td>unknown</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>VV Pup e72 <i>i</i></td><td>1308</td><td>+3.3602&thinsp;&plusmn;&thinsp;0.0015</td><td>-0.0729&thinsp;&plusmn;&thinsp;0.0081</td><td>55.3</td><td>58.6</td><td>428&minus;15</td><td>unknown</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>VV Pup e72 <i>r</i></td><td>1183</td><td>+2.7842&thinsp;&plusmn;&thinsp;0.0014</td><td>-0.0446&thinsp;&plusmn;&thinsp;0.0070</td><td>49.7</td><td>47.1</td><td>386&minus;11</td><td>unknown</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>VV Pup e76 <i>g</i></td><td>1577</td><td>+2.8312&thinsp;&plusmn;&thinsp;0.0011</td><td>+0.0584&thinsp;&plusmn;&thinsp;0.0056</td><td>42.6</td><td>48.6</td><td>513&minus;15</td><td>inside-span</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>VV Pup e76 <i>i</i></td><td>911</td><td>+4.7663&thinsp;&plusmn;&thinsp;0.0016</td><td>-0.0278&thinsp;&plusmn;&thinsp;0.0110</td><td>48.5</td><td>48.0</td><td>326&minus;2</td><td>inside-span</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 <tr class="warn"><td>VV Pup e76 <i>r</i></td><td>1329</td><td>+3.6347&thinsp;&plusmn;&thinsp;0.0013</td><td>-0.0242&thinsp;&plusmn;&thinsp;0.0060</td><td>46.0</td><td>49.1</td><td>416&minus;12</td><td>inside-span</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>YZ Cnc e7 <i>G</i></td><td>106</td><td>+2.8642&thinsp;&plusmn;&thinsp;0.0024</td><td>+0.0615&thinsp;&plusmn;&thinsp;0.0102</td><td>19.9</td><td>23.5</td><td>27&minus;0</td><td>extrapolated</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>YZ Cnc e7 <i>I</i></td><td>108</td><td>+3.6328&thinsp;&plusmn;&thinsp;0.0023</td><td>-0.0167&thinsp;&plusmn;&thinsp;0.0102</td><td>22.9</td><td>24.9</td><td>46&minus;0</td><td>extrapolated</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>YZ Cnc e7 <i>R</i></td><td>131</td><td>+3.0274&thinsp;&plusmn;&thinsp;0.0019</td><td>-0.0347&thinsp;&plusmn;&thinsp;0.0082</td><td>19.5</td><td>23.7</td><td>27&minus;0</td><td>extrapolated</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="warn"><td>YZ Cnc e72 <i>g</i></td><td>169</td><td>+2.4088&thinsp;&plusmn;&thinsp;0.0017</td><td>+0.0176&thinsp;&plusmn;&thinsp;0.0081</td><td>20.8</td><td>20.8</td><td>43&minus;0</td><td>inside-span</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
-<tr class="ok"><td>YZ Cnc e72 <i>i</i></td><td>176</td><td>+3.1453&thinsp;&plusmn;&thinsp;0.0016</td><td>-0.0726&thinsp;&plusmn;&thinsp;0.0061</td><td>20.1</td><td>18.6</td><td>66&minus;0</td><td>inside-span</td><td><b>TIED-GOAL</b></td></tr>
-<tr class="warn"><td>YZ Cnc e72 <i>r</i></td><td>187</td><td>+2.6144&thinsp;&plusmn;&thinsp;0.0016</td><td>-0.0349&thinsp;&plusmn;&thinsp;0.0066</td><td>22.4</td><td>22.7</td><td>62&minus;0</td><td>inside-span</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>YZ Cnc e7 <i>G</i></td><td>102</td><td>+2.8671&thinsp;&plusmn;&thinsp;0.0023</td><td>+0.0571&thinsp;&plusmn;&thinsp;0.0099</td><td>19.1</td><td>23.0</td><td>25&minus;0</td><td>extrapolated</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>YZ Cnc e7 <i>I</i></td><td>104</td><td>+3.6336&thinsp;&plusmn;&thinsp;0.0023</td><td>-0.0162&thinsp;&plusmn;&thinsp;0.0102</td><td>22.7</td><td>22.9</td><td>43&minus;0</td><td>extrapolated</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="warn"><td>YZ Cnc e7 <i>R</i></td><td>127</td><td>+3.0297&thinsp;&plusmn;&thinsp;0.0019</td><td>-0.0339&thinsp;&plusmn;&thinsp;0.0083</td><td>19.4</td><td>22.7</td><td>24&minus;0</td><td>extrapolated</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
+<tr class="ok"><td>YZ Cnc e72 <i>g</i></td><td>170</td><td>+2.4088&thinsp;&plusmn;&thinsp;0.0017</td><td>+0.0176&thinsp;&plusmn;&thinsp;0.0081</td><td>20.8</td><td>19.9</td><td>42&minus;0</td><td>inside-span</td><td><b>TIED-GOAL</b></td></tr>
+<tr class="ok"><td>YZ Cnc e72 <i>i</i></td><td>175</td><td>+3.1454&thinsp;&plusmn;&thinsp;0.0016</td><td>-0.0729&thinsp;&plusmn;&thinsp;0.0061</td><td>19.8</td><td>18.7</td><td>65&minus;0</td><td>inside-span</td><td><b>TIED-GOAL</b></td></tr>
+<tr class="warn"><td>YZ Cnc e72 <i>r</i></td><td>186</td><td>+2.6144&thinsp;&plusmn;&thinsp;0.0017</td><td>-0.0349&thinsp;&plusmn;&thinsp;0.0066</td><td>22.5</td><td>22.9</td><td>61&minus;0</td><td>inside-span</td><td><b>TIED-ABOVE-GOAL</b></td></tr>
 </table>
 
 <div class="warn"><b>CALIBRATION GOAL: PARTIALLY SUPPORTED</b><br>
-Deciding number: 25 of 27 solved series carry a catalogue tie; 3 of 27 meet the 0.01-0.02 mag goal on independent check stars.  Median achieved accuracy on independent
-check stars: 24.9 mmag.  Cross-catalogue systematic floor:
-29.8 mmag.  9 of the
+Deciding number: 25 of 27 solved series carry a catalogue tie; 4 of 27 meet the 0.01-0.02 mag goal on independent check stars.  Median achieved accuracy on independent
+check stars: 25.4 mmag.  Cross-catalogue systematic floor:
+30.9 mmag.  9 of the
 10 (target, era) blocks that carry solved photometry are now
 tied (14 blocks exist in all; the rest have no solved series to
 tie), against the <b>7 of 14</b> quoted by the characterization page when

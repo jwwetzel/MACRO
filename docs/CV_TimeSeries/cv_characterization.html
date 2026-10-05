@@ -3,7 +3,7 @@
 <title>CV Time Series &mdash; Data Characterization &amp; What It Can Measure</title>
 <link rel="stylesheet" href="../assets/macro.css">
 </head><body>
-<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">9/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" aria-current="page" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">34/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">7/26 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">10/10 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" aria-current="page" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">46/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">21/25 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
 <div class="tabbar"><nav class="tabbar-inner" aria-label="Cataclysmic-Variable Time Series (reopened) views"><a class="tab" href="../CV_TimeSeries/case.html">The Case</a><a class="tab" href="../CV_TimeSeries/figures.html">Figures</a><a class="tab" href="../CV_TimeSeries/paper.html">Draft Paper</a><a class="tab" href="../CV_TimeSeries/index.html">Plan &amp; Status</a><a class="tab" aria-current="page" href="../CV_TimeSeries/evidence.html">Evidence Detail</a></nav></div>
 <div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../CV_TimeSeries/case.html">Cataclysmic-Variable Time Series (reopened)</a></li><li><a href="../CV_TimeSeries/evidence.html">Evidence Detail</a></li><li aria-current="page">Cataclysmic-Variable Time Series — characterization, and…</li></ol></nav></div>
 <div class="layout">
@@ -16,7 +16,7 @@
   this data can actually measure</h1>
   <p>Image quality &rarr; noise floor &rarr; sampling &rarr; detectability
   &rarr; timing precision &rarr; goal-by-goal verdict &middot;
-  built 2026-10-04T05:28Z
+  built 2026-10-04T23:12Z
   (CV-S5 characterization v2.0 (2026-08-19)) &middot;
   <a href="index.html">project hub</a> &middot;
   <a href="../index.html">the front page</a></p>
@@ -37,7 +37,7 @@
 <div class="bhead"><h2>0 &middot; The question this page answers</h2>
 <span class="tag">7,780 measured frames</span>
 <span class="tag">27 solved series</span>
-<span class="tag">16,159 stars</span></div>
+<span class="tag">16,093 stars</span></div>
 <div class="stage">
 <h3>Question</h3>
 <p class="sub">The photometry ran. Before any science goal is defended, one
@@ -63,7 +63,7 @@ to make its verdicts unarguable.</p>
 <section id="quality">
 <div class="bhead"><h2>1 &middot; Are the images good enough &mdash; and what
 does &ldquo;good enough&rdquo; mean?</h2>
-<span class="tag">85.5% usable</span></div>
+<span class="tag">89.1% usable</span></div>
 <div class="stage">
 <h3>Question</h3>
 <p class="sub">Seeing, sky brightness, transparency, airmass and the Moon
@@ -98,8 +98,8 @@ ellipticity AND high coherence together.</p><figure><a href="figures/cv_characte
 <tr><td><code>moon_illum</code></td><td>fraction</td><td>no threshold &mdash; never degrades</td><td>1.00</td><td>7,780</td><td>0</td><td>diagnostic only</td></tr>
 <tr><td><code>moon_sep</code></td><td>deg</td><td>no threshold &mdash; never degrades</td><td>1.00</td><td>7,780</td><td>0</td><td>diagnostic only</td></tr>
 <tr><td><code>sky_rate</code></td><td>ADU/px/s</td><td>no threshold &mdash; never degrades</td><td>1.00</td><td>7,780</td><td>0</td><td>diagnostic only</td></tr>
-<tr><td><code>sky_ratio</code></td><td>x series median</td><td>3.375</td><td>1.00</td><td>7,332</td><td>448</td><td><b>applied</b></td></tr>
-<tr><td><code>zp_excess</code></td><td>mag</td><td>0.325</td><td>1.00</td><td>7,197</td><td>476</td><td><b>applied</b></td></tr>
+<tr><td><code>sky_ratio</code></td><td>x series median</td><td>10.250</td><td>1.00</td><td>7,655</td><td>125</td><td><b>applied</b></td></tr>
+<tr><td><code>zp_excess</code></td><td>mag</td><td>0.325</td><td>1.00</td><td>7,197</td><td>475</td><td><b>applied</b></td></tr>
 </table>
 <h3>Evidence &mdash; the sparse end of an axis is not an absent effect</h3>
 <p class="sub">A bin holding fewer than
@@ -120,27 +120,27 @@ an axis does not.</p>
 different routes (WCS chain, astroalign triangles, translation vote, and the
 reference itself), and one of them &mdash; the translation vote &mdash; was
 invented during this build and carries
-610
+607
 frames here. Registration quality and frame depth are confounded (a shallow
 frame is both harder to align and noisier to measure), so the methods are
 compared only <em>inside</em> bins of detections per frame.</p>
 <table class="data">
 <tr><th>method</th><th>detections/frame bin</th><th>median rel. check-star scatter</th><th>frames</th></tr>
 <tr><td><code>wcs</code></td><td>90</td><td>2.085</td><td>253</td></tr>
-<tr><td><code>astroalign</code></td><td>185</td><td>1.218</td><td>574</td></tr>
-<tr><td><code>translation_vote</code></td><td>185</td><td>0.982</td><td>72</td></tr>
+<tr><td><code>astroalign</code></td><td>185</td><td>1.196</td><td>574</td></tr>
+<tr><td><code>translation_vote</code></td><td>185</td><td>0.980</td><td>72</td></tr>
 <tr><td><code>wcs</code></td><td>185</td><td>1.062</td><td>2,125</td></tr>
-<tr><td><code>astroalign</code></td><td>375</td><td>1.019</td><td>1,312</td></tr>
-<tr><td><code>translation_vote</code></td><td>375</td><td>0.955</td><td>486</td></tr>
+<tr><td><code>astroalign</code></td><td>375</td><td>1.039</td><td>1,311</td></tr>
+<tr><td><code>translation_vote</code></td><td>375</td><td>0.946</td><td>486</td></tr>
 <tr><td><code>wcs</code></td><td>375</td><td>0.596</td><td>538</td></tr>
-<tr><td><code>astroalign</code></td><td>750</td><td>0.818</td><td>443</td></tr>
-<tr><td><code>translation_vote</code></td><td>750</td><td>0.649</td><td>52</td></tr>
+<tr><td><code>astroalign</code></td><td>750</td><td>0.781</td><td>431</td></tr>
+<tr><td><code>translation_vote</code></td><td>750</td><td>0.704</td><td>49</td></tr>
 <tr><td><code>astroalign</code></td><td>1,515</td><td>0.796</td><td>170</td></tr>
-<tr><td><code>wcs</code></td><td>1,515</td><td>1.011</td><td>826</td></tr>
+<tr><td><code>wcs</code></td><td>1,515</td><td>1.010</td><td>826</td></tr>
 </table>
 <div class="decision"><b>Decision.</b> Keep a frame when its seeing is
 &le; 3.88&Prime;, its sky no more than
-3.38&times;
+10.25&times;
 its series median, its ensemble zero point no more than
 0.325 mag
 below the night's median (the transparency / cloud test), and its airmass at
@@ -152,9 +152,9 @@ X&nbsp;=&nbsp;2.4&rdquo;</em>, not &ldquo;airmass never matters&rdquo;, and
 the observed range reaches X&nbsp;=&nbsp;2.95. Registration method gets no
 threshold: inside a depth bin the translation vote is never the worst route
 and is often the best, so its
-610
-frames are validated rather than merely used. Altogether <b>6,650 of
-7,780 frames (85.5%)</b> are usable.</div>
+607
+frames are validated rather than merely used. Altogether <b>6,929 of
+7,780 frames (89.1%)</b> are usable.</div>
 <h3>Consequence</h3>
 <p class="sub">Two consequences carry into &sect;2. First, seeing is
 <em>not</em> what limits this archive: the median frame is
@@ -165,9 +165,9 @@ scheduling problems, not instrument problems. Second &mdash; and this is the
 part that was missing &mdash; <b>this cut is now applied to every
 measurement on the rest of this page</b>. The noise floor, the Allan ladders,
 the spectral windows, the detection contours and the timing Monte Carlo are
-all computed on the 6,650 usable frames. In the first version of this
+all computed on the 6,929 usable frames. In the first version of this
 build the cut was computed, defended here, and then read by nothing: every
-later number silently included the 1,130 rejected frames while
+later number silently included the 851 rejected frames while
 this section claimed the opposite. &sect;2 tables both numbers side by side so
 the cut's price is visible rather than asserted.</p>
 <h3>Per-series image quality</h3>
@@ -176,32 +176,32 @@ the cut's price is visible rather than asserted.</p>
 <tr><td>anuma|e76|g</td><td>Mode0</td><td>451</td><td>1.86</td><td>2.21</td><td>2.70</td><td>1.05</td><td>2.21</td><td>0.05</td><td>0.017</td><td>88%</td></tr>
 <tr><td>anuma|e76|i</td><td>Mode0</td><td>257</td><td>1.63</td><td>1.83</td><td>2.45</td><td>1.06</td><td>1.98</td><td>0.05</td><td>0.016</td><td>100%</td></tr>
 <tr><td>anuma|e76|r</td><td>Mode0</td><td>410</td><td>1.73</td><td>2.01</td><td>2.53</td><td>1.07</td><td>2.26</td><td>0.04</td><td>0.017</td><td>87%</td></tr>
-<tr><td>euuma|e76|g</td><td>Mode0</td><td>221</td><td>1.77</td><td>2.19</td><td>2.76</td><td>1.07</td><td>1.32</td><td>0.53</td><td>0.013</td><td>77%</td></tr>
-<tr><td>euuma|e76|i</td><td>Mode0</td><td>349</td><td>1.57</td><td>1.79</td><td>2.22</td><td>1.20</td><td>2.12</td><td>0.06</td><td>0.011</td><td>93%</td></tr>
+<tr><td>euuma|e76|g</td><td>Mode0</td><td>221</td><td>1.77</td><td>2.19</td><td>2.76</td><td>1.07</td><td>1.32</td><td>0.53</td><td>0.013</td><td>89%</td></tr>
+<tr><td>euuma|e76|i</td><td>Mode0</td><td>349</td><td>1.57</td><td>1.79</td><td>2.22</td><td>1.20</td><td>2.12</td><td>0.06</td><td>0.011</td><td>94%</td></tr>
 <tr><td>euuma|e76|r</td><td>Mode0</td><td>100</td><td>1.64</td><td>1.84</td><td>2.05</td><td>1.16</td><td>2.14</td><td>0.93</td><td>0.016</td><td>99%</td></tr>
-<tr class="warn"><td>euuma|e78|g</td><td>Fast</td><td>208</td><td>0.68</td><td>1.73</td><td>2.25</td><td>1.12</td><td>1.85</td><td>0.63</td><td>0.016</td><td>43%</td></tr>
+<tr class="warn"><td>euuma|e78|g</td><td>Fast</td><td>208</td><td>0.68</td><td>1.73</td><td>2.25</td><td>1.12</td><td>1.85</td><td>0.63</td><td>0.016</td><td>48%</td></tr>
 <tr class="warn"><td>stlmi|e47|y</td><td>1MHz High Sensitivity 16-bit</td><td>35</td><td>1.59</td><td>1.66</td><td>1.84</td><td>1.48</td><td>2.42</td><td>0.64</td><td>0.007</td><td>57%</td></tr>
 <tr><td>stlmi|e47|z</td><td>1MHz High Sensitivity 16-bit</td><td>60</td><td>2.03</td><td>2.12</td><td>2.35</td><td>1.14</td><td>1.36</td><td>0.09</td><td>0.000</td><td>93%</td></tr>
 <tr><td>stlmi|e76|g</td><td>Mode0</td><td>745</td><td>1.65</td><td>2.07</td><td>2.76</td><td>1.10</td><td>2.29</td><td>0.16</td><td>0.041</td><td>93%</td></tr>
 <tr><td>stlmi|e76|i</td><td>Mode0</td><td>550</td><td>1.47</td><td>1.72</td><td>2.47</td><td>1.10</td><td>2.23</td><td>0.33</td><td>0.010</td><td>89%</td></tr>
 <tr><td>stlmi|e76|r</td><td>Mode0</td><td>596</td><td>1.53</td><td>1.87</td><td>2.63</td><td>1.12</td><td>2.31</td><td>0.16</td><td>0.026</td><td>93%</td></tr>
-<tr><td>stlmi|e7|G</td><td>High Gain</td><td>296</td><td>1.40</td><td>1.56</td><td>1.77</td><td>1.10</td><td>2.86</td><td>0.57</td><td>0.085</td><td>76%</td></tr>
-<tr><td>stlmi|e7|I</td><td>High Gain</td><td>340</td><td>1.42</td><td>1.52</td><td>1.74</td><td>1.11</td><td>2.69</td><td>0.45</td><td>0.070</td><td>79%</td></tr>
-<tr><td>stlmi|e7|R</td><td>High Gain</td><td>346</td><td>1.48</td><td>1.59</td><td>1.86</td><td>1.09</td><td>2.80</td><td>0.57</td><td>0.083</td><td>75%</td></tr>
+<tr><td>stlmi|e7|G</td><td>High Gain</td><td>296</td><td>1.40</td><td>1.56</td><td>1.77</td><td>1.10</td><td>2.86</td><td>0.57</td><td>0.085</td><td>82%</td></tr>
+<tr><td>stlmi|e7|I</td><td>High Gain</td><td>340</td><td>1.42</td><td>1.52</td><td>1.74</td><td>1.11</td><td>2.69</td><td>0.45</td><td>0.070</td><td>85%</td></tr>
+<tr><td>stlmi|e7|R</td><td>High Gain</td><td>346</td><td>1.48</td><td>1.59</td><td>1.86</td><td>1.09</td><td>2.80</td><td>0.57</td><td>0.083</td><td>79%</td></tr>
 <tr><td>vvpup|e72|g</td><td>1MHz High Sensitivity 16-bit</td><td>196</td><td>2.33</td><td>2.89</td><td>4.41</td><td>1.66</td><td>2.01</td><td>0.11</td><td>0.008</td><td>82%</td></tr>
 <tr><td>vvpup|e72|i</td><td>1MHz High Sensitivity 16-bit</td><td>94</td><td>2.31</td><td>2.44</td><td>3.03</td><td>1.65</td><td>2.01</td><td>0.36</td><td>0.016</td><td>93%</td></tr>
 <tr><td>vvpup|e72|r</td><td>1MHz High Sensitivity 16-bit</td><td>190</td><td>2.12</td><td>3.05</td><td>4.37</td><td>1.66</td><td>2.00</td><td>0.19</td><td>0.012</td><td>83%</td></tr>
-<tr><td>vvpup|e76|g</td><td>Mode0</td><td>359</td><td>1.78</td><td>2.11</td><td>2.52</td><td>1.62</td><td>2.42</td><td>0.23</td><td>0.008</td><td>86%</td></tr>
-<tr><td>vvpup|e76|i</td><td>Mode0</td><td>124</td><td>1.51</td><td>1.85</td><td>2.83</td><td>1.69</td><td>2.44</td><td>0.44</td><td>0.004</td><td>79%</td></tr>
-<tr><td>vvpup|e76|r</td><td>Mode0</td><td>186</td><td>1.69</td><td>2.15</td><td>3.13</td><td>1.69</td><td>2.45</td><td>0.26</td><td>0.008</td><td>83%</td></tr>
-<tr><td>yzcnc|e72|g</td><td>1MHz High Sensitivity 16-bit</td><td>114</td><td>2.66</td><td>2.80</td><td>3.05</td><td>1.50</td><td>2.31</td><td>0.41</td><td>0.006</td><td>97%</td></tr>
+<tr><td>vvpup|e76|g</td><td>Mode0</td><td>359</td><td>1.78</td><td>2.11</td><td>2.52</td><td>1.62</td><td>2.42</td><td>0.23</td><td>0.008</td><td>89%</td></tr>
+<tr><td>vvpup|e76|i</td><td>Mode0</td><td>124</td><td>1.51</td><td>1.85</td><td>2.83</td><td>1.69</td><td>2.44</td><td>0.44</td><td>0.004</td><td>84%</td></tr>
+<tr><td>vvpup|e76|r</td><td>Mode0</td><td>186</td><td>1.69</td><td>2.15</td><td>3.13</td><td>1.69</td><td>2.45</td><td>0.26</td><td>0.008</td><td>85%</td></tr>
+<tr><td>yzcnc|e72|g</td><td>1MHz High Sensitivity 16-bit</td><td>114</td><td>2.66</td><td>2.80</td><td>3.05</td><td>1.50</td><td>2.31</td><td>0.41</td><td>0.006</td><td>98%</td></tr>
 <tr><td>yzcnc|e72|i</td><td>1MHz High Sensitivity 16-bit</td><td>112</td><td>2.29</td><td>2.44</td><td>2.70</td><td>1.50</td><td>2.29</td><td>0.41</td><td>0.009</td><td>100%</td></tr>
 <tr><td>yzcnc|e72|r</td><td>1MHz High Sensitivity 16-bit</td><td>144</td><td>2.48</td><td>2.68</td><td>3.30</td><td>1.53</td><td>2.30</td><td>0.42</td><td>0.012</td><td>98%</td></tr>
-<tr><td>yzcnc|e7|G</td><td>High Gain</td><td>431</td><td>1.62</td><td>1.86</td><td>2.17</td><td>1.07</td><td>2.81</td><td>0.90</td><td>0.066</td><td>87%</td></tr>
-<tr><td>yzcnc|e7|I</td><td>High Gain</td><td>423</td><td>1.55</td><td>1.74</td><td>2.04</td><td>1.06</td><td>2.95</td><td>0.90</td><td>0.048</td><td>81%</td></tr>
-<tr><td>yzcnc|e7|R</td><td>High Gain</td><td>443</td><td>1.58</td><td>1.82</td><td>2.18</td><td>1.06</td><td>2.82</td><td>0.90</td><td>0.063</td><td>79%</td></tr>
+<tr><td>yzcnc|e7|G</td><td>High Gain</td><td>431</td><td>1.62</td><td>1.86</td><td>2.17</td><td>1.07</td><td>2.81</td><td>0.90</td><td>0.066</td><td>94%</td></tr>
+<tr><td>yzcnc|e7|I</td><td>High Gain</td><td>423</td><td>1.55</td><td>1.74</td><td>2.04</td><td>1.06</td><td>2.95</td><td>0.90</td><td>0.048</td><td>96%</td></tr>
+<tr><td>yzcnc|e7|R</td><td>High Gain</td><td>443</td><td>1.58</td><td>1.82</td><td>2.18</td><td>1.06</td><td>2.82</td><td>0.90</td><td>0.063</td><td>95%</td></tr>
 </table>
-<p class="sub">Rejection reasons: zp_excess &times;505, sky_ratio &times;402, fwhm_as &times;118, sky_ratio,zp_excess &times;39, airmass &times;23, fwhm_as,zp_excess &times;20, airmass,zp_excess &times;16, fwhm_as,sky_ratio,zp_excess &times;2, fwhm_as,sky_ratio &times;2, airmass,sky_ratio &times;2, airmass,sky_ratio,zp_excess &times;1.</p>
+<p class="sub">Rejection reasons: zp_excess &times;543, sky_ratio &times;123, fwhm_as &times;120, airmass &times;25, fwhm_as,zp_excess &times;22, airmass,zp_excess &times;16, sky_ratio,zp_excess &times;1, airmass,sky_ratio,zp_excess &times;1.</p>
 </div></section>
 <section id="noise">
 <div class="bhead"><h2>2 &middot; What is the noise floor, and is it what the
@@ -263,7 +263,7 @@ this page optimistic. Tested directly &mdash; the median RMS of <em>every</em>
 star within 0.25 mag of the
 target, including the ones the stability cut dropped and the ones never
 selected at all, against the check stars' own median &mdash; the ratio is
-<b>0.96</b> over 24 series (range
+<b>0.93</b> over 24 series (range
 0.49&ndash;1.83). The check stars are if anything
 marginally noisier than magnitude-matched field stars, so the selection does
 not buy an optimistic answer.</p>
@@ -272,30 +272,30 @@ not buy an optimistic answer.</p>
 <tr><td>anuma|e76|g</td><td>Mode0</td><td>60</td><td>397/451</td><td>115</td><td>14.1</td><td>18.2</td><td>9.3</td><td>1.40 [1.15&ndash;1.57]</td><td>0.55</td><td>26</td><td>19.44</td><td>23.6</td><td>29.0</td><td>25</td><td>2.59</td><td>6.73</td><td>425</td><td></td></tr>
 <tr><td>anuma|e76|i</td><td>Mode0</td><td>60</td><td>256/257</td><td>129</td><td>12.9</td><td>17.8</td><td>9.7</td><td>0.86 [0.74&ndash;0.94]</td><td>0.55</td><td>23</td><td>20.92</td><td>50.5</td><td>50.6</td><td>38</td><td>1.14</td><td>1.30</td><td>253</td><td></td></tr>
 <tr><td>anuma|e76|r</td><td>Mode0</td><td>60</td><td>355/410</td><td>131</td><td>14.0</td><td>17.8</td><td>8.5</td><td>0.92 [0.81&ndash;0.98]</td><td>0.56</td><td>25</td><td>20.13</td><td>32.2</td><td>33.4</td><td>28</td><td>1.14</td><td>1.30</td><td>366</td><td></td></tr>
-<tr class="warn"><td>euuma|e76|g</td><td>Mode0</td><td>240</td><td>171/221</td><td>126</td><td>9.9</td><td>18.2</td><td>10.8</td><td><b>1.99</b> [1.76&ndash;2.14]</td><td>0.28</td><td>35</td><td>21.78</td><td>40.1</td><td>44.2</td><td>26</td><td>1.07</td><td>1.14</td><td>172</td><td>k outside the gain bracket</td></tr>
-<tr class="warn"><td>euuma|e76|i</td><td>Mode0</td><td>240</td><td>325/349</td><td>190</td><td>21.6</td><td>18.2</td><td>14.3</td><td>1.20 [1.04&ndash;1.30]</td><td>0.35</td><td>62</td><td>24.16</td><td>&mdash;</td><td>&mdash;</td><td>0</td><td>0.98</td><td>0.97</td><td>24</td><td>target fainter than every comparison star</td></tr>
+<tr class="warn"><td>euuma|e76|g</td><td>Mode0</td><td>240</td><td>197/221</td><td>126</td><td>10.0</td><td>18.2</td><td>10.1</td><td><b>2.72</b> [2.40&ndash;2.92]</td><td>0.28</td><td>36</td><td>21.78</td><td>44.1</td><td>44.2</td><td>26</td><td>1.06</td><td>1.13</td><td>172</td><td>k outside the gain bracket</td></tr>
+<tr class="warn"><td>euuma|e76|i</td><td>Mode0</td><td>240</td><td>328/349</td><td>190</td><td>21.5</td><td>18.2</td><td>14.4</td><td>1.27 [1.10&ndash;1.38]</td><td>0.35</td><td>62</td><td>24.16</td><td>&mdash;</td><td>&mdash;</td><td>0</td><td>0.98</td><td>0.97</td><td>24</td><td>target fainter than every comparison star</td></tr>
 <tr class="warn"><td>euuma|e76|r</td><td>Mode0</td><td>240</td><td>99/100</td><td>166</td><td>11.8</td><td>19.2</td><td>6.1</td><td><b>1.69</b> [1.47&ndash;1.82]</td><td>0.32</td><td>36</td><td>22.90</td><td>&mdash;</td><td>&mdash;</td><td>0</td><td>0.92</td><td>0.84</td><td>45</td><td>target fainter than every comparison star</td></tr>
-<tr class="warn"><td>euuma|e78|g</td><td>Fast</td><td>240</td><td>89/208</td><td>5</td><td>&mdash;</td><td>&mdash;</td><td>3.1</td><td>1.54 [1.19&ndash;1.83]</td><td>0.31</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>0</td><td>no target tie</td></tr>
-<tr class="warn"><td>stlmi|e47|y</td><td>1MHz High Sensitivity 16-bit</td><td>300</td><td>20/35</td><td>41</td><td>23.1</td><td>20.8</td><td>2.5</td><td>1.31 [1.15&ndash;1.41]</td><td>0.45</td><td>52</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>0</td><td>1.20</td><td>1.44</td><td>0</td><td>no target tie</td></tr>
-<tr><td>stlmi|e47|z</td><td>1MHz High Sensitivity 16-bit</td><td>120</td><td>56/60</td><td>65</td><td>13.7</td><td>20.2</td><td>1.7</td><td>0.71 [0.50&ndash;0.91]</td><td>0.44</td><td>31</td><td>20.46</td><td>14.4</td><td>14.3</td><td>26</td><td>1.15</td><td>1.33</td><td>57</td><td></td></tr>
+<tr class="warn"><td>euuma|e78|g</td><td>Fast</td><td>240</td><td>99/208</td><td>5</td><td>&mdash;</td><td>&mdash;</td><td>1.7</td><td><b>5.24</b> [4.16&ndash;6.08]</td><td>0.31</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>0</td><td>no target tie</td></tr>
+<tr class="warn"><td>stlmi|e47|y</td><td>1MHz High Sensitivity 16-bit</td><td>300</td><td>20/35</td><td>40</td><td>23.5</td><td>20.8</td><td>2.5</td><td>1.31 [1.16&ndash;1.40]</td><td>0.45</td><td>53</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>0</td><td>1.20</td><td>1.43</td><td>0</td><td>no target tie</td></tr>
+<tr><td>stlmi|e47|z</td><td>1MHz High Sensitivity 16-bit</td><td>120</td><td>56/60</td><td>65</td><td>13.6</td><td>20.2</td><td>2.4</td><td>0.69 [0.48&ndash;0.89]</td><td>0.44</td><td>31</td><td>20.46</td><td>14.4</td><td>14.3</td><td>26</td><td>1.15</td><td>1.33</td><td>57</td><td></td></tr>
 <tr><td>stlmi|e76|g</td><td>Mode0</td><td>60</td><td>692/745</td><td>145</td><td>20.9</td><td>17.8</td><td>7.6</td><td>1.27 [1.15&ndash;1.34]</td><td>0.59</td><td>35</td><td>18.70</td><td>29.0</td><td>36.9</td><td>27</td><td>1.95</td><td>3.82</td><td>720</td><td></td></tr>
 <tr><td>stlmi|e76|i</td><td>Mode0</td><td>60</td><td>491/550</td><td>131</td><td>26.2</td><td>19.2</td><td>10.3</td><td>1.30 [1.10&ndash;1.43]</td><td>0.60</td><td>44</td><td>19.81</td><td>29.7</td><td>36.2</td><td>30</td><td>1.68</td><td>2.81</td><td>513</td><td></td></tr>
 <tr><td>stlmi|e76|r</td><td>Mode0</td><td>60</td><td>554/596</td><td>162</td><td>18.6</td><td>18.2</td><td>10.0</td><td>1.21 [1.08&ndash;1.28]</td><td>0.61</td><td>31</td><td>19.25</td><td>26.5</td><td>27.0</td><td>28</td><td>1.16</td><td>1.34</td><td>568</td><td></td></tr>
-<tr><td>stlmi|e7|G</td><td>High Gain</td><td>64</td><td>224/296</td><td>172</td><td>11.2</td><td>17.8</td><td>7.8</td><td>1.09 [0.98&ndash;1.16]</td><td>0.57</td><td>20</td><td>19.37</td><td>20.4</td><td>32.2</td><td>52</td><td>1.75</td><td>3.07</td><td>278</td><td></td></tr>
-<tr><td>stlmi|e7|I</td><td>High Gain</td><td>64</td><td>268/340</td><td>253</td><td>10.5</td><td>18.2</td><td>7.9</td><td>0.88 [0.79&ndash;0.93]</td><td>0.59</td><td>18</td><td>19.00</td><td>16.6</td><td>32.3</td><td>46</td><td>1.08</td><td>1.17</td><td>315</td><td></td></tr>
-<tr><td>stlmi|e7|R</td><td>High Gain</td><td>64</td><td>259/346</td><td>238</td><td>10.2</td><td>17.8</td><td>8.8</td><td>0.96 [0.87&ndash;1.01]</td><td>0.57</td><td>18</td><td>18.98</td><td>18.3</td><td>28.6</td><td>49</td><td>1.16</td><td>1.34</td><td>308</td><td></td></tr>
-<tr><td>vvpup|e72|g</td><td>1MHz High Sensitivity 16-bit</td><td>40</td><td>160/196</td><td>1,818</td><td>15.3</td><td>18.2</td><td>9.9</td><td>0.81 [0.72&ndash;0.87]</td><td>1.48</td><td>10</td><td>20.23</td><td>47.3</td><td>50.3</td><td>545</td><td>1.35</td><td>1.83</td><td>194</td><td></td></tr>
-<tr class="warn"><td>vvpup|e72|i</td><td>1MHz High Sensitivity 16-bit</td><td>120</td><td>87/94</td><td>2,229</td><td>8.8</td><td>16.8</td><td>7.5</td><td><b>1.77</b> [1.61&ndash;1.86]</td><td>0.86</td><td>10</td><td>20.91</td><td>74.6</td><td>76.8</td><td>815</td><td>1.48</td><td>2.18</td><td>75</td><td>k outside the gain bracket</td></tr>
-<tr><td>vvpup|e72|r</td><td>1MHz High Sensitivity 16-bit</td><td>40</td><td>157/190</td><td>1,960</td><td>21.0</td><td>15.8</td><td>19.5</td><td>0.77 [0.71&ndash;0.80]</td><td>1.48</td><td>14</td><td>20.32</td><td>60.1</td><td>63.8</td><td>664</td><td>1.25</td><td>1.57</td><td>180</td><td></td></tr>
-<tr class="warn"><td>vvpup|e76|g</td><td>Mode0</td><td>240</td><td>308/359</td><td>2,690</td><td>12.0</td><td>16.8</td><td>10.4</td><td><b>2.92</b> [2.47&ndash;3.22]</td><td>0.58</td><td>21</td><td>18.32</td><td>19.1</td><td>24.1</td><td>267</td><td>3.01</td><td>9.04</td><td>323</td><td>k outside the gain bracket</td></tr>
-<tr class="warn"><td>vvpup|e76|i</td><td>Mode0</td><td>240</td><td>98/124</td><td>1,561</td><td>11.5</td><td>17.2</td><td>7.1</td><td><b>24.68</b> [18.11&ndash;30.35]</td><td>0.63</td><td>18</td><td>22.19</td><td>44.5</td><td>44.8</td><td>142</td><td>1.41</td><td>2.00</td><td>51</td><td>k outside the gain bracket</td></tr>
-<tr class="warn"><td>vvpup|e76|r</td><td>Mode0</td><td>240</td><td>154/186</td><td>2,229</td><td>13.4</td><td>15.8</td><td>12.2</td><td><b>1.70</b> [1.48&ndash;1.84]</td><td>0.63</td><td>21</td><td>21.04</td><td>39.2</td><td>41.8</td><td>759</td><td>1.11</td><td>1.24</td><td>143</td><td>k outside the gain bracket</td></tr>
-<tr><td>yzcnc|e72|g</td><td>1MHz High Sensitivity 16-bit</td><td>30</td><td>111/114</td><td>232</td><td>9.1</td><td>16.8</td><td>5.4</td><td>1.14 [0.91&ndash;1.30]</td><td>1.44</td><td>6</td><td>16.85</td><td>8.7</td><td>8.8</td><td>34</td><td>1.12</td><td>1.26</td><td>114</td><td></td></tr>
-<tr><td>yzcnc|e72|i</td><td>1MHz High Sensitivity 16-bit</td><td>30</td><td>112/112</td><td>268</td><td>8.4</td><td>16.2</td><td>5.1</td><td>1.15 [0.96&ndash;1.28]</td><td>1.43</td><td>6</td><td>17.43</td><td>10.6</td><td>10.6</td><td>44</td><td>1.11</td><td>1.23</td><td>112</td><td></td></tr>
-<tr><td>yzcnc|e72|r</td><td>1MHz High Sensitivity 16-bit</td><td>30</td><td>141/144</td><td>271</td><td>10.6</td><td>16.2</td><td>6.5</td><td>1.19 [0.98&ndash;1.32]</td><td>1.50</td><td>7</td><td>16.88</td><td>11.6</td><td>11.6</td><td>38</td><td>1.32</td><td>1.75</td><td>144</td><td></td></tr>
-<tr><td>yzcnc|e7|G</td><td>High Gain</td><td>8</td><td>375/431</td><td>241</td><td>17.2</td><td>16.2</td><td>11.3</td><td>1.10 [1.00&ndash;1.15]</td><td>1.54</td><td>11</td><td>15.91</td><td>17.2</td><td>20.6</td><td>20</td><td>1.67</td><td>2.80</td><td>431</td><td></td></tr>
-<tr><td>yzcnc|e7|I</td><td>High Gain</td><td>8</td><td>341/423</td><td>271</td><td>14.7</td><td>15.8</td><td>10.9</td><td>1.13 [1.02&ndash;1.20]</td><td>1.51</td><td>10</td><td>16.97</td><td>19.0</td><td>22.0</td><td>54</td><td>1.40</td><td>1.96</td><td>423</td><td></td></tr>
-<tr><td>yzcnc|e7|R</td><td>High Gain</td><td>8</td><td>350/443</td><td>295</td><td>18.3</td><td>15.8</td><td>13.7</td><td>1.03 [0.95&ndash;1.08]</td><td>1.51</td><td>12</td><td>16.25</td><td>19.5</td><td>29.2</td><td>42</td><td>2.36</td><td>5.58</td><td>442</td><td></td></tr>
+<tr><td>stlmi|e7|G</td><td>High Gain</td><td>64</td><td>242/296</td><td>170</td><td>10.6</td><td>17.8</td><td>6.4</td><td>1.15 [1.03&ndash;1.22]</td><td>0.57</td><td>19</td><td>19.37</td><td>20.8</td><td>29.8</td><td>52</td><td>1.68</td><td>2.81</td><td>278</td><td></td></tr>
+<tr><td>stlmi|e7|I</td><td>High Gain</td><td>64</td><td>290/340</td><td>243</td><td>10.3</td><td>18.2</td><td>9.0</td><td>0.95 [0.86&ndash;1.01]</td><td>0.59</td><td>18</td><td>19.00</td><td>19.4</td><td>26.3</td><td>46</td><td>1.04</td><td>1.09</td><td>314</td><td></td></tr>
+<tr><td>stlmi|e7|R</td><td>High Gain</td><td>64</td><td>274/346</td><td>229</td><td>9.1</td><td>17.8</td><td>8.5</td><td>1.01 [0.92&ndash;1.06]</td><td>0.57</td><td>16</td><td>18.98</td><td>17.6</td><td>26.3</td><td>49</td><td>1.12</td><td>1.24</td><td>308</td><td></td></tr>
+<tr><td>vvpup|e72|g</td><td>1MHz High Sensitivity 16-bit</td><td>40</td><td>160/196</td><td>1,811</td><td>15.2</td><td>18.2</td><td>10.6</td><td>0.79 [0.70&ndash;0.84]</td><td>1.48</td><td>10</td><td>20.22</td><td>47.3</td><td>50.3</td><td>547</td><td>1.35</td><td>1.82</td><td>194</td><td></td></tr>
+<tr class="warn"><td>vvpup|e72|i</td><td>1MHz High Sensitivity 16-bit</td><td>120</td><td>87/94</td><td>2,220</td><td>8.7</td><td>16.8</td><td>7.4</td><td><b>1.77</b> [1.62&ndash;1.86]</td><td>0.86</td><td>10</td><td>20.91</td><td>74.8</td><td>76.9</td><td>824</td><td>1.48</td><td>2.18</td><td>75</td><td>k outside the gain bracket</td></tr>
+<tr><td>vvpup|e72|r</td><td>1MHz High Sensitivity 16-bit</td><td>40</td><td>157/190</td><td>1,942</td><td>21.0</td><td>16.2</td><td>19.4</td><td>0.76 [0.71&ndash;0.80]</td><td>1.48</td><td>14</td><td>20.32</td><td>60.1</td><td>63.8</td><td>665</td><td>1.26</td><td>1.58</td><td>180</td><td></td></tr>
+<tr class="warn"><td>vvpup|e76|g</td><td>Mode0</td><td>240</td><td>318/359</td><td>2,690</td><td>12.8</td><td>16.8</td><td>11.0</td><td><b>3.31</b> [2.78&ndash;3.67]</td><td>0.58</td><td>22</td><td>18.32</td><td>19.5</td><td>24.1</td><td>267</td><td>2.97</td><td>8.84</td><td>323</td><td>k outside the gain bracket</td></tr>
+<tr class="warn"><td>vvpup|e76|i</td><td>Mode0</td><td>240</td><td>104/124</td><td>1,561</td><td>11.7</td><td>17.2</td><td>8.1</td><td><b>23.23</b> [17.22&ndash;28.31]</td><td>0.63</td><td>19</td><td>22.19</td><td>44.5</td><td>44.8</td><td>142</td><td>1.41</td><td>2.00</td><td>51</td><td>k outside the gain bracket</td></tr>
+<tr class="warn"><td>vvpup|e76|r</td><td>Mode0</td><td>240</td><td>158/186</td><td>2,229</td><td>13.3</td><td>15.8</td><td>12.7</td><td><b>1.71</b> [1.48&ndash;1.86]</td><td>0.63</td><td>21</td><td>21.04</td><td>39.2</td><td>41.8</td><td>759</td><td>1.11</td><td>1.24</td><td>143</td><td>k outside the gain bracket</td></tr>
+<tr><td>yzcnc|e72|g</td><td>1MHz High Sensitivity 16-bit</td><td>30</td><td>112/114</td><td>231</td><td>9.1</td><td>16.8</td><td>5.4</td><td>1.19 [0.95&ndash;1.35]</td><td>1.44</td><td>6</td><td>16.85</td><td>8.7</td><td>8.8</td><td>34</td><td>1.13</td><td>1.27</td><td>114</td><td></td></tr>
+<tr><td>yzcnc|e72|i</td><td>1MHz High Sensitivity 16-bit</td><td>30</td><td>112/112</td><td>267</td><td>8.4</td><td>16.2</td><td>5.1</td><td>1.16 [0.97&ndash;1.29]</td><td>1.43</td><td>6</td><td>17.43</td><td>10.6</td><td>10.6</td><td>44</td><td>1.11</td><td>1.23</td><td>112</td><td></td></tr>
+<tr><td>yzcnc|e72|r</td><td>1MHz High Sensitivity 16-bit</td><td>30</td><td>141/144</td><td>271</td><td>10.7</td><td>16.2</td><td>6.5</td><td>1.19 [0.98&ndash;1.32]</td><td>1.50</td><td>7</td><td>16.88</td><td>11.6</td><td>11.6</td><td>38</td><td>1.33</td><td>1.77</td><td>144</td><td></td></tr>
+<tr><td>yzcnc|e7|G</td><td>High Gain</td><td>8</td><td>405/431</td><td>239</td><td>15.9</td><td>16.2</td><td>10.2</td><td>1.36 [1.23&ndash;1.44]</td><td>1.54</td><td>10</td><td>15.89</td><td>17.0</td><td>19.2</td><td>20</td><td>1.59</td><td>2.53</td><td>411</td><td></td></tr>
+<tr><td>yzcnc|e7|I</td><td>High Gain</td><td>8</td><td>404/423</td><td>268</td><td>17.2</td><td>15.8</td><td>10.8</td><td>1.44 [1.28&ndash;1.53]</td><td>1.51</td><td>11</td><td>16.97</td><td>20.6</td><td>21.1</td><td>54</td><td>1.27</td><td>1.61</td><td>423</td><td></td></tr>
+<tr><td>yzcnc|e7|R</td><td>High Gain</td><td>8</td><td>421/443</td><td>292</td><td>18.1</td><td>16.2</td><td>12.5</td><td>1.54 [1.37&ndash;1.64]</td><td>1.51</td><td>12</td><td>16.24</td><td>18.3</td><td>28.5</td><td>43</td><td>1.60</td><td>2.57</td><td>431</td><td></td></tr>
 </table>
 <div class="decision"><b>Decision.</b> The systematic floor is
 <b>8&ndash;26 mmag</b>
@@ -304,32 +304,32 @@ scintillation</b> (median). It is therefore <em>instrumental</em> &mdash;
 flat-field residual, ensemble zero-point error, and low-level variability of
 the &ldquo;constant&rdquo; stars &mdash; not atmospheric, and in principle
 improvable. The photon model is close to right on most series: the fitted
-scaling <code>k</code> has median 1.19 over all 27
-series, and <b>21 of 27</b> fall inside the range the gain
-bracket allows. The 6 that do not are named in the table
+scaling <code>k</code> has median 1.27 over all 27
+series, and <b>20 of 27</b> fall inside the range the gain
+bracket allows. The 7 that do not are named in the table
 and are a <em>model failure</em>, not an average to be taken:
-euuma|e76|r (1.69), vvpup|e76|r (1.70), vvpup|e72|i (1.77), euuma|e76|g (1.99), vvpup|e76|g (2.92), vvpup|e76|i (24.68). Note also what
+euuma|e76|r (1.69), vvpup|e76|r (1.71), vvpup|e72|i (1.77), euuma|e76|g (2.72), vvpup|e76|g (3.31), euuma|e78|g (5.24), vvpup|e76|i (23.23). Note also what
 the gain bracket is and is not worth here: swinging the gain across its
 entire 3.0&times; range moves
 <code>k</code> by a median of only 18%, because the
 fit takes its leverage from the faint end where sky and read noise dominate
 &mdash; so the bracket is propagated honestly but it is <em>not</em> the
 dominant uncertainty in the prediction. Averaging is <b>not</b> free:
-30 of 88 ladders have a slope above their own
-95th-percentile white null and 26 exceed it on the red-noise
-factor, median penalty 1.34&times; at a median
+24 of 88 ladders have a slope above their own
+95th-percentile white null and 21 exceed it on the red-noise
+factor, median penalty 1.29&times; at a median
 0.37 P<sub>orb</sub>. The median slope
-(-0.37) is <em>inside</em> the null band, so it is the
+(-0.40) is <em>inside</em> the null band, so it is the
 per-ladder tests and not the median that carry this conclusion.</div>
 <h3>Consequence</h3>
 <p class="sub"><b>Achieved per-point precision at each target's own
-brightness:</b> <b>AN UMa 24&ndash;50 mmag</b>, <b>EU UMa 40&ndash;40 mmag</b>, <b>ST LMi 14&ndash;30 mmag</b>, <b>VV Pup 19&ndash;75 mmag</b>, <b>YZ Cnc 9&ndash;19 mmag</b>. These are the numbers every later section uses; they
+brightness:</b> <b>AN UMa 24&ndash;50 mmag</b>, <b>EU UMa 44&ndash;44 mmag</b>, <b>ST LMi 14&ndash;30 mmag</b>, <b>VV Pup 20&ndash;75 mmag</b>, <b>YZ Cnc 9&ndash;21 mmag</b>. These are the numbers every later section uses; they
 are measured on held-out check stars of the same brightness as the target in
 the same frames, so they already contain the flat field, the ensemble
 solution and the weather &mdash; and they are measured on the
 quality-cut frames only. The table gives the uncut number beside each one:
-the cut improves the median series by 1.07&times; and the best
-by 1.95&times;, which is what &sect;1's cut is worth and what
+the cut improves the median series by 1.06&times; and the best
+by 1.55&times;, which is what &sect;1's cut is worth and what
 the first version of this page never actually collected. Two structural facts
 travel with them: the magnitude scale is the ensemble's own arbitrary gauge
 (see &sect;6, row S1), and error bars must be inflated and long-timescale
@@ -359,34 +359,34 @@ truth convolved with it.</p>
 <tr><td>anuma|e76|g|2025-03-30</td><td>solar day</td><td>0.904</td><td>0.17</td><td>5.8266</td><td>no &mdash; one broad peak</td></tr>
 <tr><td>anuma|e76|g|series</td><td>sidereal day</td><td>0.863</td><td>382.02</td><td>0.0026</td><td>yes</td></tr>
 <tr><td>anuma|e76|g|series</td><td>solar day</td><td>0.656</td><td>382.02</td><td>0.0026</td><td>yes</td></tr>
-<tr><td>euuma|all</td><td>sidereal day</td><td>0.846</td><td>509.73</td><td>0.0020</td><td>yes</td></tr>
-<tr><td>euuma|all</td><td>solar day</td><td>0.686</td><td>509.73</td><td>0.0020</td><td>yes</td></tr>
+<tr><td>euuma|all</td><td>sidereal day</td><td>0.852</td><td>509.73</td><td>0.0020</td><td>yes</td></tr>
+<tr><td>euuma|all</td><td>solar day</td><td>0.653</td><td>509.73</td><td>0.0020</td><td>yes</td></tr>
 <tr><td>euuma|e76|i|2025-05-09</td><td>sidereal day</td><td>0.895</td><td>0.18</td><td>5.5827</td><td>no &mdash; one broad peak</td></tr>
 <tr><td>euuma|e76|i|2025-05-09</td><td>solar day</td><td>0.895</td><td>0.18</td><td>5.5827</td><td>no &mdash; one broad peak</td></tr>
-<tr><td>euuma|e76|i|series</td><td>sidereal day</td><td>0.921</td><td>139.71</td><td>0.0072</td><td>yes</td></tr>
-<tr><td>euuma|e76|i|series</td><td>solar day</td><td>0.845</td><td>139.71</td><td>0.0072</td><td>yes</td></tr>
-<tr><td>stlmi|all</td><td>sidereal day</td><td>0.761</td><td>740.13</td><td>0.0014</td><td>yes</td></tr>
-<tr><td>stlmi|all</td><td>solar day</td><td>0.566</td><td>740.13</td><td>0.0014</td><td>yes</td></tr>
+<tr><td>euuma|e76|i|series</td><td>sidereal day</td><td>0.920</td><td>139.73</td><td>0.0072</td><td>yes</td></tr>
+<tr><td>euuma|e76|i|series</td><td>solar day</td><td>0.826</td><td>139.73</td><td>0.0072</td><td>yes</td></tr>
+<tr><td>stlmi|all</td><td>sidereal day</td><td>0.761</td><td>742.07</td><td>0.0013</td><td>yes</td></tr>
+<tr><td>stlmi|all</td><td>solar day</td><td>0.564</td><td>742.07</td><td>0.0013</td><td>yes</td></tr>
 <tr><td>stlmi|e76|g|2025-02-27</td><td>sidereal day</td><td>0.582</td><td>0.39</td><td>2.5609</td><td>no &mdash; one broad peak</td></tr>
 <tr><td>stlmi|e76|g|2025-02-27</td><td>solar day</td><td>0.584</td><td>0.39</td><td>2.5609</td><td>no &mdash; one broad peak</td></tr>
 <tr><td>stlmi|e76|g|series</td><td>sidereal day</td><td>0.773</td><td>396.05</td><td>0.0025</td><td>yes</td></tr>
 <tr><td>stlmi|e76|g|series</td><td>solar day</td><td>0.536</td><td>396.05</td><td>0.0025</td><td>yes</td></tr>
-<tr><td>vvpup|all</td><td>sidereal day</td><td>0.905</td><td>433.94</td><td>0.0023</td><td>yes</td></tr>
-<tr><td>vvpup|all</td><td>solar day</td><td>0.512</td><td>433.94</td><td>0.0023</td><td>yes</td></tr>
+<tr><td>vvpup|all</td><td>sidereal day</td><td>0.906</td><td>433.94</td><td>0.0023</td><td>yes</td></tr>
+<tr><td>vvpup|all</td><td>solar day</td><td>0.515</td><td>433.94</td><td>0.0023</td><td>yes</td></tr>
 <tr><td>vvpup|e76|g|2025-11-24</td><td>sidereal day</td><td>0.953</td><td>0.11</td><td>9.0460</td><td>no &mdash; one broad peak</td></tr>
 <tr><td>vvpup|e76|g|2025-11-24</td><td>solar day</td><td>0.954</td><td>0.11</td><td>9.0460</td><td>no &mdash; one broad peak</td></tr>
 <tr><td>vvpup|e76|g|series</td><td>sidereal day</td><td>0.928</td><td>370.03</td><td>0.0027</td><td>yes</td></tr>
-<tr><td>vvpup|e76|g|series</td><td>solar day</td><td>0.553</td><td>370.03</td><td>0.0027</td><td>yes</td></tr>
-<tr><td>yzcnc|all</td><td>sidereal day</td><td>0.773</td><td>92.94</td><td>0.0108</td><td>yes</td></tr>
-<tr><td>yzcnc|all</td><td>solar day</td><td>0.796</td><td>92.94</td><td>0.0108</td><td>yes</td></tr>
-<tr><td>yzcnc|e7|G|2024-02-21</td><td>sidereal day</td><td>0.903</td><td>0.18</td><td>5.5997</td><td>no &mdash; one broad peak</td></tr>
-<tr><td>yzcnc|e7|G|2024-02-21</td><td>solar day</td><td>0.904</td><td>0.18</td><td>5.5997</td><td>no &mdash; one broad peak</td></tr>
-<tr><td>yzcnc|e7|G|series</td><td>sidereal day</td><td>0.806</td><td>46.00</td><td>0.0217</td><td>yes</td></tr>
-<tr><td>yzcnc|e7|G|series</td><td>solar day</td><td>0.809</td><td>46.00</td><td>0.0217</td><td>yes</td></tr>
+<tr><td>vvpup|e76|g|series</td><td>solar day</td><td>0.551</td><td>370.03</td><td>0.0027</td><td>yes</td></tr>
+<tr><td>yzcnc|all</td><td>sidereal day</td><td>0.778</td><td>109.88</td><td>0.0091</td><td>yes</td></tr>
+<tr><td>yzcnc|all</td><td>solar day</td><td>0.794</td><td>109.88</td><td>0.0091</td><td>yes</td></tr>
+<tr><td>yzcnc|e7|R|2024-02-21</td><td>sidereal day</td><td>0.893</td><td>0.19</td><td>5.3410</td><td>no &mdash; one broad peak</td></tr>
+<tr><td>yzcnc|e7|R|2024-02-21</td><td>solar day</td><td>0.894</td><td>0.19</td><td>5.3410</td><td>no &mdash; one broad peak</td></tr>
+<tr><td>yzcnc|e7|R|series</td><td>sidereal day</td><td>0.803</td><td>45.99</td><td>0.0217</td><td>yes</td></tr>
+<tr><td>yzcnc|e7|R|series</td><td>solar day</td><td>0.800</td><td>45.99</td><td>0.0217</td><td>yes</td></tr>
 </table>
 <div class="decision"><b>Decision.</b> On every multi-night set the
 &plusmn;1 c/d aliases of the orbital frequency are fully resolved (resolution
-&lt;&lt; 1 c/d) and carry up to <b>0.84 of the window
+&lt;&lt; 1 c/d) and carry up to <b>0.83 of the window
 power</b> on the <em>solar-day</em> comb &mdash; the one that matters for
 ground-based scheduling &mdash; rising to 0.93 if the sidereal
 comb is included as well. That is the sampling's <em>capacity</em> to
@@ -413,30 +413,30 @@ that target, independent of signal-to-noise.</p>
 <tr><td>anuma|e76|g</td><td>397</td><td>10</td><td>382.0</td><td>149</td><td>46</td><td>5.19</td><td>2025-03-30</td><td>86</td><td>2.2</td><td>100%</td><td>149</td><td>9</td><td>0.9%</td><td>240.1</td><td>0.37%</td></tr>
 <tr><td>anuma|e76|i</td><td>256</td><td>8</td><td>347.1</td><td>150</td><td>46</td><td>5.19</td><td>2025-03-29</td><td>87</td><td>2.1</td><td>100%</td><td>150</td><td>6</td><td>0.9%</td><td>239.2</td><td>0.30%</td></tr>
 <tr><td>anuma|e76|r</td><td>355</td><td>11</td><td>347.1</td><td>152</td><td>45</td><td>5.48</td><td>2025-03-29</td><td>84</td><td>2.1</td><td>100%</td><td>150</td><td>9</td><td>0.9%</td><td>235.1</td><td>0.42%</td></tr>
-<tr><td>euuma|e76|g</td><td>171</td><td>9</td><td>431.9</td><td>245</td><td>22</td><td>3.50</td><td>2026-03-16</td><td>25</td><td>1.1</td><td>100%</td><td>245</td><td>7</td><td>4.4%</td><td>224.2</td><td>0.14%</td></tr>
-<tr><td>euuma|e76|i</td><td>325</td><td>11</td><td>139.7</td><td>250</td><td>22</td><td>4.30</td><td>2025-05-09</td><td>60</td><td>2.9</td><td>100%</td><td>250</td><td>8</td><td>4.4%</td><td>100.8</td><td>0.76%</td></tr>
+<tr><td>euuma|e76|g</td><td>197</td><td>10</td><td>431.9</td><td>245</td><td>22</td><td>3.50</td><td>2026-02-02</td><td>26</td><td>1.2</td><td>100%</td><td>245</td><td>8</td><td>4.4%</td><td>224.2</td><td>0.16%</td></tr>
+<tr><td>euuma|e76|i</td><td>328</td><td>11</td><td>139.7</td><td>250</td><td>22</td><td>4.30</td><td>2025-05-09</td><td>60</td><td>2.9</td><td>100%</td><td>250</td><td>8</td><td>4.4%</td><td>100.8</td><td>0.77%</td></tr>
 <tr><td>euuma|e76|r</td><td>99</td><td>4</td><td>127.6</td><td>250</td><td>22</td><td>5.26</td><td>2025-05-14</td><td>70</td><td>3.5</td><td>100%</td><td>250</td><td>2</td><td>4.4%</td><td>105.8</td><td>0.28%</td></tr>
-<tr><td>euuma|e78|g</td><td>89</td><td>8</td><td>67.9</td><td>244</td><td>22</td><td>2.97</td><td>2026-05-06</td><td>23</td><td>1.1</td><td>100%</td><td>243</td><td>3</td><td>4.4%</td><td>28.9</td><td>0.58%</td></tr>
+<tr><td>euuma|e78|g</td><td>99</td><td>9</td><td>67.9</td><td>243</td><td>22</td><td>2.97</td><td>2026-05-06</td><td>23</td><td>1.1</td><td>100%</td><td>243</td><td>4</td><td>4.4%</td><td>28.9</td><td>0.68%</td></tr>
 <tr><td>stlmi|e47|y</td><td>20</td><td>1</td><td>0.1</td><td>611</td><td>11</td><td>2.80</td><td>2024-04-16</td><td>20</td><td>1.5</td><td>75%</td><td>611</td><td>1</td><td>4.4%</td><td>0.0</td><td>100.00%</td></tr>
 <tr><td>stlmi|e47|z</td><td>56</td><td>1</td><td>0.1</td><td>135</td><td>50</td><td>2.22</td><td>2024-04-10</td><td>56</td><td>1.2</td><td>100%</td><td>135</td><td>1</td><td>1.8%</td><td>0.0</td><td>100.00%</td></tr>
 <tr><td>stlmi|e76|g</td><td>692</td><td>16</td><td>396.0</td><td>220</td><td>31</td><td>9.37</td><td>2025-02-27</td><td>152</td><td>4.9</td><td>100%</td><td>219</td><td>14</td><td>0.9%</td><td>217.2</td><td>0.63%</td></tr>
 <tr><td>stlmi|e76|i</td><td>491</td><td>10</td><td>119.9</td><td>219</td><td>31</td><td>9.21</td><td>2025-02-27</td><td>138</td><td>4.9</td><td>100%</td><td>219</td><td>8</td><td>0.9%</td><td>58.6</td><td>1.38%</td></tr>
 <tr><td>stlmi|e76|r</td><td>554</td><td>13</td><td>119.8</td><td>220</td><td>31</td><td>9.25</td><td>2025-02-27</td><td>141</td><td>4.9</td><td>100%</td><td>219</td><td>10</td><td>0.9%</td><td>58.6</td><td>1.67%</td></tr>
-<tr><td>stlmi|e7|G</td><td>224</td><td>14</td><td>33.2</td><td>402</td><td>17</td><td>7.84</td><td>2024-03-03</td><td>65</td><td>4.1</td><td>100%</td><td>254</td><td>10</td><td>0.9%</td><td>10.7</td><td>5.80%</td></tr>
-<tr><td>stlmi|e7|I</td><td>268</td><td>15</td><td>33.2</td><td>358</td><td>19</td><td>7.67</td><td>2024-03-03</td><td>92</td><td>4.0</td><td>100%</td><td>214</td><td>12</td><td>0.9%</td><td>10.7</td><td>6.00%</td></tr>
-<tr><td>stlmi|e7|R</td><td>259</td><td>14</td><td>33.1</td><td>378</td><td>18</td><td>7.86</td><td>2024-03-03</td><td>75</td><td>4.1</td><td>100%</td><td>251</td><td>11</td><td>0.9%</td><td>10.7</td><td>5.57%</td></tr>
+<tr><td>stlmi|e7|G</td><td>242</td><td>16</td><td>35.1</td><td>453</td><td>15</td><td>7.84</td><td>2024-03-03</td><td>65</td><td>4.1</td><td>100%</td><td>254</td><td>12</td><td>0.9%</td><td>8.7</td><td>6.11%</td></tr>
+<tr><td>stlmi|e7|I</td><td>290</td><td>18</td><td>35.1</td><td>372</td><td>18</td><td>7.67</td><td>2024-03-03</td><td>92</td><td>4.0</td><td>100%</td><td>214</td><td>14</td><td>0.9%</td><td>8.7</td><td>6.28%</td></tr>
+<tr><td>stlmi|e7|R</td><td>274</td><td>16</td><td>35.1</td><td>384</td><td>18</td><td>7.86</td><td>2024-03-03</td><td>75</td><td>4.1</td><td>100%</td><td>251</td><td>12</td><td>0.9%</td><td>8.8</td><td>5.58%</td></tr>
 <tr><td>vvpup|e72|g</td><td>160</td><td>3</td><td>33.1</td><td>160</td><td>38</td><td>4.33</td><td>2024-12-03</td><td>100</td><td>2.6</td><td>100%</td><td>160</td><td>2</td><td>0.7%</td><td>27.9</td><td>1.14%</td></tr>
 <tr><td>vvpup|e72|i</td><td>87</td><td>1</td><td>0.2</td><td>160</td><td>38</td><td>4.13</td><td>2024-12-06</td><td>87</td><td>2.5</td><td>100%</td><td>160</td><td>1</td><td>2.0%</td><td>0.0</td><td>100.00%</td></tr>
 <tr><td>vvpup|e72|r</td><td>157</td><td>4</td><td>35.0</td><td>160</td><td>38</td><td>4.24</td><td>2024-12-04</td><td>97</td><td>2.5</td><td>100%</td><td>160</td><td>2</td><td>0.7%</td><td>28.9</td><td>1.05%</td></tr>
-<tr><td>vvpup|e76|g</td><td>308</td><td>14</td><td>370.0</td><td>251</td><td>24</td><td>4.33</td><td>2025-11-24</td><td>52</td><td>1.6</td><td>90%</td><td>124</td><td>10</td><td>4.0%</td><td>216.2</td><td>0.41%</td></tr>
-<tr><td>vvpup|e76|i</td><td>98</td><td>9</td><td>101.8</td><td>540</td><td>11</td><td>3.78</td><td>2025-03-03</td><td>24</td><td>2.3</td><td>100%</td><td>540</td><td>4</td><td>4.0%</td><td>42.8</td><td>0.63%</td></tr>
-<tr><td>vvpup|e76|r</td><td>154</td><td>11</td><td>98.8</td><td>510</td><td>12</td><td>4.60</td><td>2025-02-22</td><td>29</td><td>2.5</td><td>90%</td><td>510</td><td>6</td><td>4.0%</td><td>42.9</td><td>1.05%</td></tr>
-<tr><td>yzcnc|e72|g</td><td>111</td><td>2</td><td>1.1</td><td>142</td><td>53</td><td>2.52</td><td>2024-05-01</td><td>60</td><td>1.2</td><td>100%</td><td>144</td><td>1</td><td>0.4%</td><td>0.9</td><td>16.73%</td></tr>
+<tr><td>vvpup|e76|g</td><td>318</td><td>14</td><td>370.0</td><td>265</td><td>23</td><td>4.33</td><td>2025-11-24</td><td>52</td><td>1.6</td><td>90%</td><td>124</td><td>10</td><td>4.0%</td><td>216.2</td><td>0.42%</td></tr>
+<tr><td>vvpup|e76|i</td><td>104</td><td>9</td><td>101.8</td><td>540</td><td>11</td><td>3.78</td><td>2025-03-03</td><td>24</td><td>2.3</td><td>100%</td><td>540</td><td>4</td><td>4.0%</td><td>42.8</td><td>0.65%</td></tr>
+<tr><td>vvpup|e76|r</td><td>158</td><td>11</td><td>98.8</td><td>510</td><td>12</td><td>4.60</td><td>2025-02-22</td><td>29</td><td>2.5</td><td>90%</td><td>510</td><td>6</td><td>4.0%</td><td>42.9</td><td>1.07%</td></tr>
+<tr><td>yzcnc|e72|g</td><td>112</td><td>3</td><td>18.1</td><td>142</td><td>53</td><td>2.52</td><td>2024-05-01</td><td>60</td><td>1.2</td><td>100%</td><td>144</td><td>1</td><td>0.4%</td><td>16.9</td><td>1.04%</td></tr>
 <tr><td>yzcnc|e72|i</td><td>112</td><td>2</td><td>1.1</td><td>142</td><td>53</td><td>2.52</td><td>2024-05-01</td><td>62</td><td>1.2</td><td>100%</td><td>144</td><td>1</td><td>0.4%</td><td>0.9</td><td>16.61%</td></tr>
 <tr><td>yzcnc|e72|r</td><td>141</td><td>3</td><td>2.1</td><td>142</td><td>53</td><td>2.52</td><td>2024-05-01</td><td>61</td><td>1.2</td><td>100%</td><td>144</td><td>1</td><td>0.4%</td><td>0.9</td><td>11.62%</td></tr>
-<tr><td>yzcnc|e7|G</td><td>375</td><td>21</td><td>46.0</td><td>203</td><td>37</td><td>7.06</td><td>2024-02-21</td><td>72</td><td>2.1</td><td>100%</td><td>193</td><td>9</td><td>0.1%</td><td>8.0</td><td>4.45%</td></tr>
-<tr><td>yzcnc|e7|I</td><td>341</td><td>17</td><td>46.0</td><td>194</td><td>39</td><td>6.96</td><td>2024-02-21</td><td>91</td><td>2.2</td><td>100%</td><td>191</td><td>8</td><td>0.1%</td><td>8.8</td><td>4.12%</td></tr>
-<tr><td>yzcnc|e7|R</td><td>350</td><td>19</td><td>46.0</td><td>216</td><td>35</td><td>6.68</td><td>2024-02-21</td><td>68</td><td>2.2</td><td>100%</td><td>193</td><td>10</td><td>0.1%</td><td>12.9</td><td>5.08%</td></tr>
+<tr><td>yzcnc|e7|G</td><td>405</td><td>21</td><td>46.0</td><td>195</td><td>38</td><td>7.06</td><td>2024-02-21</td><td>72</td><td>2.1</td><td>100%</td><td>193</td><td>9</td><td>0.1%</td><td>8.0</td><td>4.59%</td></tr>
+<tr><td>yzcnc|e7|I</td><td>404</td><td>18</td><td>46.0</td><td>194</td><td>39</td><td>6.96</td><td>2024-02-21</td><td>95</td><td>2.2</td><td>100%</td><td>191</td><td>9</td><td>0.1%</td><td>8.8</td><td>4.69%</td></tr>
+<tr><td>yzcnc|e7|R</td><td>421</td><td>19</td><td>46.0</td><td>208</td><td>36</td><td>6.68</td><td>2024-02-21</td><td>69</td><td>2.8</td><td>100%</td><td>200</td><td>11</td><td>0.1%</td><td>12.9</td><td>5.50%</td></tr>
 </table>
 </div></section>
 <section id="detect">
@@ -497,7 +497,7 @@ recovery fraction of 0.9 a single cell carries a binomial standard error of
 about 4%; each A<sub>90</sub> below is therefore quoted with the
 16&ndash;84% range from resampling those cells. And the threshold rests on a
 median of 4 check stars: measured one star at a time, the
-per-star thresholds spread by a median 77% of the
+per-star thresholds spread by a median 79% of the
 pooled value, which is the honest uncertainty on it rather than the
 &plusmn;1% a bootstrap over trials reports.</p>
 <figure><a href="figures/cv_characterization/contour.png"><img src="figures/cv_characterization/contour.png" alt=""></a><figcaption>The 90% recovery contour per target. Left: the richest single night, scored as detection at a known period (solid) and as blind period determination (dotted) &mdash; the gap between them is the correction this section is about. Right: the whole season, raw (dashed) and after per-night mean removal (solid). Thin vertical lines mark each target's orbital period.</figcaption></figure>
@@ -532,6 +532,12 @@ pooled value, which is the honest uncertainty on it rather than the
 <tr class="warn"><td>yzcnc|e7|G</td><td>night</td><td><b>period</b></td><td>2.086</td><td>72</td><td>2.1</td><td>14.1</td><td>186.9 [159&ndash;210]</td><td>14.1</td><td>13.3</td></tr>
 <tr><td>yzcnc|e7|G</td><td>season</td><td><b>period</b></td><td>2.086</td><td>375</td><td>529.2</td><td>16.0</td><td>18.9 [18&ndash;20]</td><td>7.0</td><td>2.7</td></tr>
 <tr><td>yzcnc|e7|G</td><td>season-dt</td><td><b>period</b></td><td>2.086</td><td>375</td><td>529.2</td><td>16.0</td><td>17.9 [17&ndash;20]</td><td>7.0</td><td>2.6</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td><b>known</b></td><td>2.086</td><td>69</td><td>2.2</td><td>13.9</td><td>9.8 [9&ndash;10]</td><td>14.2</td><td>0.7</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td><b>known</b></td><td>2.086</td><td>421</td><td>529.2</td><td>18.2</td><td>6.3 [6&ndash;6]</td><td>7.5</td><td>0.8</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td><b>known</b></td><td>2.086</td><td>421</td><td>529.2</td><td>18.2</td><td>5.6 [5&ndash;6]</td><td>7.5</td><td>0.7</td></tr>
+<tr class="warn"><td>yzcnc|e7|R</td><td>night</td><td><b>period</b></td><td>2.086</td><td>69</td><td>2.2</td><td>13.9</td><td>122.0 [109&ndash;134]</td><td>14.2</td><td>8.6</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td><b>period</b></td><td>2.086</td><td>421</td><td>529.2</td><td>18.2</td><td>16.9 [16&ndash;17]</td><td>7.5</td><td>2.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td><b>period</b></td><td>2.086</td><td>421</td><td>529.2</td><td>18.2</td><td>11.7 [11&ndash;13]</td><td>7.5</td><td>1.6</td></tr>
 </table>
 <h3>Evidence &mdash; does the wrong peak actually win?</h3>
 <p class="sub">&sect;3 measures how much window power the daily comb makes
@@ -543,7 +549,7 @@ peak as the truth, a &plusmn;k&nbsp;c/d alias, or neither:</p>
 <table class="data">
 <tr><th>injected semi-amplitude</th><th>tallest peak is the truth</th><th>&hellip; is a &plusmn;k c/d alias</th></tr>
 <tr><td>50</td><td>96%</td><td>4%</td></tr>
-<tr><td>100</td><td>99%</td><td>0%</td></tr>
+<tr><td>100</td><td>100%</td><td>0%</td></tr>
 <tr><td>500</td><td>100%</td><td>0%</td></tr>
 <tr><td>1,000</td><td>100%</td><td>0%</td></tr>
 </table>
@@ -570,7 +576,7 @@ period-determination contour
 as though it were a detection limit &mdash; those rows, greyed above, measure
 how few cycles one night holds. <b>Every detection limit in the manuscript
 must be the injection number under a named score mode, not the
-formula.</b> Per-night detrending buys a factor 0.96&ndash;1.28 at the orbital period (median 1.16) &mdash; measured, not assumed. And on alias confusion the measurement is
+formula.</b> Per-night detrending buys a factor 0.96&ndash;1.28 at the orbital period (median 1.14) &mdash; measured, not assumed. And on alias confusion the measurement is
 reassuring: at the amplitudes these polars actually show, the tallest peak
 lands on the true frequency in essentially every trial.</div>
 <h3>Consequence</h3>
@@ -806,12 +812,60 @@ precision on an edge &mdash; which is why &sect;5 exists.</p>
 <tr><td>yzcnc|e7|G</td><td>season-dt</td><td>period</td><td>3.072</td><td>18.1</td><td>375</td><td>16.0</td></tr>
 <tr><td>yzcnc|e7|G</td><td>season-dt</td><td>period</td><td>4.416</td><td>29.0</td><td>375</td><td>16.0</td></tr>
 <tr><td>yzcnc|e7|G</td><td>season-dt</td><td>period</td><td>6.000</td><td>&mdash;</td><td>375</td><td>16.0</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>known</td><td>0.720</td><td>9.2</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>known</td><td>1.032</td><td>8.2</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>known</td><td>1.488</td><td>7.0</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>known</td><td>2.086</td><td>9.8</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>known</td><td>2.136</td><td>8.9</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>known</td><td>3.072</td><td>11.7</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>known</td><td>4.416</td><td>7.0</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>known</td><td>6.000</td><td>12.0</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>known</td><td>0.720</td><td>5.9</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>known</td><td>1.032</td><td>6.4</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>known</td><td>1.488</td><td>6.1</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>known</td><td>2.086</td><td>6.3</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>known</td><td>2.136</td><td>6.5</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>known</td><td>3.072</td><td>6.5</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>known</td><td>4.416</td><td>8.9</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>known</td><td>6.000</td><td>10.8</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>known</td><td>0.720</td><td>6.1</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>known</td><td>1.032</td><td>5.9</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>known</td><td>1.488</td><td>5.5</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>known</td><td>2.086</td><td>5.6</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>known</td><td>2.136</td><td>6.5</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>known</td><td>3.072</td><td>5.9</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>known</td><td>4.416</td><td>6.3</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>known</td><td>6.000</td><td>6.0</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>period</td><td>0.720</td><td>40.8</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>period</td><td>1.032</td><td>47.2</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>period</td><td>1.488</td><td>81.5</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>period</td><td>2.086</td><td>122.0</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>period</td><td>2.136</td><td>100.0</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>period</td><td>3.072</td><td>200.0</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>period</td><td>4.416</td><td>&mdash;</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>night</td><td>period</td><td>6.000</td><td>&mdash;</td><td>69</td><td>13.9</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>period</td><td>0.720</td><td>14.5</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>period</td><td>1.032</td><td>16.2</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>period</td><td>1.488</td><td>16.7</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>period</td><td>2.086</td><td>16.9</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>period</td><td>2.136</td><td>17.0</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>period</td><td>3.072</td><td>18.4</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>period</td><td>4.416</td><td>19.3</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season</td><td>period</td><td>6.000</td><td>18.1</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>period</td><td>0.720</td><td>9.2</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>period</td><td>1.032</td><td>10.7</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>period</td><td>1.488</td><td>10.6</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>period</td><td>2.086</td><td>11.7</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>period</td><td>2.136</td><td>10.6</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>period</td><td>3.072</td><td>15.5</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>period</td><td>4.416</td><td>11.5</td><td>421</td><td>18.2</td></tr>
+<tr><td>yzcnc|e7|R</td><td>season-dt</td><td>period</td><td>6.000</td><td>&mdash;</td><td>421</td><td>18.2</td></tr>
 </table>
 </div></section>
 <section id="timing">
 <div class="bhead"><h2>5 &middot; How precisely can one bright-phase edge be
 timed?</h2><span class="tag">per-cycle &sigma;<sub>t</sub>
-2&ndash;51 s</span></div>
+2&ndash;50 s</span></div>
 <div class="stage">
 <h3>Question</h3>
 <p class="sub">The strategy document's Q2 rests on a threshold it explicitly
@@ -834,7 +888,7 @@ correction. The first version took the 5th-to-95th percentile of the
 change in nightly median &mdash; the high/low accretion-state transition Q1
 and Q4 are about. The 1.45&nbsp;mag quoted as a &ldquo;measured bright-phase
 amplitude&rdquo; was therefore mostly a state change, larger than the night's
-own amplitude by up to 11.9&times;. Re-run on the night's own
+own amplitude by up to 5.8&times;. Re-run on the night's own
 amplitude the answer barely moves, because this regime is sampling-limited
 rather than signal-to-noise-limited &mdash; but the number as published would
 not have survived a referee.</p>
@@ -890,40 +944,40 @@ sharper than 4.4% of a cycle, whatever the star does.</p>
 <tr><td>ST LMi</td><td>stlmi|e76|g</td><td><b>richest</b></td><td>per-cycle</td><td>30</td><td>219</td><td>0.67</td><td>1.45</td><td>29.0</td><td>0.05 P</td><td>0.05 P</td><td>0.9%</td><td>4</td><td>8.6</td></tr>
 <tr><td>ST LMi</td><td>stlmi|e76|g</td><td><b>richest</b></td><td>per-cycle shape-mismatched</td><td>30</td><td>219</td><td>0.67</td><td>1.45</td><td>29.0</td><td>0.01 P</td><td>0.01 P</td><td>0.9%</td><td>4</td><td>46.8</td></tr>
 <tr><td>ST LMi</td><td>stlmi|e76|g</td><td><b>richest</b></td><td>per-cycle shape-mismatched</td><td>30</td><td>219</td><td>0.67</td><td>1.45</td><td>29.0</td><td>0.05 P</td><td>0.05 P</td><td>0.9%</td><td>4</td><td>49.9</td></tr>
-<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>median</b></td><td>night-mean</td><td>26</td><td>510</td><td>1.00</td><td>3.02</td><td>19.1</td><td>0.01 P</td><td>0.0398406 P</td><td>4.0%</td><td>4</td><td>3.9</td></tr>
-<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>median</b></td><td>night-mean</td><td>26</td><td>510</td><td>1.00</td><td>3.02</td><td>19.1</td><td>0.05 P</td><td>0.05 P</td><td>4.0%</td><td>4</td><td>3.6</td></tr>
-<tr class="warn"><td>VV Pup</td><td>vvpup|e76|g</td><td><b>median</b></td><td>per-cycle</td><td>10</td><td>510</td><td>1.00</td><td>3.02</td><td>19.1</td><td>0.01 P</td><td>0.0398406 P</td><td>4.0%</td><td>4</td><td>64.6</td></tr>
-<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>median</b></td><td>per-cycle</td><td>10</td><td>510</td><td>1.00</td><td>3.02</td><td>19.1</td><td>0.05 P</td><td>0.05 P</td><td>4.0%</td><td>4</td><td>35.0</td></tr>
-<tr class="warn"><td>VV Pup</td><td>vvpup|e76|g</td><td><b>median</b></td><td>per-cycle shape-mismatched</td><td>10</td><td>510</td><td>1.00</td><td>3.02</td><td>19.1</td><td>0.01 P</td><td>0.0398406 P</td><td>4.0%</td><td>4</td><td>115.4</td></tr>
-<tr class="warn"><td>VV Pup</td><td>vvpup|e76|g</td><td><b>median</b></td><td>per-cycle shape-mismatched</td><td>10</td><td>510</td><td>1.00</td><td>3.02</td><td>19.1</td><td>0.05 P</td><td>0.05 P</td><td>4.0%</td><td>4</td><td>113.1</td></tr>
-<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>richest</b></td><td>night-mean</td><td>52</td><td>124</td><td>0.93</td><td>3.02</td><td>19.1</td><td>0.01 P</td><td>0.0398406 P</td><td>4.0%</td><td>4</td><td>2.4</td></tr>
-<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>richest</b></td><td>night-mean</td><td>52</td><td>124</td><td>0.93</td><td>3.02</td><td>19.1</td><td>0.05 P</td><td>0.05 P</td><td>4.0%</td><td>4</td><td>2.5</td></tr>
-<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>richest</b></td><td>per-cycle</td><td>40</td><td>124</td><td>0.93</td><td>3.02</td><td>19.1</td><td>0.01 P</td><td>0.0398406 P</td><td>4.0%</td><td>4</td><td>1.8</td></tr>
-<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>richest</b></td><td>per-cycle</td><td>40</td><td>124</td><td>0.93</td><td>3.02</td><td>19.1</td><td>0.05 P</td><td>0.05 P</td><td>4.0%</td><td>4</td><td>1.9</td></tr>
-<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>richest</b></td><td>per-cycle shape-mismatched</td><td>40</td><td>124</td><td>0.93</td><td>3.02</td><td>19.1</td><td>0.01 P</td><td>0.0398406 P</td><td>4.0%</td><td>4</td><td>14.3</td></tr>
-<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>richest</b></td><td>per-cycle shape-mismatched</td><td>40</td><td>124</td><td>0.93</td><td>3.02</td><td>19.1</td><td>0.05 P</td><td>0.05 P</td><td>4.0%</td><td>4</td><td>16.8</td></tr>
-<tr><td>YZ Cnc</td><td>yzcnc|e7|G</td><td><b>median</b></td><td>night-mean</td><td>35</td><td>385</td><td>0.15</td><td>1.80</td><td>17.2</td><td>0.01 P</td><td>0.01 P</td><td>0.1%</td><td>4</td><td>56.3</td></tr>
-<tr><td>YZ Cnc</td><td>yzcnc|e7|G</td><td><b>median</b></td><td>night-mean</td><td>35</td><td>385</td><td>0.15</td><td>1.80</td><td>17.2</td><td>0.05 P</td><td>0.05 P</td><td>0.1%</td><td>4</td><td>17.6</td></tr>
-<tr class="warn"><td>YZ Cnc</td><td>yzcnc|e7|G</td><td><b>median</b></td><td>per-cycle</td><td>14</td><td>385</td><td>0.15</td><td>1.80</td><td>17.2</td><td>0.01 P</td><td>0.01 P</td><td>0.1%</td><td>4</td><td>150.1</td></tr>
-<tr><td>YZ Cnc</td><td>yzcnc|e7|G</td><td><b>median</b></td><td>per-cycle</td><td>14</td><td>385</td><td>0.15</td><td>1.80</td><td>17.2</td><td>0.05 P</td><td>0.05 P</td><td>0.1%</td><td>4</td><td>35.7</td></tr>
-<tr class="warn"><td>YZ Cnc</td><td>yzcnc|e7|G</td><td><b>median</b></td><td>per-cycle shape-mismatched</td><td>14</td><td>385</td><td>0.15</td><td>1.80</td><td>17.2</td><td>0.01 P</td><td>0.01 P</td><td>0.1%</td><td>4</td><td>143.6</td></tr>
-<tr class="warn"><td>YZ Cnc</td><td>yzcnc|e7|G</td><td><b>median</b></td><td>per-cycle shape-mismatched</td><td>14</td><td>385</td><td>0.15</td><td>1.80</td><td>17.2</td><td>0.05 P</td><td>0.05 P</td><td>0.1%</td><td>4</td><td>137.6</td></tr>
-<tr><td>YZ Cnc</td><td>yzcnc|e7|G</td><td><b>richest</b></td><td>night-mean</td><td>72</td><td>192</td><td>0.26</td><td>1.80</td><td>17.2</td><td>0.01 P</td><td>0.01 P</td><td>0.1%</td><td>4</td><td>4.5</td></tr>
-<tr><td>YZ Cnc</td><td>yzcnc|e7|G</td><td><b>richest</b></td><td>night-mean</td><td>72</td><td>192</td><td>0.26</td><td>1.80</td><td>17.2</td><td>0.05 P</td><td>0.05 P</td><td>0.1%</td><td>4</td><td>8.5</td></tr>
-<tr><td>YZ Cnc</td><td>yzcnc|e7|G</td><td><b>richest</b></td><td>per-cycle</td><td>35</td><td>192</td><td>0.26</td><td>1.80</td><td>17.2</td><td>0.01 P</td><td>0.01 P</td><td>0.1%</td><td>4</td><td>9.4</td></tr>
-<tr><td>YZ Cnc</td><td>yzcnc|e7|G</td><td><b>richest</b></td><td>per-cycle</td><td>35</td><td>192</td><td>0.26</td><td>1.80</td><td>17.2</td><td>0.05 P</td><td>0.05 P</td><td>0.1%</td><td>4</td><td>9.4</td></tr>
-<tr><td>YZ Cnc</td><td>yzcnc|e7|G</td><td><b>richest</b></td><td>per-cycle shape-mismatched</td><td>35</td><td>192</td><td>0.26</td><td>1.80</td><td>17.2</td><td>0.01 P</td><td>0.01 P</td><td>0.1%</td><td>4</td><td>40.1</td></tr>
-<tr><td>YZ Cnc</td><td>yzcnc|e7|G</td><td><b>richest</b></td><td>per-cycle shape-mismatched</td><td>35</td><td>192</td><td>0.26</td><td>1.80</td><td>17.2</td><td>0.05 P</td><td>0.05 P</td><td>0.1%</td><td>4</td><td>51.3</td></tr>
+<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>median</b></td><td>night-mean</td><td>26</td><td>510</td><td>1.00</td><td>3.02</td><td>19.5</td><td>0.01 P</td><td>0.0398406 P</td><td>4.0%</td><td>4</td><td>3.8</td></tr>
+<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>median</b></td><td>night-mean</td><td>26</td><td>510</td><td>1.00</td><td>3.02</td><td>19.5</td><td>0.05 P</td><td>0.05 P</td><td>4.0%</td><td>4</td><td>3.6</td></tr>
+<tr class="warn"><td>VV Pup</td><td>vvpup|e76|g</td><td><b>median</b></td><td>per-cycle</td><td>10</td><td>510</td><td>1.00</td><td>3.02</td><td>19.5</td><td>0.01 P</td><td>0.0398406 P</td><td>4.0%</td><td>4</td><td>70.6</td></tr>
+<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>median</b></td><td>per-cycle</td><td>10</td><td>510</td><td>1.00</td><td>3.02</td><td>19.5</td><td>0.05 P</td><td>0.05 P</td><td>4.0%</td><td>4</td><td>35.0</td></tr>
+<tr class="warn"><td>VV Pup</td><td>vvpup|e76|g</td><td><b>median</b></td><td>per-cycle shape-mismatched</td><td>10</td><td>510</td><td>1.00</td><td>3.02</td><td>19.5</td><td>0.01 P</td><td>0.0398406 P</td><td>4.0%</td><td>4</td><td>115.2</td></tr>
+<tr class="warn"><td>VV Pup</td><td>vvpup|e76|g</td><td><b>median</b></td><td>per-cycle shape-mismatched</td><td>10</td><td>510</td><td>1.00</td><td>3.02</td><td>19.5</td><td>0.05 P</td><td>0.05 P</td><td>4.0%</td><td>4</td><td>113.5</td></tr>
+<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>richest</b></td><td>night-mean</td><td>52</td><td>124</td><td>0.93</td><td>3.02</td><td>19.5</td><td>0.01 P</td><td>0.0398406 P</td><td>4.0%</td><td>4</td><td>2.4</td></tr>
+<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>richest</b></td><td>night-mean</td><td>52</td><td>124</td><td>0.93</td><td>3.02</td><td>19.5</td><td>0.05 P</td><td>0.05 P</td><td>4.0%</td><td>4</td><td>2.5</td></tr>
+<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>richest</b></td><td>per-cycle</td><td>40</td><td>124</td><td>0.93</td><td>3.02</td><td>19.5</td><td>0.01 P</td><td>0.0398406 P</td><td>4.0%</td><td>4</td><td>1.8</td></tr>
+<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>richest</b></td><td>per-cycle</td><td>40</td><td>124</td><td>0.93</td><td>3.02</td><td>19.5</td><td>0.05 P</td><td>0.05 P</td><td>4.0%</td><td>4</td><td>1.9</td></tr>
+<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>richest</b></td><td>per-cycle shape-mismatched</td><td>40</td><td>124</td><td>0.93</td><td>3.02</td><td>19.5</td><td>0.01 P</td><td>0.0398406 P</td><td>4.0%</td><td>4</td><td>14.3</td></tr>
+<tr><td>VV Pup</td><td>vvpup|e76|g</td><td><b>richest</b></td><td>per-cycle shape-mismatched</td><td>40</td><td>124</td><td>0.93</td><td>3.02</td><td>19.5</td><td>0.05 P</td><td>0.05 P</td><td>4.0%</td><td>4</td><td>16.8</td></tr>
+<tr><td>YZ Cnc</td><td>yzcnc|e7|R</td><td><b>median</b></td><td>night-mean</td><td>33</td><td>165</td><td>0.25</td><td>1.49</td><td>18.3</td><td>0.01 P</td><td>0.01 P</td><td>0.1%</td><td>4</td><td>37.5</td></tr>
+<tr><td>YZ Cnc</td><td>yzcnc|e7|R</td><td><b>median</b></td><td>night-mean</td><td>33</td><td>165</td><td>0.25</td><td>1.49</td><td>18.3</td><td>0.05 P</td><td>0.05 P</td><td>0.1%</td><td>4</td><td>7.8</td></tr>
+<tr><td>YZ Cnc</td><td>yzcnc|e7|R</td><td><b>median</b></td><td>per-cycle</td><td>33</td><td>165</td><td>0.25</td><td>1.49</td><td>18.3</td><td>0.01 P</td><td>0.01 P</td><td>0.1%</td><td>4</td><td>37.5</td></tr>
+<tr><td>YZ Cnc</td><td>yzcnc|e7|R</td><td><b>median</b></td><td>per-cycle</td><td>33</td><td>165</td><td>0.25</td><td>1.49</td><td>18.3</td><td>0.05 P</td><td>0.05 P</td><td>0.1%</td><td>4</td><td>7.8</td></tr>
+<tr><td>YZ Cnc</td><td>yzcnc|e7|R</td><td><b>median</b></td><td>per-cycle shape-mismatched</td><td>33</td><td>165</td><td>0.25</td><td>1.49</td><td>18.3</td><td>0.01 P</td><td>0.01 P</td><td>0.1%</td><td>4</td><td>57.7</td></tr>
+<tr><td>YZ Cnc</td><td>yzcnc|e7|R</td><td><b>median</b></td><td>per-cycle shape-mismatched</td><td>33</td><td>165</td><td>0.25</td><td>1.49</td><td>18.3</td><td>0.05 P</td><td>0.05 P</td><td>0.1%</td><td>4</td><td>58.7</td></tr>
+<tr><td>YZ Cnc</td><td>yzcnc|e7|R</td><td><b>richest</b></td><td>night-mean</td><td>69</td><td>193</td><td>0.26</td><td>1.49</td><td>18.3</td><td>0.01 P</td><td>0.01 P</td><td>0.1%</td><td>4</td><td>3.8</td></tr>
+<tr><td>YZ Cnc</td><td>yzcnc|e7|R</td><td><b>richest</b></td><td>night-mean</td><td>69</td><td>193</td><td>0.26</td><td>1.49</td><td>18.3</td><td>0.05 P</td><td>0.05 P</td><td>0.1%</td><td>4</td><td>8.1</td></tr>
+<tr><td>YZ Cnc</td><td>yzcnc|e7|R</td><td><b>richest</b></td><td>per-cycle</td><td>31</td><td>193</td><td>0.26</td><td>1.49</td><td>18.3</td><td>0.01 P</td><td>0.01 P</td><td>0.1%</td><td>4</td><td>28.2</td></tr>
+<tr><td>YZ Cnc</td><td>yzcnc|e7|R</td><td><b>richest</b></td><td>per-cycle</td><td>31</td><td>193</td><td>0.26</td><td>1.49</td><td>18.3</td><td>0.05 P</td><td>0.05 P</td><td>0.1%</td><td>4</td><td>6.9</td></tr>
+<tr><td>YZ Cnc</td><td>yzcnc|e7|R</td><td><b>richest</b></td><td>per-cycle shape-mismatched</td><td>31</td><td>193</td><td>0.26</td><td>1.49</td><td>18.3</td><td>0.01 P</td><td>0.01 P</td><td>0.1%</td><td>4</td><td>44.7</td></tr>
+<tr><td>YZ Cnc</td><td>yzcnc|e7|R</td><td><b>richest</b></td><td>per-cycle shape-mismatched</td><td>31</td><td>193</td><td>0.26</td><td>1.49</td><td>18.3</td><td>0.05 P</td><td>0.05 P</td><td>0.1%</td><td>4</td><td>48.3</td></tr>
 </table>
 <div class="decision"><b>Decision.</b> On the <b>richest</b> night, with the
 edge shape known exactly, per-cycle &sigma;<sub>t</sub> is
-<b>1.8&ndash;26 s</b> &mdash; the 60 s
+<b>1.8&ndash;28 s</b> &mdash; the 60 s
 threshold is <em>met</em>. With the shape and depth assumed wrong it rises to
-<b>14.3&ndash;51 s</b>. On the
+<b>14.3&ndash;50 s</b>. On the
 <b>median-density</b> night, which is what the tier will mostly be built
 from, the same two answers are
-2.3&ndash;150 s and
-<b>17.4&ndash;144 s</b>. On ST LMi,
+2.3&ndash;77 s and
+<b>17.4&ndash;115 s</b>. On ST LMi,
 the flagship, the mismatched answer is
 47&ndash;50 s on its best night and
 71&ndash;76 s on a typical one.
@@ -966,16 +1020,16 @@ the verdicts are the strategy document's <em>own</em> stated requirements;
 this page tests the plan against the data, it does not invent new criteria.</p>
 <table class="data">
 <tr><th>#</th><th>goal</th><th>the claim it needs</th><th>verdict</th><th>the number that decides it</th><th>why</th><th>what the data can support instead</th></tr>
-<tr class="warn"><td><b>Q1</b></td><td>Accretion-state-resolved, orbit-phase-resolved cyclotron colour curves of ST LMi, VV Pup and EU UMa (two within-era analyses each)</td><td>single-night, cycle-resolved, state-tagged quasi-simultaneous three-colour coverage</td><td><b>SUPPORTED-WITH-CAVEATS</b></td><td>full-orbit nights carrying ALL THREE filters, of all full-orbit nights: ST LMi 15 of 27; VV Pup 0 of 14; EU UMa 0 of 18; AN UMa 4 of 11. median COLOUR-point error vs the single-band precision it was graded on: AN UMa 86 mmag vs 24 mmag (3.6x, 12 band pairs, median filter offset 252 s); ST LMi 43 mmag vs 20 mmag (2.1x, 45 band pairs, median filter offset 118 s); YZ Cnc 29 mmag vs 17 mmag (1.7x, 21 band pairs, median filter offset 79 s)</td><td>A colour curve needs one night, three filters, a whole orbit. Counted from the USABLE frames: a night qualifies when its span exceeds one orbital period in &gt;= 12 frames of that filter. The precision quoted is the COLOUR point's, not one band's: the filters interleave rather than fire together, so the target's own sweep between the two exposures enters in quadrature and is usually the largest term.</td><td>ST LMi carries a genuine three-colour claim and carries it well. VV Pup and EU UMa do not: their colour panels have essentially no three-filter full-orbit nights to draw on and should be replaced by single-band folded morphology plus state history. Retitle the paper around ST LMi rather than around three polars, and quote colours with the non-simultaneity term attached - on the bright-phase edges it dominates.</td></tr>
-<tr class="warn"><td><b>Q2</b></td><td>Bright-phase timing as an accretion-spot longitude tracker (per-cycle O-C against decades-baseline ephemerides)</td><td>per-cycle sigma_t &lt; 60 s, demonstrated by injection before adoption (strategy §4.16)</td><td><b>SUPPORTED-WITH-CAVEATS</b></td><td>ST LMi per-cycle sigma_t, shape known exactly / shape 5x wrong and depth 20% wrong: RICHEST night 26 s / 50 s (cadence 219 s); MEDIAN-density night 77 s / 76 s (cadence 389 s) - ABOVE the 60 s bar. Night-mean 2.2 s. 27 full-orbit nights are available to the tier</td><td>The 60 s threshold is met on the demonstration night with almost no margin once the edge shape is admitted to be unknown - and the shape IS unknown and colour-dependent. On the median night it is not met at all. sigma_t is set by whether samples land on the ingress ramp, so it tracks CADENCE, not signal-to-noise: the two nights differ by a factor of about two in cadence and that alone moves sigma_t across the bar. A per-cycle tier therefore exists, but only on the dense half of the nights.</td><td>Report per-cycle timings only from nights whose cadence matches the demonstration night, with an explicit shape-systematic term of ~50 s; fall back to night-mean timings elsewhere (the strategy's own §6.10a), which are an order of magnitude better and carry the same shape question. And fix the cadence: a faster filter cycle is worth more here than any realistic gain in signal-to-noise.</td></tr>
+<tr class="warn"><td><b>Q1</b></td><td>Accretion-state-resolved, orbit-phase-resolved cyclotron colour curves of ST LMi, VV Pup and EU UMa (two within-era analyses each)</td><td>single-night, cycle-resolved, state-tagged quasi-simultaneous three-colour coverage</td><td><b>SUPPORTED-WITH-CAVEATS</b></td><td>full-orbit nights carrying ALL THREE filters, of all full-orbit nights: ST LMi 16 of 28; VV Pup 0 of 14; EU UMa 0 of 19; AN UMa 4 of 11. median COLOUR-point error vs the single-band precision it was graded on: AN UMa 86 mmag vs 24 mmag (3.6x, 12 band pairs, median filter offset 252 s); ST LMi 43 mmag vs 21 mmag (2.1x, 48 band pairs, median filter offset 122 s); YZ Cnc 33 mmag vs 17 mmag (1.9x, 24 band pairs, median filter offset 74 s)</td><td>A colour curve needs one night, three filters, a whole orbit. Counted from the USABLE frames: a night qualifies when its span exceeds one orbital period in &gt;= 12 frames of that filter. The precision quoted is the COLOUR point's, not one band's: the filters interleave rather than fire together, so the target's own sweep between the two exposures enters in quadrature and is usually the largest term.</td><td>ST LMi carries a genuine three-colour claim and carries it well. VV Pup and EU UMa do not: their colour panels have essentially no three-filter full-orbit nights to draw on and should be replaced by single-band folded morphology plus state history. Retitle the paper around ST LMi rather than around three polars, and quote colours with the non-simultaneity term attached - on the bright-phase edges it dominates.</td></tr>
+<tr class="warn"><td><b>Q2</b></td><td>Bright-phase timing as an accretion-spot longitude tracker (per-cycle O-C against decades-baseline ephemerides)</td><td>per-cycle sigma_t &lt; 60 s, demonstrated by injection before adoption (strategy §4.16)</td><td><b>SUPPORTED-WITH-CAVEATS</b></td><td>ST LMi per-cycle sigma_t, shape known exactly / shape 5x wrong and depth 20% wrong: RICHEST night 26 s / 50 s (cadence 219 s); MEDIAN-density night 77 s / 76 s (cadence 389 s) - ABOVE the 60 s bar. Night-mean 2.2 s. 28 full-orbit nights are available to the tier</td><td>The 60 s threshold is met on the demonstration night with almost no margin once the edge shape is admitted to be unknown - and the shape IS unknown and colour-dependent. On the median night it is not met at all. sigma_t is set by whether samples land on the ingress ramp, so it tracks CADENCE, not signal-to-noise: the two nights differ by a factor of about two in cadence and that alone moves sigma_t across the bar. A per-cycle tier therefore exists, but only on the dense half of the nights.</td><td>Report per-cycle timings only from nights whose cadence matches the demonstration night, with an explicit shape-systematic term of ~50 s; fall back to night-mean timings elsewhere (the strategy's own §6.10a), which are an order of magnitude better and carry the same shape question. And fix the cadence: a faster filter cycle is worth more here than any realistic gain in signal-to-noise.</td></tr>
 <tr class="warn"><td><b>Q3</b></td><td>YZ Cnc 2024: superhump period (and dP_sh/dt) inside confirmed outburst states; orbital hump + flickering in quiescence</td><td>detect and time a 0.1-0.3 mag superhump on consecutive-night blocks</td><td><b>SUPPORTED-WITH-CAVEATS</b></td><td>90% recovery semi-amplitude at P_orb, scored as DETECTION at a known period: 12 mmag on the richest single night [11 mmag-13 mmag], 8 mmag on the detrended season. Scored instead as blind period DETERMINATION the same night gives 187 mmag - the number the first version of this page quoted, which measures the 2.1 cycles the night holds, not the amplitude</td><td>Superhumps have semi-amplitudes of 50-150 mmag. YZ Cnc's superhump period is not known in advance the way P_orb is, so the blind-search contour is the relevant one for measuring P_sh - but detecting that a superhump is PRESENT on a given night is the known-period question, and one night answers it comfortably. The consecutive-night blocks remain the measurement of dP_sh/dt, exactly as the strategy assumes.</td><td>If the dense runs were quiescent, flickering statistics and the orbital hump are comfortably measurable at this precision - but no multi-year period change, as the strategy already forbids.</td></tr>
 <tr class="warn"><td><b>S1</b></td><td>Absolute calibration: 'nightly REFCAT2 tie -&gt; PS1 AB to 0.01-0.02 mag' (strategy §5)</td><td>every published magnitude on a standard system</td><td><b>NOT SUPPORTED</b></td><td>8 of 14 (target, era) blocks carry a catalogue magnitude tie; the other 6 were tied by WCS with zero catalogue matches, so their magnitudes sit on the ensemble's own arbitrary gauge</td><td>Ensemble differential photometry fixes RELATIVE magnitudes only. Nothing measured here is wrong because of it - every precision number on this page is differential - but no magnitude can be published on a standard system until the tie is made, and Q4's cross-survey framing depends on it.</td><td>Publish differential magnitudes plus per-series offsets now, and make the catalogue tie a separate, testable stage. This is the highest-value single action on the whole list.</td></tr>
 <tr class="warn"><td><b>S2</b></td><td>Cross-era colour comparison after the 2024-05 instrument seam (strategy §4.13/4.13a)</td><td>morphology-level cross-era comparison, never zero points</td><td><b>SUPPORTED-WITH-CAVEATS</b></td><td>eras never overlap in time for any target (AN UMa: no overlap; EU UMa: no overlap; ST LMi: no overlap; VV Pup: no overlap; YZ Cnc: no overlap)</td><td>Camera and epoch are perfectly confounded, exactly as the strategy states; nothing in the measured data relaxes it.</td><td>Keep the within-era discipline. The October 2026 g/r/i season is the only real repair, and it repairs ST LMi only.</td></tr>
-<tr class="warn"><td><b>Q4</b></td><td>Long-term accretion-state duty cycles for the three polars, embedded in the survey record</td><td>nightly means good to much better than the 1-3 mag high/low state separation</td><td><b>SUPPORTED-WITH-CAVEATS</b></td><td>independent epochs per target: AN UMa 13 nights over 382 d (+/-14 pp on a 50% duty cycle); EU UMa 29 nights over 510 d (+/-9 pp on a 50% duty cycle); ST LMi 33 nights over 740 d (+/-9 pp on a 50% duty cycle); VV Pup 27 nights over 434 d (+/-10 pp on a 50% duty cycle); YZ Cnc 23 nights over 93 d (+/-10 pp on a 50% duty cycle). Catalogue tie: 8 of 14 (target, era) blocks</td><td>Classifying ONE night is easy - per-point precision beats the state separation by a factor of 20-100, which is what this verdict used to say. It is not what the goal asks. A duty cycle is a fraction of time, so its error bar is binomial in the number of independent nights: 33-13 nights give +/-9 to +/-14 percentage points, before any correction for seasonal observability bias in WHEN those nights fall. And 'embedded in the survey record' means joining ASAS-SN/ZTF, which needs the catalogue tie S1 grades NOT SUPPORTED.</td><td>State the duty cycle with its binomial interval and the season structure, or restrict the claim to within-series relative state history, where the ensemble gauge is stable and no tie is needed. Q4 and S1 cannot both stand as they were written.</td></tr>
+<tr class="warn"><td><b>Q4</b></td><td>Long-term accretion-state duty cycles for the three polars, embedded in the survey record</td><td>nightly means good to much better than the 1-3 mag high/low state separation</td><td><b>SUPPORTED-WITH-CAVEATS</b></td><td>independent epochs per target: AN UMa 13 nights over 382 d (+/-14 pp on a 50% duty cycle); EU UMa 31 nights over 510 d (+/-9 pp on a 50% duty cycle); ST LMi 36 nights over 742 d (+/-8 pp on a 50% duty cycle); VV Pup 27 nights over 434 d (+/-10 pp on a 50% duty cycle); YZ Cnc 24 nights over 110 d (+/-10 pp on a 50% duty cycle). Catalogue tie: 8 of 14 (target, era) blocks</td><td>Classifying ONE night is easy - per-point precision beats the state separation by a factor of 20-100, which is what this verdict used to say. It is not what the goal asks. A duty cycle is a fraction of time, so its error bar is binomial in the number of independent nights: 36-13 nights give +/-8 to +/-14 percentage points, before any correction for seasonal observability bias in WHEN those nights fall. And 'embedded in the survey record' means joining ASAS-SN/ZTF, which needs the catalogue tie S1 grades NOT SUPPORTED.</td><td>State the duty cycle with its binomial interval and the season structure, or restrict the claim to within-series relative state history, where the ensemble gauge is stable and no tie is needed. Q4 and S1 cannot both stand as they were written.</td></tr>
 <tr class="warn"><td><b>Q5</b></td><td>AN UMa as a fifth target in the colour analysis</td><td>at least 8 full-orbit nights with all three filters</td><td><b>NOT SUPPORTED</b></td><td>three-filter full-orbit nights measured: 4 (criterion: &gt;= 8); 11 full-orbit nights in any filter</td><td>The strategy set this criterion itself and the solved photometry answers it directly.</td><td>Timing and state history only, or drop - the strategy's own fallback. The AN UMa photometry is good; it is the three-filter scheduling that fails.</td></tr>
-<tr class="warn"><td><b>S3</b></td><td>Period verification from the multi-season data - 'confirmation and alias hygiene' (strategy §4.15)</td><td>select the right alias family from the combined seasons</td><td><b>SUPPORTED-WITH-CAVEATS</b></td><td>the +/-1 c/d aliases carry up to 0.84 of the window power on the resolved multi-night sets (0.93 including the sidereal comb). MEASURED misidentification rate of the tallest peak, by injected semi-amplitude: 50 mmag -&gt; 96% true, 4% alias; 100 mmag -&gt; 99% true, 0% alias; 500 mmag -&gt; 100% true, 0% alias; 1000 mmag -&gt; 100% true, 0% alias</td><td>Window power says how much power the SAMPLING makes available at f +/- k c/d. It cannot say whether the wrong peak wins - that depends on the signal's amplitude and on how many nights there are, and both are measurable with the injection machinery this page already owns. Measured, the tallest peak lands on the true frequency at every amplitude these polars actually show (0.5-2 mag, one to two orders above the season contour). The alias risk is real at threshold amplitudes and negligible at the real ones. Note also that the headline window number is the maximum over the solar AND sidereal combs; for ground-based scheduling the solar-day comb is the relevant one.</td><td>Publish the window, the solar-day alias power and the measured misidentification rate beside every periodogram, and state the alias caveat as amplitude-dependent rather than absolute.</td></tr>
-<tr class="warn"><td><b>S4</b></td><td>Detection limits quoted as A_min = sigma sqrt(4z/N) (strategy §4.21: 4-8 mmag per target)</td><td>an analytic detection limit on white, alias-free data</td><td><b>NOT SUPPORTED</b></td><td>the MEASURED 90% recovery amplitude at a KNOWN period is 0.5-2.8x the analytic formula at the same sigma and N (14 contours) - i.e. the formula errs in BOTH directions; for blind period DETERMINATION on the multi-night sets it is 1.5-4.9x, and on a single night 6.0-19.3x. Median Allan slope -0.37 against a white-noise NULL of -0.55 for ladders this short (not -0.50); 30 of 88 ladders are redder than their own 95th-percentile null</td><td>The formula assumes white noise, an alias-free window, and one fixed look-elsewhere factor z. This archive has none of the three, and the errors do not even share a sign: at a KNOWN period the formula is conservative (it charges a blind-search penalty the paper does not owe), while for a genuine blind search it is optimistic by up to a factor of five. A single number that is wrong by 2-3x in either direction depending on which question is asked cannot be a detection limit. Note that the first version of this page reported 1.5-8.5x, and its largest ratios came from single-night scopes scored on period determination - where the acceptance window is 20-70x narrower than the peak and no amplitude can succeed.</td><td>Quote the injection contour, per target, per regime and per SCORE MODE. Per-night detrending recovers part of the gap and its cost is measured here too (regime 'season-dt').</td></tr>
-<tr class="warn"><td><b>S5</b></td><td>Expected precision: '8-10 mmag/frame at r &lt;= 15, 20-25 mmag at r = 16.5' (strategy §5)</td><td>per-frame precision as a function of brightness</td><td><b>SUPPORTED-WITH-CAVEATS</b></td><td>best measured floor 8.4 mmag, typical floor 14 mmag; achieved precision at the targets themselves 9 mmag-75 mmag. Magnitude-matched field stars (including every star the comp stability cut dropped) scatter 0.96x as much as the held-out check stars over 24 series</td><td>The 8-25 mmag band is right for the BRIGHT end. It is not what the targets get: every CV here sits near the faint end of its own comparison ensemble, so the number that matters is several times worse than the headline. The check stars ARE a selected sample - survivors of the comp stability cut, drawn nearest the target's brightness - so their scatter was tested against every star of the same brightness whatever role it was given. The ratio is close to 1, so the precision numbers are not optimistic by selection.</td><td>State the precision AT EACH TARGET'S BRIGHTNESS, not the best the camera can do. The floor itself is instrumental (tens of times scintillation) and is the thing to attack.</td></tr>
+<tr class="warn"><td><b>S3</b></td><td>Period verification from the multi-season data - 'confirmation and alias hygiene' (strategy §4.15)</td><td>select the right alias family from the combined seasons</td><td><b>SUPPORTED-WITH-CAVEATS</b></td><td>the +/-1 c/d aliases carry up to 0.83 of the window power on the resolved multi-night sets (0.93 including the sidereal comb). MEASURED misidentification rate of the tallest peak, by injected semi-amplitude: 50 mmag -&gt; 96% true, 4% alias; 100 mmag -&gt; 100% true, 0% alias; 500 mmag -&gt; 100% true, 0% alias; 1000 mmag -&gt; 100% true, 0% alias</td><td>Window power says how much power the SAMPLING makes available at f +/- k c/d. It cannot say whether the wrong peak wins - that depends on the signal's amplitude and on how many nights there are, and both are measurable with the injection machinery this page already owns. Measured, the tallest peak lands on the true frequency at every amplitude these polars actually show (0.5-2 mag, one to two orders above the season contour). The alias risk is real at threshold amplitudes and negligible at the real ones. Note also that the headline window number is the maximum over the solar AND sidereal combs; for ground-based scheduling the solar-day comb is the relevant one.</td><td>Publish the window, the solar-day alias power and the measured misidentification rate beside every periodogram, and state the alias caveat as amplitude-dependent rather than absolute.</td></tr>
+<tr class="warn"><td><b>S4</b></td><td>Detection limits quoted as A_min = sigma sqrt(4z/N) (strategy §4.21: 4-8 mmag per target)</td><td>an analytic detection limit on white, alias-free data</td><td><b>NOT SUPPORTED</b></td><td>the MEASURED 90% recovery amplitude at a KNOWN period is 0.5-2.8x the analytic formula at the same sigma and N (17 contours) - i.e. the formula errs in BOTH directions; for blind period DETERMINATION on the multi-night sets it is 1.5-4.9x, and on a single night 6.0-19.3x. Median Allan slope -0.40 against a white-noise NULL of -0.55 for ladders this short (not -0.50); 24 of 88 ladders are redder than their own 95th-percentile null</td><td>The formula assumes white noise, an alias-free window, and one fixed look-elsewhere factor z. This archive has none of the three, and the errors do not even share a sign: at a KNOWN period the formula is conservative (it charges a blind-search penalty the paper does not owe), while for a genuine blind search it is optimistic by up to a factor of five. A single number that is wrong by 2-3x in either direction depending on which question is asked cannot be a detection limit. Note that the first version of this page reported 1.5-8.5x, and its largest ratios came from single-night scopes scored on period determination - where the acceptance window is 20-70x narrower than the peak and no amplitude can succeed.</td><td>Quote the injection contour, per target, per regime and per SCORE MODE. Per-night detrending recovers part of the gap and its cost is measured here too (regime 'season-dt').</td></tr>
+<tr class="warn"><td><b>S5</b></td><td>Expected precision: '8-10 mmag/frame at r &lt;= 15, 20-25 mmag at r = 16.5' (strategy §5)</td><td>per-frame precision as a function of brightness</td><td><b>SUPPORTED-WITH-CAVEATS</b></td><td>best measured floor 8.4 mmag, typical floor 13 mmag; achieved precision at the targets themselves 9 mmag-75 mmag. Magnitude-matched field stars (including every star the comp stability cut dropped) scatter 0.93x as much as the held-out check stars over 24 series</td><td>The 8-25 mmag band is right for the BRIGHT end. It is not what the targets get: every CV here sits near the faint end of its own comparison ensemble, so the number that matters is several times worse than the headline. The check stars ARE a selected sample - survivors of the comp stability cut, drawn nearest the target's brightness - so their scatter was tested against every star of the same brightness whatever role it was given. The ratio is close to 1, so the precision numbers are not optimistic by selection.</td><td>State the precision AT EACH TARGET'S BRIGHTNESS, not the best the camera can do. The floor itself is instrumental (tens of times scintillation) and is the thing to attack.</td></tr>
 </table>
 <div class="decision"><b>Decision.</b> 0 goal(s) survive unqualified,
 7 survive with stated caveats, and 3 do not survive contact with
@@ -984,15 +1038,15 @@ rest are supporting sections or should be dropped.</div>
 <h3>Consequence &mdash; what to measure next, ranked</h3>
 <p class="sub">In the order that most changes what this data set can claim:</p>
 <ol class="sub">
-<li><b>Tie the ensemble to a catalogue.</b> 6 of
+<li><b>Tie the ensemble to a catalogue.</b> 7 of
 14 (target, era) blocks carry no magnitude tie at all, so their
 magnitudes are on an arbitrary internal gauge. Nothing else on this list is
 worth as much per hour of work: it converts every light curve from relative
 to publishable, and it is a re-run of an existing stage, not new code.</li>
-<li><b>Re-run the 0 failed field ties</b>
-(),
+<li><b>Re-run the 1 failed field ties</b>
+(EU UMa era 78),
 lost to archive HTTP errors. Without them those blocks have no target light
-curve at all &mdash; 0 measured frames currently produce
+curve at all &mdash; 208 measured frames currently produce
 no science point.</li>
 <li><b>Measure the per-filter cadence into the observing plan.</b> &sect;5
 shows epoch precision is sampling-limited; a filter cycle that returns to

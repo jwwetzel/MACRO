@@ -95,7 +95,7 @@ Emitted by `committee/work/cv-literature/literature_scales.py`. Do not edit by h
 | name | value | computed as |
 |---|---|---|
 | `vsx_minus_cropper_sigma` | 0.5 | (P_VSX - P_Cropper) / sigma_Cropper |
-| `ours_minus_cropper_sigma` | -0.585652 | (P_refit - P_Cropper) / sqrt(sigma_refit^2 + sigma_Cropper^2) |
+| `ours_minus_cropper_sigma` | -0.603602 | (P_refit - P_Cropper) / sqrt(sigma_refit^2 + sigma_Cropper^2) |
 | `cropper_drift_cycles` | 0.0221209 | NumStLmiCycles x sigma_P(Cropper) / P: phase drift over the paper's cycle count under the only PUBLISHED period uncertainty |
 | `cropper_drift_margin` | 22.6031 | 0.5 cycle / that drift |
 | `cycles_cropper_to_vsx` | 180034 | (T_VSX - T_Cropper) / P_Cropper |

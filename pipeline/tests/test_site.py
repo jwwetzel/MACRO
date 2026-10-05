@@ -361,13 +361,21 @@ def test_a_view_that_does_not_exist_is_named_rather_than_linked():
     assert cv["Draft Paper"].rel == "CV_TimeSeries/paper.html"
 
 
-def test_exactly_one_project_has_a_draft_and_it_is_measured_not_declared():
+#: Projects whose manuscript has been WRITTEN, as of the last time a person
+#: checked.  The site decides "draft" by measuring prose; this list exists so
+#: that a project crossing the threshold is a deliberate, reviewed change here
+#: rather than a silent one on the site.  SN 2023ixf joined on 2026-10-04,
+#: when its five-page release paper was written (SN-draft).
+WRITTEN_PROJECTS = ["CV_TimeSeries", "SN2023ixf_LightCurve"]
+
+
+def test_the_drafts_are_measured_not_declared():
     """Five projects carry the same AASTeX skeleton and two of them have a
     compiled PDF, so neither a ``main.tex`` nor a ``main.pdf`` distinguishes
     a draft.  Prose does."""
     build = site.Build(DOCS_DIR, REPO_ROOT, site.DEFAULT_MANIFEST)
     with_draft = [a.key for a in build.areas if build.paper_pdf(a)]
-    assert with_draft == ["CV_TimeSeries"]
+    assert with_draft == WRITTEN_PROJECTS
 
 
 def test_a_skeleton_and_a_draft_are_far_apart_not_near_the_threshold():
@@ -379,9 +387,9 @@ def test_a_skeleton_and_a_draft_are_far_apart_not_near_the_threshold():
         return max([s.chars for s in site.tex_sections(
             tex.read_text(encoding="utf-8"))] or [0])
 
-    assert longest("CV_TimeSeries") > 10 * site.WRITTEN_CHARS
-    for key in ("TCrB_Monitoring", "BeStar_Grism", "SN2023ixf_LightCurve",
-                "DwarfGalaxy_AGN_Survey"):
+    for key in WRITTEN_PROJECTS:
+        assert longest(key) > 10 * site.WRITTEN_CHARS, key
+    for key in ("TCrB_Monitoring", "BeStar_Grism", "DwarfGalaxy_AGN_Survey"):
         assert longest(key) < site.WRITTEN_CHARS / 4, key
 
 
@@ -535,10 +543,21 @@ def test_the_manuscript_figures_carry_the_manuscripts_own_captions():
     """They belong to no page, so their captions come from ``p5_figure`` —
     the same table the LaTeX pastes from, which is why the Figures view and
     the paper cannot disagree about what a figure says."""
+    import sqlite3
     build = site.Build(DOCS_DIR, REPO_ROOT, site.DEFAULT_MANIFEST)
-    assert len(build.paper_figs) == 13
+    con = sqlite3.connect(f"file:{REPO_ROOT}/products/phot/"
+                          "cv_timeseries.sqlite?mode=ro", uri=True)
+    # One figure per table row, in both sets: the manuscript's (p5_figure)
+    # and the major revision's evidence figures (rv_figure).
+    for table, category in (("p5_figure", "cv_paper"),
+                            ("rv_figure", "cv_revision")):
+        n_rows = con.execute(f"SELECT count(*) FROM {table} WHERE "
+                             "png_path IS NOT NULL").fetchone()[0]
+        shown = [f for f in build.paper_figs if f.category == category]
+        assert len(shown) == n_rows, table
+    assert {f.category for f in build.paper_figs} <= {"cv_paper",
+                                                      "cv_revision"}
     for figure in build.paper_figs:
-        assert figure.category == "cv_paper"
         assert len(figure.caption) > 60
 
 

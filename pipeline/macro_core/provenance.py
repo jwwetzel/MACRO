@@ -1161,6 +1161,23 @@ def _f(key: str, path: str, why: str) -> None:
     _reg(ResourceSpec(key=key, kind="file", name=path, why=why))
 
 
+for _key, _path, _why in (
+    ("file:products/clock/clock_transits.sqlite",
+     "products/clock/clock_transits.sqlite",
+     "S3b's own product: archived transit and eclipse timings per era, "
+     "fingerprinted whole because every table in it is one stage's output."),
+    ("file:docs/pipeline/s3b_clock.html", "docs/pipeline/s3b_clock.html",
+     "The absolute-clock evidence page."),
+    ("file:products/sn/sn2023ixf.sqlite", "products/sn/sn2023ixf.sqlite",
+     "The SN 2023ixf photometry, calibration, limits and release product; "
+     "fingerprinted whole because one stage writes all of it."),
+    ("file:docs/SN2023ixf_LightCurve/sn_release.html",
+     "docs/SN2023ixf_LightCurve/sn_release.html",
+     "The SN 2023ixf release and validation page."),
+):
+    _f(_key, _path, _why)
+
+
 # ---- CV-S9 outputs (Phase-3 time-series analysis) -------------------------
 # The six questions Phase 3 exists to answer.  All six are DECISIONS about
 # what may be published, so all six sit in the graph: a moved period moves
@@ -1578,12 +1595,15 @@ def _code_versions() -> dict[str, str]:
     from rlmt_diagnostics import S2_CODE_VERSION
     from macro_grism.gate import G_CODE_VERSION
     from macro_sn import SN_G0_CODE_VERSION
+    from macro_sn import SN_PHOT_CODE_VERSION
+    from macro_core.clock_transits import S3B_CODE_VERSION
     return {"S0": S0_CODE_VERSION, "S0b": S0B_CODE_VERSION,
             "S0c": S0C_CODE_VERSION, "S1": S1_CODE_VERSION,
             "S1b": S1B_CODE_VERSION, "S2": S2_CODE_VERSION,
             "S3": S3_CODE_VERSION, "S4": S4_CODE_VERSION,
             "G": G_CODE_VERSION, "SN-G0": SN_G0_CODE_VERSION,
-            "R-SN-G0": SN_G0_CODE_VERSION}
+            "R-SN-G0": SN_G0_CODE_VERSION,
+            "S3b": S3B_CODE_VERSION, "SN-PHOT": SN_PHOT_CODE_VERSION}
 
 
 #: Commands that are typed by a person rather than run by a script.  They are
@@ -2295,6 +2315,37 @@ STAGES: tuple[Stage, ...] = (
                    "the per-frame verdicts in frame_dispersion)"),
         note="Hand-authored; their per-target counts and filter rules are "
              "claims about frames and must be re-reconciled when it moves."),
+    Stage(
+        key="S3b", title="Absolute clock from archived transits",
+        code_version="S3B_CODE_VERSION",
+        reads=("table:frames", "table:frame_times"),
+        writes=("file:products/clock/clock_transits.sqlite",
+                "file:docs/pipeline/s3b_clock.html"),
+        build_cmd="python pipeline/scripts/build_s3b_clock_transits.py --stage all",
+        note="Times archived exoplanet transits and eclipses per camera era "
+             "against published ephemerides; the per-era O-C is the clock "
+             "bound every absolute epoch in the CV and SN papers carries."),
+    Stage(
+        key="SN-PHOT", title="SN 2023ixf photometry, limits and release",
+        code_version="SN_PHOT_CODE_VERSION",
+        reads=("table:sn_g0_frames", "table:sn_g0_census",
+               "table:detector_params", "table:frame_dispersion"),
+        writes=("file:products/sn/sn2023ixf.sqlite",
+                "file:docs/SN2023ixf_LightCurve/sn_release.html"),
+        build_cmd=("python pipeline/scripts/run_sn_photometry.py frames\n"
+                   "python pipeline/scripts/run_sn_photometry.py measure\n"
+                   "python pipeline/scripts/run_sn_photometry.py calibrate\n"
+                   "python pipeline/scripts/run_sn_photometry.py photometry\n"
+                   "python pipeline/scripts/run_sn_photometry.py templates\n"
+                   "python pipeline/scripts/run_sn_photometry.py residuals\n"
+                   "python pipeline/scripts/run_sn_photometry.py variability\n"
+                   "python pipeline/scripts/run_sn_photometry.py latetime\n"
+                   "python pipeline/scripts/run_sn_photometry.py release\n"
+                   "python pipeline/scripts/run_sn_photometry.py report"),
+        note="Everything downstream of Gate 0: calibration to REFCAT2 with "
+             "held-out check stars, two-regime photometry under the S2 "
+             "linearity cap, residuals against the published light curve, "
+             "variability and late-time limits, and the release tables."),
     Stage(
         key="WEB", title="The public site (plan pages, landing, cases)",
         code_version="(hand-authored)",

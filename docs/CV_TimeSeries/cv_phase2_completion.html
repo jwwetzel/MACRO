@@ -3,7 +3,7 @@
 <title>CV Time Series &mdash; Phase 2 Completion</title>
 <link rel="stylesheet" href="../assets/macro.css">
 </head><body>
-<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">9/9 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" aria-current="page" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">34/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">7/26 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
+<div class="topbar"><nav class="topbar-inner" aria-label="Projects"><a class="brand" href="../index.html"><span class="dot"></span>MACRO</a><a class="navitem shared" href="../pipeline/index.html" title="Data &amp; Instrument Characterization"><span class="n">Data &amp; Instrument</span><span class="m">10/10 stages fresh</span></a><a class="navitem" href="../TCrB_Monitoring/case.html" title="T CrB Pre-Eruption Monitoring"><span class="n">T CrB</span><span class="m">3/41 done</span></a><a class="navitem" aria-current="page" href="../CV_TimeSeries/case.html" title="Cataclysmic-Variable Time Series (reopened)"><span class="n">CV Time Series</span><span class="m">46/49 done</span></a><a class="navitem" href="../SN2023ixf_LightCurve/case.html" title="SN 2023ixf: +5.4 to +50 d Validation and Limits Release"><span class="n">SN 2023ixf</span><span class="m">21/25 done</span></a><a class="navitem" href="../BeStar_Grism/case.html" title="Be-Star Grism Campaign"><span class="n">Be-Star</span><span class="m">4/28 done</span></a><a class="navitem" href="../DwarfGalaxy_AGN_Survey/case.html" title="Dwarf-Galaxy Candidates: Hα Vetting"><span class="n">Dwarf Galaxies</span><span class="m">1/28 done</span></a><a class="navitem" href="../Legacy_Rigel/case.html" title="Legacy Archive 2015–2022 (census only)"><span class="n">Legacy Rigel</span><span class="m">0/15 done</span></a></nav></div>
 <div class="tabbar"><nav class="tabbar-inner" aria-label="Cataclysmic-Variable Time Series (reopened) views"><a class="tab" href="../CV_TimeSeries/case.html">The Case</a><a class="tab" href="../CV_TimeSeries/figures.html">Figures</a><a class="tab" href="../CV_TimeSeries/paper.html">Draft Paper</a><a class="tab" href="../CV_TimeSeries/index.html">Plan &amp; Status</a><a class="tab" aria-current="page" href="../CV_TimeSeries/evidence.html">Evidence Detail</a></nav></div>
 <div class="crumbs"><nav aria-label="Breadcrumb"><ol><li><a href="../index.html">Home</a></li><li><a href="../CV_TimeSeries/case.html">Cataclysmic-Variable Time Series (reopened)</a></li><li><a href="../CV_TimeSeries/evidence.html">Evidence Detail</a></li><li aria-current="page">Cataclysmic-Variable Time Series — closing out Phase 2…</li></ol></nav></div>
 <div class="layout">
@@ -18,10 +18,10 @@
   polars &middot; the colour-extinction terms measured rather than assumed
   &middot; the cross-era transformation published as metadata and applied to
   nothing &middot; the faint-phase epochs bounded instead of dropped
-  &middot; 850 frames flagged, 111 upper limits &middot;
-  built 2026-10-04T05:21Z
+  &middot; 852 frames flagged, 111 upper limits &middot;
+  built 2026-10-05T01:20Z
   (CV-S8 v1.0 (2026-08-19, Phase-2 completion),
-  commit <code>71d42d2-dirty</code>)
+  commit <code>6f75a53-dirty</code>)
   &middot; <a href="cv_catalogue_tie.html">the catalogue tie this rests
   on</a> &middot; <a href="cv_characterization.html">the characterization
   that set these thresholds</a> &middot;
@@ -42,7 +42,7 @@
 <div class="bhead"><h2>0 &middot; What Phase&nbsp;2 already had, and the four
 holes left in it</h2></div>
 
-<p>Phase&nbsp;2 measured 3,174,618 light-curve rows across 27 solved
+<p>Phase&nbsp;2 measured 3,158,147 light-curve rows across 27 solved
 (target, era, filter) series and tied them to ATLAS-REFCAT2.  It also
 measured what it can actually do, and the answer is smaller than the
 strategy hoped: per-point precision runs
@@ -121,37 +121,37 @@ spread of the header zero point) so that the exemplars are not selected by
 the statistic being tested:</p>
 <table class="data">
 <tr><th></th><th>series</th><th>night</th><th>frames</th><th>ZMAG MAD</th><th>ZMAG span</th><th>ratio MAD</th><th>worst ratio</th><th>vetoed</th></tr>
-<tr><td>CLEAR</td><td>YZ Cnc e72 <i>g</i></td><td>2024-05-02</td><td>51</td><td>0.033</td><td>0.253</td><td>0.0041</td><td>0.837</td><td>2</td></tr>
-<tr><td>CLOUDY</td><td>ST LMi e7 <i>I</i></td><td>2024-02-03</td><td>26</td><td>0.090</td><td>2.114</td><td>0.0576</td><td>0.201</td><td>5</td></tr>
+<tr><td>CLEAR</td><td>YZ Cnc e72 <i>g</i></td><td>2024-05-02</td><td>51</td><td>0.033</td><td>0.253</td><td>0.0046</td><td>0.838</td><td>2</td></tr>
+<tr><td>CLOUDY</td><td>ST LMi e7 <i>I</i></td><td>2024-02-03</td><td>26</td><td>0.090</td><td>2.114</td><td>0.0603</td><td>0.201</td><td>5</td></tr>
 </table>
 
 <p><b>The calibration table</b> &mdash; the whole argument for the number,
 in one place:</p>
 <table class="data">
 <tr><th>threshold</th><th>clear frames</th><th>of which vetoed</th><th>false-veto rate</th><th>attenuated frames</th><th>of which vetoed</th><th>recall</th><th>chosen</th></tr>
-<tr><td>0.85</td><td>823</td><td>0</td><td>0.00%</td><td>221</td><td>146</td><td>66.1%</td><td></td></tr>
+<tr><td>0.85</td><td>823</td><td>0</td><td>0.00%</td><td>221</td><td>145</td><td>65.6%</td><td></td></tr>
 <tr><td>0.86</td><td>823</td><td>0</td><td>0.00%</td><td>221</td><td>153</td><td>69.2%</td><td></td></tr>
-<tr><td>0.87</td><td>823</td><td>0</td><td>0.00%</td><td>221</td><td>163</td><td>73.8%</td><td></td></tr>
+<tr><td>0.87</td><td>823</td><td>0</td><td>0.00%</td><td>221</td><td>164</td><td>74.2%</td><td></td></tr>
 <tr><td>0.88</td><td>823</td><td>1</td><td>0.12%</td><td>221</td><td>171</td><td>77.4%</td><td></td></tr>
-<tr><td>0.89</td><td>823</td><td>1</td><td>0.12%</td><td>221</td><td>178</td><td>80.5%</td><td></td></tr>
-<tr><td>0.90</td><td>823</td><td>2</td><td>0.24%</td><td>221</td><td>185</td><td>83.7%</td><td></td></tr>
+<tr><td>0.89</td><td>823</td><td>1</td><td>0.12%</td><td>221</td><td>181</td><td>81.9%</td><td></td></tr>
+<tr><td>0.90</td><td>823</td><td>2</td><td>0.24%</td><td>221</td><td>186</td><td>84.2%</td><td></td></tr>
 <tr><td>0.91</td><td>823</td><td>3</td><td>0.36%</td><td>221</td><td>186</td><td>84.2%</td><td></td></tr>
-<tr><td>0.92</td><td>823</td><td>5</td><td>0.61%</td><td>221</td><td>188</td><td>85.1%</td><td>&#10004;</td></tr>
-<tr><td>0.93</td><td>823</td><td>11</td><td>1.34%</td><td>221</td><td>191</td><td>86.4%</td><td></td></tr>
-<tr><td>0.94</td><td>823</td><td>18</td><td>2.19%</td><td>221</td><td>197</td><td>89.1%</td><td></td></tr>
-<tr><td>0.95</td><td>823</td><td>23</td><td>2.79%</td><td>221</td><td>204</td><td>92.3%</td><td></td></tr>
-<tr><td>0.96</td><td>823</td><td>32</td><td>3.89%</td><td>221</td><td>207</td><td>93.7%</td><td></td></tr>
-<tr><td>0.97</td><td>823</td><td>48</td><td>5.83%</td><td>221</td><td>208</td><td>94.1%</td><td></td></tr>
-<tr><td>0.98</td><td>823</td><td>81</td><td>9.84%</td><td>221</td><td>211</td><td>95.5%</td><td></td></tr>
-<tr><td>0.99</td><td>823</td><td>146</td><td>17.74%</td><td>221</td><td>213</td><td>96.4%</td><td></td></tr>
-<tr><td>1.00</td><td>823</td><td>329</td><td>39.98%</td><td>221</td><td>215</td><td>97.3%</td><td></td></tr>
+<tr><td>0.92</td><td>823</td><td>6</td><td>0.73%</td><td>221</td><td>188</td><td>85.1%</td><td>&#10004;</td></tr>
+<tr><td>0.93</td><td>823</td><td>11</td><td>1.34%</td><td>221</td><td>192</td><td>86.9%</td><td></td></tr>
+<tr><td>0.94</td><td>823</td><td>18</td><td>2.19%</td><td>221</td><td>198</td><td>89.6%</td><td></td></tr>
+<tr><td>0.95</td><td>823</td><td>24</td><td>2.92%</td><td>221</td><td>204</td><td>92.3%</td><td></td></tr>
+<tr><td>0.96</td><td>823</td><td>33</td><td>4.01%</td><td>221</td><td>207</td><td>93.7%</td><td></td></tr>
+<tr><td>0.97</td><td>823</td><td>49</td><td>5.95%</td><td>221</td><td>208</td><td>94.1%</td><td></td></tr>
+<tr><td>0.98</td><td>823</td><td>88</td><td>10.69%</td><td>221</td><td>211</td><td>95.5%</td><td></td></tr>
+<tr><td>0.99</td><td>823</td><td>153</td><td>18.59%</td><td>221</td><td>213</td><td>96.4%</td><td></td></tr>
+<tr><td>1.00</td><td>823</td><td>334</td><td>40.58%</td><td>221</td><td>215</td><td>97.3%</td><td></td></tr>
 </table>
 </div>
 
 <div class="stage"><h3>Decision</h3>
-<div class="decision"><b>Threshold 0.92.</b> highest threshold whose false-veto rate stays within 1.0%: 5/823 independently-clear frames vetoed (0.61%), catching 188/221 independently-attenuated frames (85.1%)<br>
-Applied, it vetoes <b>850</b> of <b>7,780</b> frames
-(10.93%).  That rate is much larger than the
+<div class="decision"><b>Threshold 0.92.</b> highest threshold whose false-veto rate stays within 1.0%: 6/823 independently-clear frames vetoed (0.73%), catching 188/221 independently-attenuated frames (85.1%)<br>
+Applied, it vetoes <b>852</b> of <b>7,780</b> frames
+(10.95%).  That rate is much larger than the
 false-veto rate because most vetoed frames sit in the band the independent
 labels deliberately leave unclassified: a frame that has lost
 0.09&ndash;0.15&nbsp;mag is neither &ldquo;clear&rdquo; nor
@@ -164,31 +164,31 @@ manufactured.</div>
 <tr><th>series</th><th>frames</th><th>nights</th><th>core stars</th><th>vetoed</th><th>%</th><th>MAD of ratio</th><th>worst ratio</th><th>frames with ZMAG</th><th>note</th></tr>
 <tr class="warn"><td>VV Pup e76 <i>i</i></td><td>124</td><td>9</td><td>647</td><td>33</td><td>26.61%</td><td>0.0458</td><td>0.023</td><td>0</td><td></td></tr>
 <tr><td>VV Pup e76 <i>r</i></td><td>186</td><td>11</td><td>1,116</td><td>32</td><td>17.20%</td><td>0.0373</td><td>0.052</td><td>0</td><td></td></tr>
+<tr><td>ST LMi e7 <i>G</i></td><td>296</td><td>16</td><td>142</td><td>45</td><td>15.20%</td><td>0.0293</td><td>0.297</td><td>294</td><td></td></tr>
 <tr><td>EU UMa e76 <i>g</i></td><td>221</td><td>10</td><td>112</td><td>33</td><td>14.93%</td><td>0.0228</td><td>0.054</td><td>0</td><td></td></tr>
-<tr><td>ST LMi e7 <i>G</i></td><td>296</td><td>16</td><td>152</td><td>43</td><td>14.53%</td><td>0.0271</td><td>0.297</td><td>294</td><td></td></tr>
 <tr><td>VV Pup e76 <i>g</i></td><td>359</td><td>14</td><td>1,854</td><td>51</td><td>14.21%</td><td>0.0238</td><td>0.025</td><td>0</td><td></td></tr>
 <tr><td>AN UMa e76 <i>r</i></td><td>410</td><td>11</td><td>117</td><td>55</td><td>13.41%</td><td>0.0172</td><td>0.078</td><td>0</td><td></td></tr>
-<tr><td>YZ Cnc e7 <i>R</i></td><td>443</td><td>17</td><td>256</td><td>58</td><td>13.09%</td><td>0.0200</td><td>0.158</td><td>442</td><td></td></tr>
-<tr><td>VV Pup e72 <i>i</i></td><td>94</td><td>1</td><td>1,718</td><td>12</td><td>12.77%</td><td>0.0209</td><td>0.674</td><td>0</td><td></td></tr>
+<tr><td>YZ Cnc e7 <i>R</i></td><td>443</td><td>17</td><td>244</td><td>58</td><td>13.09%</td><td>0.0211</td><td>0.163</td><td>442</td><td></td></tr>
+<tr><td>VV Pup e72 <i>i</i></td><td>94</td><td>1</td><td>1,702</td><td>12</td><td>12.77%</td><td>0.0210</td><td>0.674</td><td>0</td><td></td></tr>
+<tr><td>ST LMi e7 <i>R</i></td><td>346</td><td>16</td><td>190</td><td>43</td><td>12.43%</td><td>0.0273</td><td>0.210</td><td>346</td><td></td></tr>
 <tr><td>AN UMa e76 <i>g</i></td><td>451</td><td>10</td><td>96</td><td>56</td><td>12.42%</td><td>0.0240</td><td>0.265</td><td>0</td><td></td></tr>
-<tr><td>ST LMi e7 <i>R</i></td><td>346</td><td>16</td><td>200</td><td>41</td><td>11.85%</td><td>0.0261</td><td>0.210</td><td>346</td><td></td></tr>
-<tr><td>YZ Cnc e7 <i>G</i></td><td>431</td><td>20</td><td>204</td><td>49</td><td>11.37%</td><td>0.0206</td><td>0.415</td><td>430</td><td></td></tr>
+<tr><td>YZ Cnc e7 <i>G</i></td><td>431</td><td>20</td><td>197</td><td>49</td><td>11.37%</td><td>0.0224</td><td>0.415</td><td>430</td><td></td></tr>
 <tr><td>EU UMa e76 <i>i</i></td><td>349</td><td>11</td><td>154</td><td>38</td><td>10.89%</td><td>0.0125</td><td>0.070</td><td>0</td><td></td></tr>
 <tr><td>ST LMi e76 <i>i</i></td><td>550</td><td>10</td><td>99</td><td>59</td><td>10.73%</td><td>0.0135</td><td>0.050</td><td>0</td><td></td></tr>
-<tr><td>ST LMi e7 <i>I</i></td><td>340</td><td>17</td><td>209</td><td>34</td><td>10.00%</td><td>0.0175</td><td>0.201</td><td>339</td><td></td></tr>
-<tr><td>VV Pup e72 <i>r</i></td><td>190</td><td>4</td><td>1,593</td><td>19</td><td>10.00%</td><td>0.0329</td><td>0.800</td><td>0</td><td></td></tr>
-<tr><td>YZ Cnc e7 <i>I</i></td><td>423</td><td>18</td><td>240</td><td>40</td><td>9.46%</td><td>0.0150</td><td>0.635</td><td>423</td><td></td></tr>
+<tr><td>ST LMi e7 <i>I</i></td><td>340</td><td>17</td><td>200</td><td>34</td><td>10.00%</td><td>0.0178</td><td>0.201</td><td>339</td><td></td></tr>
+<tr><td>VV Pup e72 <i>r</i></td><td>190</td><td>4</td><td>1,575</td><td>18</td><td>9.47%</td><td>0.0321</td><td>0.804</td><td>0</td><td></td></tr>
+<tr><td>YZ Cnc e7 <i>I</i></td><td>423</td><td>18</td><td>228</td><td>40</td><td>9.46%</td><td>0.0155</td><td>0.636</td><td>423</td><td></td></tr>
 <tr><td>ST LMi e76 <i>g</i></td><td>745</td><td>16</td><td>120</td><td>65</td><td>8.72%</td><td>0.0117</td><td>0.025</td><td>0</td><td></td></tr>
 <tr><td>AN UMa e76 <i>i</i></td><td>257</td><td>8</td><td>113</td><td>22</td><td>8.56%</td><td>0.0175</td><td>0.553</td><td>0</td><td></td></tr>
 <tr><td>ST LMi e76 <i>r</i></td><td>596</td><td>13</td><td>124</td><td>51</td><td>8.56%</td><td>0.0103</td><td>0.060</td><td>0</td><td></td></tr>
 <tr><td>EU UMa e78 <i>g</i></td><td>208</td><td>10</td><td>5</td><td>17</td><td>8.17%</td><td>0.0394</td><td>0.660</td><td>0</td><td></td></tr>
-<tr><td>YZ Cnc e72 <i>g</i></td><td>114</td><td>3</td><td>228</td><td>9</td><td>7.89%</td><td>0.0105</td><td>0.760</td><td>113</td><td></td></tr>
-<tr><td>YZ Cnc e72 <i>r</i></td><td>144</td><td>3</td><td>268</td><td>11</td><td>7.64%</td><td>0.0134</td><td>0.751</td><td>144</td><td></td></tr>
-<tr><td>VV Pup e72 <i>g</i></td><td>196</td><td>3</td><td>1,476</td><td>11</td><td>5.61%</td><td>0.0170</td><td>0.794</td><td>0</td><td></td></tr>
+<tr><td>YZ Cnc e72 <i>g</i></td><td>114</td><td>3</td><td>228</td><td>9</td><td>7.89%</td><td>0.0095</td><td>0.760</td><td>113</td><td></td></tr>
+<tr><td>YZ Cnc e72 <i>r</i></td><td>144</td><td>3</td><td>267</td><td>11</td><td>7.64%</td><td>0.0136</td><td>0.751</td><td>144</td><td></td></tr>
+<tr><td>VV Pup e72 <i>g</i></td><td>196</td><td>3</td><td>1,461</td><td>10</td><td>5.10%</td><td>0.0168</td><td>0.793</td><td>0</td><td></td></tr>
 <tr><td>EU UMa e76 <i>r</i></td><td>100</td><td>4</td><td>116</td><td>5</td><td>5.00%</td><td>0.0124</td><td>0.621</td><td>0</td><td></td></tr>
-<tr><td>YZ Cnc e72 <i>i</i></td><td>112</td><td>2</td><td>267</td><td>5</td><td>4.46%</td><td>0.0096</td><td>0.826</td><td>112</td><td></td></tr>
-<tr><td>ST LMi e47 <i>z</i></td><td>60</td><td>1</td><td>46</td><td>1</td><td>1.67%</td><td>0.0081</td><td>0.600</td><td>59</td><td></td></tr>
-<tr><td>ST LMi e47 <i>y</i></td><td>35</td><td>1</td><td>41</td><td>0</td><td>0.00%</td><td>0.0069</td><td>0.956</td><td>34</td><td></td></tr>
+<tr><td>YZ Cnc e72 <i>i</i></td><td>112</td><td>2</td><td>266</td><td>5</td><td>4.46%</td><td>0.0097</td><td>0.826</td><td>112</td><td></td></tr>
+<tr><td>ST LMi e47 <i>z</i></td><td>60</td><td>1</td><td>45</td><td>1</td><td>1.67%</td><td>0.0075</td><td>0.600</td><td>59</td><td></td></tr>
+<tr><td>ST LMi e47 <i>y</i></td><td>35</td><td>1</td><td>40</td><td>0</td><td>0.00%</td><td>0.0062</td><td>0.955</td><td>34</td><td></td></tr>
 </table>
 </div>
 
@@ -221,21 +221,21 @@ definition, and the ones no magnitude-based test can see.</p>
 <tr><td>ST LMi e76 <i>g</i></td><td>720</td><td>45</td><td>19.108</td><td>19.139</td><td>0.6031</td><td>7.8%</td><td>5.0%</td><td>0.2812</td><td>80.0%</td><td>6.2%</td><td>NO SCULPTING DETECTED</td></tr>
 <tr><td>ST LMi e76 <i>i</i></td><td>513</td><td>30</td><td>20.531</td><td>20.601</td><td>0.5861</td><td>7.0%</td><td>7.0%</td><td>1.0000</td><td>78.4%</td><td>5.8%</td><td>NO SCULPTING DETECTED</td></tr>
 <tr><td>ST LMi e76 <i>r</i></td><td>568</td><td>31</td><td>19.637</td><td>19.754</td><td>0.0581</td><td>4.2%</td><td>7.0%</td><td>0.3033</td><td>71.4%</td><td>5.5%</td><td>NO SCULPTING DETECTED</td></tr>
-<tr><td>ST LMi e7 <i>G</i></td><td>278</td><td>42</td><td>19.434</td><td>19.508</td><td>0.1731</td><td>5.7%</td><td>12.9%</td><td>0.1454</td><td>5.6%</td><td>15.1%</td><td>NO SCULPTING DETECTED</td></tr>
-<tr><td>ST LMi e7 <i>I</i></td><td>315</td><td>29</td><td>19.405</td><td>19.720</td><td>0.3509</td><td>6.3%</td><td>10.1%</td><td>0.3851</td><td>20.0%</td><td>9.2%</td><td>NO SCULPTING DETECTED</td></tr>
-<tr><td>ST LMi e7 <i>R</i></td><td>308</td><td>33</td><td>19.354</td><td>19.470</td><td>0.3233</td><td>6.5%</td><td>9.1%</td><td>0.5477</td><td>21.1%</td><td>10.7%</td><td>NO SCULPTING DETECTED</td></tr>
-<tr><td>VV Pup e72 <i>g</i></td><td>194</td><td>11</td><td>20.323</td><td>20.263</td><td>0.0493</td><td>14.3%</td><td>6.1%</td><td>0.1819</td><td>0.0%</td><td>5.7%</td><td>NO SCULPTING DETECTED</td></tr>
-<tr><td>VV Pup e72 <i>i</i></td><td>75</td><td>1</td><td>20.557</td><td>20.961</td><td>&mdash;</td><td>0.0%</td><td>5.3%</td><td>0.3109</td><td>57.9%</td><td>1.3%</td><td>NO SCULPTING DETECTED</td></tr>
-<tr><td>VV Pup e72 <i>r</i></td><td>180</td><td>12</td><td>20.503</td><td>20.388</td><td>0.3710</td><td>6.7%</td><td>4.4%</td><td>0.6454</td><td>70.0%</td><td>6.7%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>ST LMi e7 <i>G</i></td><td>278</td><td>44</td><td>19.428</td><td>19.507</td><td>0.1652</td><td>5.7%</td><td>12.9%</td><td>0.1454</td><td>5.6%</td><td>15.8%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>ST LMi e7 <i>I</i></td><td>315</td><td>29</td><td>19.407</td><td>19.721</td><td>0.3281</td><td>6.3%</td><td>10.1%</td><td>0.3851</td><td>20.0%</td><td>9.2%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>ST LMi e7 <i>R</i></td><td>308</td><td>34</td><td>19.378</td><td>19.466</td><td>0.2847</td><td>5.2%</td><td>9.1%</td><td>0.3479</td><td>23.7%</td><td>11.0%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>VV Pup e72 <i>g</i></td><td>194</td><td>10</td><td>20.320</td><td>20.263</td><td>0.1029</td><td>12.2%</td><td>6.1%</td><td>0.2940</td><td>0.0%</td><td>5.2%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>VV Pup e72 <i>i</i></td><td>75</td><td>1</td><td>20.558</td><td>20.961</td><td>&mdash;</td><td>0.0%</td><td>5.3%</td><td>0.3109</td><td>57.9%</td><td>1.3%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>VV Pup e72 <i>r</i></td><td>180</td><td>12</td><td>20.503</td><td>20.388</td><td>0.3834</td><td>6.7%</td><td>4.4%</td><td>0.6454</td><td>60.0%</td><td>6.7%</td><td>NO SCULPTING DETECTED</td></tr>
 <tr><td>VV Pup e76 <i>g</i></td><td>323</td><td>30</td><td>18.378</td><td>18.540</td><td>0.1006</td><td>4.9%</td><td>12.3%</td><td>0.0934</td><td>58.3%</td><td>9.3%</td><td>NO SCULPTING DETECTED</td></tr>
 <tr><td>VV Pup e76 <i>i</i></td><td>51</td><td>1</td><td>22.226</td><td>22.395</td><td>&mdash;</td><td>0.0%</td><td>7.7%</td><td>0.3078</td><td>43.8%</td><td>2.0%</td><td>NO SCULPTING DETECTED</td></tr>
 <tr><td>VV Pup e76 <i>r</i></td><td>143</td><td>13</td><td>20.958</td><td>21.226</td><td>0.0127</td><td>5.6%</td><td>22.2%</td><td>0.0409</td><td>44.2%</td><td>9.1%</td><td>BRIGHT-PHASE VETO EXCESS</td></tr>
-<tr><td>YZ Cnc e72 <i>g</i></td><td>114</td><td>9</td><td>16.971</td><td>16.890</td><td>0.4781</td><td>6.9%</td><td>6.9%</td><td>1.0000</td><td>&mdash;</td><td>7.9%</td><td>NO SCULPTING DETECTED</td></tr>
-<tr><td>YZ Cnc e72 <i>i</i></td><td>112</td><td>5</td><td>17.512</td><td>17.523</td><td>0.5588</td><td>7.1%</td><td>3.6%</td><td>0.5529</td><td>&mdash;</td><td>4.5%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>YZ Cnc e72 <i>g</i></td><td>114</td><td>9</td><td>16.970</td><td>16.890</td><td>0.4716</td><td>6.9%</td><td>6.9%</td><td>1.0000</td><td>&mdash;</td><td>7.9%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>YZ Cnc e72 <i>i</i></td><td>112</td><td>5</td><td>17.513</td><td>17.522</td><td>0.5588</td><td>7.1%</td><td>3.6%</td><td>0.5529</td><td>&mdash;</td><td>4.5%</td><td>NO SCULPTING DETECTED</td></tr>
 <tr><td>YZ Cnc e72 <i>r</i></td><td>144</td><td>11</td><td>16.686</td><td>16.865</td><td>0.0273</td><td>0.0%</td><td>16.7%</td><td>0.0105</td><td>&mdash;</td><td>7.6%</td><td>BRIGHT-PHASE VETO EXCESS</td></tr>
-<tr><td>YZ Cnc e7 <i>G</i></td><td>431</td><td>49</td><td>15.924</td><td>15.819</td><td>0.6261</td><td>12.0%</td><td>18.5%</td><td>0.1855</td><td>&mdash;</td><td>11.4%</td><td>NO SCULPTING DETECTED</td></tr>
-<tr><td>YZ Cnc e7 <i>I</i></td><td>423</td><td>40</td><td>16.846</td><td>16.889</td><td>0.1711</td><td>11.3%</td><td>16.0%</td><td>0.3176</td><td>&mdash;</td><td>9.5%</td><td>NO SCULPTING DETECTED</td></tr>
-<tr><td>YZ Cnc e7 <i>R</i></td><td>442</td><td>57</td><td>16.359</td><td>16.174</td><td>0.9739</td><td>16.2%</td><td>19.8%</td><td>0.4849</td><td>100.0%</td><td>12.9%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>YZ Cnc e7 <i>G</i></td><td>431</td><td>49</td><td>15.918</td><td>15.821</td><td>0.5996</td><td>12.0%</td><td>18.5%</td><td>0.1855</td><td>&mdash;</td><td>11.4%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>YZ Cnc e7 <i>I</i></td><td>423</td><td>40</td><td>16.845</td><td>16.891</td><td>0.1719</td><td>11.3%</td><td>16.0%</td><td>0.3176</td><td>&mdash;</td><td>9.5%</td><td>NO SCULPTING DETECTED</td></tr>
+<tr><td>YZ Cnc e7 <i>R</i></td><td>442</td><td>57</td><td>16.392</td><td>16.176</td><td>0.9987</td><td>16.2%</td><td>19.8%</td><td>0.4849</td><td>100.0%</td><td>12.9%</td><td>NO SCULPTING DETECTED</td></tr>
 </table>
 
 <div class="decision"><b>21 series show no sculpting; 0 show a
@@ -310,26 +310,26 @@ and the published uncertainty is the larger of the two.</li>
 
 <table class="data">
 <tr><th>era, filter</th><th>colour</th><th>points</th><th>stars</th><th>frames</th><th>colour range</th><th>airmass range</th><th>k&Prime; (published)</th><th>formal &sigma;</th><th>bootstrap &sigma;</th><th>t</th><th>&chi;&sup2;/&nu;</th><th>effect p95 (mmag)</th><th>bound (mmag)</th><th>verdict</th></tr>
-<tr class="warn"><td>era 7 <i>G</i></td><td>g-r</td><td>49,769</td><td>170</td><td>727</td><td>-0.29 &hellip; 1.22</td><td>1.00 &hellip; 2.68</td><td>-0.01710&thinsp;&plusmn;&thinsp;0.00442</td><td>0.00210</td><td>0.00442</td><td>-3.87</td><td>1.39</td><td>1.94</td><td>2.22</td><td>SIGNIFICANT</td></tr>
-<tr><td>era 7 <i>I</i></td><td>r-i</td><td>68,235</td><td>228</td><td>763</td><td>-1.31 &hellip; 1.96</td><td>1.00 &hellip; 2.78</td><td>-0.00407&thinsp;&plusmn;&thinsp;0.00163</td><td>0.00121</td><td>0.00163</td><td>-2.49</td><td>1.28</td><td>0.66</td><td>1.14</td><td>CONSISTENT WITH ZERO</td></tr>
-<tr><td>era 7 <i>R</i></td><td>g-r</td><td>72,242</td><td>235</td><td>787</td><td>-0.29 &hellip; 1.32</td><td>1.00 &hellip; 2.67</td><td>-0.00463&thinsp;&plusmn;&thinsp;0.00249</td><td>0.00170</td><td>0.00249</td><td>-1.86</td><td>1.38</td><td>0.64</td><td>1.40</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr class="warn"><td>era 7 <i>G</i></td><td>g-r</td><td>45,059</td><td>155</td><td>726</td><td>-0.29 &hellip; 1.22</td><td>1.00 &hellip; 2.68</td><td>-0.01385&thinsp;&plusmn;&thinsp;0.00245</td><td>0.00235</td><td>0.00245</td><td>-5.66</td><td>1.29</td><td>1.58</td><td>1.22</td><td>SIGNIFICANT</td></tr>
+<tr class="warn"><td>era 7 <i>I</i></td><td>r-i</td><td>59,984</td><td>202</td><td>762</td><td>-1.31 &hellip; 1.96</td><td>1.00 &hellip; 2.78</td><td>-0.00489&thinsp;&plusmn;&thinsp;0.00158</td><td>0.00131</td><td>0.00158</td><td>-3.09</td><td>1.23</td><td>0.81</td><td>1.13</td><td>SIGNIFICANT</td></tr>
+<tr><td>era 7 <i>R</i></td><td>g-r</td><td>67,466</td><td>221</td><td>773</td><td>-0.29 &hellip; 1.32</td><td>1.00 &hellip; 2.67</td><td>-0.00219&thinsp;&plusmn;&thinsp;0.00265</td><td>0.00178</td><td>0.00265</td><td>-0.82</td><td>1.27</td><td>0.31</td><td>1.49</td><td>CONSISTENT WITH ZERO</td></tr>
 <tr><td>era 47 <i>y</i></td><td>i-z</td><td>0</td><td>0</td><td>0</td><td>&mdash; &hellip; &mdash;</td><td>&mdash; &hellip; &mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NOT FITTED</td></tr>
-<tr><td>era 47 <i>z</i></td><td>i-z</td><td>2,359</td><td>46</td><td>58</td><td>0.00 &hellip; 0.64</td><td>1.03 &hellip; 1.33</td><td>+0.04347&thinsp;&plusmn;&thinsp;0.24907</td><td>0.01543</td><td>0.24907</td><td>0.17</td><td>1.65</td><td>1.06</td><td>23.34</td><td>CONSISTENT WITH ZERO</td></tr>
-<tr><td>era 72 <i>g</i></td><td>g-r</td><td>18,919</td><td>313</td><td>116</td><td>0.00 &hellip; 1.23</td><td>1.13 &hellip; 2.35</td><td>-0.00360&thinsp;&plusmn;&thinsp;0.01261</td><td>0.00144</td><td>0.01261</td><td>-0.29</td><td>2.52</td><td>0.45</td><td>6.15</td><td>CONSISTENT WITH ZERO</td></tr>
-<tr><td>era 72 <i>i</i></td><td>r-i</td><td>19,227</td><td>176</td><td>112</td><td>-0.02 &hellip; 1.52</td><td>1.13 &hellip; 2.33</td><td>-0.05454&thinsp;&plusmn;&thinsp;0.06249</td><td>0.00164</td><td>0.06249</td><td>-0.87</td><td>3.77</td><td>8.37</td><td>40.33</td><td>CONSISTENT WITH ZERO</td></tr>
-<tr><td>era 72 <i>r</i></td><td>g-r</td><td>26,175</td><td>328</td><td>146</td><td>-0.08 &hellip; 1.23</td><td>1.13 &hellip; 2.34</td><td>+0.01044&thinsp;&plusmn;&thinsp;0.01095</td><td>0.00110</td><td>0.01095</td><td>0.95</td><td>3.00</td><td>1.64</td><td>6.91</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr><td>era 47 <i>z</i></td><td>i-z</td><td>2,311</td><td>45</td><td>58</td><td>0.00 &hellip; 0.64</td><td>1.03 &hellip; 1.33</td><td>+0.16705&thinsp;&plusmn;&thinsp;0.20433</td><td>0.01874</td><td>0.20433</td><td>0.82</td><td>1.48</td><td>4.21</td><td>19.15</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr><td>era 72 <i>g</i></td><td>g-r</td><td>18,992</td><td>304</td><td>116</td><td>0.00 &hellip; 1.23</td><td>1.13 &hellip; 2.35</td><td>-0.00351&thinsp;&plusmn;&thinsp;0.00881</td><td>0.00143</td><td>0.00881</td><td>-0.40</td><td>2.51</td><td>0.44</td><td>4.30</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr><td>era 72 <i>i</i></td><td>r-i</td><td>19,052</td><td>175</td><td>112</td><td>0.06 &hellip; 1.52</td><td>1.13 &hellip; 2.33</td><td>+0.01702&thinsp;&plusmn;&thinsp;0.01524</td><td>0.00129</td><td>0.01524</td><td>1.12</td><td>1.81</td><td>2.60</td><td>9.83</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr><td>era 72 <i>r</i></td><td>g-r</td><td>26,021</td><td>314</td><td>146</td><td>0.07 &hellip; 1.23</td><td>1.13 &hellip; 2.34</td><td>+0.00617&thinsp;&plusmn;&thinsp;0.01002</td><td>0.00109</td><td>0.01002</td><td>0.62</td><td>2.84</td><td>0.97</td><td>6.33</td><td>CONSISTENT WITH ZERO</td></tr>
 <tr class="warn"><td>era 76 <i>g</i></td><td>g-r</td><td>503,057</td><td>1,827</td><td>1,608</td><td>-0.10 &hellip; 2.59</td><td>1.00 &hellip; 2.96</td><td>-0.02474&thinsp;&plusmn;&thinsp;0.00477</td><td>0.00069</td><td>0.00477</td><td>-5.19</td><td>7.36</td><td>1.38</td><td>2.38</td><td>SIGNIFICANT</td></tr>
-<tr><td>era 76 <i>i</i></td><td>r-i</td><td>124,643</td><td>1,202</td><td>1,185</td><td>-1.31 &hellip; 1.55</td><td>1.00 &hellip; 2.85</td><td>-0.01080&thinsp;&plusmn;&thinsp;0.00658</td><td>0.00079</td><td>0.00658</td><td>-1.64</td><td>4.35</td><td>1.39</td><td>5.88</td><td>CONSISTENT WITH ZERO</td></tr>
-<tr><td>era 76 <i>r</i></td><td>g-r</td><td>204,541</td><td>1,618</td><td>1,092</td><td>-0.10 &hellip; 2.59</td><td>1.00 &hellip; 2.96</td><td>-0.00260&thinsp;&plusmn;&thinsp;0.00284</td><td>0.00045</td><td>0.00284</td><td>-0.91</td><td>4.95</td><td>0.31</td><td>2.45</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr><td>era 76 <i>i</i></td><td>r-i</td><td>124,643</td><td>1,202</td><td>1,185</td><td>-1.31 &hellip; 1.55</td><td>1.00 &hellip; 2.85</td><td>-0.01080&thinsp;&plusmn;&thinsp;0.00606</td><td>0.00079</td><td>0.00606</td><td>-1.78</td><td>4.35</td><td>1.39</td><td>5.41</td><td>CONSISTENT WITH ZERO</td></tr>
+<tr><td>era 76 <i>r</i></td><td>g-r</td><td>204,541</td><td>1,618</td><td>1,092</td><td>-0.10 &hellip; 2.59</td><td>1.00 &hellip; 2.96</td><td>-0.00260&thinsp;&plusmn;&thinsp;0.00248</td><td>0.00045</td><td>0.00248</td><td>-1.05</td><td>4.95</td><td>0.31</td><td>2.14</td><td>CONSISTENT WITH ZERO</td></tr>
 <tr><td>era 78 <i>g</i></td><td>g-r</td><td>0</td><td>0</td><td>0</td><td>&mdash; &hellip; &mdash;</td><td>&mdash; &hellip; &mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>NOT FITTED</td></tr>
 </table>
 </div>
 
 <div class="stage"><h3>Decision</h3>
-<div class="decision"><b>2 of 10 fitted (era, filter) groups show
+<div class="decision"><b>3 of 10 fitted (era, filter) groups show
 a second-order colour-extinction term at
 3&nbsp;&sigma;, and even those move a real
-measurement by at most 1.94&nbsp;mmag.</b>  The campaign's
+measurement by at most 1.58&nbsp;mmag.</b>  The campaign's
 achieved per-point precision is 9&ndash;75&nbsp;mmag.
 <b>No term is applied.</b>  Applying a correction an order of magnitude below the noise it
 sits in adds the correction's own uncertainty to every point and buys
@@ -338,12 +338,12 @@ nothing measurable.</div>
 For every group the table above carries
 <code>3&sigma;&nbsp;&times;&nbsp;&sigma;<sub>k&Prime;</sub>&nbsp;&times;&nbsp;(&Delta;C/2)&nbsp;&times;&nbsp;(&Delta;X/2)</code>
 &mdash; the largest systematic the data still allow this omission to cost.
-The worst of them is <b>40.33&nbsp;mmag</b>, on a group whose own
+The worst of them is <b>19.15&nbsp;mmag</b>, on a group whose own
 per-point precision is far larger.  That is the honest form of the answer:
 not &ldquo;the term is zero&rdquo;, which we cannot show, but &ldquo;the
 term cannot cost more than this, and this is small compared with what we
 can measure&rdquo;.</div>
-<ul class="legend"><li><b>era 7 <i>G</i></b> &mdash; significant at 3.9 sigma; the term moves a real measurement by up to 1.9 mmag (95th percentile of |k''z| over the fitted points); uncertainty published is the larger of the formal 0.00210 and the 24-replicate star bootstrap 0.00442; 950 points clipped at 4 sigma</li><li><b>era 7 <i>I</i></b> &mdash; consistent with zero (2.5 sigma); |k''| &lt; 0.0049 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 1.1 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00121 and the 24-replicate star bootstrap 0.00163; 1,290 points clipped at 4 sigma</li><li><b>era 7 <i>R</i></b> &mdash; consistent with zero (1.9 sigma); |k''| &lt; 0.0075 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 1.4 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00170 and the 24-replicate star bootstrap 0.00249; 1,183 points clipped at 4 sigma</li><li><b>era 47 <i>y</i></b> &mdash; fewer than 200 comparison measurements carrying both a catalogue colour and a usable airmass</li><li><b>era 47 <i>z</i></b> &mdash; consistent with zero (0.2 sigma); |k''| &lt; 0.7472 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 23.3 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.01543 and the 24-replicate star bootstrap 0.24907; 57 points clipped at 4 sigma</li><li><b>era 72 <i>g</i></b> &mdash; consistent with zero (0.3 sigma); |k''| &lt; 0.0378 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 6.2 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00144 and the 24-replicate star bootstrap 0.01261; 499 points clipped at 4 sigma</li><li><b>era 72 <i>i</i></b> &mdash; consistent with zero (0.9 sigma); |k''| &lt; 0.1875 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 40.3 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00164 and the 24-replicate star bootstrap 0.06249; 427 points clipped at 4 sigma</li><li><b>era 72 <i>r</i></b> &mdash; consistent with zero (1.0 sigma); |k''| &lt; 0.0328 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 6.9 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00110 and the 24-replicate star bootstrap 0.01095; 611 points clipped at 4 sigma</li><li><b>era 76 <i>g</i></b> &mdash; significant at 5.2 sigma; the term moves a real measurement by up to 1.4 mmag (95th percentile of |k''z| over the fitted points); uncertainty published is the larger of the formal 0.00069 and the 24-replicate star bootstrap 0.00477; 18 frames refused for an AIRMASS card outside [1, 3]; 20,444 points clipped at 4 sigma</li><li><b>era 76 <i>i</i></b> &mdash; consistent with zero (1.6 sigma); |k''| &lt; 0.0197 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 5.9 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00079 and the 24-replicate star bootstrap 0.00658; 26 frames refused for an AIRMASS card outside [1, 3]; 6,078 points clipped at 4 sigma</li><li><b>era 76 <i>r</i></b> &mdash; consistent with zero (0.9 sigma); |k''| &lt; 0.0085 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 2.5 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00045 and the 24-replicate star bootstrap 0.00284; 43 frames refused for an AIRMASS card outside [1, 3]; 10,193 points clipped at 4 sigma</li><li><b>era 78 <i>g</i></b> &mdash; fewer than 200 comparison measurements carrying both a catalogue colour and a usable airmass</li></ul>
+<ul class="legend"><li><b>era 7 <i>G</i></b> &mdash; significant at 5.7 sigma; the term moves a real measurement by up to 1.6 mmag (95th percentile of |k''z| over the fitted points); uncertainty published is the larger of the formal 0.00235 and the 24-replicate star bootstrap 0.00245; 776 points clipped at 4 sigma</li><li><b>era 7 <i>I</i></b> &mdash; significant at 3.1 sigma; the term moves a real measurement by up to 0.8 mmag (95th percentile of |k''z| over the fitted points); uncertainty published is the larger of the formal 0.00131 and the 24-replicate star bootstrap 0.00158; 858 points clipped at 4 sigma</li><li><b>era 7 <i>R</i></b> &mdash; consistent with zero (0.8 sigma); |k''| &lt; 0.0080 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 1.5 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00178 and the 24-replicate star bootstrap 0.00265; 1,110 points clipped at 4 sigma</li><li><b>era 47 <i>y</i></b> &mdash; fewer than 200 comparison measurements carrying both a catalogue colour and a usable airmass</li><li><b>era 47 <i>z</i></b> &mdash; consistent with zero (0.8 sigma); |k''| &lt; 0.6130 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 19.1 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.01874 and the 24-replicate star bootstrap 0.20433; 35 points clipped at 4 sigma</li><li><b>era 72 <i>g</i></b> &mdash; consistent with zero (0.4 sigma); |k''| &lt; 0.0264 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 4.3 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00143 and the 24-replicate star bootstrap 0.00881; 519 points clipped at 4 sigma</li><li><b>era 72 <i>i</i></b> &mdash; consistent with zero (1.1 sigma); |k''| &lt; 0.0457 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 9.8 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00129 and the 24-replicate star bootstrap 0.01524; 490 points clipped at 4 sigma</li><li><b>era 72 <i>r</i></b> &mdash; consistent with zero (0.6 sigma); |k''| &lt; 0.0301 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 6.3 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00109 and the 24-replicate star bootstrap 0.01002; 595 points clipped at 4 sigma</li><li><b>era 76 <i>g</i></b> &mdash; significant at 5.2 sigma; the term moves a real measurement by up to 1.4 mmag (95th percentile of |k''z| over the fitted points); uncertainty published is the larger of the formal 0.00069 and the 24-replicate star bootstrap 0.00477; 18 frames refused for an AIRMASS card outside [1, 3]; 20,444 points clipped at 4 sigma</li><li><b>era 76 <i>i</i></b> &mdash; consistent with zero (1.8 sigma); |k''| &lt; 0.0182 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 5.4 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00079 and the 24-replicate star bootstrap 0.00606; 26 frames refused for an AIRMASS card outside [1, 3]; 6,078 points clipped at 4 sigma</li><li><b>era 76 <i>r</i></b> &mdash; consistent with zero (1.0 sigma); |k''| &lt; 0.0074 mag mag^-1 airmass^-1 at 3 sigma, which over the colour and airmass span actually observed can cost at most 2.1 mmag — carried in the error budget as a bound, not applied as a correction; uncertainty published is the larger of the formal 0.00045 and the 24-replicate star bootstrap 0.00248; 43 frames refused for an AIRMASS card outside [1, 3]; 10,193 points clipped at 4 sigma</li><li><b>era 78 <i>g</i></b> &mdash; fewer than 200 comparison measurements carrying both a catalogue colour and a usable airmass</li></ul>
 </div>
 
 <div class="stage"><h3>Consequence</h3>
@@ -402,20 +402,20 @@ completely different way.</p>
 
 <table class="data">
 <tr><th>target</th><th>transformation</th><th>kind</th><th>colour</th><th>stars</th><th>colour range</th><th>C<sub>ref</sub></th><th>a (offset)</th><th>b (slope)</th><th>b predicted by the ties</th><th>tension (&sigma;)</th><th>rms (mmag)</th><th>&chi;&sup2;/&nu;</th></tr>
-<tr><td>ST LMi</td><td>e7 <i>G</i> &rarr; e76 <i>g</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>g-r</td><td>64</td><td>0.15 &hellip; 1.22</td><td>0.458</td><td>+0.0056&thinsp;&plusmn;&thinsp;0.0029</td><td>+0.0186&thinsp;&plusmn;&thinsp;0.0085</td><td>-0.0052&thinsp;&plusmn;&thinsp;0.0119</td><td>1.6</td><td>21.3</td><td>7.32</td></tr>
-<tr><td>ST LMi</td><td>e7 <i>I</i> &rarr; e76 <i>i</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>r-i</td><td>66</td><td>-1.31 &hellip; 1.41</td><td>0.220</td><td>+0.0171&thinsp;&plusmn;&thinsp;0.0042</td><td>-0.0022&thinsp;&plusmn;&thinsp;0.0086</td><td>-0.0012&thinsp;&plusmn;&thinsp;0.0126</td><td>-0.1</td><td>31.4</td><td>14.60</td></tr>
-<tr><td>ST LMi</td><td>e7 <i>R</i> &rarr; e76 <i>r</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>g-r</td><td>88</td><td>0.15 &hellip; 1.26</td><td>0.583</td><td>+0.0088&thinsp;&plusmn;&thinsp;0.0030</td><td>+0.0178&thinsp;&plusmn;&thinsp;0.0080</td><td>+0.0150&thinsp;&plusmn;&thinsp;0.0112</td><td>0.2</td><td>26.9</td><td>11.23</td></tr>
-<tr><td>VV Pup</td><td>e72 <i>g</i> &rarr; e76 <i>g</i></td><td>control: Sloan -&gt; Sloan, different camera era</td><td>g-r</td><td>1,256</td><td>-0.10 &hellip; 1.24</td><td>0.420</td><td>+0.0039&thinsp;&plusmn;&thinsp;0.0007</td><td>+0.0500&thinsp;&plusmn;&thinsp;0.0038</td><td>+0.0577&thinsp;&plusmn;&thinsp;0.0091</td><td>-0.8</td><td>24.7</td><td>9.56</td></tr>
-<tr><td>VV Pup</td><td>e72 <i>i</i> &rarr; e76 <i>i</i></td><td>control: Sloan -&gt; Sloan, different camera era</td><td>r-i</td><td>932</td><td>-0.15 &hellip; 1.38</td><td>0.152</td><td>+0.0132&thinsp;&plusmn;&thinsp;0.0011</td><td>+0.0483&thinsp;&plusmn;&thinsp;0.0076</td><td>+0.0465&thinsp;&plusmn;&thinsp;0.0136</td><td>0.1</td><td>33.7</td><td>13.90</td></tr>
-<tr><td>VV Pup</td><td>e72 <i>r</i> &rarr; e76 <i>r</i></td><td>control: Sloan -&gt; Sloan, different camera era</td><td>g-r</td><td>1,329</td><td>-0.10 &hellip; 1.29</td><td>0.438</td><td>+0.0103&thinsp;&plusmn;&thinsp;0.0008</td><td>+0.0250&thinsp;&plusmn;&thinsp;0.0039</td><td>+0.0210&thinsp;&plusmn;&thinsp;0.0092</td><td>0.4</td><td>30.7</td><td>12.87</td></tr>
-<tr><td>YZ Cnc</td><td>e7 <i>G</i> &rarr; e72 <i>g</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>g-r</td><td>86</td><td>0.26 &hellip; 1.19</td><td>0.455</td><td>+0.0075&thinsp;&plusmn;&thinsp;0.0026</td><td>-0.0383&thinsp;&plusmn;&thinsp;0.0133</td><td>-0.0439&thinsp;&plusmn;&thinsp;0.0130</td><td>0.3</td><td>23.3</td><td>8.97</td></tr>
-<tr><td>YZ Cnc</td><td>e7 <i>I</i> &rarr; e72 <i>i</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>r-i</td><td>100</td><td>0.07 &hellip; 1.52</td><td>0.174</td><td>+0.0068&thinsp;&plusmn;&thinsp;0.0024</td><td>-0.0498&thinsp;&plusmn;&thinsp;0.0115</td><td>-0.0559&thinsp;&plusmn;&thinsp;0.0118</td><td>0.4</td><td>22.7</td><td>8.32</td></tr>
-<tr><td>YZ Cnc</td><td>e7 <i>R</i> &rarr; e72 <i>r</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>g-r</td><td>98</td><td>0.26 &hellip; 1.23</td><td>0.457</td><td>+0.0038&thinsp;&plusmn;&thinsp;0.0025</td><td>-0.0038&thinsp;&plusmn;&thinsp;0.0116</td><td>-0.0003&thinsp;&plusmn;&thinsp;0.0105</td><td>-0.2</td><td>23.1</td><td>8.84</td></tr>
+<tr><td>ST LMi</td><td>e7 <i>G</i> &rarr; e76 <i>g</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>g-r</td><td>52</td><td>0.15 &hellip; 1.22</td><td>0.458</td><td>+0.0049&thinsp;&plusmn;&thinsp;0.0032</td><td>+0.0234&thinsp;&plusmn;&thinsp;0.0090</td><td>-0.0032&thinsp;&plusmn;&thinsp;0.0119</td><td>1.8</td><td>20.8</td><td>6.95</td></tr>
+<tr><td>ST LMi</td><td>e7 <i>I</i> &rarr; e76 <i>i</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>r-i</td><td>52</td><td>-1.31 &hellip; 1.40</td><td>0.202</td><td>+0.0171&thinsp;&plusmn;&thinsp;0.0046</td><td>-0.0060&thinsp;&plusmn;&thinsp;0.0090</td><td>+0.0085&thinsp;&plusmn;&thinsp;0.0123</td><td>-1.0</td><td>30.2</td><td>13.68</td></tr>
+<tr><td>ST LMi</td><td>e7 <i>R</i> &rarr; e76 <i>r</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>g-r</td><td>76</td><td>0.15 &hellip; 1.26</td><td>0.655</td><td>+0.0087&thinsp;&plusmn;&thinsp;0.0030</td><td>+0.0198&thinsp;&plusmn;&thinsp;0.0079</td><td>+0.0203&thinsp;&plusmn;&thinsp;0.0110</td><td>-0.0</td><td>25.6</td><td>9.99</td></tr>
+<tr><td>VV Pup</td><td>e72 <i>g</i> &rarr; e76 <i>g</i></td><td>control: Sloan -&gt; Sloan, different camera era</td><td>g-r</td><td>1,250</td><td>-0.10 &hellip; 1.24</td><td>0.421</td><td>+0.0045&thinsp;&plusmn;&thinsp;0.0007</td><td>+0.0488&thinsp;&plusmn;&thinsp;0.0038</td><td>+0.0552&thinsp;&plusmn;&thinsp;0.0091</td><td>-0.7</td><td>24.7</td><td>9.59</td></tr>
+<tr><td>VV Pup</td><td>e72 <i>i</i> &rarr; e76 <i>i</i></td><td>control: Sloan -&gt; Sloan, different camera era</td><td>r-i</td><td>914</td><td>-0.15 &hellip; 1.38</td><td>0.152</td><td>+0.0134&thinsp;&plusmn;&thinsp;0.0011</td><td>+0.0478&thinsp;&plusmn;&thinsp;0.0078</td><td>+0.0451&thinsp;&plusmn;&thinsp;0.0137</td><td>0.2</td><td>33.6</td><td>13.68</td></tr>
+<tr><td>VV Pup</td><td>e72 <i>r</i> &rarr; e76 <i>r</i></td><td>control: Sloan -&gt; Sloan, different camera era</td><td>g-r</td><td>1,315</td><td>-0.10 &hellip; 1.29</td><td>0.436</td><td>+0.0104&thinsp;&plusmn;&thinsp;0.0008</td><td>+0.0251&thinsp;&plusmn;&thinsp;0.0039</td><td>+0.0204&thinsp;&plusmn;&thinsp;0.0093</td><td>0.5</td><td>30.7</td><td>12.86</td></tr>
+<tr><td>YZ Cnc</td><td>e7 <i>G</i> &rarr; e72 <i>g</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>g-r</td><td>84</td><td>0.26 &hellip; 1.19</td><td>0.456</td><td>+0.0068&thinsp;&plusmn;&thinsp;0.0026</td><td>-0.0327&thinsp;&plusmn;&thinsp;0.0131</td><td>-0.0395&thinsp;&plusmn;&thinsp;0.0128</td><td>0.4</td><td>22.8</td><td>8.55</td></tr>
+<tr><td>YZ Cnc</td><td>e7 <i>I</i> &rarr; e72 <i>i</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>r-i</td><td>95</td><td>0.07 &hellip; 1.52</td><td>0.174</td><td>+0.0059&thinsp;&plusmn;&thinsp;0.0024</td><td>-0.0485&thinsp;&plusmn;&thinsp;0.0111</td><td>-0.0566&thinsp;&plusmn;&thinsp;0.0118</td><td>0.5</td><td>21.9</td><td>7.64</td></tr>
+<tr><td>YZ Cnc</td><td>e7 <i>R</i> &rarr; e72 <i>r</i></td><td>Johnson-Cousins-labelled -&gt; Sloan-labelled</td><td>g-r</td><td>94</td><td>0.26 &hellip; 1.23</td><td>0.457</td><td>+0.0034&thinsp;&plusmn;&thinsp;0.0024</td><td>-0.0088&thinsp;&plusmn;&thinsp;0.0113</td><td>-0.0011&thinsp;&plusmn;&thinsp;0.0106</td><td>-0.5</td><td>21.7</td><td>7.75</td></tr>
 </table>
 
 <div class="decision"><b>Every one of the 9 transformations agrees
 with the independent prediction from the catalogue colour terms to within
-1.6&nbsp;&sigma;.</b>  That is the strongest available statement
+1.8&nbsp;&sigma;.</b>  That is the strongest available statement
 that these coefficients mean what they say: the same bandpass difference,
 measured twice by methods that share no arithmetic &mdash; one a regression
 of ensemble magnitude against catalogue magnitude, the other a differencing
@@ -439,7 +439,7 @@ intentions.</p>
 metadata and applied to nothing.</b>  The largest zero-point step between
 eras is <b>17.1&nbsp;mmag</b> at the
 reference colour and the largest colour slope is
-<b>0.0500&nbsp;mag/mag</b>.  A stitched ST&nbsp;LMi light curve
+<b>0.0488&nbsp;mag/mag</b>.  A stitched ST&nbsp;LMi light curve
 would therefore carry a step of that size plus a colour-dependent term, on
 a target whose colour swings through the orbit &mdash; which is precisely
 why the paper runs two within-era analyses instead.  The
@@ -459,7 +459,7 @@ error of known size for an extrapolation error of unknown size.</div>
 <p>The control row is the most interesting number on this page for anyone
 planning future observations: VV&nbsp;Pup's <i>g</i>&rarr;<i>g</i> slope
 across the era&nbsp;72&nbsp;&rarr;&nbsp;76 camera change is
-<b>0.0500</b>&nbsp;mag/mag,
+<b>0.0488</b>&nbsp;mag/mag,
 <i>larger</i> than ST&nbsp;LMi's G&rarr;g slope across the filter-label
 change.  The dominant bandpass difference in this archive is the DETECTOR
 ERA, not the filter label.  Any future analysis that groups by filter name
@@ -525,38 +525,38 @@ unverifiable position is not a limit, it is a number.</div>
 
 <table class="data">
 <tr><th>series</th><th>matched frames</th><th>detected</th><th>undetected</th><th>recovered</th><th>limits</th><th>failed</th><th>median limit (ensemble gauge)</th><th>median limit (natural system)</th><th>faintest detection</th><th>position from</th><th>catalogue cross-check (px)</th><th>closure frames</th><th>closure median (px)</th><th>closure p95 (px)</th><th>refused</th></tr>
-<tr><td>EU UMa e76 <i>i</i></td><td>349</td><td>24</td><td>325</td><td>298</td><td>27</td><td>0</td><td>21.63</td><td>17.22</td><td>30.39</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>EU UMa e78 <i>g</i></td><td>208</td><td>0</td><td>208</td><td>0</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>VV Pup e76 <i>i</i></td><td>124</td><td>51</td><td>73</td><td>51</td><td>21</td><td>1</td><td>21.87</td><td>17.10</td><td>22.63</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>EU UMa e76 <i>r</i></td><td>100</td><td>45</td><td>55</td><td>55</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>27.18</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>EU UMa e76 <i>g</i></td><td>221</td><td>172</td><td>49</td><td>35</td><td>14</td><td>0</td><td>20.40</td><td>17.22</td><td>25.34</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>AN UMa e76 <i>r</i></td><td>410</td><td>366</td><td>44</td><td>39</td><td>5</td><td>0</td><td>19.44</td><td>15.89</td><td>21.13</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>VV Pup e76 <i>r</i></td><td>186</td><td>143</td><td>43</td><td>30</td><td>9</td><td>3</td><td>19.36</td><td>15.73</td><td>21.63</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>ST LMi e7 <i>R</i></td><td>346</td><td>308</td><td>38</td><td>38</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>20.14</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>ST LMi e76 <i>i</i></td><td>550</td><td>513</td><td>37</td><td>25</td><td>6</td><td>6</td><td>19.92</td><td>15.45</td><td>21.31</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>VV Pup e76 <i>g</i></td><td>359</td><td>323</td><td>36</td><td>22</td><td>12</td><td>2</td><td>20.67</td><td>17.84</td><td>20.70</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>ST LMi e47 <i>y</i></td><td>35</td><td>0</td><td>35</td><td>0</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>ST LMi e76 <i>r</i></td><td>596</td><td>568</td><td>28</td><td>23</td><td>5</td><td>0</td><td>18.92</td><td>15.59</td><td>23.28</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>AN UMa e76 <i>g</i></td><td>451</td><td>425</td><td>26</td><td>22</td><td>4</td><td>0</td><td>19.21</td><td>16.33</td><td>20.42</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>ST LMi e76 <i>g</i></td><td>745</td><td>720</td><td>25</td><td>16</td><td>3</td><td>6</td><td>18.10</td><td>15.47</td><td>19.79</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>ST LMi e7 <i>I</i></td><td>340</td><td>315</td><td>25</td><td>25</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>20.36</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>VV Pup e72 <i>i</i></td><td>94</td><td>75</td><td>19</td><td>18</td><td>0</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>21.23</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>ST LMi e7 <i>G</i></td><td>296</td><td>278</td><td>18</td><td>18</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>20.01</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>VV Pup e72 <i>r</i></td><td>190</td><td>180</td><td>10</td><td>8</td><td>2</td><td>0</td><td>19.73</td><td>16.95</td><td>20.89</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>AN UMa e76 <i>i</i></td><td>257</td><td>253</td><td>4</td><td>4</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>21.63</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>ST LMi e47 <i>z</i></td><td>60</td><td>57</td><td>3</td><td>0</td><td>1</td><td>0</td><td>22.58</td><td>16.65</td><td>21.77</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>VV Pup e72 <i>g</i></td><td>196</td><td>194</td><td>2</td><td>0</td><td>2</td><td>0</td><td>20.04</td><td>17.50</td><td>20.45</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
-<tr><td>YZ Cnc e7 <i>R</i></td><td>443</td><td>442</td><td>1</td><td>1</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>17.51</td><td></td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>
+<tr><td>EU UMa e76 <i>i</i></td><td>349</td><td>24</td><td>325</td><td>298</td><td>27</td><td>0</td><td>21.63</td><td>17.22</td><td>30.39</td><td>ref_star</td><td>1.34</td><td>24</td><td>0.67</td><td>0.91</td><td></td></tr>
+<tr class="warn"><td>EU UMa e78 <i>g</i></td><td>208</td><td>0</td><td>208</td><td>0</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>plate_model</td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>forced position could not be validated: 0 frames with a detected target (need 10), median closure n/a (need &lt;= 1 px)</td></tr>
+<tr><td>VV Pup e76 <i>i</i></td><td>124</td><td>51</td><td>73</td><td>51</td><td>21</td><td>1</td><td>21.87</td><td>17.10</td><td>22.63</td><td>ref_star</td><td>4.48</td><td>51</td><td>0.43</td><td>0.68</td><td></td></tr>
+<tr><td>EU UMa e76 <i>r</i></td><td>100</td><td>45</td><td>55</td><td>55</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>27.18</td><td>ref_star</td><td>1.34</td><td>45</td><td>0.72</td><td>1.02</td><td></td></tr>
+<tr><td>EU UMa e76 <i>g</i></td><td>221</td><td>172</td><td>49</td><td>35</td><td>14</td><td>0</td><td>20.40</td><td>17.22</td><td>25.34</td><td>ref_star</td><td>1.34</td><td>60</td><td>0.46</td><td>0.68</td><td></td></tr>
+<tr><td>AN UMa e76 <i>r</i></td><td>410</td><td>366</td><td>44</td><td>39</td><td>5</td><td>0</td><td>19.44</td><td>15.89</td><td>21.13</td><td>ref_star</td><td>2.56</td><td>60</td><td>0.95</td><td>1.12</td><td></td></tr>
+<tr><td>VV Pup e76 <i>r</i></td><td>186</td><td>143</td><td>43</td><td>30</td><td>9</td><td>3</td><td>19.36</td><td>15.73</td><td>21.63</td><td>ref_star</td><td>4.48</td><td>60</td><td>0.15</td><td>0.35</td><td></td></tr>
+<tr><td>ST LMi e7 <i>R</i></td><td>346</td><td>308</td><td>38</td><td>37</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>20.13</td><td>ref_star</td><td>1.51</td><td>60</td><td>0.14</td><td>0.26</td><td></td></tr>
+<tr><td>ST LMi e76 <i>i</i></td><td>550</td><td>513</td><td>37</td><td>25</td><td>6</td><td>6</td><td>19.92</td><td>15.45</td><td>21.31</td><td>ref_star</td><td>2.36</td><td>60</td><td>0.30</td><td>0.94</td><td></td></tr>
+<tr><td>VV Pup e76 <i>g</i></td><td>359</td><td>323</td><td>36</td><td>22</td><td>12</td><td>2</td><td>20.67</td><td>17.84</td><td>20.70</td><td>ref_star</td><td>4.48</td><td>60</td><td>0.13</td><td>0.31</td><td></td></tr>
+<tr class="warn"><td>ST LMi e47 <i>y</i></td><td>35</td><td>0</td><td>35</td><td>0</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>ref_star</td><td>0.97</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>forced position could not be validated: 0 frames with a detected target (need 10), median closure n/a (need &lt;= 1 px)</td></tr>
+<tr><td>ST LMi e76 <i>r</i></td><td>596</td><td>568</td><td>28</td><td>23</td><td>5</td><td>0</td><td>18.92</td><td>15.59</td><td>23.28</td><td>ref_star</td><td>2.36</td><td>60</td><td>0.13</td><td>0.38</td><td></td></tr>
+<tr><td>AN UMa e76 <i>g</i></td><td>451</td><td>425</td><td>26</td><td>22</td><td>4</td><td>0</td><td>19.21</td><td>16.33</td><td>20.42</td><td>ref_star</td><td>2.56</td><td>60</td><td>0.87</td><td>1.07</td><td></td></tr>
+<tr><td>ST LMi e76 <i>g</i></td><td>745</td><td>720</td><td>25</td><td>16</td><td>3</td><td>6</td><td>18.10</td><td>15.47</td><td>19.79</td><td>ref_star</td><td>2.36</td><td>60</td><td>0.16</td><td>1.28</td><td></td></tr>
+<tr><td>ST LMi e7 <i>I</i></td><td>340</td><td>315</td><td>25</td><td>25</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>20.35</td><td>ref_star</td><td>1.51</td><td>60</td><td>0.13</td><td>0.33</td><td></td></tr>
+<tr><td>VV Pup e72 <i>i</i></td><td>94</td><td>75</td><td>19</td><td>18</td><td>0</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>21.23</td><td>ref_star</td><td>2.14</td><td>60</td><td>0.16</td><td>0.32</td><td></td></tr>
+<tr><td>ST LMi e7 <i>G</i></td><td>296</td><td>278</td><td>18</td><td>18</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>20.01</td><td>ref_star</td><td>1.51</td><td>60</td><td>0.09</td><td>0.43</td><td></td></tr>
+<tr><td>VV Pup e72 <i>r</i></td><td>190</td><td>180</td><td>10</td><td>8</td><td>2</td><td>0</td><td>19.74</td><td>16.96</td><td>20.89</td><td>ref_star</td><td>2.14</td><td>60</td><td>0.13</td><td>1.06</td><td></td></tr>
+<tr><td>AN UMa e76 <i>i</i></td><td>257</td><td>253</td><td>4</td><td>4</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>21.63</td><td>ref_star</td><td>2.56</td><td>60</td><td>0.84</td><td>1.38</td><td></td></tr>
+<tr><td>ST LMi e47 <i>z</i></td><td>60</td><td>57</td><td>3</td><td>0</td><td>1</td><td>0</td><td>22.58</td><td>16.65</td><td>21.77</td><td>ref_star</td><td>0.97</td><td>57</td><td>0.08</td><td>0.18</td><td></td></tr>
+<tr><td>VV Pup e72 <i>g</i></td><td>196</td><td>194</td><td>2</td><td>0</td><td>2</td><td>0</td><td>20.13</td><td>17.60</td><td>20.45</td><td>ref_star</td><td>2.14</td><td>60</td><td>0.14</td><td>0.44</td><td></td></tr>
+<tr><td>YZ Cnc e7 <i>R</i></td><td>443</td><td>442</td><td>1</td><td>1</td><td>0</td><td>0</td><td>&mdash;</td><td>&mdash;</td><td>17.53</td><td>ref_star</td><td>2.48</td><td>60</td><td>0.14</td><td>0.25</td><td></td></tr>
 </table>
 
 <p><b>Blocks refused limits, and why:</b></p>
-<ul class="legend"><li>None.</li></ul>
+<ul class="legend"><li><b>EU UMa e78 <i>g</i></b> &mdash; forced position could not be validated: 0 frames with a detected target (need 10), median closure n/a (need &lt;= 1 px)</li><li><b>ST LMi e47 <i>y</i></b> &mdash; forced position could not be validated: 0 frames with a detected target (need 10), median closure n/a (need &lt;= 1 px)</li></ul>
 </div>
 
 <div class="stage"><h3>Decision</h3>
-<div class="decision"><b>728 epochs recovered as detections,
+<div class="decision"><b>727 epochs recovered as detections,
 111 epochs bounded by a
-3&sigma; upper limit, 3 measured but unusable for
+3&sigma; upper limit, 4 measured but unusable for
 lack of a frame zero point, 19 unmeasurable.</b>
 The limit convention is stated on every row of the product:
 <code>3&nbsp;&times;</code> the measured aperture noise
@@ -621,8 +621,8 @@ assumed.</p>
 <tr><td>ST LMi e76 <i>g</i></td><td>16.50</td><td>15.47</td><td>-1.03</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
 <tr><td>ST LMi e76 <i>i</i></td><td>16.13</td><td>15.45</td><td>-0.68</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
 <tr><td>ST LMi e76 <i>r</i></td><td>16.42</td><td>15.59</td><td>-0.83</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
-<tr><td>VV Pup e72 <i>g</i></td><td>17.74</td><td>17.50</td><td>-0.23</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
-<tr><td>VV Pup e72 <i>r</i></td><td>17.61</td><td>16.95</td><td>-0.66</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
+<tr><td>VV Pup e72 <i>g</i></td><td>17.74</td><td>17.60</td><td>-0.14</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
+<tr><td>VV Pup e72 <i>r</i></td><td>17.61</td><td>16.96</td><td>-0.65</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
 <tr><td>VV Pup e76 <i>g</i></td><td>15.69</td><td>17.84</td><td>2.15</td><td>deeper than the detections</td></tr>
 <tr><td>VV Pup e76 <i>i</i></td><td>17.63</td><td>17.10</td><td>-0.53</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
 <tr><td>VV Pup e76 <i>r</i></td><td>17.59</td><td>15.73</td><td>-1.86</td><td>shallower &mdash; a low-sensitivity frame, not a faint target</td></tr>
