@@ -1,0 +1,27 @@
+{
+  "title": "SN 2023ixf: RLMT +5.4 to +50 d broadband photometry, saturation matrix and limits (MACRO Consortium release)",
+  "upload_type": "dataset",
+  "description": "Machine-readable release accompanying the MACRO Consortium SN 2023ixf validation-and-limits paper: per-frame and nightly gri photometry from the 0.5 m Robert L. Mutel Telescope (Winer Observatory), calibration sets, filter crosswalk, template table, saturation matrix, residuals against Li et al. (2025), late-time limits, and the list of slot-6 grism frames not promoted. See README.md for column definitions and provenance.",
+  "creators": [
+    {
+      "name": "Wetzel, James",
+      "affiliation": "Coe College"
+    }
+  ],
+  "license": "cc-by-4.0",
+  "keywords": [
+    "SN 2023ixf",
+    "supernova",
+    "photometry",
+    "MACRO Consortium",
+    "RLMT"
+  ],
+  "notes": "Released on behalf of the MACRO Consortium. Analysis code: https://github.com/jwwetzel/MACRO (pipeline/macro_sn, pipeline/scripts/run_sn_photometry.py).",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/jwwetzel/MACRO",
+      "relation": "isSupplementedBy",
+      "resource_type": "software"
+    }
+  ]
+}
