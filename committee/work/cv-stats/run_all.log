@@ -135,3 +135,17 @@ database: /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/products/phot/c
   8716 staged, 7802 measured; 6676 tied points
 
 === figures ===
+  + figR1  The g-i edge offset: stack, pairs, estimators, injection
+      /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/docs/CV_TimeSeries/figures/cv_revision/figR1_bandoffset.png
+  + figR2  Signed injection bias per band, era and estimator
+      /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/docs/CV_TimeSeries/figures/cv_revision/figR2_injectionbias.png
+  + figR3  O-C with per-band constants; the period-derivative bound every way
+      /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/docs/CV_TimeSeries/figures/cv_revision/figR3_ocrefit.png
+  + figR4  Accretion-spot longitude by night and by accretion state
+      /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/docs/CV_TimeSeries/figures/cv_revision/figR4_longitude.png
+  + figR5  ST LMi colour curves under three pairing rules, two eras
+      /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/docs/CV_TimeSeries/figures/cv_revision/figR5_colourcurves.png
+  + figR6  Edge-fit quality: the chi-squared distribution and three fits
+      /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/docs/CV_TimeSeries/figures/cv_revision/figR6_edgefits.png
+  + figR7  YZ Cnc: which superhump amplitudes the runs exclude
+      /Volumes/OWC StudioStack HDD/Dropbox/01_Research/MACRO/docs/CV_TimeSeries/figures/cv_revision/figR7_superhumplimits.png
